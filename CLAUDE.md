@@ -79,6 +79,23 @@ The same goes for signing keys: `*.jks` is git-ignored and should stay so.
   matters; saying a change works without having built it is worse than saying
   it is untested.
 
+## What to build next
+
+`ROADMAP.md` maps what a complete client contains — measured against Nekogram,
+which was read as an inventory, not as a source to borrow from — onto the
+Material 3 components each part should use. Keep it current.
+
+Two constraints from that reading are worth repeating here. Nekogram is
+**GPL-2.0**, so none of its code can come into this repository. And it uses no
+Material components and almost no XML at all — 694 hand-drawn `View`
+subclasses, 22 layouts in the whole app — so there is nothing in it to
+re-theme. It is a reference for behaviour, never for code.
+
+Use stock Material 3 components rather than hand-rolling substitutes. Custom
+drawing is justified only where Material has no equivalent and Telegram does
+have the thing: the voice waveform, delivery ticks, the typing indicator, the
+chat wallpaper.
+
 ## History worth knowing
 
 The initial commit — the whole client including the TDLib integration — is
