@@ -14,6 +14,23 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 | **Demo** | `TELEGRAM_API_ID=0` (default) | Offline UI; login code `12345` |
 | **TDLib** | real `api_id` + `api_hash` | Full auth → chats → messages → files → stories |
 
+## Getting set up
+
+```bat
+gradlew.bat :app:assembleDebug
+```
+
+That builds the **demo** client: the whole UI, offline, login code `12345`,
+no account and no keys needed. It is enough for most work on the interface.
+
+Copy `local.properties.example` to `local.properties` if you want to point
+Android Studio at a particular SDK, or to go live below.
+
+> `local.properties` is git-ignored and must stay that way. An `api_hash`
+> **cannot be reissued** at my.telegram.org — commit one and it is public
+> permanently, on an account that cannot be detached from it. Everyone keeps
+> their own copy locally.
+
 ## Enable live Telegram API
 
 1. Create an application at [my.telegram.org](https://my.telegram.org) → **API development tools**
@@ -30,11 +47,7 @@ TELEGRAM_API_HASH=your_api_hash_here
    - phone → code → (optional 2FA password) → `authorizationStateReady`
    - then `loadChats` / `getChatHistory` / `sendMessage` / `inputFileLocal`
 
-## Run demo (no keys)
-
-```bat
-gradlew.bat :app:assembleDebug
-```
+## Output
 
 APK: `app\build\outputs\apk\debug\TelegramYou-0.1.0-debug.apk`
 
