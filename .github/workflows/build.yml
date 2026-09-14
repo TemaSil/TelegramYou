@@ -57,3 +57,35 @@ jobs:
           name: apk-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
+
+      # Last, so the numbers land where the log tail can be read.
+      #
+      # A green "Unit tests" step proves nothing on its own: Gradle reports
+      # success when it runs no tests at all, and the artifact cannot be
+      # downloaded from every environment. Failing here on an empty run turns
+      # a green build into evidence that tests actually executed.
+      - name: Test summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+
+          files = glob.glob('app/build/test-results/**/*.xml', recursive=True)
+          total = failed = skipped = 0
+          for path in files:
+              root = ET.parse(path).getroot()
+              if root.tag != 'testsuite':
+                  continue
+              total += int(root.get('tests', 0))
+              failed += int(root.get('failures', 0)) + int(root.get('errors', 0))
+              skipped += int(root.get('skipped', 0))
+              print(f"  {root.get('name')}: {root.get('tests')} tests, "
+                    f"{root.get('failures')} failures, {root.get('errors')} errors")
+
+          print(f"TOTAL: {total} tests, {failed} failed, {skipped} skipped")
+          if total == 0:
+              print("::error::No tests ran. A green build must mean tests executed.")
+              sys.exit(1)
+          if failed:
+              sys.exit(1)
+          PY
