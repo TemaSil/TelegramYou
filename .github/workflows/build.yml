@@ -82,6 +82,10 @@ jobs:
               print(f"  {root.get('name')}: {root.get('tests')} tests, "
                     f"{root.get('failures')} failures, {root.get('errors')} errors")
 
+          # A notice, not just stdout: post-job steps bury the tail of the log,
+          # but annotations stay readable through the check-runs API.
+          print(f"::notice title=Unit tests::{total} tests, "
+                f"{failed} failed, {skipped} skipped")
           print(f"TOTAL: {total} tests, {failed} failed, {skipped} skipped")
           if total == 0:
               print("::error::No tests ran. A green build must mean tests executed.")
