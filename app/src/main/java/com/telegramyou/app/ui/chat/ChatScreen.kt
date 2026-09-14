@@ -25,8 +25,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -71,6 +73,10 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,10 +173,24 @@ fun ChatScreen(
                 state = listState,
                 modifier = Modifier.weight(1f),
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                items(detail?.messages.orEmpty(), key = { it.id }) { message ->
-                    MessageBubble(message)
+                val messages = detail?.messages.orEmpty()
+                itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
+                    val previous = messages.getOrNull(index - 1)
+                    val next = messages.getOrNull(index + 1)
+
+                    if (startsNewDay(previous, message)) {
+                        DaySeparator(message.date)
+                    }
+
+                    MessageBubble(
+                        message = message,
+                        // Only the last message of a run carries the tail, so a
+                        // burst from one person reads as one block.
+                        isLastInRun = endsRun(message, next),
+                        isFirstInRun = endsRun(previous, message)
+                    )
                 }
             }
 
@@ -206,22 +226,94 @@ fun ChatScreen(
     }
 }
 
+/** True when [message] belongs to a different day than [previous]. */
+private fun startsNewDay(previous: ChatMessage?, message: ChatMessage): Boolean {
+    if (message.date <= 0L) return false
+    if (previous == null) return true
+    return !sameDay(previous.date, message.date)
+}
+
+private fun sameDay(a: Long, b: Long): Boolean {
+    val first = Calendar.getInstance().apply { timeInMillis = a * 1000L }
+    val second = Calendar.getInstance().apply { timeInMillis = b * 1000L }
+    return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
+        first.get(Calendar.DAY_OF_YEAR) == second.get(Calendar.DAY_OF_YEAR)
+}
+
+/**
+ * True when [message] is the last of its run — the next one comes from the
+ * other side, sits more than five minutes later, or does not exist.
+ */
+private fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
+    if (message == null || next == null) return true
+    if (message.isOutgoing != next.isOutgoing) return true
+    if (message.date <= 0L || next.date <= 0L) return true
+    return next.date - message.date > 5 * 60
+}
+
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+private fun DaySeparator(date: Long) {
+    val label = remember(date) { dayLabel(date) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+private fun dayLabel(date: Long): String {
+    if (date <= 0L) return ""
+    val now = System.currentTimeMillis() / 1000
+    return when {
+        sameDay(date, now) -> "Today"
+        sameDay(date, now - 24 * 60 * 60) -> "Yesterday"
+        else -> SimpleDateFormat("d MMMM", Locale.getDefault())
+            .format(Date(date * 1000L))
+    }
+}
+
+@Composable
+private fun MessageBubble(
+    message: ChatMessage,
+    isLastInRun: Boolean,
+    isFirstInRun: Boolean
+) {
     val outgoing = message.isOutgoing
+    val corner = 20.dp
+    val tail = 6.dp
+    // Tight corners where a run continues, the tail only on its last message.
+    val shape = RoundedCornerShape(
+        topStart = if (outgoing || isFirstInRun) corner else tail,
+        topEnd = if (!outgoing || isFirstInRun) corner else tail,
+        bottomStart = if (outgoing || isLastInRun) corner else tail,
+        bottomEnd = if (!outgoing || isLastInRun) corner else tail
+    )
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start
     ) {
         Surface(
-            shape = if (outgoing) BubbleOutgoingShape else BubbleIncomingShape,
+            shape = shape,
             color = if (outgoing) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.surfaceContainerHighest,
             shadowElevation = 1.dp,
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                if (!outgoing && !message.senderName.isNullOrBlank()) {
+                if (!outgoing && isFirstInRun && !message.senderName.isNullOrBlank()) {
                     Text(
                         message.senderName,
                         style = MaterialTheme.typography.labelMedium,

@@ -5,6 +5,8 @@ Android plus roughly eighty patches. It was read here as a **map of what a
 complete client contains** — not as something to borrow from. Measurements
 below are from a clone of `master`, September 2026.
 
+Tick a box only when the thing works in the app, not when the code exists.
+
 ## Two findings that decide the approach
 
 **Nekogram cannot be re-skinned into Material Design 3.** There is no Material
@@ -27,117 +29,131 @@ which is exactly what this project already does.
 **Its code cannot be copied here.** Nekogram is **GPL-2.0**; using its source
 would put this repository under GPL-2.0 too. Ideas travel, lines do not.
 
-So Nekogram's value here is the inventory below, and its behaviour as a
-reference when ours has to match.
-
 ## What a complete client turns out to contain
 
-129 screens, by area:
+129 screens: 61 miscellaneous (pickers, intros, widgets), 18 settings, 15
+groups and channels, 10 profile and contacts, 7 media, 7 login and security,
+6 payments and bots, 3 conversation, 2 calls. The three conversation screens
+are misleading — `ChatActivity` alone is tens of thousands of lines. Most of
+the work in a client sits in very few places, which is why the order below
+starts where it does.
 
-| Area | Screens |
-|---|---|
-| Miscellaneous (pickers, intros, dialogs, widgets) | 61 |
-| Settings | 18 |
-| Groups and channels | 15 |
-| Profile and contacts | 10 |
-| Payments, Premium, bots | 6 |
-| Media and stickers | 7 |
-| Login and security | 7 |
-| Chats and conversation | 3 |
-| Calls | 2 |
+## Stack
 
-The three conversation screens are misleading: `ChatActivity` alone is tens of
-thousands of lines. Most of the work in a client is in very few places.
+Kotlin + Jetpack Compose + Material 3. These are not alternatives to one
+another: Kotlin is the language, Compose is the UI toolkit written in it. The
+alternative would be XML and Views, which is what Telegram uses and what rules
+its code out as a reference for anything but behaviour.
 
-## Where this project stands
+Use stock Material 3 components. Custom drawing is justified only where
+Material has no equivalent and Telegram genuinely has the thing.
 
-22 Kotlin files, 3 038 lines. `AuthScreen`, `HomeScreen`, `ChatScreen`,
-`StoryViewerScreen`, plus `ChatListRow`, `AvatarBubble`, `StoriesRail` and the
-theme. TDLib is wired through `JsonClient`; the demo backend covers the UI
-offline.
+- [ ] Bump the Compose BOM — `2025.02.00` predates `material3` 1.4, so
+      `ButtonGroup`, `FloatingToolbar`, `LoadingIndicator`, `SplitButton` and
+      the motion schemes are unavailable. Confirm what the new one resolves
+      before designing around anything Expressive.
 
-That is the skeleton of the first column below and nothing of the rest.
+## 1. Conversation
 
-## The plan, in Material 3 components
+The screen everything else depends on. 366 lines today: a `TopAppBar`, a
+`LazyColumn` of bubbles, a `TextField` composer.
 
-Only stock Material 3 — no hand-rolled substitutes for something the library
-already ships.
+- [x] Message list, own vs other — `LazyColumn`, `Surface`
+- [x] Composer with send — `TextField`, `IconButton`
+- [x] Attachment draft chip
+- [x] Bubble shape: asymmetric `RoundedCornerShape`, tail on the last of a run
+- [x] Date separators — `Surface` pill, `labelSmall`
+- [ ] Sender name and avatar in groups
+- [ ] Delivery state — custom ticks, Material has no equivalent
+- [ ] Reply: swipe to reply, banner over the composer, quoted block in bubble
+- [ ] Edit and delete — `DropdownMenu` or `ModalBottomSheet` on long press
+- [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
+- [ ] Copy, forward, select — contextual `TopAppBar`, `Checkbox`
+- [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file
+- [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
+- [ ] Voice messages: record on hold, play with a waveform (custom draw)
+- [ ] Unread divider and jump-to-latest `FloatingActionButton`
+- [ ] Pinned message bar — `Surface` under the `TopAppBar`
+- [ ] Typing indicator (custom draw)
+- [ ] Link previews — `Card` under the text
+- [ ] In-chat search with jump to the hit
+- [ ] Load older messages on scroll
 
-### 1. Conversation — the screen that matters most
+## 2. Chat list
 
-| Needed | Material 3 |
-|---|---|
-| Message list, own vs other | `LazyColumn`, `Surface` with asymmetric `RoundedCornerShape`, `MaterialTheme.colorScheme.primaryContainer` / `surfaceContainer` |
-| Composer | `OutlinedTextField` or `TextField`, `IconButton`, `FloatingActionButton` for send |
-| Attachment sheet | `ModalBottomSheet` |
-| Message actions | `ModalBottomSheet` or `DropdownMenu` |
-| Reactions | `FilterChip` row, `AssistChip` |
-| Reply / edit banner | `Surface` + `HorizontalDivider` |
-| Selection mode | `TopAppBar` swapped for a contextual one, `Checkbox` |
-| Unread divider, jump to latest | `HorizontalDivider` with label, small `FloatingActionButton` |
-| Pinned message bar | `Surface` under the `TopAppBar` |
-| Date separators | `Surface` pill, `labelSmall` |
+- [x] Rows — `ListItem`
+- [x] Stories rail
+- [ ] Unread badge — `Badge`
+- [ ] Swipe actions: mute, pin, archive, delete — `SwipeToDismissBox`
+- [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
+- [ ] Archive: entry row and its own screen
+- [ ] Search — `SearchBar`, server-side across chats and messages
+- [ ] Compose — `FloatingActionButton` into a contact picker
+- [ ] Pin, mute, mark read from a long-press `DropdownMenu`
+- [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets
 
-### 2. Chat list
+## 3. Settings and profile
 
-| Needed | Material 3 |
-|---|---|
-| Rows | `ListItem` — leading avatar, overline, trailing timestamp |
-| Unread badge | `Badge` |
-| Swipe actions | `SwipeToDismissBox` |
-| Folders | `PrimaryScrollableTabRow` or `FilterChip` row |
-| Search | `SearchBar` / `DockedSearchBar` |
-| Archive entry | `ListItem` above the list |
-| Compose | `FloatingActionButton` |
-| Navigation | `NavigationBar`, or `NavigationSuiteScaffold` to adapt to tablets |
-
-### 3. Settings and profile
-
-`Scaffold` + `LargeTopAppBar` with `TopAppBarScrollBehavior`, `ListItem` rows,
-`Switch`, `Slider`, `SegmentedButton`, `AlertDialog`, `ModalBottomSheet`.
 Material 3 covers this area completely; nothing custom is warranted.
 
-### 4. Media
+- [ ] Settings list — `Scaffold`, `LargeTopAppBar`, `ListItem`, `Switch`
+- [ ] Profile: view and edit name, bio, username
+- [ ] Appearance: theme, dynamic colour, text size — `SegmentedButton`, `Slider`
+- [ ] Notifications settings
+- [ ] Privacy, active sessions, sign out
+- [ ] Language — Russian and English
+- [ ] Data and storage, cache size
 
-`AsyncImage` (Coil) in `LazyVerticalGrid`, full-screen viewer as a `Dialog`,
-`LinearProgressIndicator` / `CircularProgressIndicator` for transfers,
-`Slider` for audio and video position.
+## 4. Media
 
-### Where custom drawing is actually justified
+- [ ] Image loading — Coil `AsyncImage`
+- [ ] Shared media grid — `LazyVerticalGrid`
+- [ ] Full-screen viewer with zoom and drag-to-dismiss
+- [ ] Download and upload progress — `LinearProgressIndicator`
+- [ ] Audio and video playback — `Slider` for position
+- [ ] Stickers, animated stickers, custom emoji
 
-Only where Material has no equivalent and Telegram genuinely has the thing:
-the voice waveform, delivery ticks, the typing indicator, the chat wallpaper.
-Everything else should be a stock component.
+## 5. Notifications
 
-## Order
+Without these it is not a messenger you can leave closed.
 
-1. **Conversation.** Send, receive, replies, editing, deletion, media in
-   bubbles. Everything else is worth less until this is right.
-2. **Chat list.** Folders, archive, search, swipe actions.
-3. **Settings and profile**, which is almost entirely `ListItem` and `Switch`.
-4. **Media**: viewer, shared media, downloads.
-5. **Notifications**, without which it is not a messenger you can leave closed.
-6. **Groups and channels**: members, permissions, invite links.
+- [ ] Foreground service holding the TDLib connection
+- [ ] A notification per chat, tap opens the conversation
+- [ ] Mute respected, open chat stays silent
+- [ ] Reply from the notification
 
-Not planned: calls (they need `tgcalls`, a second native stack TDLib does not
-carry), payments, Premium, and Telegram Business.
+## 6. Groups and channels
+
+- [ ] Member list
+- [ ] Join and leave
+- [ ] Permissions and admins
+- [ ] Invite links
+- [ ] Create a group or channel
+
+## Not planned
+
+Calls need `tgcalls`, a second native stack TDLib does not carry. Payments,
+Premium and Telegram Business are out of scope.
 
 ## Nekogram's own additions
 
-Cheap once the base holds, and worth having: a configurable double-tap action,
-message details, forward without quoting, copy photo / save file / open in
-browser, time with seconds, no number rounding, hide stories, hide the
-all-chats tab, show RPC errors, prefer IPv6, confirm before sending a voice
-message. Its `NekoConfig` carries about sixty such switches.
+Cheap once the base holds; its `NekoConfig` carries about sixty switches.
+
+- [ ] Configurable double-tap action
+- [ ] Message details — date, id, sender
+- [ ] Forward without quoting
+- [ ] Copy photo, save file, open in browser
+- [ ] Time with seconds, no number rounding
+- [ ] Hide stories, hide the all-chats tab
+- [ ] Show RPC errors, prefer IPv6
 
 Blocked on a base we do not have: translation and auto-translate, voice
 transcription, a tablet layout, markdown parser options, QR login.
 
-## One thing to check before starting
+## Infrastructure
 
-`app/build.gradle.kts` pins Compose BOM `2025.02.00`. The Material 3
-Expressive components — `ButtonGroup`, `FloatingToolbar`, `LoadingIndicator`,
-`SplitButton`, the motion schemes — arrived in `material3` 1.4 and are not in
-the version that BOM resolves. Bump the BOM and confirm what it gives before
-designing around anything Expressive. (Maven was not reachable from the
-environment this was written in, so the current version is unverified here.)
+- [x] TDLib wired through `JsonClient`, demo backend for offline work
+- [x] Build TDLib workflow (`JSONJava`) publishing the native libraries
+- [ ] Unpack a built `libtdjsonjava.so` into `app/src/main/jniLibs/`
+- [x] CI that builds the APK on push
+- [ ] Tests over the backends and the pure logic

@@ -1,0 +1,50 @@
+# Compiles the app on every push, and publishes a debug APK for main.
+#
+# Without this nothing checks that the project builds: the Android SDK and
+# Maven are not reachable from every environment the code is written in, so
+# "it compiles" is otherwise an assumption rather than a fact.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # A newer push makes an in-flight build pointless.
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # No credentials here: without TELEGRAM_API_ID the build selects the
+      # demo backend, which is what a CI build should exercise anyway.
+      - name: Assemble debug
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apk-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn

@@ -82,6 +82,14 @@ data class ChatMessage(
     val text: String,
     val isOutgoing: Boolean,
     val timeLabel: String,
+    /**
+     * When the message was sent, in epoch seconds.
+     *
+     * [timeLabel] is already formatted and cannot be grouped by: telling
+     * whether two messages fall on the same day, or close enough together to
+     * belong to one run, needs the instant itself.
+     */
+    val date: Long = 0L,
     val senderName: String? = null,
     val isRead: Boolean = false,
     val contentType: MessageContentType = MessageContentType.Text,

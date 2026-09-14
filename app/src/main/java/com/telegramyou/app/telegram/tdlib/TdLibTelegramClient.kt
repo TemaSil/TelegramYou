@@ -618,6 +618,7 @@ class TdLibTelegramClient(
             text = text,
             isOutgoing = message.optBoolean("is_outgoing"),
             timeLabel = formatTime(message.optInt("date")),
+            date = message.optInt("date").toLong(),
             senderName = sender?.let { mapUser(it).displayName },
             isRead = !message.optBoolean("is_outgoing") || message.optInt("sending_state") == 0,
             contentType = contentType,

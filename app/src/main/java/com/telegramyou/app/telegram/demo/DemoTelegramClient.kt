@@ -10,6 +10,9 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -194,7 +197,8 @@ class DemoTelegramClient : TelegramClient {
             chatId = chatId,
             text = text,
             isOutgoing = true,
-            timeLabel = "now",
+            timeLabel = demoTimeFormat.format(Date()),
+            date = System.currentTimeMillis() / 1000,
             isRead = false,
             contentType = type,
             fileName = fileName,
@@ -241,20 +245,56 @@ class DemoTelegramClient : TelegramClient {
     )
 
     private fun seedMessages() {
+        // Real instants rather than pre-baked labels: the conversation groups
+        // messages into runs and draws a separator when the day changes, and
+        // neither is possible from a string like "12:30". Spread across three
+        // days so both behaviours are visible in demo mode.
+        val day = 24 * 60 * 60L
+        val now = System.currentTimeMillis() / 1000
+        val today = now - 3 * 60 * 60
+        val yesterday = now - day - 2 * 60 * 60
+
         chatMessages[1] = mutableListOf(
-            ChatMessage(1, 1, "Welcome to TelegramYou", false, "12:30", "Material Design"),
-            ChatMessage(2, 1, "This build uses MaterialExpressiveTheme, springy FABs and vivid chat surfaces — no liquid glass.", false, "12:31", "Material Design"),
-            ChatMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, "12:32", "Material Design"),
-            ChatMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, "12:41", isRead = true)
+            demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
+            demoMessage(2, 1, "This build uses MaterialExpressiveTheme, springy FABs and vivid chat surfaces — no liquid glass.", false, today + 60, "Material Design"),
+            demoMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, today + 120, "Material Design"),
+            demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true)
         )
         chatMessages[2] = mutableListOf(
-            ChatMessage(10, 2, "Did you try the expressive loading indicator?", false, "10:55", "Lina Park"),
-            ChatMessage(11, 2, "Yes — and the split send button feels great.", true, "10:58", isRead = true),
-            ChatMessage(12, 2, "Sending a voice note next 🎧", false, "11:02", "Lina Park")
+            demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
+            demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
+            demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park")
         )
         chatMessages[3] = mutableListOf(
-            ChatMessage(20, 3, "Drop assets in the thread", false, "Yesterday", "Maya", contentType = MessageContentType.Text),
-            ChatMessage(21, 3, "brand-kit.zip", false, "Yesterday", "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB")
+            demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
+            demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB")
         )
     }
+
+    private fun demoMessage(
+        id: Long,
+        chatId: Long,
+        text: String,
+        isOutgoing: Boolean,
+        date: Long,
+        senderName: String? = null,
+        isRead: Boolean = false,
+        contentType: MessageContentType = MessageContentType.Text,
+        fileName: String? = null,
+        fileSizeLabel: String? = null
+    ) = ChatMessage(
+        id = id,
+        chatId = chatId,
+        text = text,
+        isOutgoing = isOutgoing,
+        timeLabel = demoTimeFormat.format(Date(date * 1000L)),
+        date = date,
+        senderName = senderName,
+        isRead = isRead,
+        contentType = contentType,
+        fileName = fileName,
+        fileSizeLabel = fileSizeLabel
+    )
+
+    private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 }
