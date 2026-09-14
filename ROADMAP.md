@@ -63,12 +63,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Attachment draft chip
 - [x] Bubble shape: asymmetric `RoundedCornerShape`, tail on the last of a run
 - [x] Date separators — `Surface` pill, `labelSmall`
-- [ ] Sender name and avatar in groups
+- [x] Sender name and avatar in groups
 - [x] Delivery state — `Icons.Rounded.Done` / `DoneAll`; Material ships both, so nothing is drawn by hand
 - [ ] Reply: swipe to reply, banner over the composer, quoted block in bubble
 - [ ] Edit and delete — `DropdownMenu` or `ModalBottomSheet` on long press
 - [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
-- [ ] Copy, forward, select — contextual `TopAppBar`, `Checkbox`
+- [~] Copy via long-press `DropdownMenu`; forward and select still missing
 - [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
 - [ ] Voice messages: record on hold, play with a waveform (custom draw)

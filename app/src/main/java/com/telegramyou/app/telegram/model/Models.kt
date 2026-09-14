@@ -91,6 +91,8 @@ data class ChatMessage(
      */
     val date: Long = 0L,
     val senderName: String? = null,
+    /** Author, so a group avatar keeps one colour per person. */
+    val senderId: Long? = null,
     val isRead: Boolean = false,
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,

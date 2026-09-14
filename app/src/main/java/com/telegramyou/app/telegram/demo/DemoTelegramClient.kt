@@ -290,6 +290,7 @@ class DemoTelegramClient : TelegramClient {
         timeLabel = demoTimeFormat.format(Date(date * 1000L)),
         date = date,
         senderName = senderName,
+        senderId = senderName?.hashCode()?.toLong(),
         isRead = isRead,
         contentType = contentType,
         fileName = fileName,

@@ -7,7 +7,9 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +35,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -63,6 +68,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.TelegramRepository
@@ -117,6 +124,8 @@ fun ChatScreen(
     }
 
     val chat = detail?.chat
+
+    val clipboard = LocalClipboardManager.current
 
     Scaffold(
         topBar = {
@@ -187,7 +196,13 @@ fun ChatScreen(
                         // Only the last message of a run carries the tail, so a
                         // burst from one person reads as one block.
                         isLastInRun = endsRun(message, next),
-                        isFirstInRun = endsRun(previous, message)
+                        isFirstInRun = endsRun(previous, message),
+                        // An avatar per message would be a column of repeats;
+                        // one against the last of a run is what reads right.
+                        showAvatar = detail?.chat?.isGroup == true,
+                        onCopy = {
+                            clipboard.setText(AnnotatedString(message.text))
+                        }
                     )
                 }
             }
@@ -247,13 +262,17 @@ private fun DaySeparator(date: Long) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
     message: ChatMessage,
     isLastInRun: Boolean,
-    isFirstInRun: Boolean
+    isFirstInRun: Boolean,
+    showAvatar: Boolean,
+    onCopy: () -> Unit
 ) {
     val outgoing = message.isOutgoing
+    var menuOpen by remember { mutableStateOf(false) }
     val corner = 20.dp
     val tail = 6.dp
     // Tight corners where a run continues, the tail only on its last message.
@@ -265,14 +284,35 @@ private fun MessageBubble(
     )
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start
+        horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Bottom
     ) {
-        Surface(
+        if (showAvatar && !outgoing) {
+            // The gutter is held even where no avatar is drawn, so bubbles in a
+            // run stay on one left edge instead of stepping in and out.
+            Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.Center) {
+                if (isLastInRun) {
+                    AvatarBubble(
+                        title = message.senderName.orEmpty().ifBlank { "?" },
+                        seed = message.senderId ?: message.chatId,
+                        size = 28.dp
+                    )
+                }
+            }
+            Spacer(Modifier.width(4.dp))
+        }
+        Box {
+            Surface(
             shape = shape,
             color = if (outgoing) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.surfaceContainerHighest,
             shadowElevation = 1.dp,
-            modifier = Modifier.widthIn(max = 320.dp)
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .combinedClickable(
+                    onClick = {},
+                    onLongClick = { menuOpen = true }
+                )
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 if (!outgoing && isFirstInRun && !message.senderName.isNullOrBlank()) {
@@ -339,6 +379,20 @@ private fun MessageBubble(
                         )
                     }
                 }
+            }
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Copy") },
+                    leadingIcon = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
+                    onClick = {
+                        onCopy()
+                        menuOpen = false
+                    }
+                )
             }
         }
     }

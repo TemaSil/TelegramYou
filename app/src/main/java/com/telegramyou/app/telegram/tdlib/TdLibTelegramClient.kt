@@ -620,6 +620,7 @@ class TdLibTelegramClient(
             timeLabel = formatTime(message.optInt("date")),
             date = message.optInt("date").toLong(),
             senderName = sender?.let { mapUser(it).displayName },
+            senderId = senderId,
             isRead = !message.optBoolean("is_outgoing") || message.optInt("sending_state") == 0,
             contentType = contentType,
             fileName = content?.optJSONObject("document")?.optString("file_name"),
