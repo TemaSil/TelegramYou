@@ -65,7 +65,7 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Date separators — `Surface` pill, `labelSmall`
 - [x] Sender name and avatar in groups
 - [x] Delivery state — `Icons.Rounded.Done` / `DoneAll`; Material ships both, so nothing is drawn by hand
-- [ ] Reply: swipe to reply, banner over the composer, quoted block in bubble
+- [~] Reply: banner over the composer and quoted block in bubble; swipe-to-reply still missing
 - [ ] Edit and delete — `DropdownMenu` or `ModalBottomSheet` on long press
 - [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing

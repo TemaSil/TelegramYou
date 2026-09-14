@@ -13,9 +13,11 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,8 +35,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Done
@@ -71,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
@@ -126,6 +131,7 @@ fun ChatScreen(
     val chat = detail?.chat
 
     val clipboard = LocalClipboardManager.current
+    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
 
     Scaffold(
         topBar = {
@@ -202,9 +208,18 @@ fun ChatScreen(
                         showAvatar = detail?.chat?.isGroup == true,
                         onCopy = {
                             clipboard.setText(AnnotatedString(message.text))
-                        }
+                        },
+                        onReply = { replyTo = message }
                     )
                 }
+            }
+
+            AnimatedVisibility(
+                visible = replyTo != null,
+                enter = fadeIn() + slideInVertically { it / 2 },
+                exit = fadeOut()
+            ) {
+                replyTo?.let { ReplyBanner(it, onCancel = { replyTo = null }) }
             }
 
             AnimatedVisibility(
@@ -227,10 +242,12 @@ fun ChatScreen(
                     val text = draft
                     val attachment = pendingAttachment
                     if (text.isBlank() && attachment == null) return@ComposerBar
+                    val answering = replyTo?.id
                     scope.launch {
-                        repository.sendMessage(chatId, text, attachment)
+                        repository.sendMessage(chatId, text, attachment, answering)
                         draft = ""
                         pendingAttachment = null
+                        replyTo = null
                         detail = repository.openChat(chatId)
                     }
                 }
@@ -269,7 +286,8 @@ private fun MessageBubble(
     isLastInRun: Boolean,
     isFirstInRun: Boolean,
     showAvatar: Boolean,
-    onCopy: () -> Unit
+    onCopy: () -> Unit,
+    onReply: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -315,6 +333,14 @@ private fun MessageBubble(
                 )
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                if (message.replyToId != null) {
+                    QuotedMessage(
+                        sender = message.replyToSender,
+                        text = message.replyToText,
+                        onTint = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
                 if (!outgoing && isFirstInRun && !message.senderName.isNullOrBlank()) {
                     Text(
                         message.senderName,
@@ -386,6 +412,14 @@ private fun MessageBubble(
                 onDismissRequest = { menuOpen = false }
             ) {
                 DropdownMenuItem(
+                    text = { Text("Reply") },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = null) },
+                    onClick = {
+                        onReply()
+                        menuOpen = false
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text("Copy") },
                     leadingIcon = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
                     onClick = {
@@ -393,6 +427,82 @@ private fun MessageBubble(
                         menuOpen = false
                     }
                 )
+            }
+        }
+    }
+}
+
+/**
+ * The quoted block inside a bubble.
+ *
+ * [text] is null when the original falls outside the loaded window, which is
+ * ordinary for a reply to something old — the block still shows, because the
+ * fact that this is a reply matters even when the quote cannot be recovered.
+ */
+@Composable
+private fun QuotedMessage(sender: String?, text: String?, onTint: Color) {
+    Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(2.dp))
+                .background(onTint.copy(alpha = 0.5f))
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text(
+                sender ?: "Reply",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = onTint.copy(alpha = 0.9f)
+            )
+            Text(
+                text ?: "Message",
+                style = MaterialTheme.typography.bodySmall,
+                color = onTint.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/** The banner over the composer showing what is being answered. */
+@Composable
+private fun ReplyBanner(message: ChatMessage, onCancel: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Rounded.Reply,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    message.senderName ?: "You",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    message.text.ifBlank { "Attachment" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            IconButton(onClick = onCancel) {
+                Icon(Icons.Rounded.Close, contentDescription = "Cancel reply")
             }
         }
     }

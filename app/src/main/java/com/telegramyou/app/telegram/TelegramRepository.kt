@@ -15,11 +15,16 @@ class TelegramRepository(
     fun observeChats(): StateFlow<List<ChatPreview>> = chats
     fun observeStories(): StateFlow<List<StoryItem>> = stories
 
-    suspend fun sendMessage(chatId: Long, text: String, attachment: AttachmentDraft? = null) {
+    suspend fun sendMessage(
+        chatId: Long,
+        text: String,
+        attachment: AttachmentDraft? = null,
+        replyToId: Long? = null
+    ) {
         if (attachment != null) {
-            client.sendAttachment(chatId, attachment, text)
+            client.sendAttachment(chatId, attachment, text, replyToId)
         } else if (text.isNotBlank()) {
-            client.sendText(chatId, text)
+            client.sendText(chatId, text, replyToId)
         }
     }
 }

@@ -137,18 +137,25 @@ class DemoTelegramClient : TelegramClient {
         )
     }
 
-    override suspend fun sendText(chatId: Long, text: String) {
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
         delay(120)
         appendOutgoing(
             chatId = chatId,
             text = text,
-            type = MessageContentType.Text
+            type = MessageContentType.Text,
+            replyToId = replyToId
         )
     }
 
-    override suspend fun sendAttachment(chatId: Long, draft: AttachmentDraft, caption: String) {
+    override suspend fun sendAttachment(
+        chatId: Long,
+        draft: AttachmentDraft,
+        caption: String,
+        replyToId: Long?
+    ) {
         delay(220)
         when (draft) {
+            // Only the first of a batch quotes; the rest would repeat it.
             is AttachmentDraft.Files -> {
                 draft.names.forEachIndexed { index, name ->
                     appendOutgoing(
@@ -156,17 +163,19 @@ class DemoTelegramClient : TelegramClient {
                         text = caption.ifBlank { name },
                         type = MessageContentType.Document,
                         fileName = name,
-                        fileSizeLabel = "1.${index + 2} MB"
+                        fileSizeLabel = "1.${index + 2} MB",
+                        replyToId = replyToId.takeIf { index == 0 }
                     )
                 }
             }
             is AttachmentDraft.Photos -> {
-                draft.uris.forEach { _ ->
+                draft.uris.forEachIndexed { index, _ ->
                     appendOutgoing(
                         chatId = chatId,
                         text = caption.ifBlank { "Photo" },
                         type = MessageContentType.Photo,
-                        mediaEmoji = "🖼️"
+                        mediaEmoji = "🖼️",
+                        replyToId = replyToId.takeIf { index == 0 }
                     )
                 }
             }
@@ -190,8 +199,12 @@ class DemoTelegramClient : TelegramClient {
         type: MessageContentType,
         fileName: String? = null,
         fileSizeLabel: String? = null,
-        mediaEmoji: String? = null
+        mediaEmoji: String? = null,
+        replyToId: Long? = null
     ) {
+        val quoted = replyToId?.let { id ->
+            chatMessages[chatId]?.firstOrNull { it.id == id }
+        }
         val msg = ChatMessage(
             id = messageId.incrementAndGet(),
             chatId = chatId,
@@ -203,7 +216,10 @@ class DemoTelegramClient : TelegramClient {
             contentType = type,
             fileName = fileName,
             fileSizeLabel = fileSizeLabel,
-            mediaEmoji = mediaEmoji
+            mediaEmoji = mediaEmoji,
+            replyToId = replyToId,
+            replyToText = quoted?.text,
+            replyToSender = quoted?.senderName
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

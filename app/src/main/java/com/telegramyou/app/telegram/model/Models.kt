@@ -93,6 +93,16 @@ data class ChatMessage(
     val senderName: String? = null,
     /** Author, so a group avatar keeps one colour per person. */
     val senderId: Long? = null,
+    /**
+     * The message this one answers.
+     *
+     * The quoted text and author are carried alongside the id because the
+     * original may not be in the loaded window — a reply to something from
+     * last week has to render without it.
+     */
+    val replyToId: Long? = null,
+    val replyToText: String? = null,
+    val replyToSender: String? = null,
     val isRead: Boolean = false,
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,

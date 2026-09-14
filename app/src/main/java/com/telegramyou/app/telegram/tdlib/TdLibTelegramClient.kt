@@ -202,12 +202,29 @@ class TdLibTelegramClient(
         )
     }
 
-    override suspend fun sendText(chatId: Long, text: String) {
+    /**
+     * TDLib expects a reply as an inputMessageReplyToMessage on the send, not
+     * a bare id. Absent when nothing is being answered — passing a null
+     * message_id would be rejected.
+     */
+    private fun JSONObject.withReplyTo(replyToId: Long?): JSONObject = apply {
+        if (replyToId != null) {
+            put(
+                "reply_to",
+                JSONObject()
+                    .put("@type", "inputMessageReplyToMessage")
+                    .put("message_id", replyToId)
+            )
+        }
+    }
+
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
         awaitReady()
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
                     JSONObject()
@@ -222,17 +239,27 @@ class TdLibTelegramClient(
         )
     }
 
-    override suspend fun sendAttachment(chatId: Long, draft: AttachmentDraft, caption: String) {
+    override suspend fun sendAttachment(
+        chatId: Long,
+        draft: AttachmentDraft,
+        caption: String,
+        replyToId: Long?
+    ) {
         awaitReady()
         when (draft) {
-            is AttachmentDraft.Photos -> draft.uris.forEach { uri ->
+            // Only the first of a batch answers the quoted message; the rest
+            // would each repeat the quote, which is not what Telegram does.
+            is AttachmentDraft.Photos -> draft.uris.forEachIndexed { index, uri ->
                 val path = copyUriToCache(uri, "photo_${System.currentTimeMillis()}.jpg")
-                sendLocalFile(chatId, path, caption, photo = true)
+                sendLocalFile(chatId, path, caption, photo = true,
+                    replyToId = replyToId.takeIf { index == 0 })
             }
-            is AttachmentDraft.Files -> draft.uris.zip(draft.names).forEach { (uri, name) ->
-                val path = copyUriToCache(uri, name)
-                sendLocalFile(chatId, path, caption, photo = false)
-            }
+            is AttachmentDraft.Files ->
+                draft.uris.zip(draft.names).forEachIndexed { index, (uri, name) ->
+                    val path = copyUriToCache(uri, name)
+                    sendLocalFile(chatId, path, caption, photo = false,
+                        replyToId = replyToId.takeIf { index == 0 })
+                }
         }
     }
 
@@ -266,7 +293,13 @@ class TdLibTelegramClient(
         _stories.value = emptyList()
     }
 
-    private suspend fun sendLocalFile(chatId: Long, path: String, caption: String, photo: Boolean) {
+    private suspend fun sendLocalFile(
+        chatId: Long,
+        path: String,
+        caption: String,
+        photo: Boolean,
+        replyToId: Long? = null
+    ) {
         val content = if (photo) {
             JSONObject()
                 .put("@type", "inputMessagePhoto")
@@ -294,6 +327,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .withReplyTo(replyToId)
                 .put("input_message_content", content)
         )
     }
@@ -589,7 +623,28 @@ class TdLibTelegramClient(
             out += mapMessage(chatId, msg)
         }
         // TDLib returns newest first; UI expects chronological
-        return out.asReversed()
+        return resolveReplies(out.asReversed())
+    }
+
+    /**
+     * Fills in the text and author of quoted messages from the same window.
+     *
+     * TDLib puts only an id in reply_to, so the quote has to be looked up.
+     * Anything referring outside the loaded window stays unresolved and the
+     * bubble shows a neutral placeholder — fetching each one separately would
+     * mean a request per reply on every chat open.
+     */
+    private fun resolveReplies(messages: List<ChatMessage>): List<ChatMessage> {
+        if (messages.none { it.replyToId != null }) return messages
+        val byId = messages.associateBy { it.id }
+        return messages.map { message ->
+            val target = message.replyToId?.let { byId[it] } ?: return@map message
+            message.copy(
+                // A quote the sender chose wins over the original's text.
+                replyToText = message.replyToText ?: target.text,
+                replyToSender = target.senderName
+            )
+        }
     }
 
     private fun mapMessage(chatId: Long, message: JSONObject): ChatMessage {
@@ -621,6 +676,16 @@ class TdLibTelegramClient(
             date = message.optInt("date").toLong(),
             senderName = sender?.let { mapUser(it).displayName },
             senderId = senderId,
+            replyToId = message.optJSONObject("reply_to")
+                ?.takeIf { it.optString("@type") == "messageReplyToMessage" }
+                ?.optLong("message_id")
+                ?.takeIf { it != 0L },
+            // Newer TDLib carries the fragment the sender highlighted; when it
+            // is there it is more accurate than the whole original message.
+            replyToText = message.optJSONObject("reply_to")
+                ?.optJSONObject("quote")
+                ?.optString("text")
+                ?.takeIf { it.isNotBlank() },
             isRead = !message.optBoolean("is_outgoing") || message.optInt("sending_state") == 0,
             contentType = contentType,
             fileName = content?.optJSONObject("document")?.optString("file_name"),
