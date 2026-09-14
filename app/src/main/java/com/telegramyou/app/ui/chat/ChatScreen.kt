@@ -73,10 +73,6 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -226,31 +222,6 @@ fun ChatScreen(
     }
 }
 
-/** True when [message] belongs to a different day than [previous]. */
-private fun startsNewDay(previous: ChatMessage?, message: ChatMessage): Boolean {
-    if (message.date <= 0L) return false
-    if (previous == null) return true
-    return !sameDay(previous.date, message.date)
-}
-
-private fun sameDay(a: Long, b: Long): Boolean {
-    val first = Calendar.getInstance().apply { timeInMillis = a * 1000L }
-    val second = Calendar.getInstance().apply { timeInMillis = b * 1000L }
-    return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
-        first.get(Calendar.DAY_OF_YEAR) == second.get(Calendar.DAY_OF_YEAR)
-}
-
-/**
- * True when [message] is the last of its run — the next one comes from the
- * other side, sits more than five minutes later, or does not exist.
- */
-private fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
-    if (message == null || next == null) return true
-    if (message.isOutgoing != next.isOutgoing) return true
-    if (message.date <= 0L || next.date <= 0L) return true
-    return next.date - message.date > 5 * 60
-}
-
 @Composable
 private fun DaySeparator(date: Long) {
     val label = remember(date) { dayLabel(date) }
@@ -271,17 +242,6 @@ private fun DaySeparator(date: Long) {
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
             )
         }
-    }
-}
-
-private fun dayLabel(date: Long): String {
-    if (date <= 0L) return ""
-    val now = System.currentTimeMillis() / 1000
-    return when {
-        sameDay(date, now) -> "Today"
-        sameDay(date, now - 24 * 60 * 60) -> "Yesterday"
-        else -> SimpleDateFormat("d MMMM", Locale.getDefault())
-            .format(Date(date * 1000L))
     }
 }
 

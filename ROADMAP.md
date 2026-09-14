@@ -156,4 +156,4 @@ transcription, a tablet layout, markdown parser options, QR login.
 - [x] Build TDLib workflow (`JSONJava`) publishing the native libraries
 - [ ] Unpack a built `libtdjsonjava.so` into `app/src/main/jniLibs/`
 - [x] CI that builds the APK on push
-- [ ] Tests over the backends and the pure logic
+- [x] Tests over the pure logic (message grouping); backends still untested
