@@ -39,6 +39,21 @@ With no credentials configured the app builds the **demo** backend: the whole
 UI offline, login code `12345`, no account needed. That covers most interface
 work, so do not assume a task needs live credentials.
 
+## Native TDLib
+
+`app/src/main/jniLibs/` is empty in a fresh clone; the `.so` files are far too
+big for git. Demo mode does not need them. Live mode does, and they come from
+the **Build TDLib** workflow, which is run by hand and takes over an hour.
+
+It builds the **JSONJava** interface on purpose. `JsonClient` calls
+`System.loadLibrary("tdjsonjava")` and declares `native` methods, so it needs
+`libtdjsonjava.so` and its `Java_org_drinkless_tdlib_JsonClient_*` symbols.
+The sibling Flutter project builds the plain **JSON** interface instead —
+`libtdjson.so`, no JNI symbols — for `dart:ffi`. The two are not
+interchangeable, and copying one into this repository produces an
+`UnsatisfiedLinkError`, not a working app. The workflow checks for the symbols
+before publishing.
+
 ## Credentials — never commit them
 
 `app/build.gradle.kts` reads `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from

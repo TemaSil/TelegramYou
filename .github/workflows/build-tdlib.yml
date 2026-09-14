@@ -1,0 +1,146 @@
+# Builds libtdjsonjava.so for Android and publishes it as a release asset,
+# to be unpacked into app/src/main/jniLibs/.
+#
+# TDLib ships no prebuilt Android binaries, and compiling OpenSSL plus TDLib
+# for every ABI takes hours — so this runs on demand rather than on every
+# push, and its output is reused until TDLib is bumped.
+#
+# The interface matters. TDLib's Android script builds three:
+#
+#   Java      the generated typed Java API
+#   JSON      plain C entry points, for FFI callers
+#   JSONJava  the JSON interface behind a JNI bridge   <-- this one
+#
+# JSONJava is what `org.drinkless.tdlib.JsonClient` binds to: it produces
+# libtdjsonjava.so, which is the name System.loadLibrary("tdjsonjava") looks
+# for, carrying the Java_org_drinkless_tdlib_JsonClient_* symbols the class's
+# native methods need. A JSON build produces libtdjson.so with no JNI symbols
+# at all and cannot stand in for it — the app would load and then die on the
+# first native call.
+name: Build TDLib
+
+on:
+  workflow_dispatch:
+    inputs:
+      tdlib_ref:
+        description: 'tdlib/td git ref to build'
+        required: false
+        default: 'master'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf php-cli \
+            cmake clang libc++-dev libc++abi-dev perl
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Check out TDLib
+        uses: actions/checkout@v4
+        with:
+          repository: tdlib/td
+          ref: ${{ github.event.inputs.tdlib_ref || 'master' }}
+          path: td
+
+      - name: Record the exact commit
+        id: rev
+        run: echo "sha=$(git -C td rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check environment
+        working-directory: td/example/android
+        run: ./check-environment.sh
+
+      - name: Fetch Android SDK
+        working-directory: td/example/android
+        run: ./fetch-sdk.sh
+
+      - name: Build OpenSSL
+        working-directory: td/example/android
+        run: ./build-openssl.sh
+
+      # Empty arguments keep each script default; the last picks the interface.
+      - name: Build TDLib (JSON interface behind JNI)
+        working-directory: td/example/android
+        run: ./build-tdlib.sh '' '' '' '' 'JSONJava'
+
+      - name: Collect the shared libraries
+        run: |
+          set -euo pipefail
+          mkdir -p out/jniLibs
+          echo "Built:"
+          find td/example/android/tdlib/libs -name '*.so' -print
+
+          for abi in arm64-v8a armeabi-v7a x86_64 x86; do
+            src="td/example/android/tdlib/libs/$abi"
+            [ -d "$src" ] || continue
+            mkdir -p "out/jniLibs/$abi"
+            # Everything the build left: libtdjsonjava.so, and libc++_shared /
+            # libcrypto / libssl when the STL or OpenSSL were built shared.
+            cp -p "$src"/*.so "out/jniLibs/$abi/"
+          done
+
+          # Refuse to publish a build that cannot possibly work rather than
+          # leaving somebody to find out an hour from now.
+          if ! find out/jniLibs -name 'libtdjsonjava.so' | grep -q .; then
+            echo "::error::No libtdjsonjava.so was produced."
+            exit 1
+          fi
+          if ! nm -D --defined-only out/jniLibs/arm64-v8a/libtdjsonjava.so \
+               | grep -q 'Java_org_drinkless_tdlib_JsonClient'; then
+            echo "::error::libtdjsonjava.so carries no JsonClient JNI symbols."
+            exit 1
+          fi
+
+          ls -R out/jniLibs
+          (cd out && zip -r ../tdlib-jnilibs-java.zip jniLibs)
+
+      # The generated JsonClient.java, so the checked-in copy can be compared
+      # against the build it is meant to talk to.
+      - name: Collect the Java source
+        run: |
+          src=td/example/android/tdlib/java/org/drinkless/tdlib/JsonClient.java
+          if [ -f "$src" ]; then
+            cp "$src" JsonClient.java
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tdlib-jnilibs-java
+          path: tdlib-jnilibs-java.zip
+          if-no-files-found: error
+
+      - name: Publish as a release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: tdlib-java-${{ steps.rev.outputs.sha }}
+          name: TDLib ${{ steps.rev.outputs.sha }} (Android, JSONJava)
+          body: |
+            `libtdjsonjava.so` built from tdlib/td@${{ steps.rev.outputs.sha }}
+            for arm64-v8a, armeabi-v7a, x86_64 and x86.
+
+            Unpack into `app/src/main/jniLibs/`:
+
+            ```bash
+            unzip tdlib-jnilibs-java.zip
+            cp -r jniLibs/* app/src/main/jniLibs/
+            ```
+
+            This is the **JSONJava** interface — the JSON API behind a JNI
+            bridge, which is what `org.drinkless.tdlib.JsonClient` loads. A
+            plain `libtdjson.so` from a JSON build exports no JNI symbols and
+            cannot be substituted.
+          files: |
+            tdlib-jnilibs-java.zip
+            JsonClient.java
+          fail_on_unmatched_files: false

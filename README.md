@@ -31,6 +31,28 @@ Android Studio at a particular SDK, or to go live below.
 > permanently, on an account that cannot be detached from it. Everyone keeps
 > their own copy locally.
 
+## Native TDLib
+
+`app/src/main/jniLibs/` is empty in a fresh clone — the `.so` files are tens
+of megabytes each and are not kept in git. Without them the app still builds
+and runs in demo mode; live mode needs them.
+
+Actions → **Build TDLib** → *Run workflow* compiles OpenSSL and TDLib for
+every Android ABI and publishes a `tdlib-java-<sha>` release. It takes a bit
+over an hour and only has to be done once, or when TDLib is bumped. Then:
+
+```bash
+unzip tdlib-jnilibs-java.zip
+cp -r jniLibs/* app/src/main/jniLibs/
+```
+
+It builds TDLib's **JSONJava** interface, which produces `libtdjsonjava.so` —
+the name `System.loadLibrary("tdjsonjava")` in `JsonClient` looks for, and the
+one carrying the `Java_org_drinkless_tdlib_JsonClient_*` symbols its native
+methods need. A `libtdjson.so` from a plain JSON build (the kind an FFI caller
+wants) exports none of those and cannot be substituted: the app would load and
+then fail on the first native call.
+
 ## Enable live Telegram API
 
 1. Create an application at [my.telegram.org](https://my.telegram.org) → **API development tools**
