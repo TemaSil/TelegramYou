@@ -96,6 +96,20 @@ drawing is justified only where Material has no equivalent and Telegram does
 have the thing: the voice waveform, delivery ticks, the typing indicator, the
 chat wallpaper.
 
+## What CI proves, and what it does not
+
+Every push builds the app and runs the unit tests. A green build means the
+tests **executed** — the final step fails the build when none ran, because
+Gradle reports success on an empty run and a passing step would otherwise mean
+nothing. The count comes back as a check-run annotation, which is the only
+route to it here: the log tail is buried by post-job steps and artifact
+downloads redirect to storage some environments cannot reach.
+
+What CI cannot say is how any of it looks. Nothing in the pipeline renders a
+screen, so layout, spacing and colour are unverified until somebody runs the
+app. Do not describe a visual change as working on the strength of a green
+build. Screenshot tests would close this and are not set up.
+
 ## History worth knowing
 
 The initial commit — the whole client including the TDLib integration — is

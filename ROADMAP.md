@@ -53,6 +53,26 @@ Material has no equivalent and Telegram genuinely has the thing.
       the motion schemes are unavailable. Confirm what the new one resolves
       before designing around anything Expressive.
 
+## Where this was left, 14 September 2026
+
+Eight of the nineteen conversation items are in and CI is green on every
+commit. The next two are blocked on the same thing, which is the first thing
+to do:
+
+**`TelegramClient` can only send.** There is no `deleteMessage` and no
+`editMessage`, so the long-press menu — which already exists and holds Reply
+and Copy — has nothing to put beside them. Adding those two to the interface,
+both backends and the menu is the next change, and it is the first one made to
+enable a feature rather than to draw one.
+
+After that, in order: swipe-to-reply (UI only, closes the `[~]` on Reply), then
+reactions, which needs another client method again.
+
+One thing to check: the **Build TDLib** run started this evening was still
+compiling OpenSSL after 43 minutes. If it finished, it published a
+`tdlib-java-<sha>` release; unpack it into `app/src/main/jniLibs/` and live
+mode works. If it failed, the log will say where.
+
 ## 1. Conversation
 
 The screen everything else depends on. 366 lines today: a `TopAppBar`, a
