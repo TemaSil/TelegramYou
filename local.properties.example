@@ -1,0 +1,20 @@
+# Copy this file to `local.properties` and fill it in.
+#
+#     cp local.properties.example local.properties
+#
+# `local.properties` is git-ignored and must stay that way: an api_hash
+# cannot be reissued at my.telegram.org, so once one is committed it is
+# public for good. Each developer keeps their own copy locally.
+
+# Path to your Android SDK. Android Studio writes this line itself the first
+# time it opens the project, so you can usually leave it out.
+#   Windows: sdk.dir=C\:\\Users\\you\\AppData\\Local\\Android\\Sdk
+#   macOS:   sdk.dir=/Users/you/Library/Android/sdk
+#   Linux:   sdk.dir=/home/you/Android/Sdk
+
+# Credentials from my.telegram.org -> API development tools.
+# Leave TELEGRAM_API_ID at 0 to build the offline demo client instead; the
+# app then accepts the login code 12345 and needs no account at all, which
+# is enough for most UI work.
+TELEGRAM_API_ID=0
+TELEGRAM_API_HASH=
