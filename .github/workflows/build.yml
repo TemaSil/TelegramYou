@@ -42,6 +42,15 @@ jobs:
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 
+      # Without this a green "Unit tests" step is ambiguous: Gradle reports
+      # success when it runs no tests at all.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: app/build/test-results/**/*.xml
+          if-no-files-found: error
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

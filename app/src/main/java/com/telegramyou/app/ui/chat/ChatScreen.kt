@@ -34,6 +34,8 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Done
+import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -310,12 +312,33 @@ private fun MessageBubble(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    message.timeLabel + if (outgoing && message.isRead) " ✓✓" else if (outgoing) " ✓" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = (if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface).copy(alpha = 0.55f),
+                val footnote = (if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface)
+                    .copy(alpha = 0.55f)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.align(Alignment.End)
-                )
+                ) {
+                    Text(
+                        message.timeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = footnote
+                    )
+                    if (outgoing) {
+                        Spacer(Modifier.width(4.dp))
+                        // Material ships both ticks, so there is nothing to draw
+                        // by hand: one for sent, two for read.
+                        Icon(
+                            imageVector = if (message.isRead) {
+                                Icons.Rounded.DoneAll
+                            } else {
+                                Icons.Rounded.Done
+                            },
+                            contentDescription = if (message.isRead) "Read" else "Sent",
+                            tint = footnote,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
             }
         }
     }
