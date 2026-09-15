@@ -132,8 +132,10 @@ fun AuthScreen(
                         (fadeOut() + slideOutVertically { -it / 4 })
                 },
                 label = "authStep"
-            ) { state ->
-                when (state) {
+                // Named for what it is, so it cannot shadow the screen's own
+                // state — which is how this went wrong the first time.
+            ) { step ->
+                when (step) {
                     AuthState.WaitPhoneNumber, AuthState.Bootstrapping, AuthState.Error, AuthState.Closed -> {
                         AuthFieldColumn(
                             title = "Your phone",
