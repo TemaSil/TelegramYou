@@ -8,8 +8,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,14 +18,14 @@ import androidx.compose.ui.graphics.Brush
 /**
  * A scrim over the screen while something is in flight.
  *
- * The indicator is Material's own. An earlier version drew a wavy ring by
- * hand on a Canvas, sixty-four line segments around a sine-modulated radius,
- * because [LoadingIndicator] arrived in material3 1.4 and the project was
- * pinned below it. Now that the BOM carries 1.4, the substitute has no
- * reason to exist: the stock one is the shape Material actually specifies,
- * and it follows the theme's colours and motion scheme without being told.
+ * The indicator is Material's own [CircularProgressIndicator]. An earlier
+ * version drew a wavy ring by hand on a Canvas — sixty-four line segments
+ * around a sine-modulated radius — standing in for Expressive's
+ * `LoadingIndicator`. That substitute is gone, but the real thing did not
+ * replace it: `LoadingIndicator` is not public in any stable material3, only
+ * in the 1.5.0 alphas. A stock component that exists beats a hand-drawn
+ * imitation of one that does not.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressiveLoadingOverlay(visible: Boolean) {
     AnimatedVisibility(
@@ -47,7 +46,7 @@ fun ExpressiveLoadingOverlay(visible: Boolean) {
                 ),
             contentAlignment = Alignment.Center
         ) {
-            LoadingIndicator()
+            CircularProgressIndicator()
         }
     }
 }

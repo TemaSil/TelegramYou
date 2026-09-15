@@ -2,9 +2,7 @@ package com.telegramyou.app.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialExpressiveTheme
-import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -59,7 +57,6 @@ private val DarkColors = darkColorScheme(
     outline = Color(0xFF8AA399)
 )
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TelegramYouTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -75,17 +72,15 @@ fun TelegramYouTheme(
         else -> LightColors
     }
 
-    // MaterialExpressiveTheme, not MaterialTheme. The difference is the
-    // motion scheme it publishes: every Material component reads its spring
-    // specs from here, so switching the theme makes the whole interface move
-    // the expressive way rather than requiring each call site to opt in.
+    // MaterialTheme, not MaterialExpressiveTheme, and not for want of trying.
     //
-    // This replaces a hand-rolled ExpressiveMotion holder that approximated
-    // the same springs. It was written when material3 1.4 was out of reach
-    // and read by nothing — no component consulted it, so it styled nothing.
-    MaterialExpressiveTheme(
+    // MaterialExpressiveTheme, MotionScheme and ExperimentalMaterial3ExpressiveApi
+    // are all declared `internal` in material3 1.4.0 — the newest stable
+    // release there is. Expressive is public only from the 1.5.0 alphas, so
+    // an application on stable Compose cannot reach it at all. See ROADMAP
+    // for what taking the alpha would cost.
+    MaterialTheme(
         colorScheme = colorScheme,
-        motionScheme = MotionScheme.expressive(),
         typography = TelegramYouTypography,
         shapes = TelegramYouShapes,
         content = content

@@ -119,6 +119,41 @@ jobs:
           for pair in pairs:
               print(pair)
           print("::notice title=BOM contents::" + "; ".join(pairs))
+
+          # What the newest material3 alphas need underneath them.
+          #
+          # Material 3 Expressive is not public in any stable material3 —
+          # MaterialExpressiveTheme, MotionScheme and LoadingIndicator are all
+          # internal in 1.4.0 — so reaching it means an alpha, and an alpha
+          # drags its own Compose core along. This prints what that core is,
+          # which decides whether the rest of the build has to move too.
+          try:
+              xml = urllib.request.urlopen(
+                  f"{GOOGLE}/androidx/compose/material3/material3"
+                  "/maven-metadata.xml", timeout=60
+              ).read().decode()
+              alphas = re.findall(r"<version>([^<]+)</version>", xml)
+              alphas = [v for v in alphas if v.startswith("1.5.0-alpha")][-3:]
+          except Exception as exc:
+              print(f"::warning title=material3 alphas::{exc}")
+              alphas = []
+
+          for version in alphas:
+              try:
+                  pom = urllib.request.urlopen(
+                      f"{GOOGLE}/androidx/compose/material3/material3/{version}"
+                      f"/material3-{version}.pom", timeout=60
+                  ).read().decode()
+              except Exception as exc:
+                  print(f"::warning title={version}::pom: {exc}")
+                  continue
+              needs = re.findall(
+                  r"<artifactId>(compose-)?(ui|foundation|runtime)[^<]*"
+                  r"</artifactId>\s*<version>([^<]+)</version>", pom
+              )
+              seen = sorted({f"{m[1]} {m[2]}" for m in needs})
+              print(f"::notice title={version} needs::" + ", ".join(seen))
+              print(f"{version} needs {seen}")
           PY
 
       # No credentials here: without TELEGRAM_API_ID the build selects the

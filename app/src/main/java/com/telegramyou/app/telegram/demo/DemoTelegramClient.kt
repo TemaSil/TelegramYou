@@ -292,7 +292,7 @@ class DemoTelegramClient : TelegramClient {
 
         chatMessages[1] = mutableListOf(
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
-            demoMessage(2, 1, "Material 3 Expressive, for real now: MaterialExpressiveTheme, the stock motion scheme, a proper LoadingIndicator.", false, today + 60, "Material Design"),
+            demoMessage(2, 1, "Material 3 with dynamic colour, stock components throughout — no liquid glass. Expressive is not public in a stable material3 yet.", false, today + 60, "Material Design"),
             demoMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, today + 120, "Material Design"),
             demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true)
         )

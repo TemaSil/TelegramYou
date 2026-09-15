@@ -48,29 +48,50 @@ its code out as a reference for anything but behaviour.
 Use stock Material 3 components. Custom drawing is justified only where
 Material has no equivalent and Telegram genuinely has the thing.
 
-- [x] Compose BOM on `2025.09.01`, resolving `material3` 1.4.0 — where
-      `ButtonGroup`, `FloatingToolbar`, `LoadingIndicator`, `SplitButton`,
-      `MaterialExpressiveTheme` and the motion schemes live. compileSdk moved
-      to 36 with it; targetSdk stays 35.
+- [x] Compose BOM on `2025.09.01`, resolving `material3` 1.4.0 — the newest
+      stable — with compileSdk 36. targetSdk stays 35.
 
       The earliest BOM carrying 1.4.0, deliberately. Every later one pins the
-      same 1.4.0 and differs only in the Compose core beneath it — the newest,
-      `2026.09.00`, brings ui 1.12.1 and demands compileSdk 37 and AGP 9, for
-      no Expressive that 2025.09.01 does not already have. The Build workflow
-      prints the whole table, so this can be rechecked rather than recalled.
+      same 1.4.0 and differs only in the Compose core beneath it; the newest,
+      `2026.09.00`, brings ui 1.12.1 and demands compileSdk 37 and AGP 9. The
+      Build workflow prints the whole table, so this can be rechecked rather
+      than recalled.
 
-- [~] Use them:
-      - [x] `MaterialExpressiveTheme` in `TelegramYouTheme` with
-            `MotionScheme.expressive()`, replacing a hand-rolled
-            `ExpressiveMotion` holder that no component ever read
-      - [x] `LoadingIndicator` in place of the hand-drawn wavy ring in
-            `ExpressiveLoadingOverlay`
-      - [x] The demo chat's claim about the theme is true now
-      - [ ] `FloatingToolbar` for a message selection bar
-      - [ ] `ButtonGroup` in settings
+### Material 3 Expressive is not available on stable Compose
 
-      Careful with the ticks above: CI proves these compile, not that they
-      look right. Nothing in the pipeline renders a screen.
+This was tried and it does not compile. `MaterialExpressiveTheme`,
+`MotionScheme`, `ExperimentalMaterial3ExpressiveApi` and `LoadingIndicator`
+are **`internal`** in `material3` 1.4.0:
+
+```
+e: Cannot access 'fun MaterialExpressiveTheme(...)': it is internal in file.
+e: Cannot access 'interface MotionScheme : Any': it is internal in file.
+e: Unresolved reference 'LoadingIndicator'.
+```
+
+1.4.0 is the newest stable `material3` there is. Expressive is public only
+from the `1.5.0-alpha` line, so the choice is an alpha or nothing — there is
+no stable configuration that reaches it, and no BOM pins an alpha.
+
+- [ ] Decide whether to take `material3:1.5.0-alpha*`. What it costs is the
+      open question: the alpha carries its own Compose core, which on the
+      evidence of the BOM table means ui 1.12-ish, and that meant compileSdk
+      37 and AGP 9 — a major-version move that also rewrites the APK-naming
+      block, since AGP 9 drops the variant API it uses. The Build workflow
+      now prints what the newest alphas depend on, so this can be costed
+      instead of guessed. Against that: an alpha is an alpha, and this is the
+      theme every screen is built on.
+
+Until that is decided, the interface uses stock stable Material 3 — which is
+what the project should be doing anyway. Two things were cleaned up on the
+way through, and they stand regardless:
+
+- [x] `ExpressiveMotion` / `LocalExpressiveMotion` deleted. Hand-rolled
+      spring tokens that no component ever read, so they styled nothing.
+- [x] The wavy ring `ExpressiveLoadingOverlay` drew on a Canvas is gone,
+      replaced by `CircularProgressIndicator`. A stock component that exists
+      beats a hand-drawn imitation of one that does not.
+- [x] The demo chat no longer claims the build uses `MaterialExpressiveTheme`.
 
 ## Where this was left, 14 September 2026
 
