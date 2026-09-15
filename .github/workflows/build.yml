@@ -125,8 +125,20 @@ jobs:
 
       # No credentials here: without TELEGRAM_API_ID the build selects the
       # demo backend, which is what a CI build should exercise anyway.
+      # Timed out on purpose, and filtered rather than silent.
+      #
+      # The first builds after compileSdk moved to 36 sat here for a quarter
+      # of an hour producing not one line, which says nothing about where
+      # they were stuck — the default output prints only on completion. The
+      # filter keeps task starts and downloads, which is enough to see what a
+      # stall is waiting on, and drops the rest of --info.
       - name: Assemble debug
-        run: ./gradlew :app:assembleDebug --stacktrace
+        timeout-minutes: 15
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace --console=plain --info 2>&1 \
+            | grep -E '^> Task|^Download |FAILURE|^e: |error:|Caused by' \
+            | tail -300
 
       # A BOM pins versions without naming them, so "which material3 is this"
       # is otherwise unanswerable without reading a dependency tree by hand.
