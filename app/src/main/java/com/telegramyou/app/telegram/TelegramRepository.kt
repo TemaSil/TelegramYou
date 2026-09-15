@@ -15,11 +15,8 @@ class TelegramRepository(
     fun observeChats(): StateFlow<List<ChatPreview>> = chats
     fun observeStories(): StateFlow<List<StoryItem>> = stories
 
-    suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) =
-        client.deleteMessage(chatId, messageId, forEveryone)
-
-    suspend fun editMessage(chatId: Long, messageId: Long, text: String) =
-        client.editMessage(chatId, messageId, text)
+    // deleteMessage and editMessage arrive through the `by client` delegation
+    // above; redeclaring them here only shadowed the interface.
 
     suspend fun sendMessage(
         chatId: Long,

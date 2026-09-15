@@ -7,7 +7,9 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    # Work happens on claude/* branches before it reaches main, and an
+    # unbuilt branch is not worth reviewing.
+    branches: [main, 'claude/**']
   pull_request:
   workflow_dispatch:
 
@@ -40,6 +42,36 @@ jobs:
           packages: 'platform-tools'
 
       - uses: gradle/actions/setup-gradle@v4
+
+      # What Google's Maven actually offers, as a notice.
+      #
+      # Google's Maven is not reachable from every environment this code is
+      # written in, so a BOM version can otherwise only be guessed at and
+      # checked by pushing. This prints the newest ones where they can be read
+      # without downloading an artifact.
+      - name: Available Compose versions
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import re, urllib.request
+
+          def versions(path):
+              url = f"https://dl.google.com/dl/android/maven2/{path}/maven-metadata.xml"
+              xml = urllib.request.urlopen(url, timeout=60).read().decode()
+              return re.findall(r"<version>([^<]+)</version>", xml)
+
+          for name, path in (
+              ("compose-bom", "androidx/compose/compose-bom"),
+              ("material3", "androidx/compose/material3/material3"),
+          ):
+              try:
+                  found = versions(path)[-25:]
+              except Exception as exc:
+                  print(f"::warning title={name}::could not be read: {exc}")
+                  continue
+              print(f"::notice title={name}::" + ", ".join(found))
+              print(f"{name}: {found}")
+          PY
 
       # No credentials here: without TELEGRAM_API_ID the build selects the
       # demo backend, which is what a CI build should exercise anyway.
