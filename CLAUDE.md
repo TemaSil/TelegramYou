@@ -51,8 +51,12 @@ It builds the **JSONJava** interface on purpose. `JsonClient` calls
 The sibling Flutter project builds the plain **JSON** interface instead —
 `libtdjson.so`, no JNI symbols — for `dart:ffi`. The two are not
 interchangeable, and copying one into this repository produces an
-`UnsatisfiedLinkError`, not a working app. The workflow checks for the symbols
-before publishing.
+`UnsatisfiedLinkError`, not a working app.
+
+The workflow checks the built library exports `JNI_OnLoad` before publishing —
+not `Java_org_drinkless_*`. TDLib binds its natives with `RegisterNatives`
+from inside `JNI_OnLoad`, so a correct library exports no `Java_*` symbols at
+all. Checking for those rejects a good build.
 
 ## Credentials — never commit them
 

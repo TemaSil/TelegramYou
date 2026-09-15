@@ -96,9 +96,22 @@ jobs:
             echo "::error::No libtdjsonjava.so was produced."
             exit 1
           fi
+          # JNI_OnLoad, not Java_* symbols.
+          #
+          # TDLib binds its natives with RegisterNatives from inside
+          # JNI_OnLoad, so a correctly built library exports no
+          # Java_org_drinkless_* symbols at all — td_jni.cpp contains not one
+          # JNIEXPORT Java_ declaration. An earlier version of this check
+          # demanded them and rejected a good build after 77 minutes of
+          # compiling. JNI_OnLoad is what this binding style actually
+          # guarantees, and its absence would mean the JSON interface was
+          # built without JNI.
+          echo "Exported symbols (sample):"
+          nm -D --defined-only out/jniLibs/arm64-v8a/libtdjsonjava.so \
+            | head -20 || true
           if ! nm -D --defined-only out/jniLibs/arm64-v8a/libtdjsonjava.so \
-               | grep -q 'Java_org_drinkless_tdlib_JsonClient'; then
-            echo "::error::libtdjsonjava.so carries no JsonClient JNI symbols."
+               | grep -q 'JNI_OnLoad'; then
+            echo "::error::libtdjsonjava.so exports no JNI_OnLoad — built without JNI?"
             exit 1
           fi
 
