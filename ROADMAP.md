@@ -48,10 +48,29 @@ its code out as a reference for anything but behaviour.
 Use stock Material 3 components. Custom drawing is justified only where
 Material has no equivalent and Telegram genuinely has the thing.
 
-- [ ] Bump the Compose BOM — `2025.02.00` predates `material3` 1.4, so
-      `ButtonGroup`, `FloatingToolbar`, `LoadingIndicator`, `SplitButton` and
-      the motion schemes are unavailable. Confirm what the new one resolves
-      before designing around anything Expressive.
+- [x] Compose BOM on `2025.09.01`, resolving `material3` 1.4.0 — where
+      `ButtonGroup`, `FloatingToolbar`, `LoadingIndicator`, `SplitButton`,
+      `MaterialExpressiveTheme` and the motion schemes live. compileSdk moved
+      to 36 with it; targetSdk stays 35.
+
+      The earliest BOM carrying 1.4.0, deliberately. Every later one pins the
+      same 1.4.0 and differs only in the Compose core beneath it — the newest,
+      `2026.09.00`, brings ui 1.12.1 and demands compileSdk 37 and AGP 9, for
+      no Expressive that 2025.09.01 does not already have. The Build workflow
+      prints the whole table, so this can be rechecked rather than recalled.
+
+- [ ] Use them. Nothing does yet, and until something does this line is the
+      only evidence the move happened:
+      - [ ] `LoadingIndicator` in place of the hand-drawn wavy ring in
+            `ExpressiveLoadingOverlay`, which exists only because 1.4 was out
+            of reach
+      - [ ] `MaterialExpressiveTheme` in `TelegramYouTheme`, and the stock
+            motion schemes in place of the hand-rolled `ExpressiveMotion`
+      - [ ] `FloatingToolbar` for a message selection bar
+      - [ ] `ButtonGroup` in settings
+      - [ ] The demo chat claims "This build uses MaterialExpressiveTheme,
+            springy FABs and vivid chat surfaces". It does not. Make it true
+            or delete the line.
 
 ## Where this was left, 14 September 2026
 
