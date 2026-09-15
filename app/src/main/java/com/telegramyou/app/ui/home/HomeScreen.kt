@@ -1,8 +1,5 @@
 package com.telegramyou.app.ui.home
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -142,19 +139,18 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                     }
+                    // No AnimatedVisibility here. It wrapped every row with
+                    // visible = true, which never transitions, so the enter
+                    // animation could not run — a composition layer that cost
+                    // something and did nothing.
                     itemsIndexed(chats, key = { _, chat -> chat.id }) { _, chat ->
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn() + slideInVertically { it / 4 }
-                        ) {
-                            ChatListRow(
-                                chat = chat,
-                                onClick = { onOpenChat(chat.id) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp)
-                            )
-                        }
+                        ChatListRow(
+                            chat = chat,
+                            onClick = { onOpenChat(chat.id) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                        )
                     }
                 }
             }

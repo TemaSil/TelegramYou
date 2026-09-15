@@ -56,6 +56,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -663,24 +664,29 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
         is AttachmentDraft.Files -> "${draft.names.size} file(s): ${draft.names.firstOrNull().orEmpty()}"
         is AttachmentDraft.Photos -> "${draft.uris.size} photo(s)"
     }
+    // An InputChip, which is the Material component for "one item you have
+    // added and can take back". It was a Row painted to look like a chip,
+    // with a "Clear" TextButton where the dismiss icon belongs.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            if (draft is AttachmentDraft.Photos) Icons.Rounded.Image else Icons.Rounded.AttachFile,
-            contentDescription = null
+        InputChip(
+            selected = false,
+            onClick = onClear,
+            label = { Text(label, maxLines = 1) },
+            leadingIcon = {
+                Icon(
+                    if (draft is AttachmentDraft.Photos) Icons.Rounded.Image
+                    else Icons.Rounded.AttachFile,
+                    contentDescription = null
+                )
+            },
+            trailingIcon = {
+                Icon(Icons.Rounded.Close, contentDescription = "Remove attachment")
+            }
         )
-        Spacer(Modifier.width(8.dp))
-        Text(label, modifier = Modifier.weight(1f), maxLines = 1)
-        androidx.compose.material3.TextButton(onClick = onClear) {
-            Text("Clear")
-        }
     }
 }
 

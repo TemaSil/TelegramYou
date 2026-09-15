@@ -1,7 +1,6 @@
 package com.telegramyou.app.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,11 +51,14 @@ fun StoriesRail(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
     val alpha by animateFloatAsState(
         targetValue = if (story.hasUnseen || story.isOwn) 1f else 0.72f,
-        animationSpec = spring(),
+        // Fading a seen story is a change of appearance, not of position,
+        // so it takes an effects spec rather than a spatial one.
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "storyAlpha"
     )
     Column(

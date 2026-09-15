@@ -186,6 +186,38 @@ was corrected and the rerun succeeded on 15 September:
 — `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs. Unpack into
 `app/src/main/jniLibs/` for live mode.
 
+## The revision pass, 15 September 2026
+
+Prompted by a fair question: with Expressive in hand, should the plan start
+again? No — nine items are ticked out of a hundred-odd, and the new arsenal
+mostly lands on work not yet done, where it costs nothing to pick the right
+component up front. But auditing what exists against stock Material was
+worth it, because **two ticks below were false**:
+
+| Claimed | Actually was |
+|---|---|
+| `[x] Rows — ListItem` | a hand-built `Row` + `Column` with its own paddings, heights and text styles |
+| `[ ] Unread badge — Badge` | already built, as a `Box` with a 50% corner radius |
+
+Both are now what they said they were. Fixed with them:
+
+- **`indication = null` in three places** — the avatar, the chat row and the
+  story viewer had Material's press feedback switched off by hand, so a tap
+  produced no state layer at all. The avatar keeps its scale animation; that
+  is extra, not a replacement.
+- **The attachment chip is an `InputChip`** — it was a Row painted to look
+  like a chip, with a "Clear" text button where the dismiss icon goes.
+- **`AnimatedVisibility(visible = true)`** around every chat row: a constant
+  never transitions, so the enter animation could not run. Removed.
+- **Our own components now read `MotionScheme`.** The theme publishes the
+  expressive springs and stock components obey it, but `AvatarBubble` and
+  `StoriesRail` still carried their own hardcoded numbers — the same
+  `0.55f / StiffnessMediumLow` pair deleted from `ExpressiveMotion` as
+  unread. Half the migration had gone unspent.
+
+Still open, and honest about it: `onClick = {}` stubs remain on the search
+button and the composer's voice button. They look like features and are not.
+
 ## 1. Conversation
 
 The screen everything else depends on. 366 lines today: a `TopAppBar`, a
@@ -193,7 +225,7 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 
 - [x] Message list, own vs other — `LazyColumn`, `Surface`
 - [x] Composer with send — `TextField`, `IconButton`
-- [x] Attachment draft chip
+- [x] Attachment draft chip — `InputChip`
 - [x] Bubble shape: asymmetric `RoundedCornerShape`, tail on the last of a run
 - [x] Date separators — `Surface` pill, `labelSmall`
 - [x] Sender name and avatar in groups
@@ -216,7 +248,7 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 
 - [x] Rows — `ListItem`
 - [x] Stories rail
-- [ ] Unread badge — `Badge`
+- [x] Unread badge — `Badge`
 - [ ] Swipe actions: mute, pin, archive, delete — `SwipeToDismissBox`
 - [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
 - [ ] Archive: entry row and its own screen

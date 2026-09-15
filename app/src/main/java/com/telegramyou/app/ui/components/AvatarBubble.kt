@@ -1,8 +1,6 @@
 package com.telegramyou.app.ui.components
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,8 +9,10 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telegramyou.app.ui.theme.avatarColor
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AvatarBubble(
     title: String,
@@ -41,9 +42,12 @@ fun AvatarBubble(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    // The spring comes from the theme's motion scheme, not from numbers
+    // chosen here. Press feedback is movement, so it is a spatial spec; fast,
+    // because a touch response that lags reads as a dropped frame.
     val scale by animateFloatAsState(
         targetValue = if (pressed) 0.92f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = 0.55f),
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "avatarScale"
     )
     val base = avatarColor(seed)
@@ -89,7 +93,14 @@ fun AvatarBubble(
             )
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(interactionSource = interaction, indication = null, onClick = onClick)
+                    // No `indication = null`. The scale below is extra, not a
+                    // replacement: switching Material's own press feedback off
+                    // leaves a tap with no state layer at all.
+                    Modifier.clickable(
+                        interactionSource = interaction,
+                        indication = ripple(bounded = false),
+                        onClick = onClick
+                    )
                 } else Modifier
             ),
         contentAlignment = Alignment.Center
