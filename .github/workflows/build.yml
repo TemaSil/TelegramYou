@@ -37,9 +37,16 @@ jobs:
       # repository — sdkmanager fails to find it and the action dies before
       # exporting ANDROID_HOME. This broke builds that had been green for days
       # without a commit touching them.
+      #
+      # The platform is listed here rather than left to AGP. AGP will fetch a
+      # missing compileSdk itself, but it does that in the middle of the build
+      # and needs the licence already accepted; the first build after
+      # compileSdk moved to 36 sat in Assemble for twelve minutes without
+      # producing a line. This action accepts licences, so the platform is
+      # present before Gradle starts. Keep this in step with compileSdk.
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools'
+          packages: 'platform-tools platforms;android-36'
 
       - uses: gradle/actions/setup-gradle@v4
 
