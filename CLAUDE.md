@@ -4,6 +4,40 @@ Android Telegram client in Kotlin and Jetpack Compose, styled after
 **Material You Expressive**. Talks to Telegram through the official TDLib
 JSON interface.
 
+## What this client is for
+
+**A Telegram that looks and behaves like Android, because nothing else does.**
+
+The official client brings its own conventions to every platform it ships
+on, and on Android that now includes imitating Liquid Glass — an effect from
+someone else's design language, redrawn by hand. Telegram draws its entire
+interface on `Canvas`: 694 `View` subclasses, zero Material components, 22
+XML layouts in the whole app. Whatever it looks like, it is never the
+platform.
+
+This project is the opposite bet. Stock Material 3 Expressive, dynamic
+colour from the user's wallpaper, the platform's own motion, components that
+behave the way every other Android app behaves. Bare Android, in a Telegram
+client.
+
+Three consequences, and they decide arguments:
+
+- **Reach for the stock component first.** If Material ships it, use it. A
+  hand-built row that imitates `ListItem` is not neutral — it loses the
+  spec's metrics, its state layers and its accessibility, and it has already
+  happened here once.
+- **Custom drawing needs a reason Material cannot meet.** The voice waveform,
+  delivery ticks, the typing indicator, the chat wallpaper. That is close to
+  the whole list. A wavy loading ring drawn on a Canvas was not on it —
+  Material ships `LoadingIndicator` and `WavyProgressIndicator`.
+- **Never imitate another platform's materials.** No glass, no blur standing
+  in for depth, no iOS idioms. That is the thing this client exists not to
+  do. (The sibling Flutter project, TelegramAss, is deliberately the other
+  way round — iOS-styled with Liquid Glass. Do not let the two bleed.)
+
+`ROADMAP.md` records what Expressive actually contains and which of it our
+pinned alpha exposes. `ARCHITECTURE.md` records the layers.
+
 ## This is not the Flutter client
 
 There is a sibling project, **TelegramAss**, which is a separate Flutter

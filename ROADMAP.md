@@ -7,6 +7,17 @@ below are from a clone of `master`, September 2026.
 
 Tick a box only when the thing works in the app, not when the code exists.
 
+## Why this exists
+
+The point of the client is **bare Android in a Telegram**: stock Material 3
+Expressive, dynamic colour, the platform's own motion — where the official
+client brings its own conventions everywhere, including imitating Liquid
+Glass on Android. `CLAUDE.md` states this and what follows from it; the short
+version is that a stock component beats a hand-built imitation of one, and
+another platform's materials are never the answer.
+
+Everything below is measured against that.
+
 ## Two findings that decide the approach
 
 **Nekogram cannot be re-skinned into Material Design 3.** There is no Material

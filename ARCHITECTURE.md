@@ -7,6 +7,12 @@ Kotlin, Jetpack Compose, Material 3 Expressive, TDLib through
 `org.drinkless.tdlib.JsonClient`. None of that is in question here; this
 document is about the layers between the TDLib socket and a screen.
 
+Why those choices are not negotiable is in `CLAUDE.md`: this client exists to
+be **bare Android** — stock Material, dynamic colour, the platform's own
+motion — against an official client that imitates another platform's design
+language. The architecture serves that. A structure that makes reaching for
+the stock component harder than hand-rolling one is the wrong structure.
+
 ## Nekogram as the map, never as the source
 
 [Nekogram](https://github.com/Nekogram/Nekogram) is read as an inventory of
