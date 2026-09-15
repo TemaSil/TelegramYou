@@ -38,13 +38,34 @@ jobs:
       # exporting ANDROID_HOME. This broke builds that had been green for days
       # without a commit touching them.
       #
-      # The platform is listed rather than left to AGP to fetch mid-build:
-      # this action accepts the SDK licences, so naming it here makes the
-      # dependency explicit and keeps a missing platform a legible failure of
-      # a setup step. Keep it in step with compileSdk.
+      # The compile platform is deliberately NOT listed here. Naming
+      # platforms;android-37 made this step fail outright — "Failed to find
+      # package" — because 37 is not in sdkmanager's default channel. AGP
+      # fetches what it needs itself, and the next step reports what the
+      # repository actually offers.
       - uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-37'
+          packages: 'platform-tools'
+
+      # Which platforms exist, and in which channel.
+      #
+      # compileSdk cannot be chosen from here: this environment cannot reach
+      # dl.google.com, and a platform that sdkmanager will not install is a
+      # failed setup step rather than a compiler error, so it is worth naming
+      # plainly. Channel 0 is stable, 3 is canary.
+      - name: Available platforms
+        if: always()
+        run: |
+          sdk=$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager
+          [ -x "$sdk" ] || sdk=$(find "$ANDROID_HOME/cmdline-tools" \
+            -name sdkmanager -type f | head -1)
+          for channel in 0 3; do
+            found=$("$sdk" --list --channel=$channel 2>/dev/null \
+              | grep -oE 'platforms;android-[0-9]+' | sort -Vu | tail -6 \
+              | tr '\n' ' ')
+            echo "::notice title=platforms (channel $channel)::$found"
+            echo "channel $channel: $found"
+          done
 
       - uses: gradle/actions/setup-gradle@v4
 
