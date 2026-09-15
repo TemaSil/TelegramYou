@@ -25,7 +25,10 @@ app/src/main/java/
 app/src/main/jniLibs/<abi>/libtdjsonjava.so
 ```
 
-minSdk 26, targetSdk 35, applicationId `com.telegramyou.app`.
+minSdk 26, targetSdk 35, compileSdk 36, applicationId `com.telegramyou.app`.
+compileSdk is ahead of targetSdk on purpose: Compose 1.9 is built against 36
+and will not link below it, while raising targetSdk would opt the app into
+Android 16 behaviour changes, which is a separate decision.
 
 ## Building
 

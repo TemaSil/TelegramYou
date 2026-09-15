@@ -13,7 +13,11 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.telegramyou.app"
-    compileSdk = 35
+    // 36, not 35: Compose 1.9 is built against it and refuses to link
+    // otherwise. targetSdk stays at 35 deliberately — raising it opts the app
+    // into Android 16 behaviour changes, which is a separate decision from
+    // which components are available to compile against.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.telegramyou.app"
@@ -94,14 +98,17 @@ android {
 }
 
 dependencies {
-    // Back on 2025.02.00 until the right BOM is known. 2026.09.00 was tried
-    // and does carry Material 3 Expressive — it resolves material3 1.4.0 —
-    // but its Compose core is 1.12.1, which demands compileSdk 37 and AGP
-    // 9.1. That is a far larger move than Expressive needs, since 1.4.0 is
-    // the newest stable material3 whichever BOM pins it. The Build workflow
-    // now prints which material3 each BOM carries; the earliest one carrying
-    // 1.4.0 is the one to take.
-    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
+    // The earliest BOM carrying material3 1.4.0, which is where Material 3
+    // Expressive lives — ButtonGroup, FloatingToolbar, LoadingIndicator,
+    // SplitButton, MaterialExpressiveTheme and the motion schemes.
+    //
+    // Earliest on purpose. Every later BOM pins the same material3 1.4.0 and
+    // differs only in the Compose core underneath: 2025.09.01 brings ui
+    // 1.9.2, while the newest, 2026.09.00, brings 1.12.1 and with it
+    // compileSdk 37 and Android Gradle plugin 9 — a major-version move that
+    // buys no Expressive at all. The Build workflow prints the whole
+    // BOM-to-material3 table, so this can be rechecked rather than recalled.
+    val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
