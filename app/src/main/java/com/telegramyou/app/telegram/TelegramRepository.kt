@@ -15,6 +15,12 @@ class TelegramRepository(
     fun observeChats(): StateFlow<List<ChatPreview>> = chats
     fun observeStories(): StateFlow<List<StoryItem>> = stories
 
+    suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) =
+        client.deleteMessage(chatId, messageId, forEveryone)
+
+    suspend fun editMessage(chatId: Long, messageId: Long, text: String) =
+        client.editMessage(chatId, messageId, text)
+
     suspend fun sendMessage(
         chatId: Long,
         text: String,

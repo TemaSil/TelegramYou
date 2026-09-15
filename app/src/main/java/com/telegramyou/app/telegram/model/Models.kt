@@ -103,6 +103,17 @@ data class ChatMessage(
     val replyToId: Long? = null,
     val replyToText: String? = null,
     val replyToSender: String? = null,
+    /**
+     * What Telegram permits on this message, which is not the same as whether
+     * it is ours: a group admin can delete anyone's, and an old message may be
+     * past the edit window. The menu offers only what the server allows, so a
+     * tap cannot fail on a rule the UI knew about.
+     */
+    val canBeEdited: Boolean = false,
+    val canBeDeletedForSelf: Boolean = false,
+    val canBeDeletedForEveryone: Boolean = false,
+    /** Telegram marks an edited message; hiding that would be dishonest. */
+    val isEdited: Boolean = false,
     val isRead: Boolean = false,
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,

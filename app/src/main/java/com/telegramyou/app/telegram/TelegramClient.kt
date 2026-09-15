@@ -30,6 +30,15 @@ interface TelegramClient {
         caption: String = "",
         replyToId: Long? = null
     )
+    /**
+     * Removes a message. [forEveryone] withdraws it for the other side too,
+     * which Telegram only permits within a window and only where
+     * [ChatMessage.canBeDeletedForEveryone] says so.
+     */
+    suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean)
+
+    suspend fun editMessage(chatId: Long, messageId: Long, text: String)
+
     suspend fun markStorySeen(storyId: Long)
     suspend fun logout()
 }

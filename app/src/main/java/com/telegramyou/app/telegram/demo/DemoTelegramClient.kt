@@ -182,6 +182,23 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    override suspend fun deleteMessage(
+        chatId: Long,
+        messageId: Long,
+        forEveryone: Boolean
+    ) {
+        delay(80)
+        chatMessages[chatId]?.removeAll { it.id == messageId }
+    }
+
+    override suspend fun editMessage(chatId: Long, messageId: Long, text: String) {
+        delay(80)
+        val bucket = chatMessages[chatId] ?: return
+        val index = bucket.indexOfFirst { it.id == messageId }
+        if (index == -1) return
+        bucket[index] = bucket[index].copy(text = text, isEdited = true)
+    }
+
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
@@ -219,7 +236,10 @@ class DemoTelegramClient : TelegramClient {
             mediaEmoji = mediaEmoji,
             replyToId = replyToId,
             replyToText = quoted?.text,
-            replyToSender = quoted?.senderName
+            replyToSender = quoted?.senderName,
+            canBeEdited = true,
+            canBeDeletedForSelf = true,
+            canBeDeletedForEveryone = true
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -307,6 +327,9 @@ class DemoTelegramClient : TelegramClient {
         date = date,
         senderName = senderName,
         senderId = senderName?.hashCode()?.toLong(),
+        canBeEdited = isOutgoing,
+        canBeDeletedForSelf = true,
+        canBeDeletedForEveryone = isOutgoing,
         isRead = isRead,
         contentType = contentType,
         fileName = fileName,

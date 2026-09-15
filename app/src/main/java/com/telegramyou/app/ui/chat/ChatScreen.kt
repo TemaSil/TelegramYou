@@ -40,11 +40,15 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.DoneAll
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,6 +60,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -132,6 +137,8 @@ fun ChatScreen(
 
     val clipboard = LocalClipboardManager.current
     var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
+    var editing by remember { mutableStateOf<ChatMessage?>(null) }
+    var pendingDelete by remember { mutableStateOf<ChatMessage?>(null) }
 
     Scaffold(
         topBar = {
@@ -209,17 +216,38 @@ fun ChatScreen(
                         onCopy = {
                             clipboard.setText(AnnotatedString(message.text))
                         },
-                        onReply = { replyTo = message }
+                        onReply = {
+                            editing = null
+                            replyTo = message
+                        },
+                        onEdit = {
+                            replyTo = null
+                            editing = message
+                            draft = message.text
+                        },
+                        onDelete = { pendingDelete = message }
                     )
                 }
             }
 
             AnimatedVisibility(
-                visible = replyTo != null,
+                visible = replyTo != null || editing != null,
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut()
             ) {
-                replyTo?.let { ReplyBanner(it, onCancel = { replyTo = null }) }
+                // One banner for both: they are alternatives, never both at
+                // once, and each cancels the other when chosen.
+                (editing ?: replyTo)?.let { message ->
+                    ComposerBanner(
+                        message = message,
+                        isEditing = editing != null,
+                        onCancel = {
+                            if (editing != null) draft = ""
+                            replyTo = null
+                            editing = null
+                        }
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -233,6 +261,26 @@ fun ChatScreen(
                 )
             }
 
+            pendingDelete?.let { target ->
+                DeleteMessageDialog(
+                    message = target,
+                    onDismiss = { pendingDelete = null },
+                    onDelete = { forEveryone ->
+                        pendingDelete = null
+                        scope.launch {
+                            repository.deleteMessage(chatId, target.id, forEveryone)
+                            // Clear a banner pointing at a message that is gone.
+                            if (replyTo?.id == target.id) replyTo = null
+                            if (editing?.id == target.id) {
+                                editing = null
+                                draft = ""
+                            }
+                            detail = repository.openChat(chatId)
+                        }
+                    }
+                )
+            }
+
             ComposerBar(
                 value = draft,
                 onValueChange = { draft = it },
@@ -243,11 +291,17 @@ fun ChatScreen(
                     val attachment = pendingAttachment
                     if (text.isBlank() && attachment == null) return@ComposerBar
                     val answering = replyTo?.id
+                    val amending = editing?.id
                     scope.launch {
-                        repository.sendMessage(chatId, text, attachment, answering)
+                        if (amending != null) {
+                            repository.editMessage(chatId, amending, text)
+                        } else {
+                            repository.sendMessage(chatId, text, attachment, answering)
+                        }
                         draft = ""
                         pendingAttachment = null
                         replyTo = null
+                        editing = null
                         detail = repository.openChat(chatId)
                     }
                 }
@@ -287,7 +341,9 @@ private fun MessageBubble(
     isFirstInRun: Boolean,
     showAvatar: Boolean,
     onCopy: () -> Unit,
-    onReply: () -> Unit
+    onReply: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -384,6 +440,15 @@ private fun MessageBubble(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.align(Alignment.End)
                 ) {
+                    if (message.isEdited) {
+                        // Telegram marks an edited message; hiding it would
+                        // let a bubble quietly differ from what was sent.
+                        Text(
+                            "edited ",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = footnote
+                        )
+                    }
                     Text(
                         message.timeLabel,
                         style = MaterialTheme.typography.labelSmall,
@@ -427,6 +492,34 @@ private fun MessageBubble(
                         menuOpen = false
                     }
                 )
+                if (message.canBeEdited) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
+                        onClick = {
+                            onEdit()
+                            menuOpen = false
+                        }
+                    )
+                }
+                if (message.canBeDeletedForSelf || message.canBeDeletedForEveryone) {
+                    DropdownMenuItem(
+                        text = {
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                        },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
+                        onClick = {
+                            onDelete()
+                            menuOpen = false
+                        }
+                    )
+                }
             }
         }
     }
@@ -468,9 +561,61 @@ private fun QuotedMessage(sender: String?, text: String?, onTint: Color) {
     }
 }
 
-/** The banner over the composer showing what is being answered. */
+/**
+ * Confirms a deletion, and asks the one question Telegram asks: for me, or
+ * for everyone.
+ *
+ * Deleting for everyone withdraws the message from the other side and cannot
+ * be undone, so it is never the default action — it is offered only where the
+ * server said it is permitted, and sits apart from the safe one.
+ */
 @Composable
-private fun ReplyBanner(message: ChatMessage, onCancel: () -> Unit) {
+private fun DeleteMessageDialog(
+    message: ChatMessage,
+    onDismiss: () -> Unit,
+    onDelete: (forEveryone: Boolean) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+        title = { Text("Delete message?") },
+        text = {
+            Text(
+                if (message.canBeDeletedForEveryone) {
+                    "This cannot be undone."
+                } else {
+                    "It will be removed for you. The other side keeps their copy."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onDelete(false) }) {
+                Text(if (message.canBeDeletedForEveryone) "Delete for me" else "Delete")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                if (message.canBeDeletedForEveryone) {
+                    TextButton(
+                        onClick = { onDelete(true) },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) { Text("Delete for everyone") }
+                }
+            }
+        }
+    )
+}
+
+/** The banner over the composer: what is being answered, or amended. */
+@Composable
+private fun ComposerBanner(
+    message: ChatMessage,
+    isEditing: Boolean,
+    onCancel: () -> Unit
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth()
@@ -480,7 +625,7 @@ private fun ReplyBanner(message: ChatMessage, onCancel: () -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Icon(
-                Icons.AutoMirrored.Rounded.Reply,
+                if (isEditing) Icons.Rounded.Edit else Icons.AutoMirrored.Rounded.Reply,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
@@ -488,7 +633,7 @@ private fun ReplyBanner(message: ChatMessage, onCancel: () -> Unit) {
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    message.senderName ?: "You",
+                    if (isEditing) "Edit message" else (message.senderName ?: "You"),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
@@ -502,7 +647,10 @@ private fun ReplyBanner(message: ChatMessage, onCancel: () -> Unit) {
                 )
             }
             IconButton(onClick = onCancel) {
-                Icon(Icons.Rounded.Close, contentDescription = "Cancel reply")
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = if (isEditing) "Cancel edit" else "Cancel reply"
+                )
             }
         }
     }

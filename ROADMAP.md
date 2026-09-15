@@ -59,14 +59,10 @@ Eight of the nineteen conversation items are in and CI is green on every
 commit. The next two are blocked on the same thing, which is the first thing
 to do:
 
-**`TelegramClient` can only send.** There is no `deleteMessage` and no
-`editMessage`, so the long-press menu — which already exists and holds Reply
-and Copy — has nothing to put beside them. Adding those two to the interface,
-both backends and the menu is the next change, and it is the first one made to
-enable a feature rather than to draw one.
-
-After that, in order: swipe-to-reply (UI only, closes the `[~]` on Reply), then
-reactions, which needs another client method again.
+Delete and edit are in as of 15 September, which was the first change made to
+enable a feature rather than to draw one. Next, in order: swipe-to-reply (UI
+only, closes the `[~]` on Reply), then reactions, which needs another client
+method again.
 
 The **Build TDLib** run from that evening failed after 77 minutes — not in
 the compiler, which produced all four ABIs cleanly, but in the workflow's own
@@ -91,7 +87,7 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Sender name and avatar in groups
 - [x] Delivery state — `Icons.Rounded.Done` / `DoneAll`; Material ships both, so nothing is drawn by hand
 - [~] Reply: banner over the composer and quoted block in bubble; swipe-to-reply still missing
-- [ ] Edit and delete — `DropdownMenu` or `ModalBottomSheet` on long press
+- [x] Edit and delete — long-press `DropdownMenu`, `AlertDialog` for the for-me / for-everyone choice
 - [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing
 - [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file

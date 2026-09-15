@@ -263,6 +263,45 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun deleteMessage(
+        chatId: Long,
+        messageId: Long,
+        forEveryone: Boolean
+    ) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "deleteMessages")
+                .put("chat_id", chatId)
+                .put("message_ids", JSONArray().put(messageId))
+                .put("revoke", forEveryone)
+        )
+        // TDLib confirms with updateDeleteMessages, but the local copy is
+        // dropped now so the bubble goes as the tap lands.
+        messagesByChat[chatId]?.removeAll { it.id == messageId }
+    }
+
+    override suspend fun editMessage(chatId: Long, messageId: Long, text: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "editMessageText")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageText")
+                        .put(
+                            "text",
+                            JSONObject()
+                                .put("@type", "formattedText")
+                                .put("text", text)
+                        )
+                )
+        )
+    }
+
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
@@ -676,6 +715,11 @@ class TdLibTelegramClient(
             date = message.optInt("date").toLong(),
             senderName = sender?.let { mapUser(it).displayName },
             senderId = senderId,
+            canBeEdited = message.optBoolean("can_be_edited"),
+            canBeDeletedForSelf = message.optBoolean("can_be_deleted_only_for_self"),
+            canBeDeletedForEveryone =
+                message.optBoolean("can_be_deleted_for_all_users"),
+            isEdited = message.optInt("edit_date") > 0,
             replyToId = message.optJSONObject("reply_to")
                 ?.takeIf { it.optString("@type") == "messageReplyToMessage" }
                 ?.optLong("message_id")
