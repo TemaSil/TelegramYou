@@ -30,7 +30,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # packages is pinned because the action's default includes `tools`, the
+      # obsolete SDK Tools package Google has since removed from the
+      # repository — sdkmanager fails to find it and the action dies before
+      # exporting ANDROID_HOME. This broke builds that had been green for days
+      # without a commit touching them.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - uses: gradle/actions/setup-gradle@v4
 

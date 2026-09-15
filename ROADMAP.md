@@ -72,10 +72,11 @@ The **Build TDLib** run from that evening failed after 77 minutes — not in
 the compiler, which produced all four ABIs cleanly, but in the workflow's own
 symbol check. It demanded `Java_org_drinkless_*` symbols; TDLib registers its
 natives through `RegisterNatives` in `JNI_OnLoad` and exports none. The check
-now looks for `JNI_OnLoad`, and a rerun was started on 15 September.
+was corrected and the rerun succeeded on 15 September:
 
-When it finishes it publishes a `tdlib-java-<sha>` release; unpack that into
-`app/src/main/jniLibs/` and live mode works.
+**[`tdlib-java-d1085f9`](https://github.com/TemaSil/TelegramYou/releases/tag/tdlib-java-d1085f9)**
+— `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs. Unpack into
+`app/src/main/jniLibs/` for live mode.
 
 ## 1. Conversation
 
@@ -178,6 +179,6 @@ transcription, a tablet layout, markdown parser options, QR login.
 
 - [x] TDLib wired through `JsonClient`, demo backend for offline work
 - [x] Build TDLib workflow (`JSONJava`) publishing the native libraries
-- [ ] Unpack a built `libtdjsonjava.so` into `app/src/main/jniLibs/`
+- [ ] Unpack `tdlib-java-d1085f9` into `app/src/main/jniLibs/` — the release exists, nobody has used it yet
 - [x] CI that builds the APK on push
 - [x] Tests over the pure logic (message grouping); backends still untested
