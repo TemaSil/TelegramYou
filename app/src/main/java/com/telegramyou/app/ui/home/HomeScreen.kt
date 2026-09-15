@@ -27,37 +27,31 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.telegramyou.app.telegram.TelegramRepository
-import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.StoryItem
-import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
-import kotlinx.coroutines.launch
 
+/**
+ * The chat list.
+ *
+ * Takes a [HomeUiState] and callbacks — no repository, no coroutine scope,
+ * nothing remembered that a rotation would lose. Everything it needs to draw
+ * itself arrives in [state]; everything it wants to happen leaves through a
+ * callback.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    me: TelegramUser?,
-    chats: List<ChatPreview>,
-    stories: List<StoryItem>,
-    repository: TelegramRepository,
+    state: HomeUiState,
+    onRefresh: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onOpenStory: (StoryItem) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    var refreshing by remember { mutableStateOf(false) }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -69,7 +63,7 @@ fun HomeScreen(
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            me?.displayName ?: "Material You",
+                            state.me?.displayName ?: "Material You",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -80,8 +74,8 @@ fun HomeScreen(
                         Icon(Icons.Rounded.Search, contentDescription = "Search")
                     }
                     AvatarBubble(
-                        title = me?.displayName ?: "You",
-                        seed = me?.avatarColor ?: 1,
+                        title = state.me?.displayName ?: "You",
+                        seed = state.me?.avatarColor ?: 1,
                         size = 36.dp,
                         modifier = Modifier.padding(end = 12.dp)
                     )
@@ -94,7 +88,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { chats.firstOrNull()?.let { onOpenChat(it.id) } },
+                onClick = { state.chats.firstOrNull()?.let { onOpenChat(it.id) } },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = MaterialTheme.shapes.large
@@ -118,14 +112,8 @@ fun HomeScreen(
                 )
         ) {
             PullToRefreshBox(
-                isRefreshing = refreshing,
-                onRefresh = {
-                    scope.launch {
-                        refreshing = true
-                        repository.refreshChats()
-                        refreshing = false
-                    }
-                },
+                isRefreshing = state.isRefreshing,
+                onRefresh = onRefresh,
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
@@ -134,7 +122,7 @@ fun HomeScreen(
                 ) {
                     item {
                         StoriesRail(
-                            stories = stories,
+                            stories = state.stories,
                             onStoryClick = onOpenStory
                         )
                         Spacer(Modifier.height(4.dp))
@@ -143,7 +131,7 @@ fun HomeScreen(
                     // visible = true, which never transitions, so the enter
                     // animation could not run — a composition layer that cost
                     // something and did nothing.
-                    itemsIndexed(chats, key = { _, chat -> chat.id }) { _, chat ->
+                    itemsIndexed(state.chats, key = { _, chat -> chat.id }) { _, chat ->
                         ChatListRow(
                             chat = chat,
                             onClick = { onOpenChat(chat.id) },

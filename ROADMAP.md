@@ -186,6 +186,19 @@ was corrected and the rerun succeeded on 15 September:
 — `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs. Unpack into
 `app/src/main/jniLibs/` for live mode.
 
+## Architecture
+
+[`ARCHITECTURE.md`](ARCHITECTURE.md) holds the target: what each layer is
+for, the screen inventory derived from Nekogram's 129, and the order the
+restructure happens in. It exists because the current shape works for four
+screens and will not survive forty.
+
+- [~] ViewModel layer — `HomeViewModel` is the pattern; `ChatScreen` is next
+      and needs it most, at 759 lines of UI, state and I/O together
+- [ ] Typed routes, one sealed hierarchy instead of `"chat/{chatId}"`
+- [ ] Split `TelegramClient` into auth / chats / messages / stories
+- [ ] Paging for messages, replacing the fixed 50-message window
+
 ## The revision pass, 15 September 2026
 
 Prompted by a fair question: with Expressive in hand, should the plan start
