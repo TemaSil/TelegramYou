@@ -193,8 +193,8 @@ for, the screen inventory derived from Nekogram's 129, and the order the
 restructure happens in. It exists because the current shape works for four
 screens and will not survive forty.
 
-- [~] ViewModel layer — `HomeViewModel` and `ChatViewModel` done; `AuthScreen`
-      and `StoryViewerScreen` still take the repository
+- [x] ViewModel layer — every screen renders a state and emits events; no
+      screen holds a repository or launches a coroutine
 - [ ] Typed routes, one sealed hierarchy instead of `"chat/{chatId}"`
 - [ ] Split `TelegramClient` into auth / chats / messages / stories
 - [ ] Paging for messages, replacing the fixed 50-message window

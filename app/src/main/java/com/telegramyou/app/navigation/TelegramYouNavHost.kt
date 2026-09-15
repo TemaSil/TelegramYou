@@ -18,11 +18,13 @@ import androidx.navigation.navArgument
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
+import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
+import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
 object Routes {
@@ -37,8 +39,9 @@ object Routes {
 @Composable
 fun TelegramYouNavHost(repository: TelegramRepository) {
     val navController = rememberNavController()
+    // Only the auth state is read here, and only to decide where to send the
+    // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
-    val stories by repository.observeStories().collectAsStateWithLifecycle()
     val viewModelFactory = remember(repository) { telegramViewModelFactory(repository) }
 
     LaunchedEffect(auth.state) {
@@ -98,7 +101,18 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
         }
     ) {
         composable(Routes.Auth) {
-            AuthScreen(auth = auth, repository = repository)
+            val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
+            val state by authViewModel.uiState.collectAsStateWithLifecycle()
+            AuthScreen(
+                state = state,
+                onPhoneChange = authViewModel::onPhoneChange,
+                onCodeChange = authViewModel::onCodeChange,
+                onPasswordChange = authViewModel::onPasswordChange,
+                onSubmitPhone = authViewModel::submitPhone,
+                onSubmitCode = authViewModel::submitCode,
+                onSubmitPassword = authViewModel::submitPassword,
+                onResendCode = authViewModel::resendCode
+            )
         }
         composable(Routes.Home) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
@@ -137,19 +151,20 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
         composable(
             route = Routes.Story,
             arguments = listOf(navArgument("storyId") { type = NavType.LongType })
-        ) { entry ->
-            // The story arrives as an id and is looked up, rather than being
-            // held in a variable in this graph. An argument that survives
-            // recreation is the difference between a screen that can be
-            // rebuilt and one that quietly pops itself on rotation.
-            val storyId = entry.arguments?.getLong("storyId") ?: return@composable
-            val story = stories.firstOrNull { it.id == storyId }
+        ) {
+            // The story arrives as an id in the route and is looked up by its
+            // state holder, not held in a variable in this graph. An argument
+            // that survives recreation is the difference between a screen that
+            // can be rebuilt and one that quietly pops itself on rotation.
+            val storyViewModel: StoryViewModel = viewModel(factory = viewModelFactory)
+            val state by storyViewModel.uiState.collectAsStateWithLifecycle()
+            val story = state.story
             if (story == null) {
-                LaunchedEffect(storyId) { navController.popBackStack() }
+                LaunchedEffect(Unit) { navController.popBackStack() }
             } else {
                 StoryViewerScreen(
                     story = story,
-                    repository = repository,
+                    onSeen = storyViewModel::markSeen,
                     onClose = { navController.popBackStack() }
                 )
             }

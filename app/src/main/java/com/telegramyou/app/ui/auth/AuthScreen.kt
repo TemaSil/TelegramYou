@@ -37,7 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,25 +48,35 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
 import com.telegramyou.app.ui.theme.CoralPop
 import com.telegramyou.app.ui.theme.DeepInk
 import com.telegramyou.app.ui.theme.TealSeed
-import kotlinx.coroutines.launch
 
+/**
+ * Logging in: phone, then the confirmation code, then a password if the
+ * account has two-step verification.
+ *
+ * Renders an [AuthFormState] and reports every keystroke and submission. What
+ * has been typed lives in [AuthViewModel], not here — a rotation partway
+ * through a confirmation code used to lose it, and a code cannot be asked for
+ * again without another SMS.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    auth: AuthUiState,
-    repository: TelegramRepository
+    state: AuthFormState,
+    onPhoneChange: (String) -> Unit,
+    onCodeChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onSubmitPhone: () -> Unit,
+    onSubmitCode: () -> Unit,
+    onSubmitPassword: () -> Unit,
+    onResendCode: () -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    var phone by remember { mutableStateOf("") }
-    var code by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    val auth = state.auth
 
     Box(
         modifier = Modifier
@@ -129,13 +138,13 @@ fun AuthScreen(
                         AuthFieldColumn(
                             title = "Your phone",
                             subtitle = "We'll send a login code via Telegram",
-                            value = phone,
-                            onValueChange = { phone = it },
+                            value = state.phone,
+                            onValueChange = onPhoneChange,
                             placeholder = "+1 234 567 8900",
                             keyboardType = KeyboardType.Phone,
                             error = auth.errorMessage,
                             onSubmit = {
-                                scope.launch { repository.submitPhoneNumber(phone) }
+                                onSubmitPhone()
                             },
                             submitLabel = "Continue"
                         )
@@ -144,17 +153,17 @@ fun AuthScreen(
                         AuthFieldColumn(
                             title = "Enter code",
                             subtitle = auth.codeHint.ifBlank { "Check Telegram for the code" },
-                            value = code,
-                            onValueChange = { code = it },
+                            value = state.code,
+                            onValueChange = onCodeChange,
                             placeholder = "12345",
                             keyboardType = KeyboardType.Number,
                             error = auth.errorMessage,
                             onSubmit = {
-                                scope.launch { repository.submitCode(code) }
+                                onSubmitCode()
                             },
                             submitLabel = "Sign in",
                             secondary = {
-                                TextButton(onClick = { scope.launch { repository.resendCode() } }) {
+                                TextButton(onClick = onResendCode) {
                                     Text("Resend code")
                                 }
                             }
@@ -164,14 +173,14 @@ fun AuthScreen(
                         AuthFieldColumn(
                             title = "2FA password",
                             subtitle = "Cloud password is enabled on this account",
-                            value = password,
-                            onValueChange = { password = it },
+                            value = state.password,
+                            onValueChange = onPasswordChange,
                             placeholder = "Password",
                             keyboardType = KeyboardType.Password,
                             isPassword = true,
                             error = auth.errorMessage,
                             onSubmit = {
-                                scope.launch { repository.submitPassword(password) }
+                                onSubmitPassword()
                             },
                             submitLabel = "Unlock"
                         )

@@ -5,8 +5,10 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
+import com.telegramyou.app.ui.stories.StoryViewModel
 
 /**
  * Builds the screen state holders, all of which need the repository.
@@ -22,6 +24,8 @@ import com.telegramyou.app.ui.home.HomeViewModel
  */
 fun telegramViewModelFactory(repository: TelegramRepository): ViewModelProvider.Factory =
     viewModelFactory {
+        initializer { AuthViewModel(repository) }
         initializer { HomeViewModel(repository) }
         initializer { ChatViewModel(repository, createSavedStateHandle()) }
+        initializer { StoryViewModel(repository, createSavedStateHandle()) }
     }

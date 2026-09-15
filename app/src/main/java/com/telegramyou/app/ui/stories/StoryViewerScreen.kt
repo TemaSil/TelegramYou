@@ -29,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,26 +37,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.theme.avatarColor
-import kotlinx.coroutines.launch
 
+/**
+ * One story, played for five seconds or until tapped.
+ *
+ * The progress animation stays here: it is the playback of this viewing, not
+ * a fact about the story, and starting again on reopen is correct. Marking
+ * the story seen is not — that is a message to the server, so it leaves
+ * through [onSeen].
+ */
 @Composable
 fun StoryViewerScreen(
     story: StoryItem,
-    repository: TelegramRepository,
+    onSeen: () -> Unit,
     onClose: () -> Unit
 ) {
     val progress = remember { Animatable(0f) }
-    val scope = rememberCoroutineScope()
     val base = avatarColor(story.avatarColor)
 
     LaunchedEffect(story.id) {
         progress.snapTo(0f)
         progress.animateTo(1f, tween(durationMillis = 5200, easing = LinearEasing))
-        repository.markStorySeen(story.id)
+        onSeen()
         onClose()
     }
 
@@ -69,14 +73,15 @@ fun StoryViewerScreen(
                     listOf(base.copy(alpha = 0.95f), Color(0xFF0B1F1A), base.copy(alpha = 0.55f))
                 )
             )
+            // indication = null on purpose here, unlike the chat list: the
+            // whole screen is the tap target, and a ripple across a story is
+            // not feedback, it is a stain.
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) {
-                scope.launch {
-                    repository.markStorySeen(story.id)
-                    onClose()
-                }
+                onSeen()
+                onClose()
             }
     ) {
         Column(
