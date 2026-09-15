@@ -169,6 +169,36 @@ jobs:
       # in question were cancelled by this workflow's own cancel-in-progress,
       # not stuck — and filtering only stood between a failure and its
       # explanation.
+      # TEMPORARY. What material3 1.5.0-alpha28 actually exposes.
+      #
+      # The Material 3 blog is unreachable from the environment this is
+      # written in, and a blog would describe the release rather than the
+      # artifact we resolve. The AAR is the source of truth for what can be
+      # called. Remove this step once the answer is in ROADMAP.
+      - name: Expressive API surface
+        if: always()
+        run: |
+          set -o pipefail
+          base=https://dl.google.com/dl/android/maven2/androidx/compose/material3
+          version=1.5.0-alpha28
+          curl -sSfL -o m3.aar \
+            "$base/material3-android/$version/material3-android-$version.aar"
+          unzip -o -q m3.aar classes.jar -d m3
+          echo "=== file-level API (each *Kt is one source file) ==="
+          unzip -l m3/classes.jar \
+            | grep -oE 'androidx/compose/material3/[A-Za-z0-9_]+Kt\.class' \
+            | sed 's#.*/##; s#Kt\.class##' | sort -u | tr '\n' ' '
+          echo
+          echo "=== experimental annotations ==="
+          unzip -l m3/classes.jar \
+            | grep -oE 'androidx/compose/material3/Experimental[A-Za-z0-9_]*\.class' \
+            | sed 's#.*/##; s#\.class##' | sort -u
+          echo "=== motion / shape / expressive types ==="
+          unzip -l m3/classes.jar \
+            | grep -oiE 'androidx/compose/material3/[A-Za-z0-9_$]*(Motion|Expressive|Shapes|Toolbar|ButtonGroup|LoadingIndicator|SplitButton|Carousel)[A-Za-z0-9_$]*\.class' \
+            | sed 's#.*/##; s#\.class##' | sort -u | tr '\n' ' '
+          echo
+
       - name: Assemble debug
         timeout-minutes: 15
         run: ./gradlew :app:assembleDebug --stacktrace
