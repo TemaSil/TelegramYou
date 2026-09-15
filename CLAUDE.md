@@ -25,10 +25,23 @@ app/src/main/java/
 app/src/main/jniLibs/<abi>/libtdjsonjava.so
 ```
 
-minSdk 26, targetSdk 35, compileSdk 36, applicationId `com.telegramyou.app`.
-compileSdk is ahead of targetSdk on purpose: Compose 1.9 is built against 36
+minSdk 26, targetSdk 35, compileSdk 37, applicationId `com.telegramyou.app`.
+compileSdk is ahead of targetSdk on purpose: Compose 1.12 is built against 37
 and will not link below it, while raising targetSdk would opt the app into
-Android 16 behaviour changes, which is a separate decision.
+newer platform behaviour changes, which is a separate decision.
+
+Android Gradle plugin 9, Gradle 9, Kotlin 2.4. The stack is this new because
+**Material 3 Expressive is not public in any stable `material3`** —
+`MaterialExpressiveTheme`, `MotionScheme` and `LoadingIndicator` are all
+`internal` in 1.4.0, the newest stable. Reaching them means
+`material3:1.5.0-alpha*`, that alpha declares Compose core 1.12, and 1.12
+requires compileSdk 37 and AGP 9. The whole stack moves together or not at
+all; `material3` is therefore pinned past the BOM, deliberately, on an alpha.
+
+Two consequences worth remembering. The Build workflow installs
+`platforms;android-37` — keep that in step with `compileSdk`. And AGP 9
+removed the old variant API, so the APK name comes from `base.archivesName`
+rather than from rewriting `outputFileName` on each variant output.
 
 ## Building
 

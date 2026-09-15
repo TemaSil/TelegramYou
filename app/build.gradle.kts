@@ -1,10 +1,14 @@
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+/** Used for both versionName and the APK name, so the two cannot drift. */
+val appVersionName = "0.1.0"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
@@ -13,18 +17,18 @@ val localProperties = Properties().apply {
 
 android {
     namespace = "com.telegramyou.app"
-    // 36, not 35: Compose 1.9 is built against it and refuses to link
-    // otherwise. targetSdk stays at 35 deliberately — raising it opts the app
-    // into Android 16 behaviour changes, which is a separate decision from
-    // which components are available to compile against.
-    compileSdk = 36
+    // 37, not 36: Compose 1.12 is built against it and the AAR metadata check
+    // refuses anything lower. targetSdk stays at 35 deliberately — raising it
+    // opts the app into Android 16 behaviour changes, which is a separate
+    // decision from which components are available to compile against.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.telegramyou.app"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = appVersionName
 
         buildConfigField(
             "int",
@@ -69,10 +73,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -87,32 +87,44 @@ android {
         }
     }
 
-    // APK names: TelegramYou-<versionName>.apk (e.g. TelegramYou-0.1.0-debug.apk)
-    applicationVariants.configureEach {
-        val variantVersionName = versionName
-        outputs.configureEach {
-            (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                .outputFileName = "TelegramYou-$variantVersionName.apk"
-        }
+}
+
+// APK names: TelegramYou-<versionName>-<variant>.apk, e.g.
+// TelegramYou-0.1.0-debug.apk.
+//
+// Set through archivesName rather than by rewriting outputFileName on each
+// variant output. That older approach reached into
+// com.android.build.gradle.internal.api.BaseVariantOutputImpl — an internal
+// class behind a deprecated API, which AGP 9 removed outright. archivesName
+// is Gradle's own and has no such expiry.
+base {
+    archivesName = "TelegramYou-$appVersionName"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 
 dependencies {
-    // The earliest BOM carrying material3 1.4.0, which is where Material 3
-    // Expressive lives — ButtonGroup, FloatingToolbar, LoadingIndicator,
-    // SplitButton, MaterialExpressiveTheme and the motion schemes.
+    // The newest BOM, because Material 3 Expressive requires it.
     //
-    // Earliest on purpose. Every later BOM pins the same material3 1.4.0 and
-    // differs only in the Compose core underneath: 2025.09.01 brings ui
-    // 1.9.2, while the newest, 2026.09.00, brings 1.12.1 and with it
-    // compileSdk 37 and Android Gradle plugin 9 — a major-version move that
-    // buys no Expressive at all. The Build workflow prints the whole
-    // BOM-to-material3 table, so this can be rechecked rather than recalled.
-    val composeBom = platform("androidx.compose:compose-bom:2025.09.01")
+    // Expressive is not public in any stable material3 — MaterialExpressiveTheme,
+    // MotionScheme and LoadingIndicator are all `internal` in 1.4.0, the newest
+    // stable there is. It is public only from the 1.5.0 alphas, and material3
+    // 1.5.0-alpha28 declares Compose core 1.12.0, which is what this BOM pins.
+    // Hence compileSdk 37, AGP 9 and Gradle 9 as well: the whole stack moves
+    // together or not at all.
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
-    implementation("androidx.compose.material3:material3")
+    // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
+    // this is the only way to reach Expressive at all. It is an alpha, and
+    // the theme every screen is built on, so it is worth knowing that is a
+    // deliberate trade and not an oversight.
+    implementation("androidx.compose.material3:material3:1.5.0-alpha28")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")
