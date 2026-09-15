@@ -12,11 +12,14 @@
 #   JSONJava  the JSON interface behind a JNI bridge   <-- this one
 #
 # JSONJava is what `org.drinkless.tdlib.JsonClient` binds to: it produces
-# libtdjsonjava.so, which is the name System.loadLibrary("tdjsonjava") looks
-# for, carrying the Java_org_drinkless_tdlib_JsonClient_* symbols the class's
-# native methods need. A JSON build produces libtdjson.so with no JNI symbols
-# at all and cannot stand in for it — the app would load and then die on the
-# first native call.
+# libtdjsonjava.so, the name System.loadLibrary("tdjsonjava") looks for, with
+# the JNI bridge its native methods need. A JSON build produces libtdjson.so
+# with no JNI at all and cannot stand in for it — the app would load and then
+# die on the first native call.
+#
+# The bridge is registered, not exported: TDLib calls RegisterNatives from
+# JNI_OnLoad, so the library carries no Java_org_drinkless_* symbols. Do not
+# look for those to tell the two builds apart; look for JNI_OnLoad.
 name: Build TDLib
 
 on:
