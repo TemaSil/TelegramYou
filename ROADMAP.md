@@ -93,6 +93,78 @@ Still to spend the move on:
 Careful with the ticks: CI proves these compile, not that they look right.
 Nothing in the pipeline renders a screen.
 
+## What Expressive contains, and what our alpha exposes
+
+Two sources, and they agree. Material's own write-up (13 May 2025,
+[Start building with Material 3 Expressive](https://m3.material.io/blog/building-with-m3-expressive)),
+and the class list of `material3-android:1.5.0-alpha28`, read straight out of
+the AAR because the blog cannot be reached from every environment this is
+written in and describes a release rather than the artifact we resolve.
+
+Expressive is an evolution of Material 3, not a Material 4. Its claim is that
+expression is not decoration: Material reports 46 studies with 18 000+
+participants, and that on expressive screens people found key interface
+elements up to four times faster. That is the part worth taking seriously for
+a messenger — **the argument is about attention, not about looking nice.**
+
+### The four style changes
+
+| Blog | What we can call |
+|---|---|
+| Motion physics — spatial springs for movement, effects springs for colour and alpha | `MotionScheme`, with `ExpressiveMotionSchemeImpl` / `StandardMotionSchemeImpl` |
+| Emphasized typography | `Typography` |
+| 35-shape library with shape-morph animation | `MaterialShapes`, plus per-component `ButtonShapes`, `IconButtonShapes`, `ChipShapes`, `ListItemShapes`, `MenuItemShapes`, `SplitButtonShapes`, `ToggleButtonShapes`, `DragHandleShapes` |
+| More vivid colour schemes | `ColorScheme`, `DynamicTonalPalette` |
+
+### The components
+
+The blog names 14 new or updated. Present in the artifact and reachable:
+`ButtonGroup`, `FloatingToolbar`, `FloatingActionButtonMenu`, `LoadingIndicator`,
+`SplitButton`, `ToggleButton`, `ShortNavigationBar`, `WideNavigationRail`,
+`AppBarRow` / `AppBarColumn`, `WavyProgressIndicator`, `Scrollbar`,
+`DragHandle`, `MaterialShapes`, `MotionScheme`.
+
+Everything Expressive sits behind `@ExperimentalMaterial3ExpressiveApi`.
+
+Note `WavyProgressIndicator`: Material ships wavy progress as a real
+component. The hand-drawn wavy ring deleted from `ExpressiveLoadingOverlay`
+had a stock counterpart after all — two of them. `LoadingIndicator`, the
+shape-morphing one, is in there now; if the overlay ever wants a wavy ring
+specifically, use `WavyProgressIndicator` rather than a Canvas.
+
+### The seven tactics, against this client
+
+Material's guidance, and what it implies here. The last one is the one to be
+careful with.
+
+1. **Vary the shapes.** `MaterialShapes` for avatars and stories rings; a
+   shape too small for an important action undersells it.
+2. **Rich, nuanced colour.** Contrast between primary / secondary / tertiary
+   and surfaces is how the eye finds the important thing. Own vs other
+   bubbles is exactly this problem.
+3. **Guide attention with type.** Emphasized styles for unread counts,
+   pinned-message bars, section headers — not for body text.
+4. **Group content in containers.** Message runs and day separators already
+   do this; folders and the archive row are the same job.
+5. **Natural motion.** Shape morph on press, and `MotionScheme` springs.
+   Animation has to explain a change, not decorate one.
+6. **Flexible components.** `ShortNavigationBar` and `WideNavigationRail`
+   are the adaptive-navigation answer for tablets and foldables.
+7. **Hero moments.** One or two per product. In a messenger the candidates
+   are sending a message and opening a chat. Spend them there and nowhere
+   else; seven tactics applied everywhere is noise, which is the failure
+   mode this whole update invites.
+
+### What this changes in the plan below
+
+- Message selection bar → `FloatingToolbar`, not a custom bar
+- Settings → `ButtonGroup` for segmented choices
+- Attachment button → `FloatingActionButtonMenu` is the stock pattern
+- Adaptive navigation → `ShortNavigationBar` / `WideNavigationRail`
+- Avatars and story rings → `MaterialShapes`
+- [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
+      copy should move to `LocalClipboard`, which is suspend
+
 ## Where this was left, 14 September 2026
 
 Eight of the nineteen conversation items are in and CI is green on every
