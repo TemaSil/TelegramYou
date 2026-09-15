@@ -165,26 +165,58 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
-## Where this was left, 14 September 2026
+## Where this was left, 15 September 2026
 
-Eight of the nineteen conversation items are in and CI is green on every
-commit. The next two are blocked on the same thing, which is the first thing
-to do:
+CI is green on `main`. Twelve unit tests, over the message-grouping logic;
+everything else is proved only to compile.
 
-Delete and edit are in as of 15 September, which was the first change made to
-enable a feature rather than to draw one. Next, in order: swipe-to-reply (UI
-only, closes the `[~]` on Reply), then reactions, which needs another client
-method again.
+**The stack moved a long way today, and all of it was forced.** Material 3
+Expressive is `internal` in every stable `material3` — 1.4.0 included — so
+reaching it meant `material3:1.5.0-alpha28`, which declares Compose core
+1.12.0, which requires compileSdk 37, which requires AGP 9, which requires
+Gradle 9. The result: **Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.20, compose-bom
+2026.09.00, compileSdk 37, material3 on an alpha**, pinned past the BOM.
+The way back, if the alpha ever misbehaves, is compose-bom `2025.09.01` with
+stable material3 1.4.0 — that combination built green.
 
-The **Build TDLib** run from that evening failed after 77 minutes — not in
-the compiler, which produced all four ABIs cleanly, but in the workflow's own
-symbol check. It demanded `Java_org_drinkless_*` symbols; TDLib registers its
-natives through `RegisterNatives` in `JNI_OnLoad` and exports none. The check
-was corrected and the rerun succeeded on 15 September:
+Three AGP 9 removals cost a red build each and are written up in CLAUDE.md:
+no standalone Kotlin plugin, no `kotlinOptions`, no old variant API. Plus one
+that looks like a mistake and is not — `setup-android` must **not** name
+`platforms;android-37`, because sdkmanager refuses it by name while listing
+it as available. AGP installs it itself.
 
-**[`tdlib-java-d1085f9`](https://github.com/TemaSil/TelegramYou/releases/tag/tdlib-java-d1085f9)**
-— `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs. Unpack into
-`app/src/main/jniLibs/` for live mode.
+**The architecture was rebuilt**, per ARCHITECTURE.md: four state holders, no
+screen holding a repository, typed routes, and `TelegramClient` split into
+four domain interfaces without touching either backend.
+
+### What to do next
+
+1. **Paging for messages.** `openChat` returns a fixed 50-message window, so
+   "load older on scroll" has nowhere to go. This is the last item in the
+   migration order.
+2. **Then the inventory**: search (`SearchBar`) is the natural first screen —
+   it also removes the `onClick = {}` stub that currently pretends to be a
+   feature.
+3. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
+   method.
+
+### Known debts, none of them hidden
+
+- **Nothing renders a screen in CI.** The app was installed once today and
+  the chat list, avatars and motion were confirmed by hand; everything since
+  — the ViewModel rebuild, typed routes, the interface split — is unverified
+  beyond compiling. Screenshot tests would close this.
+- `MotionScheme` gives one motion scheme to the whole app, so animation
+  currently feels uniform. Differentiating movement is the components' job,
+  not the theme's.
+- `onClick = {}` stubs remain on the search button and the composer's voice
+  button. They look like features and are not.
+- `LocalClipboardManager` is deprecated on this Compose; copying should move
+  to `LocalClipboard`, which is suspend.
+- **[`tdlib-java-d1085f9`](https://github.com/TemaSil/TelegramYou/releases/tag/tdlib-java-d1085f9)**
+  — `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs — has still not been
+  unpacked into `app/src/main/jniLibs/`. Live mode needs it; demo mode does
+  not, and demo mode is all CI ever exercises.
 
 ## Architecture
 
