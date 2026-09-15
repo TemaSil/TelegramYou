@@ -68,10 +68,14 @@ enable a feature rather than to draw one.
 After that, in order: swipe-to-reply (UI only, closes the `[~]` on Reply), then
 reactions, which needs another client method again.
 
-One thing to check: the **Build TDLib** run started this evening was still
-compiling OpenSSL after 43 minutes. If it finished, it published a
-`tdlib-java-<sha>` release; unpack it into `app/src/main/jniLibs/` and live
-mode works. If it failed, the log will say where.
+The **Build TDLib** run from that evening failed after 77 minutes — not in
+the compiler, which produced all four ABIs cleanly, but in the workflow's own
+symbol check. It demanded `Java_org_drinkless_*` symbols; TDLib registers its
+natives through `RegisterNatives` in `JNI_OnLoad` and exports none. The check
+now looks for `JNI_OnLoad`, and a rerun was started on 15 September.
+
+When it finishes it publishes a `tdlib-java-<sha>` release; unpack that into
+`app/src/main/jniLibs/` and live mode works.
 
 ## 1. Conversation
 
