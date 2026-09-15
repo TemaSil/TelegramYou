@@ -69,6 +69,7 @@ jobs:
           # version has no suffix, so this leaves it alone.
           PRERELEASE = re.compile(r"-(alpha|beta|rc|dev|M|eap)", re.IGNORECASE)
 
+          boms = []
           for name, repo, path in COORDINATES:
               try:
                   xml = urllib.request.urlopen(
@@ -81,6 +82,38 @@ jobs:
               stable = [v for v in found if not PRERELEASE.search(v)][-10:]
               print(f"::notice title={name} (stable)::" + ", ".join(stable))
               print(f"{name}: latest {found[-1]}, stable {stable}")
+              if name == "compose-bom":
+                  boms = [v for v in found if not PRERELEASE.search(v)][-30:]
+
+          # Which material3 each BOM pins. A BOM constrains versions without
+          # naming them anywhere readable, and the difference decides how much
+          # else has to move: a BOM is only worth taking if its Compose core
+          # does not also demand a new compileSdk and AGP.
+          pairs = []
+          for bom in boms:
+              try:
+                  pom = urllib.request.urlopen(
+                      f"{GOOGLE}/androidx/compose/compose-bom/{bom}"
+                      f"/compose-bom-{bom}.pom", timeout=60
+                  ).read().decode()
+              except Exception as exc:
+                  print(f"::warning title={bom}::pom could not be read: {exc}")
+                  continue
+              block = re.search(
+                  r"<artifactId>material3</artifactId>\s*"
+                  r"<version>([^<]+)</version>", pom
+              )
+              core = re.search(
+                  r"<artifactId>ui</artifactId>\s*<version>([^<]+)</version>",
+                  pom
+              )
+              pairs.append(
+                  f"{bom} -> material3 {block.group(1) if block else '?'}"
+                  f" / ui {core.group(1) if core else '?'}"
+              )
+          for pair in pairs:
+              print(pair)
+          print("::notice title=BOM contents::" + "; ".join(pairs))
           PY
 
       # No credentials here: without TELEGRAM_API_ID the build selects the

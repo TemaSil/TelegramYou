@@ -94,10 +94,14 @@ android {
 }
 
 dependencies {
-    // 2026.09.00 is the newest at the time of writing; the Build workflow
-    // prints what Google's Maven offers and what the BOM resolved to, since
-    // neither can be read from every environment this is written in.
-    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
+    // Back on 2025.02.00 until the right BOM is known. 2026.09.00 was tried
+    // and does carry Material 3 Expressive — it resolves material3 1.4.0 —
+    // but its Compose core is 1.12.1, which demands compileSdk 37 and AGP
+    // 9.1. That is a far larger move than Expressive needs, since 1.4.0 is
+    // the newest stable material3 whichever BOM pins it. The Build workflow
+    // now prints which material3 each BOM carries; the earliest one carrying
+    // 1.4.0 is the one to take.
+    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
