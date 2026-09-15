@@ -1,9 +1,7 @@
 import java.util.Properties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -68,6 +66,8 @@ android {
         }
     }
 
+    // With AGP 9's built-in Kotlin there is no kotlinOptions block and no
+    // separate Kotlin plugin: the Kotlin jvmTarget follows these.
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -99,12 +99,6 @@ android {
 // is Gradle's own and has no such expiry.
 base {
     archivesName = "TelegramYou-$appVersionName"
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_17
-    }
 }
 
 dependencies {
