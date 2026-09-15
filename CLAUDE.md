@@ -8,6 +8,12 @@ JSON interface.
 
 **A Telegram that looks and behaves like Android, because nothing else does.**
 
+The name says it. **You** is Material You — the dynamic colour Android takes
+from the wallpaper, so the client looks like *that* phone rather than like
+Telegram's idea of a phone. It is the whole thesis in one word, and it is why
+`dynamicLightColorScheme` / `dynamicDarkColorScheme` are the default rather
+than the hardcoded teal palette, which is only the fallback below Android 12.
+
 The official client brings its own conventions to every platform it ships
 on, and on Android that now includes imitating Liquid Glass — an effect from
 someone else's design language, redrawn by hand. Telegram draws its entire
