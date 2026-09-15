@@ -94,7 +94,10 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
+    // 2026.09.00 is the newest at the time of writing; the Build workflow
+    // prints what Google's Maven offers and what the BOM resolved to, since
+    // neither can be read from every environment this is written in.
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -104,7 +107,10 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.animation:animation")
-    implementation("androidx.compose.material:material-icons-extended")
+    // Pinned, not taken from the BOM: androidx froze material-icons-extended
+    // at 1.7.x and dropped it from later BOMs, so an unversioned coordinate
+    // stops resolving. The icons themselves have not changed.
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

@@ -43,40 +43,64 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # What Google's Maven actually offers, as a notice.
+      # What the repositories actually offer, as annotations.
       #
-      # Google's Maven is not reachable from every environment this code is
-      # written in, so a BOM version can otherwise only be guessed at and
-      # checked by pushing. This prints the newest ones where they can be read
-      # without downloading an artifact.
-      - name: Available Compose versions
+      # Neither Google's Maven nor Maven Central is reachable from every
+      # environment this code is written in, so a version can otherwise only
+      # be guessed at — and each guess costs a red build. Stable releases
+      # only, because that is what this project pins.
+      - name: Available versions
         if: always()
         run: |
           python3 - <<'PY'
           import re, urllib.request
 
-          def versions(path):
-              url = f"https://dl.google.com/dl/android/maven2/{path}/maven-metadata.xml"
-              xml = urllib.request.urlopen(url, timeout=60).read().decode()
-              return re.findall(r"<version>([^<]+)</version>", xml)
+          GOOGLE = "https://dl.google.com/dl/android/maven2"
+          CENTRAL = "https://repo1.maven.org/maven2"
 
-          for name, path in (
-              ("compose-bom", "androidx/compose/compose-bom"),
-              ("material3", "androidx/compose/material3/material3"),
-          ):
+          COORDINATES = (
+              ("compose-bom", GOOGLE, "androidx/compose/compose-bom"),
+              ("material3", GOOGLE, "androidx/compose/material3/material3"),
+              ("AGP", GOOGLE, "com/android/tools/build/gradle"),
+              ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
+          )
+
+          # -alpha, -beta, -rc, -dev and friends. A BOM's own date-shaped
+          # version has no suffix, so this leaves it alone.
+          PRERELEASE = re.compile(r"-(alpha|beta|rc|dev|M|eap)", re.IGNORECASE)
+
+          for name, repo, path in COORDINATES:
               try:
-                  found = versions(path)[-25:]
+                  xml = urllib.request.urlopen(
+                      f"{repo}/{path}/maven-metadata.xml", timeout=60
+                  ).read().decode()
               except Exception as exc:
                   print(f"::warning title={name}::could not be read: {exc}")
                   continue
-              print(f"::notice title={name}::" + ", ".join(found))
-              print(f"{name}: {found}")
+              found = re.findall(r"<version>([^<]+)</version>", xml)
+              stable = [v for v in found if not PRERELEASE.search(v)][-10:]
+              print(f"::notice title={name} (stable)::" + ", ".join(stable))
+              print(f"{name}: latest {found[-1]}, stable {stable}")
           PY
 
       # No credentials here: without TELEGRAM_API_ID the build selects the
       # demo backend, which is what a CI build should exercise anyway.
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --stacktrace
+
+      # A BOM pins versions without naming them, so "which material3 is this"
+      # is otherwise unanswerable without reading a dependency tree by hand.
+      - name: Resolved Compose versions
+        if: always()
+        run: |
+          ./gradlew -q :app:dependencies --configuration debugRuntimeClasspath \
+            > deps.txt || true
+          for lib in androidx.compose.material3:material3 \
+                     androidx.compose.foundation:foundation \
+                     androidx.compose.ui:ui; do
+            found=$(grep -o "$lib:[0-9][^ ]*" deps.txt | sort -u | tail -1)
+            [ -n "$found" ] && echo "::notice title=Resolved::$found"
+          done
 
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
