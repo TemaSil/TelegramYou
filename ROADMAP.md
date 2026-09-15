@@ -59,18 +59,18 @@ Material has no equivalent and Telegram genuinely has the thing.
       no Expressive that 2025.09.01 does not already have. The Build workflow
       prints the whole table, so this can be rechecked rather than recalled.
 
-- [ ] Use them. Nothing does yet, and until something does this line is the
-      only evidence the move happened:
-      - [ ] `LoadingIndicator` in place of the hand-drawn wavy ring in
-            `ExpressiveLoadingOverlay`, which exists only because 1.4 was out
-            of reach
-      - [ ] `MaterialExpressiveTheme` in `TelegramYouTheme`, and the stock
-            motion schemes in place of the hand-rolled `ExpressiveMotion`
+- [~] Use them:
+      - [x] `MaterialExpressiveTheme` in `TelegramYouTheme` with
+            `MotionScheme.expressive()`, replacing a hand-rolled
+            `ExpressiveMotion` holder that no component ever read
+      - [x] `LoadingIndicator` in place of the hand-drawn wavy ring in
+            `ExpressiveLoadingOverlay`
+      - [x] The demo chat's claim about the theme is true now
       - [ ] `FloatingToolbar` for a message selection bar
       - [ ] `ButtonGroup` in settings
-      - [ ] The demo chat claims "This build uses MaterialExpressiveTheme,
-            springy FABs and vivid chat surfaces". It does not. Make it true
-            or delete the line.
+
+      Careful with the ticks above: CI proves these compile, not that they
+      look right. Nothing in the pipeline renders a screen.
 
 ## Where this was left, 14 September 2026
 
