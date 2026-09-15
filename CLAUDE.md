@@ -38,10 +38,17 @@ Android Gradle plugin 9, Gradle 9, Kotlin 2.4. The stack is this new because
 requires compileSdk 37 and AGP 9. The whole stack moves together or not at
 all; `material3` is therefore pinned past the BOM, deliberately, on an alpha.
 
-Two consequences worth remembering. The Build workflow installs
-`platforms;android-37` — keep that in step with `compileSdk`. And AGP 9
-removed the old variant API, so the APK name comes from `base.archivesName`
-rather than from rewriting `outputFileName` on each variant output.
+Three consequences worth remembering, each of which cost a red build:
+
+- **No `org.jetbrains.kotlin.android`.** AGP 9 carries Kotlin itself and
+  refuses to load alongside the standalone plugin. `kotlinOptions` is gone
+  with it; the Kotlin `jvmTarget` follows `compileOptions`. The Compose
+  compiler plugin is still applied separately.
+- **The APK name comes from `base.archivesName`.** AGP 9 deleted the old
+  variant API the previous naming block reached into.
+- **Do not name the compile platform in `setup-android`.** `sdkmanager`
+  refuses `platforms;android-37` by name even though `--list` shows it in the
+  stable channel. AGP installs what `compileSdk` needs by itself.
 
 ## Building
 

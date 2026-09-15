@@ -48,50 +48,50 @@ its code out as a reference for anything but behaviour.
 Use stock Material 3 components. Custom drawing is justified only where
 Material has no equivalent and Telegram genuinely has the thing.
 
-- [x] Compose BOM on `2025.09.01`, resolving `material3` 1.4.0 — the newest
-      stable — with compileSdk 36. targetSdk stays 35.
+- [x] **Material 3 Expressive, on the alpha.** `MaterialExpressiveTheme` with
+      `MotionScheme.expressive()`, and Material's `LoadingIndicator`.
 
-      The earliest BOM carrying 1.4.0, deliberately. Every later one pins the
-      same 1.4.0 and differs only in the Compose core beneath it; the newest,
-      `2026.09.00`, brings ui 1.12.1 and demands compileSdk 37 and AGP 9. The
-      Build workflow prints the whole table, so this can be rechecked rather
-      than recalled.
+### What that cost, since none of it was optional
 
-### Material 3 Expressive is not available on stable Compose
-
-This was tried and it does not compile. `MaterialExpressiveTheme`,
+Expressive is not public in any stable `material3`. `MaterialExpressiveTheme`,
 `MotionScheme`, `ExperimentalMaterial3ExpressiveApi` and `LoadingIndicator`
-are **`internal`** in `material3` 1.4.0:
+are all `internal` in 1.4.0, the newest stable:
 
 ```
 e: Cannot access 'fun MaterialExpressiveTheme(...)': it is internal in file.
-e: Cannot access 'interface MotionScheme : Any': it is internal in file.
 e: Unresolved reference 'LoadingIndicator'.
 ```
 
-1.4.0 is the newest stable `material3` there is. Expressive is public only
-from the `1.5.0-alpha` line, so the choice is an alpha or nothing — there is
-no stable configuration that reaches it, and no BOM pins an alpha.
+From there each step forced the next. `material3:1.5.0-alpha28` declares
+Compose core 1.12.0 → 1.12 requires compileSdk 37 and AGP 9.1 → AGP 9
+requires Gradle 9. So the stack is Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.20,
+compose-bom 2026.09.00, compileSdk 37, and `material3` pinned past the BOM to
+`1.5.0-alpha28`. targetSdk stays 35; that governs runtime behaviour, not what
+compiles.
 
-- [ ] Decide whether to take `material3:1.5.0-alpha*`. What it costs is the
-      open question: the alpha carries its own Compose core, which on the
-      evidence of the BOM table means ui 1.12-ish, and that meant compileSdk
-      37 and AGP 9 — a major-version move that also rewrites the APK-naming
-      block, since AGP 9 drops the variant API it uses. The Build workflow
-      now prints what the newest alphas depend on, so this can be costed
-      instead of guessed. Against that: an alpha is an alpha, and this is the
-      theme every screen is built on.
+Three AGP 9 removals had to be worked around — the standalone Kotlin plugin,
+`kotlinOptions`, and the variant API the APK-naming block used. CLAUDE.md
+lists them, because each one is a red build for whoever meets it next.
 
-Until that is decided, the interface uses stock stable Material 3 — which is
-what the project should be doing anyway. Two things were cleaned up on the
-way through, and they stand regardless:
+**This is an alpha, under the theme every screen is built on.** That is the
+trade. If it goes wrong the way back is `2025.09.01` and stable `material3`
+1.4.0, which is where this sat one commit earlier and which built green.
 
-- [x] `ExpressiveMotion` / `LocalExpressiveMotion` deleted. Hand-rolled
+Cleaned up on the way through, and worth keeping either way:
+
+- [x] `ExpressiveMotion` / `LocalExpressiveMotion` deleted — hand-rolled
       spring tokens that no component ever read, so they styled nothing.
-- [x] The wavy ring `ExpressiveLoadingOverlay` drew on a Canvas is gone,
-      replaced by `CircularProgressIndicator`. A stock component that exists
-      beats a hand-drawn imitation of one that does not.
-- [x] The demo chat no longer claims the build uses `MaterialExpressiveTheme`.
+      `MotionScheme.expressive()` does what they pretended to.
+- [x] The wavy ring `ExpressiveLoadingOverlay` drew on a Canvas is gone.
+- [x] The demo chat's claim about the theme is true, and says it is on alpha.
+
+Still to spend the move on:
+
+- [ ] `FloatingToolbar` for a message selection bar
+- [ ] `ButtonGroup` in settings
+
+Careful with the ticks: CI proves these compile, not that they look right.
+Nothing in the pipeline renders a screen.
 
 ## Where this was left, 14 September 2026
 
