@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.stories
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.StoryItem
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,8 +26,8 @@ class StoryViewModel(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    private val storyId: Long = requireNotNull(savedStateHandle["storyId"]) {
-        "StoryViewModel needs a storyId argument"
+    private val storyId: Long = requireNotNull(savedStateHandle[Route.Story.ARG_STORY_ID]) {
+        "StoryViewModel needs a ${Route.Story.ARG_STORY_ID} argument"
     }
 
     val uiState: StateFlow<StoryUiState> = repository.observeStories()

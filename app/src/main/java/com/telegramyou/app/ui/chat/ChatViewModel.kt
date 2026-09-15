@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.chat
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -40,8 +41,8 @@ class ChatViewModel(
      * Read from the saved state rather than passed in, so the chat being
      * shown survives process death along with everything else here.
      */
-    private val chatId: Long = requireNotNull(savedStateHandle["chatId"]) {
-        "ChatViewModel needs a chatId argument"
+    private val chatId: Long = requireNotNull(savedStateHandle[Route.Chat.ARG_CHAT_ID]) {
+        "ChatViewModel needs a ${Route.Chat.ARG_CHAT_ID} argument"
     }
 
     private val _uiState = MutableStateFlow(ChatUiState())

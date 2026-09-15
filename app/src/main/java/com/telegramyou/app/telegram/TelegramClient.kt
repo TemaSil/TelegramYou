@@ -1,44 +1,32 @@
 package com.telegramyou.app.telegram
 
-import com.telegramyou.app.telegram.model.AttachmentDraft
-import com.telegramyou.app.telegram.model.AuthUiState
-import com.telegramyou.app.telegram.model.ChatDetail
-import com.telegramyou.app.telegram.model.ChatPreview
-import com.telegramyou.app.telegram.model.StoryItem
-import kotlinx.coroutines.flow.StateFlow
+import com.telegramyou.app.telegram.auth.TelegramAuth
+import com.telegramyou.app.telegram.chats.TelegramChats
+import com.telegramyou.app.telegram.messages.TelegramMessages
+import com.telegramyou.app.telegram.stories.TelegramStories
 
-interface TelegramClient {
-    val authState: StateFlow<AuthUiState>
-    val chats: StateFlow<List<ChatPreview>>
-    val stories: StateFlow<List<StoryItem>>
+/**
+ * One connection to Telegram, presented as four smaller interfaces.
+ *
+ * The split is for the callers, not for the backends: both of those still
+ * implement the whole of this, because both speak to one TDLib socket — or
+ * pretend to. What changes is that a state holder can depend on
+ * [TelegramMessages] alone and be unable to touch authentication, and that a
+ * new feature adds its method to one domain rather than to a list of
+ * everything the app can do.
+ *
+ * That list is the point. The screen inventory in ARCHITECTURE.md runs past
+ * a hundred; a single interface grown a method at a time would end up with
+ * hundreds, and every one of them would have to be written twice.
+ */
+interface TelegramClient :
+    TelegramAuth,
+    TelegramChats,
+    TelegramMessages,
+    TelegramStories {
 
+    /** Opens the connection. Called once, from `TelegramYouApp`. */
     fun start()
+
     fun shutdown()
-
-    suspend fun submitPhoneNumber(phone: String)
-    suspend fun submitCode(code: String)
-    suspend fun submitPassword(password: String)
-    suspend fun resendCode()
-
-    suspend fun refreshChats()
-    suspend fun openChat(chatId: Long): ChatDetail
-    /** [replyToId] answers an existing message, or null for a fresh one. */
-    suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null)
-    suspend fun sendAttachment(
-        chatId: Long,
-        draft: AttachmentDraft,
-        caption: String = "",
-        replyToId: Long? = null
-    )
-    /**
-     * Removes a message. [forEveryone] withdraws it for the other side too,
-     * which Telegram only permits within a window and only where
-     * [ChatMessage.canBeDeletedForEveryone] says so.
-     */
-    suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean)
-
-    suspend fun editMessage(chatId: Long, messageId: Long, text: String)
-
-    suspend fun markStorySeen(storyId: Long)
-    suspend fun logout()
 }

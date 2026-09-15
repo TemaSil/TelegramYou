@@ -195,8 +195,8 @@ screens and will not survive forty.
 
 - [x] ViewModel layer — every screen renders a state and emits events; no
       screen holds a repository or launches a coroutine
-- [ ] Typed routes, one sealed hierarchy instead of `"chat/{chatId}"`
-- [ ] Split `TelegramClient` into auth / chats / messages / stories
+- [x] Typed routes, one sealed hierarchy instead of `"chat/{chatId}"`
+- [x] Split `TelegramClient` into auth / chats / messages / stories
 - [ ] Paging for messages, replacing the fixed 50-message window
 
 ## The revision pass, 15 September 2026

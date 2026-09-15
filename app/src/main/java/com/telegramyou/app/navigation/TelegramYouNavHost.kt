@@ -10,11 +10,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
@@ -27,15 +25,6 @@ import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
-object Routes {
-    const val Auth = "auth"
-    const val Home = "home"
-    const val Chat = "chat/{chatId}"
-    const val Story = "story/{storyId}"
-    fun chat(chatId: Long) = "chat/$chatId"
-    fun story(storyId: Long) = "story/$storyId"
-}
-
 @Composable
 fun TelegramYouNavHost(repository: TelegramRepository) {
     val navController = rememberNavController()
@@ -47,12 +36,17 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
     LaunchedEffect(auth.state) {
         when (auth.state) {
             AuthState.Ready -> {
+                // Compared against the registered patterns rather than by
+                // prefix: "starts with chat" would also match a future
+                // chat-settings route and quietly stop redirecting.
                 val current = navController.currentDestination?.route
-                if (current != Routes.Home &&
-                    current?.startsWith("chat") != true &&
-                    current?.startsWith("story") != true
-                ) {
-                    navController.navigate(Routes.Home) {
+                val alreadyInside = current in setOf(
+                    Route.Home.PATTERN,
+                    Route.Chat.PATTERN,
+                    Route.Story.PATTERN
+                )
+                if (!alreadyInside) {
+                    navController.navigate(Route.Home) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -63,8 +57,8 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
             AuthState.Bootstrapping,
             AuthState.Error,
             AuthState.Closed -> {
-                if (navController.currentDestination?.route != Routes.Auth) {
-                    navController.navigate(Routes.Auth) {
+                if (navController.currentDestination?.route != Route.Auth.PATTERN) {
+                    navController.navigate(Route.Auth) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -74,7 +68,7 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
 
     NavHost(
         navController = navController,
-        startDestination = Routes.Auth,
+        startDestination = Route.Auth.PATTERN,
         enterTransition = {
             fadeIn(spring()) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
@@ -100,7 +94,7 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
             )
         }
     ) {
-        composable(Routes.Auth) {
+        composable(Route.Auth.PATTERN) {
             val authViewModel: AuthViewModel = viewModel(factory = viewModelFactory)
             val state by authViewModel.uiState.collectAsStateWithLifecycle()
             AuthScreen(
@@ -114,19 +108,19 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 onResendCode = authViewModel::resendCode
             )
         }
-        composable(Routes.Home) {
+        composable(Route.Home.PATTERN) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val state by homeViewModel.uiState.collectAsStateWithLifecycle()
             HomeScreen(
                 state = state,
                 onRefresh = homeViewModel::refresh,
-                onOpenChat = { id -> navController.navigate(Routes.chat(id)) },
-                onOpenStory = { story -> navController.navigate(Routes.story(story.id)) }
+                onOpenChat = { id -> navController.navigate(Route.Chat(id)) },
+                onOpenStory = { story -> navController.navigate(Route.Story(story.id)) }
             )
         }
         composable(
-            route = Routes.Chat,
-            arguments = listOf(navArgument("chatId") { type = NavType.LongType })
+            route = Route.Chat.PATTERN,
+            arguments = Route.Chat.arguments
         ) {
             // chatId is not read here: ChatViewModel takes it from the saved
             // state, so the conversation survives process death with the rest
@@ -149,8 +143,8 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
             )
         }
         composable(
-            route = Routes.Story,
-            arguments = listOf(navArgument("storyId") { type = NavType.LongType })
+            route = Route.Story.PATTERN,
+            arguments = Route.Story.arguments
         ) {
             // The story arrives as an id in the route and is looked up by its
             // state holder, not held in a variable in this graph. An argument

@@ -114,14 +114,19 @@ Premium and Business are out of scope. Both stay out of the inventory.
 
 Each step builds green on its own; none of them is a rewrite.
 
-1. **ViewModel layer, screen by screen.** Home first because it is small
-   enough to prove the pattern, Chat next because it needs it most.
-2. **Typed routes.** One sealed `Route` hierarchy; `activeStory` stops being
-   a variable in the graph.
-3. **Split `TelegramClient`** into auth, chats, messages and stories, so a
-   new feature touches one interface and one backend method.
-4. **Paging for messages**, replacing the fixed 50-message window.
+1. ~~**ViewModel layer, screen by screen.**~~ Done: four screens, four state
+   holders, none of them holding a repository.
+2. ~~**Typed routes.**~~ Done: one sealed `Route`, and `activeStory` is no
+   longer a variable in the graph.
+3. ~~**Split `TelegramClient`**~~ Done: auth, chats, messages and stories,
+   with `TelegramClient` inheriting all four so the backends were untouched.
+4. **Paging for messages**, replacing the fixed 50-message window. Next.
 5. Then the inventory above, in order.
+
+Not done, and the gap that matters most: **nothing renders a screen.** CI
+proves this compiles and that the message-grouping logic holds. How any of it
+looks or moves is unverified until somebody installs the APK. Screenshot
+tests would close it and are not set up.
 
 What does not change: the demo backend stays a first-class citizen. Every
 screen must work offline with `DemoTelegramClient`, because that is what
