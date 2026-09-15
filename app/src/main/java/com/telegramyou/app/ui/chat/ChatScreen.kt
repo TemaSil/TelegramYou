@@ -69,7 +69,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -220,15 +222,8 @@ fun ChatScreen(
                         onCopy = {
                             clipboard.setText(AnnotatedString(message.text))
                         },
-                        onReply = {
-                            editing = null
-                            replyTo = message
-                        },
-                        onEdit = {
-                            replyTo = null
-                            editing = message
-                            draft = message.text
-                        },
+                        onReply = { onReplyTo(message) },
+                        onEdit = { onEdit(message) },
                         onDelete = { onDeleteRequested(message) }
                     )
                 }
