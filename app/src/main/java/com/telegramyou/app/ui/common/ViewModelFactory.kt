@@ -1,9 +1,11 @@
 package com.telegramyou.app.ui.common
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
 
 /**
@@ -21,4 +23,5 @@ import com.telegramyou.app.ui.home.HomeViewModel
 fun telegramViewModelFactory(repository: TelegramRepository): ViewModelProvider.Factory =
     viewModelFactory {
         initializer { HomeViewModel(repository) }
+        initializer { ChatViewModel(repository, createSavedStateHandle()) }
     }

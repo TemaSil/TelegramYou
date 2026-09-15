@@ -69,10 +69,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,7 +80,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
@@ -93,28 +89,43 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
-import kotlinx.coroutines.launch
 
+/**
+ * One conversation.
+ *
+ * Renders a [ChatUiState] and reports what happened. The picker launchers and
+ * the list's scroll position stay here because they are properties of this
+ * composition, not of the conversation; everything else — the draft, the
+ * reply and edit banners, the pending deletion, the messages themselves —
+ * belongs to [ChatViewModel] and survives rotation there.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatScreen(
-    chatId: Long,
-    repository: TelegramRepository,
-    onBack: () -> Unit
+    state: ChatUiState,
+    onBack: () -> Unit,
+    onDraftChange: (String) -> Unit,
+    onAttachmentPicked: (AttachmentDraft) -> Unit,
+    onAttachmentCleared: () -> Unit,
+    onReplyTo: (ChatMessage) -> Unit,
+    onEdit: (ChatMessage) -> Unit,
+    onComposerBannerCancelled: () -> Unit,
+    onSend: () -> Unit,
+    onDeleteRequested: (ChatMessage) -> Unit,
+    onDeleteDismissed: () -> Unit,
+    onDeleteConfirmed: (ChatMessage, Boolean) -> Unit
 ) {
-    val scope = rememberCoroutineScope()
-    var detail by remember { mutableStateOf<ChatDetail?>(null) }
-    var draft by remember { mutableStateOf("") }
-    var pendingAttachment by remember { mutableStateOf<AttachmentDraft?>(null) }
     val listState = rememberLazyListState()
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        pendingAttachment = AttachmentDraft.Files(
-            uris = uris.map { it.toString() },
-            names = uris.map { it.lastPathSegment?.substringAfterLast('/') ?: "file" }
+        onAttachmentPicked(
+            AttachmentDraft.Files(
+                uris = uris.map { it.toString() },
+                names = uris.map { it.lastPathSegment?.substringAfterLast('/') ?: "file" }
+            )
         )
     }
 
@@ -122,24 +133,16 @@ fun ChatScreen(
         ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        pendingAttachment = AttachmentDraft.Photos(uris.map { it.toString() })
+        onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
     }
 
-    LaunchedEffect(chatId) {
-        detail = repository.openChat(chatId)
+    LaunchedEffect(state.messages.size) {
+        if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
     }
 
-    LaunchedEffect(detail?.messages?.size) {
-        val size = detail?.messages?.size ?: 0
-        if (size > 0) listState.animateScrollToItem(size - 1)
-    }
-
+    val detail = state.detail
     val chat = detail?.chat
-
     val clipboard = LocalClipboardManager.current
-    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
-    var editing by remember { mutableStateOf<ChatMessage?>(null) }
-    var pendingDelete by remember { mutableStateOf<ChatMessage?>(null) }
 
     Scaffold(
         topBar = {
@@ -196,7 +199,7 @@ fun ChatScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                val messages = detail?.messages.orEmpty()
+                val messages = state.messages
                 itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
                     val previous = messages.getOrNull(index - 1)
                     val next = messages.getOrNull(index + 1)
@@ -226,86 +229,52 @@ fun ChatScreen(
                             editing = message
                             draft = message.text
                         },
-                        onDelete = { pendingDelete = message }
+                        onDelete = { onDeleteRequested(message) }
                     )
                 }
             }
 
             AnimatedVisibility(
-                visible = replyTo != null || editing != null,
+                visible = state.replyTo != null || state.editing != null,
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut()
             ) {
                 // One banner for both: they are alternatives, never both at
                 // once, and each cancels the other when chosen.
-                (editing ?: replyTo)?.let { message ->
+                (state.editing ?: state.replyTo)?.let { message ->
                     ComposerBanner(
                         message = message,
-                        isEditing = editing != null,
-                        onCancel = {
-                            if (editing != null) draft = ""
-                            replyTo = null
-                            editing = null
-                        }
+                        isEditing = state.editing != null,
+                        onCancel = onComposerBannerCancelled
                     )
                 }
             }
 
             AnimatedVisibility(
-                visible = pendingAttachment != null,
+                visible = state.pendingAttachment != null,
                 enter = fadeIn() + slideInVertically { it / 2 },
                 exit = fadeOut()
             ) {
                 AttachmentChip(
-                    draft = pendingAttachment,
-                    onClear = { pendingAttachment = null }
+                    draft = state.pendingAttachment,
+                    onClear = onAttachmentCleared
                 )
             }
 
-            pendingDelete?.let { target ->
+            state.pendingDelete?.let { target ->
                 DeleteMessageDialog(
                     message = target,
-                    onDismiss = { pendingDelete = null },
-                    onDelete = { forEveryone ->
-                        pendingDelete = null
-                        scope.launch {
-                            repository.deleteMessage(chatId, target.id, forEveryone)
-                            // Clear a banner pointing at a message that is gone.
-                            if (replyTo?.id == target.id) replyTo = null
-                            if (editing?.id == target.id) {
-                                editing = null
-                                draft = ""
-                            }
-                            detail = repository.openChat(chatId)
-                        }
-                    }
+                    onDismiss = onDeleteDismissed,
+                    onDelete = { forEveryone -> onDeleteConfirmed(target, forEveryone) }
                 )
             }
 
             ComposerBar(
-                value = draft,
-                onValueChange = { draft = it },
+                value = state.draft,
+                onValueChange = onDraftChange,
                 onAttachFile = { filePicker.launch(arrayOf("*/*")) },
                 onAttachPhoto = { photoPicker.launch("image/*") },
-                onSend = {
-                    val text = draft
-                    val attachment = pendingAttachment
-                    if (text.isBlank() && attachment == null) return@ComposerBar
-                    val answering = replyTo?.id
-                    val amending = editing?.id
-                    scope.launch {
-                        if (amending != null) {
-                            repository.editMessage(chatId, amending, text)
-                        } else {
-                            repository.sendMessage(chatId, text, attachment, answering)
-                        }
-                        draft = ""
-                        pendingAttachment = null
-                        replyTo = null
-                        editing = null
-                        detail = repository.openChat(chatId)
-                    }
-                }
+                onSend = onSend
             )
         }
     }

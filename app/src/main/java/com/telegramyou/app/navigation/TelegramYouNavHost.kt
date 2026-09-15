@@ -19,6 +19,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.chat.ChatScreen
+import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
@@ -112,12 +113,25 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
         composable(
             route = Routes.Chat,
             arguments = listOf(navArgument("chatId") { type = NavType.LongType })
-        ) { entry ->
-            val chatId = entry.arguments?.getLong("chatId") ?: return@composable
+        ) {
+            // chatId is not read here: ChatViewModel takes it from the saved
+            // state, so the conversation survives process death with the rest
+            // of its state rather than only as long as this composition.
+            val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
+            val state by chatViewModel.uiState.collectAsStateWithLifecycle()
             ChatScreen(
-                chatId = chatId,
-                repository = repository,
-                onBack = { navController.popBackStack() }
+                state = state,
+                onBack = { navController.popBackStack() },
+                onDraftChange = chatViewModel::onDraftChange,
+                onAttachmentPicked = chatViewModel::onAttachmentPicked,
+                onAttachmentCleared = chatViewModel::onAttachmentCleared,
+                onReplyTo = chatViewModel::onReplyTo,
+                onEdit = chatViewModel::onEdit,
+                onComposerBannerCancelled = chatViewModel::onComposerBannerCancelled,
+                onSend = chatViewModel::onSend,
+                onDeleteRequested = chatViewModel::onDeleteRequested,
+                onDeleteDismissed = chatViewModel::onDeleteDismissed,
+                onDeleteConfirmed = chatViewModel::onDeleteConfirmed
             )
         }
         composable(
