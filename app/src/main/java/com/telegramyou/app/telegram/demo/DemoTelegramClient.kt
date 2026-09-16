@@ -245,8 +245,10 @@ class DemoTelegramClient : TelegramClient {
                     mediaEmoji = "🎤",
                     replyToId = replyToId,
                     // The file the recorder just wrote, so a voice message
-                    // made in demo mode plays back offline.
-                    voicePath = draft.path
+                    // made in demo mode plays back offline — with the shape of
+                    // what was actually said, measured while recording.
+                    voicePath = draft.path,
+                    waveform = draft.waveform
                 )
             }
             is AttachmentDraft.Photos -> {
@@ -352,7 +354,8 @@ class DemoTelegramClient : TelegramClient {
         fileSizeLabel: String? = null,
         mediaEmoji: String? = null,
         replyToId: Long? = null,
-        voicePath: String? = null
+        voicePath: String? = null,
+        waveform: List<Int> = emptyList()
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -375,7 +378,8 @@ class DemoTelegramClient : TelegramClient {
             canBeEdited = true,
             canBeDeletedForSelf = true,
             canBeDeletedForEveryone = true,
-            voicePath = voicePath
+            voicePath = voicePath,
+            waveform = waveform
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

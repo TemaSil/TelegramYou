@@ -242,10 +242,12 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **The voice waveform** — the one place left where custom drawing is
-   justified. Needs amplitudes: `MediaRecorder.getMaxAmplitude` sampled while
-   recording for our own, and TDLib's packed 5-bit waveform decoded for
-   everyone else's. Today a voice bubble is a play button and a length.
+1. **Playback progress on the waveform** — the bars are drawn, but nothing
+   shows how far through a message is. Needs a position ticker off the
+   `MediaPlayer` and a second colour up to that point, which is also what
+   makes seeking by tapping a bar possible.
+2. **Photos and video in bubbles** — an image arrives as a caption and an
+   emoji today. Needs an image loader and TDLib's thumbnail sizes.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -384,9 +386,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       camera and file. Everything travels as a `content://` Uri; the TDLib
       backend resolves it into the upload cache, which is where that belongs
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
-- [~] Voice messages: hold the microphone to record, release to send, tap to
-      play. The waveform is still missing, and so is the amplitude capture it
-      would be drawn from — nothing here reads TDLib's own waveform either
+- [x] Voice messages: hold to record, release to send, tap to play, with the
+      waveform drawn behind it — amplitudes measured while recording, and
+      Telegram's own packed 5-bit waveform decoded for everyone else's
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
       divider goes is decided in `:core` with tests
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping

@@ -23,6 +23,7 @@ class VoiceRecorder(private val context: Context) {
     private var recorder: MediaRecorder? = null
     private var target: File? = null
     private var startedAt = 0L
+    private val amplitudes = mutableListOf<Int>()
 
     val isRecording: Boolean get() = recorder != null
 
@@ -57,6 +58,11 @@ class VoiceRecorder(private val context: Context) {
             recorder = created
             target = file
             startedAt = System.currentTimeMillis()
+            amplitudes.clear()
+            // The first reading after start() is the level since the recorder
+            // opened, which is noise from the microphone warming up rather
+            // than anything anybody said.
+            created.maxAmplitude
             true
         } catch (e: Exception) {
             Log.w(TAG, "start: ${e.message}")
@@ -65,6 +71,31 @@ class VoiceRecorder(private val context: Context) {
             file.delete()
             false
         }
+    }
+
+    /**
+     * Takes one amplitude reading, for the waveform.
+     *
+     * getMaxAmplitude answers with the loudest sample since the last call and
+     * resets, so this has to be called on a steady beat or the numbers mean
+     * different lengths of time. The caller ticks it; the recorder only
+     * records what it is told.
+     *
+     * Scaled to the 5 bits Telegram's waveform uses. 32767 is the top of the
+     * 16-bit range MediaRecorder reports in, and the square root is what makes
+     * a quiet voice visible at all — amplitude is linear and hearing is not,
+     * so a linear bar chart of speech is mostly empty space.
+     */
+    fun sample() {
+        val active = recorder ?: return
+        val raw = try {
+            active.maxAmplitude
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "sample: ${e.message}")
+            return
+        }
+        val normalised = kotlin.math.sqrt(raw.coerceIn(0, 32_767) / 32_767.0)
+        amplitudes += (normalised * 31).toInt().coerceIn(0, 31)
     }
 
     /**
@@ -91,7 +122,7 @@ class VoiceRecorder(private val context: Context) {
             file?.delete()
             return null
         }
-        return Recording(file.absolutePath, seconds)
+        return Recording(file.absolutePath, seconds, amplitudes.toList())
     }
 
     /** Throws the recording away — for a cancelled gesture. */
@@ -122,7 +153,11 @@ class VoiceRecorder(private val context: Context) {
             MediaRecorder()
         }
 
-    data class Recording(val path: String, val durationSeconds: Int)
+    data class Recording(
+        val path: String,
+        val durationSeconds: Int,
+        val waveform: List<Int>
+    )
 
     private companion object {
         const val TAG = "VoiceRecorder"
