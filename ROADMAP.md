@@ -179,11 +179,15 @@ careful with.
 
 ## Where this was left, 16 September 2026
 
-CI is green on the working branch, **70 unit tests** (48 of them in `:core`),
-and the conversation
-screen is close to complete: reactions, multi-select with copy, forward and
-delete, in-chat search, an attachment sheet with camera, the unread divider,
-jump-to-latest and the pinned message bar all landed today.
+CI is green on the working branch, **79 unit tests** (57 of them in `:core`),
+and the conversation screen is close to complete. Landed today: reactions,
+multi-select with copy, forward and delete, in-chat search, an attachment
+sheet with camera, the unread divider, jump-to-latest, the pinned message bar,
+a drawn typing indicator, hold-to-record voice messages, and a settings screen
+with the dynamic-colour switch this client is named after.
+
+Two controls that pretended to be features are gone: the microphone records
+now, and the avatar opens settings.
 
 **The feedback loop changed more than any of the features.** There is now a
 `:core` module — plain Kotlin, no Android — that compiles and tests in about
