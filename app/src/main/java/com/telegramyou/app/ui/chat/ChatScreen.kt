@@ -142,6 +142,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * How often the recorder is asked for an amplitude, and the clock redrawn.
@@ -150,8 +152,6 @@ import kotlin.math.roundToInt
  * to draw, slow enough that it is not a reading per frame.
  */
 private const val RECORDING_TICK_MS = 250L
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /**
  * One conversation.
