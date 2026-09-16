@@ -12,6 +12,7 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
@@ -202,6 +203,40 @@ class TdLibTelegramClient(
             // the id, so this is a lookup rather than a request per result.
             val chat = chatsById[id] ?: continue
             out += toPreview(chat)
+        }
+        return out
+    }
+
+    override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
+        if (query.isBlank()) return emptyList()
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchMessages")
+                    .put("query", query)
+                    .put("limit", limit)
+                    // Paging fields TDLib requires even for a first page.
+                    .put("offset", "")
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchMessages: ${e.message}")
+            return emptyList()
+        }
+
+        val array = found.optJSONArray("messages") ?: return emptyList()
+        val out = ArrayList<MessageHit>(array.length())
+        for (i in 0 until array.length()) {
+            val raw = array.optJSONObject(i) ?: continue
+            val chatId = raw.optLong("chat_id")
+            // A hit in a chat we know nothing about cannot be shown usefully:
+            // the row needs a title and an avatar colour, and inventing them
+            // would be worse than leaving the hit out.
+            val chat = chatsById[chatId] ?: continue
+            out += MessageHit(
+                chat = toPreview(chat),
+                message = mapMessage(chatId, raw)
+            )
         }
         return out
     }

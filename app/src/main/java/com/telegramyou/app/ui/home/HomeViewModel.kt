@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.Job
@@ -40,8 +41,12 @@ data class SearchState(
     val expanded: Boolean = false,
     val query: String = "",
     val results: List<ChatPreview> = emptyList(),
+    val messages: List<MessageHit> = emptyList(),
     val isSearching: Boolean = false
-)
+) {
+    /** Used to decide whether the screen may say nothing was found. */
+    val isEmpty: Boolean get() = results.isEmpty() && messages.isEmpty()
+}
 
 class HomeViewModel(
     private val repository: TelegramRepository
@@ -96,6 +101,7 @@ class HomeViewModel(
             search.value = search.value.copy(
                 query = query,
                 results = emptyList(),
+                messages = emptyList(),
                 isSearching = false
             )
             return
@@ -105,8 +111,15 @@ class HomeViewModel(
             // Long enough that typing a word is one request rather than five,
             // short enough that it does not feel like waiting.
             delay(SEARCH_DEBOUNCE_MS)
-            val results = repository.searchChats(query)
-            search.value = search.value.copy(results = results, isSearching = false)
+            // Both halves of one search, so the screen never shows chats
+            // while still waiting on messages and looks half-finished.
+            val chats = repository.searchChats(query)
+            val messages = repository.searchMessages(query)
+            search.value = search.value.copy(
+                results = chats,
+                messages = messages,
+                isSearching = false
+            )
         }
     }
 

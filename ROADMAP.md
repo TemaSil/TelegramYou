@@ -334,7 +334,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Pinned message bar — `Surface` under the `TopAppBar`
 - [ ] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text
-- [ ] In-chat search with jump to the hit
+- [ ] In-chat search with jump to the hit — global message search is in, this
+      is the same query narrowed to one conversation
 - [x] Load older messages on scroll — `loadOlderMessages`, guarded against
       the request-per-frame a list sitting at the top would otherwise make
 
@@ -346,9 +347,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Swipe actions: mute, pin, archive, delete — `SwipeToDismissBox`
 - [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
 - [ ] Archive: entry row and its own screen
-- [~] Search — `SearchBar`, server-side across chats. Messages still to come:
-      TDLib answers `searchChatsOnServer`, and searching message text is a
-      separate call
+- [x] Search — `SearchBar`, server-side across chats **and** message text,
+      in two labelled sections
 - [ ] Compose — `FloatingActionButton` into a contact picker
 - [ ] Pin, mute, mark read from a long-press `DropdownMenu`
 - [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets

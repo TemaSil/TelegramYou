@@ -6,6 +6,7 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
@@ -132,6 +133,21 @@ class DemoTelegramClient : TelegramClient {
                 it.title.contains(query, ignoreCase = true) ||
                     it.lastMessage.contains(query, ignoreCase = true)
             }
+            .take(limit)
+    }
+
+    override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
+        if (query.isBlank()) return emptyList()
+        delay(160)
+        val byId = _chats.value.associateBy { it.id }
+        return chatMessages.entries
+            .flatMap { (chatId, messages) ->
+                val chat = byId[chatId] ?: return@flatMap emptyList()
+                messages
+                    .filter { it.text.contains(query, ignoreCase = true) }
+                    .map { MessageHit(chat = chat, message = it) }
+            }
+            .sortedByDescending { it.message.date }
             .take(limit)
     }
 

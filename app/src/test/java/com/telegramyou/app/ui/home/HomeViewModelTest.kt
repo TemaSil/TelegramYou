@@ -2,7 +2,9 @@ package com.telegramyou.app.ui.home
 
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.MessageHit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -36,12 +38,24 @@ class HomeViewModelTest {
     private fun chat(id: Long, title: String) =
         ChatPreview(id = id, title = title, lastMessage = "", timestampLabel = "")
 
+    private fun message(id: Long, text: String) = ChatMessage(
+        id = id,
+        chatId = id,
+        text = text,
+        isOutgoing = false,
+        timeLabel = ""
+    )
+
     private fun TestScope.viewModel(): Pair<HomeViewModel, FakeTelegramClient> {
         val client = FakeTelegramClient(
             searchable = listOf(
                 chat(1, "Material Design"),
                 chat(2, "Lina Park"),
                 chat(3, "Design crit")
+            ),
+            searchableMessages = listOf(
+                MessageHit(chat(2, "Lina Park"), message(10, "the design is done")),
+                MessageHit(chat(3, "Design crit"), message(11, "nothing to see"))
             )
         )
         val vm = HomeViewModel(TelegramRepository(client))
@@ -74,6 +88,36 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `one search covers chats and message text both`() = runTest {
+        val (vm, client) = viewModel()
+
+        vm.onSearchQueryChange("design")
+        advanceUntilIdle()
+
+        val search = vm.uiState.value.search
+        assertEquals(
+            listOf("Material Design", "Design crit"),
+            search.results.map { it.title }
+        )
+        assertEquals("the design is done", search.messages.single().message.text)
+        assertEquals("one debounce, not one per half", 1, client.searchCount)
+        assertEquals(1, client.messageSearchCount)
+    }
+
+    @Test
+    fun `nothing found needs both halves to be empty`() = runTest {
+        val (vm, _) = viewModel()
+
+        // Matches no chat title, but does match a message.
+        vm.onSearchQueryChange("is done")
+        advanceUntilIdle()
+
+        val search = vm.uiState.value.search
+        assertTrue(search.results.isEmpty())
+        assertFalse("a message hit is still a result", search.isEmpty)
+    }
+
+    @Test
     fun `an empty query asks nothing and clears what was found`() = runTest {
         val (vm, client) = viewModel()
 
@@ -85,7 +129,7 @@ class HomeViewModelTest {
         advanceUntilIdle()
 
         assertEquals("a blank field is not a request for everything", 1, client.searchCount)
-        assertTrue(vm.uiState.value.search.results.isEmpty())
+        assertTrue(vm.uiState.value.search.isEmpty)
         assertFalse(vm.uiState.value.search.isSearching)
     }
 
@@ -120,7 +164,7 @@ class HomeViewModelTest {
         runCurrent()
 
         assertEquals("", vm.uiState.value.search.query)
-        assertTrue(vm.uiState.value.search.results.isEmpty())
+        assertTrue(vm.uiState.value.search.isEmpty)
         assertFalse(vm.uiState.value.search.expanded)
     }
 }

@@ -5,6 +5,7 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,9 @@ class FakeTelegramClient(
     /** Pages returned by successive calls; an exhausted list answers empty. */
     private val olderPages: MutableList<List<ChatMessage>> = mutableListOf(),
     /** Everything searchChats may match against. */
-    private val searchable: List<ChatPreview> = emptyList()
+    private val searchable: List<ChatPreview> = emptyList(),
+    /** Everything searchMessages may match against. */
+    private val searchableMessages: List<MessageHit> = emptyList()
 ) : TelegramClient {
 
     var openChatCount = 0
@@ -33,6 +36,8 @@ class FakeTelegramClient(
     var searchCount = 0
         private set
     var lastSearchQuery: String? = null
+        private set
+    var messageSearchCount = 0
         private set
 
     override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
@@ -73,6 +78,11 @@ class FakeTelegramClient(
         searchCount++
         lastSearchQuery = query
         return searchable.filter { it.title.contains(query, ignoreCase = true) }
+    }
+
+    override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
+        messageSearchCount++
+        return searchableMessages.filter { it.message.text.contains(query, ignoreCase = true) }
     }
 
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit

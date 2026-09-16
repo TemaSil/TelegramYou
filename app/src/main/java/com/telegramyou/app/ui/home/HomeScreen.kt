@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
@@ -35,10 +38,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.StoryItem
+import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
@@ -220,7 +226,10 @@ private fun ChatSearchBar(
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(search.results, key = { it.id }) { chat ->
+            if (search.results.isNotEmpty()) {
+                item(key = "chats-header") { SearchSectionHeader("Chats") }
+            }
+            items(search.results, key = { "chat-${it.id}" }) { chat ->
                 ChatListRow(
                     chat = chat,
                     onClick = { onOpenChat(chat.id) },
@@ -229,9 +238,20 @@ private fun ChatSearchBar(
                         .padding(horizontal = 12.dp)
                 )
             }
+            if (search.messages.isNotEmpty()) {
+                item(key = "messages-header") { SearchSectionHeader("Messages") }
+            }
+            items(
+                search.messages,
+                // A message id is only unique within its chat, so the chat
+                // has to be part of the key or two hits can collide.
+                key = { "msg-${it.chat.id}-${it.message.id}" }
+            ) { hit ->
+                MessageHitRow(hit = hit, onClick = { onOpenChat(hit.chat.id) })
+            }
             // Said only once the search has actually looked, so a slow query
             // does not report failure before it has an answer.
-            if (search.query.isNotBlank() && !search.isSearching && search.results.isEmpty()) {
+            if (search.query.isNotBlank() && !search.isSearching && search.isEmpty) {
                 item {
                     Text(
                         text = "Nothing found for \u201C${search.query}\u201D",
@@ -243,4 +263,55 @@ private fun ChatSearchBar(
             }
         }
     }
+}
+
+@Composable
+private fun SearchSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+    )
+}
+
+/**
+ * One message found by search, under the conversation it came from.
+ *
+ * A [ListItem] like the chat rows, but the roles are swapped: the chat title
+ * is the headline and the message text the supporting line, because what
+ * identifies a hit is where it was said.
+ */
+@Composable
+private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
+    ListItem(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .clip(MaterialTheme.shapes.large)
+            .clickable(onClick = onClick),
+        colors = ListItemDefaults.colors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        leadingContent = {
+            AvatarBubble(
+                title = hit.chat.title,
+                seed = hit.chat.avatarColor,
+                size = 40.dp
+            )
+        },
+        headlineContent = {
+            Text(hit.chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
+        },
+        supportingContent = {
+            Text(hit.message.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        },
+        trailingContent = {
+            Text(
+                text = hit.message.timeLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    )
 }

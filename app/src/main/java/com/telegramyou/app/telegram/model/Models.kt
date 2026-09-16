@@ -128,6 +128,17 @@ data class ChatDetail(
     val isTyping: Boolean = false
 )
 
+/**
+ * A message found by searching, with the conversation it belongs to.
+ *
+ * Global search spans every chat, so a hit without its chat is unreadable:
+ * the same sentence means different things depending on who said it where.
+ */
+data class MessageHit(
+    val chat: ChatPreview,
+    val message: ChatMessage
+)
+
 sealed interface AttachmentDraft {
     data class Files(val uris: List<String>, val names: List<String>) : AttachmentDraft
     data class Photos(val uris: List<String>) : AttachmentDraft

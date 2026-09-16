@@ -2,6 +2,7 @@ package com.telegramyou.app.telegram.messages
 
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageHit
 
 /** What can be done to a message once a conversation is open. */
 interface TelegramMessages {
@@ -37,4 +38,12 @@ interface TelegramMessages {
         beforeMessageId: Long,
         limit: Int = 50
     ): List<ChatMessage>
+
+    /**
+     * Messages matching [query] across every conversation, newest first.
+     *
+     * Blank returns nothing, for the same reason [TelegramChats.searchChats]
+     * does: an empty field is not a request for the whole history.
+     */
+    suspend fun searchMessages(query: String, limit: Int = 30): List<MessageHit>
 }
