@@ -176,6 +176,45 @@ class ChatViewModelTest {
         assertEquals(listOf("👍", "🔥"), vm.uiState.value.availableReactions)
     }
 
+    @Test
+    fun `selecting and deselecting raises and lowers the toolbar`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10), message(11)))
+
+        vm.onSelectionToggled(message(10))
+        assertTrue(vm.uiState.value.selection.isActive)
+        assertEquals(listOf(10L), vm.uiState.value.selectedMessages.map { it.id })
+
+        vm.onSelectionToggled(message(10))
+        assertFalse(vm.uiState.value.selection.isActive)
+    }
+
+    @Test
+    fun `deleting a selection removes every message in it`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11), message(12)))
+        vm.onSelectionToggled(message(10))
+        vm.onSelectionToggled(message(12))
+
+        vm.onSelectionDeleted(forEveryone = false)
+
+        assertEquals(listOf(10L, 12L), client.deletedIds)
+        assertFalse("the toolbar goes as the messages do",
+            vm.uiState.value.selection.isActive)
+    }
+
+    @Test
+    fun `a selected message that disappears is dropped on reload`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11)))
+        vm.onSelectionToggled(message(10))
+        vm.onSelectionToggled(message(11))
+
+        // Someone else deleted 11; the next window comes back without it.
+        client.window = listOf(message(10))
+        vm.onDraftChange("x")
+        vm.onSend()
+
+        assertEquals(setOf(10L), vm.uiState.value.selection.ids)
+    }
+
     private companion object {
         const val CHAT_ID = 1L
     }

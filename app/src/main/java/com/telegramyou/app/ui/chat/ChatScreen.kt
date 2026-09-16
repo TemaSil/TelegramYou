@@ -45,6 +45,7 @@ import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AddReaction
 import androidx.compose.material.icons.rounded.AttachFile
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -64,6 +65,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -141,7 +143,12 @@ fun ChatScreen(
     onDeleteConfirmed: (ChatMessage, Boolean) -> Unit,
     onReactionsRequested: (ChatMessage) -> Unit,
     onReactionPickerDismissed: () -> Unit,
-    onReactionToggled: (ChatMessage, String) -> Unit
+    onReactionToggled: (ChatMessage, String) -> Unit,
+    onSelectionToggled: (ChatMessage) -> Unit,
+    onSelectionCleared: () -> Unit,
+    onSelectionDeleteRequested: () -> Unit,
+    onSelectionDeleteDismissed: () -> Unit,
+    onSelectionDeleted: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -282,7 +289,10 @@ fun ChatScreen(
                         onEdit = { onEdit(message) },
                         onDelete = { onDeleteRequested(message) },
                         onReact = { onReactionsRequested(message) },
-                        onReactionToggled = { emoji -> onReactionToggled(message, emoji) }
+                        onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
+                        isSelected = message.id in state.selection,
+                        isSelecting = state.selection.isActive,
+                        onSelect = { onSelectionToggled(message) }
                     )
                 }
             }
@@ -331,13 +341,38 @@ fun ChatScreen(
                 )
             }
 
-            ComposerBar(
-                value = state.draft,
-                onValueChange = onDraftChange,
-                onAttachFile = { filePicker.launch(arrayOf("*/*")) },
-                onAttachPhoto = { photoPicker.launch("image/*") },
-                onSend = onSend
-            )
+            if (state.confirmingSelectionDelete) {
+                DeleteSelectionDialog(
+                    count = state.selection.count,
+                    actions = state.availableActions,
+                    onDismiss = onSelectionDeleteDismissed,
+                    onDelete = onSelectionDeleted
+                )
+            }
+
+            if (state.selection.isActive) {
+                // The toolbar takes the composer's place rather than floating
+                // over it. Nothing can be typed while a selection is up, so
+                // leaving the field there would be a control that does nothing.
+                SelectionToolbar(
+                    count = state.selection.count,
+                    actions = state.availableActions,
+                    onCopy = {
+                        clipboard.setText(AnnotatedString(copyText(state.selectedMessages)))
+                        onSelectionCleared()
+                    },
+                    onDelete = onSelectionDeleteRequested,
+                    onClear = onSelectionCleared
+                )
+            } else {
+                ComposerBar(
+                    value = state.draft,
+                    onValueChange = onDraftChange,
+                    onAttachFile = { filePicker.launch(arrayOf("*/*")) },
+                    onAttachPhoto = { photoPicker.launch("image/*") },
+                    onSend = onSend
+                )
+            }
         }
     }
 }
@@ -377,7 +412,10 @@ private fun MessageBubble(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onReact: () -> Unit,
-    onReactionToggled: (String) -> Unit
+    onReactionToggled: (String) -> Unit,
+    isSelected: Boolean,
+    isSelecting: Boolean,
+    onSelect: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -453,14 +491,24 @@ private fun MessageBubble(
         Box {
             Surface(
             shape = shape,
-            color = if (outgoing) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.surfaceContainerHighest,
+            color = when {
+                // Selected wins over the sender's own colour: which messages
+                // are about to be acted on has to be readable at a glance,
+                // and on an outgoing bubble the ordinary primary fill is
+                // already the loudest thing on screen.
+                isSelected -> MaterialTheme.colorScheme.tertiaryContainer
+                outgoing -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.surfaceContainerHighest
+            },
             shadowElevation = 1.dp,
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .combinedClickable(
-                    onClick = {},
-                    onLongClick = { menuOpen = true }
+                    // Once a selection is up, a tap adds to it. Opening the
+                    // menu on a plain tap the rest of the time would fire on
+                    // every scroll that ends on a bubble.
+                    onClick = { if (isSelecting) onSelect() },
+                    onLongClick = { if (isSelecting) onSelect() else menuOpen = true }
                 )
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -575,6 +623,16 @@ private fun MessageBubble(
                     }
                 )
                 DropdownMenuItem(
+                    text = { Text("Select") },
+                    leadingIcon = {
+                        Icon(Icons.Rounded.CheckCircle, contentDescription = null)
+                    },
+                    onClick = {
+                        onSelect()
+                        menuOpen = false
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text("React") },
                     leadingIcon = {
                         Icon(Icons.Rounded.AddReaction, contentDescription = null)
@@ -623,6 +681,108 @@ private fun MessageBubble(
             }
         }
     }
+}
+
+/**
+ * What replaces the composer while messages are selected.
+ *
+ * `HorizontalFloatingToolbar` is the Expressive component for exactly this —
+ * a small set of actions on a floating surface — so there is nothing to build.
+ * Which buttons appear comes from [SelectionActions]: a Delete that only works
+ * on some of the selection is a failure the UI could have predicted.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SelectionToolbar(
+    count: Int,
+    actions: SelectionActions,
+    onCopy: () -> Unit,
+    onDelete: () -> Unit,
+    onClear: () -> Unit
+) {
+    // Centred and hugging its content: a floating toolbar is a pill, and
+    // stretching it across the screen would make it the bar it is not.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        HorizontalFloatingToolbar(expanded = true) {
+            IconButton(onClick = onClear) {
+                Icon(Icons.Rounded.Close, contentDescription = "Clear selection")
+            }
+            Text(
+                count.toString(),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            )
+            if (actions.canCopy) {
+                IconButton(onClick = onCopy) {
+                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy")
+                }
+            }
+            if (actions.canDeleteForSelf || actions.canDeleteForEveryone) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The confirmation for deleting a whole selection.
+ *
+ * Separate from [DeleteMessageDialog] because the choice is not the same: the
+ * for-everyone option is offered only when every selected message allows it,
+ * and the count is the only thing telling the user what is about to go.
+ */
+@Composable
+private fun DeleteSelectionDialog(
+    count: Int,
+    actions: SelectionActions,
+    onDismiss: () -> Unit,
+    onDelete: (forEveryone: Boolean) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+        title = { Text(if (count == 1) "Delete message?" else "Delete $count messages?") },
+        text = {
+            Text(
+                if (actions.canDeleteForEveryone) {
+                    "This cannot be undone."
+                } else {
+                    "They will be removed for you. The other side keeps their copies."
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onDelete(false) }) {
+                Text(if (actions.canDeleteForEveryone) "Delete for me" else "Delete")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+                if (actions.canDeleteForEveryone) {
+                    TextButton(
+                        onClick = { onDelete(true) },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Delete for everyone")
+                    }
+                }
+            }
+        }
+    )
 }
 
 /**

@@ -40,9 +40,23 @@ data class ChatUiState(
     /** Non-null while the reaction picker is open, naming what it reacts to. */
     val reactingTo: ChatMessage? = null,
     /** What this chat permits, fetched once — see TelegramMessages. */
-    val availableReactions: List<String> = emptyList()
+    val availableReactions: List<String> = emptyList(),
+    /** Empty until someone chooses Select; non-empty puts the toolbar up. */
+    val selection: MessageSelection = MessageSelection(),
+    /** True while the confirmation for deleting the selection is on screen. */
+    val confirmingSelectionDelete: Boolean = false
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
+
+    val selectedMessages: List<ChatMessage> get() = messages.filter { it.id in selection }
+
+    /**
+     * What the toolbar may offer, computed rather than stored: it is a
+     * function of the selection and the messages, and storing it means two
+     * things that can disagree. Named apart from the `selectionActions`
+     * function it calls so neither reads as the other.
+     */
+    val availableActions: SelectionActions get() = selectionActions(selectedMessages)
 }
 
 class ChatViewModel(
@@ -158,6 +172,46 @@ class ChatViewModel(
         olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it }
     )
 
+    // ── selecting ────────────────────────────────────────────────────────
+
+    /**
+     * Adds or removes one message.
+     *
+     * The same call starts a selection and ends it: the first message chosen
+     * raises the toolbar and deselecting the last one puts it away, so there
+     * is no separate mode to enter or leave.
+     */
+    fun onSelectionToggled(message: ChatMessage) =
+        _uiState.update { it.copy(selection = it.selection.toggle(message.id)) }
+
+    fun onSelectionCleared() =
+        _uiState.update { it.copy(selection = it.selection.cleared()) }
+
+    fun onSelectionDeleteRequested() =
+        _uiState.update { it.copy(confirmingSelectionDelete = true) }
+
+    fun onSelectionDeleteDismissed() =
+        _uiState.update { it.copy(confirmingSelectionDelete = false) }
+
+    /**
+     * Deletes everything selected, then clears it.
+     *
+     * One request per message: TDLib takes a list, but the client interface
+     * takes one id, and widening it for this would push the batching into both
+     * backends for the sake of one caller.
+     */
+    fun onSelectionDeleted(forEveryone: Boolean) {
+        val targets = _uiState.value.selectedMessages
+        if (targets.isEmpty()) return
+        _uiState.update {
+            it.copy(selection = it.selection.cleared(), confirmingSelectionDelete = false)
+        }
+        viewModelScope.launch {
+            targets.forEach { repository.deleteMessage(chatId, it.id, forEveryone) }
+            reload()
+        }
+    }
+
     // ── deleting ─────────────────────────────────────────────────────────
 
     fun onDeleteRequested(message: ChatMessage) =
@@ -217,12 +271,16 @@ class ChatViewModel(
             // The window from openChat is fresh, so anything paged in before
             // it is discarded rather than left to duplicate or contradict it.
             _uiState.update {
-                it.copy(
+                val reloaded = it.copy(
                     detail = detail,
                     olderMessages = emptyList(),
                     hasMoreOlder = true,
                     availableReactions = reactions
                 )
+                // A selected message can be gone by the time the chat reloads —
+                // deleted here or by someone else. Keeping its id would leave
+                // the toolbar counting something that cannot be acted on.
+                reloaded.copy(selection = it.selection.retaining(reloaded.messages))
             }
         }
     }
