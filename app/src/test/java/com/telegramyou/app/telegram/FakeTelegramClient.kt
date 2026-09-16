@@ -1,0 +1,75 @@
+package com.telegramyou.app.telegram
+
+import com.telegramyou.app.telegram.model.AttachmentDraft
+import com.telegramyou.app.telegram.model.AuthUiState
+import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.StoryItem
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * A client that answers from lists handed to it.
+ *
+ * Exists so state holders can be tested without TDLib, a device or the demo
+ * backend's own opinions. Every method records that it was called, because
+ * "did not ask again" is exactly what the paging guard has to prove.
+ */
+class FakeTelegramClient(
+    private val window: List<ChatMessage> = emptyList(),
+    /** Pages returned by successive calls; an exhausted list answers empty. */
+    private val olderPages: MutableList<List<ChatMessage>> = mutableListOf()
+) : TelegramClient {
+
+    var openChatCount = 0
+        private set
+    var loadOlderCount = 0
+        private set
+    var lastLoadOlderBefore: Long? = null
+        private set
+
+    override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
+    override val chats: StateFlow<List<ChatPreview>> = MutableStateFlow(emptyList())
+    override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
+
+    override fun start() = Unit
+    override fun shutdown() = Unit
+
+    override suspend fun openChat(chatId: Long): ChatDetail {
+        openChatCount++
+        return ChatDetail(
+            chat = ChatPreview(chatId, "Fake", "", ""),
+            messages = window
+        )
+    }
+
+    override suspend fun loadOlderMessages(
+        chatId: Long,
+        beforeMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        loadOlderCount++
+        lastLoadOlderBefore = beforeMessageId
+        return if (olderPages.isEmpty()) emptyList() else olderPages.removeAt(0)
+    }
+
+    // ── not under test ───────────────────────────────────────────────────
+
+    override suspend fun submitPhoneNumber(phone: String) = Unit
+    override suspend fun submitCode(code: String) = Unit
+    override suspend fun submitPassword(password: String) = Unit
+    override suspend fun resendCode() = Unit
+    override suspend fun logout() = Unit
+    override suspend fun refreshChats() = Unit
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
+    override suspend fun sendAttachment(
+        chatId: Long,
+        draft: AttachmentDraft,
+        caption: String,
+        replyToId: Long?
+    ) = Unit
+    override suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) = Unit
+    override suspend fun editMessage(chatId: Long, messageId: Long, text: String) = Unit
+    override suspend fun markStorySeen(storyId: Long) = Unit
+}

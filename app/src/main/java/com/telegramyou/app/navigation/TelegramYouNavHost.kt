@@ -137,6 +137,7 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 onEdit = chatViewModel::onEdit,
                 onComposerBannerCancelled = chatViewModel::onComposerBannerCancelled,
                 onSend = chatViewModel::onSend,
+                onLoadOlder = chatViewModel::onLoadOlder,
                 onDeleteRequested = chatViewModel::onDeleteRequested,
                 onDeleteDismissed = chatViewModel::onDeleteDismissed,
                 onDeleteConfirmed = chatViewModel::onDeleteConfirmed

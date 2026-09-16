@@ -202,6 +202,36 @@ class TdLibTelegramClient(
         )
     }
 
+    override suspend fun loadOlderMessages(
+        chatId: Long,
+        beforeMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        awaitReady()
+        // from_message_id is exclusive and offset 0 means "older than this",
+        // so this returns the page immediately before what is on screen.
+        val history = requireEngine().send(
+            JSONObject()
+                .put("@type", "getChatHistory")
+                .put("chat_id", chatId)
+                .put("from_message_id", beforeMessageId)
+                .put("offset", 0)
+                .put("limit", limit)
+                // only_local = false: an empty answer has to mean the end of
+                // the history, not merely the end of what happens to be
+                // cached, or the list would stop short and look complete.
+                .put("only_local", false)
+        )
+        val older = parseMessages(chatId, history.optJSONArray("messages"))
+        if (older.isNotEmpty()) {
+            // Kept in the same window the reply lookup reads, so quotes of
+            // newly loaded messages resolve instead of showing a placeholder.
+            val known = messagesByChat.getOrPut(chatId) { mutableListOf() }
+            known.addAll(0, older)
+        }
+        return older
+    }
+
     /**
      * TDLib expects a reply as an inputMessageReplyToMessage on the send, not
      * a bare id. Absent when nothing is being answered — passing a null

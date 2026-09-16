@@ -126,8 +126,9 @@ Each step builds green on its own; none of them is a rewrite.
    longer a variable in the graph.
 3. ~~**Split `TelegramClient`**~~ Done: auth, chats, messages and stories,
    with `TelegramClient` inheriting all four so the backends were untouched.
-4. **Paging for messages**, replacing the fixed 50-message window. Next.
-5. Then the inventory above, in order.
+4. ~~**Paging for messages.**~~ Done: `loadOlderMessages` on
+   `TelegramMessages`, with the exhaustion signal being an empty page.
+5. Then the inventory above, in order. The migration is finished.
 
 Not done, and the gap that matters most: **nothing renders a screen.** CI
 proves this compiles and that the message-grouping logic holds. How any of it

@@ -202,13 +202,10 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Paging for messages.** `openChat` returns a fixed 50-message window, so
-   "load older on scroll" has nowhere to go. This is the last item in the
-   migration order.
-2. **Then the inventory**: search (`SearchBar`) is the natural first screen —
+1. **Then the inventory**: search (`SearchBar`) is the natural first screen —
    it also removes the `onClick = {}` stub that currently pretends to be a
    feature.
-3. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
+2. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
    method.
 
 ### Known debts, none of them hidden
@@ -240,7 +237,7 @@ screens and will not survive forty.
       screen holds a repository or launches a coroutine
 - [x] Typed routes, one sealed hierarchy instead of `"chat/{chatId}"`
 - [x] Split `TelegramClient` into auth / chats / messages / stories
-- [ ] Paging for messages, replacing the fixed 50-message window
+- [x] Paging for messages, replacing the fixed 50-message window
 
 ## The revision pass, 15 September 2026
 
@@ -298,7 +295,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text
 - [ ] In-chat search with jump to the hit
-- [ ] Load older messages on scroll
+- [x] Load older messages on scroll — `loadOlderMessages`, guarded against
+      the request-per-frame a list sitting at the top would otherwise make
 
 ## 2. Chat list
 

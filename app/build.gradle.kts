@@ -142,4 +142,7 @@ dependencies {
 
     // Pure-logic tests that run on the JVM: no device, no emulator, seconds.
     testImplementation("junit:junit:4.13.2")
+    // viewModelScope runs on Dispatchers.Main, which does not exist on the
+    // JVM until a test provides one.
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }

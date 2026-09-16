@@ -49,6 +49,7 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +69,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -113,6 +115,7 @@ fun ChatScreen(
     onEdit: (ChatMessage) -> Unit,
     onComposerBannerCancelled: () -> Unit,
     onSend: () -> Unit,
+    onLoadOlder: () -> Unit,
     onDeleteRequested: (ChatMessage) -> Unit,
     onDeleteDismissed: () -> Unit,
     onDeleteConfirmed: (ChatMessage, Boolean) -> Unit
@@ -138,8 +141,23 @@ fun ChatScreen(
         onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
     }
 
-    LaunchedEffect(state.messages.size) {
+    // Keyed on the newest message, not on the count. Paging older history in
+    // also changes the count, and scrolling to the bottom because somebody
+    // scrolled up is the opposite of what they asked for.
+    LaunchedEffect(state.messages.lastOrNull()?.id) {
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
+    }
+
+    // derivedStateOf so this recomputes on scroll without recomposing the
+    // screen on every pixel of it.
+    val nearTop by remember {
+        derivedStateOf {
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            first != null && first.index <= 3
+        }
+    }
+    LaunchedEffect(nearTop, state.hasMoreOlder) {
+        if (nearTop && state.hasMoreOlder) onLoadOlder()
     }
 
     val detail = state.detail
@@ -201,6 +219,21 @@ fun ChatScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                // A spinner where the older messages will appear, so the wait
+                // has a place on screen instead of nothing happening.
+                if (state.isLoadingOlder) {
+                    item(key = "loading-older") {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+
                 val messages = state.messages
                 itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
                     val previous = messages.getOrNull(index - 1)

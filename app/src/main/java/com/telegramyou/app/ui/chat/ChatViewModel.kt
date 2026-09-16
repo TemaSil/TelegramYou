@@ -27,9 +27,17 @@ data class ChatUiState(
     val pendingAttachment: AttachmentDraft? = null,
     val replyTo: ChatMessage? = null,
     val editing: ChatMessage? = null,
-    val pendingDelete: ChatMessage? = null
+    val pendingDelete: ChatMessage? = null,
+    /** Older messages fetched by scrolling, oldest first, ahead of [detail]. */
+    val olderMessages: List<ChatMessage> = emptyList(),
+    val isLoadingOlder: Boolean = false,
+    /**
+     * False once the client has answered a request with nothing, which is the
+     * only way it says a conversation has no more history.
+     */
+    val hasMoreOlder: Boolean = true
 ) {
-    val messages: List<ChatMessage> get() = detail?.messages.orEmpty()
+    val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 }
 
 class ChatViewModel(
@@ -120,10 +128,39 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Asks for the page before the oldest message on screen.
+     *
+     * Guarded on both flags: a list scrolled to the top fires this on every
+     * frame, and without the guard that is a request per frame — and then a
+     * request per frame forever once the history runs out.
+     */
+    fun onLoadOlder() {
+        val state = _uiState.value
+        if (state.isLoadingOlder || !state.hasMoreOlder) return
+        val oldest = state.messages.firstOrNull() ?: return
+
+        _uiState.update { it.copy(isLoadingOlder = true) }
+        viewModelScope.launch {
+            val older = repository.loadOlderMessages(chatId, oldest.id)
+            _uiState.update { current ->
+                current.copy(
+                    olderMessages = older + current.olderMessages,
+                    isLoadingOlder = false,
+                    hasMoreOlder = older.isNotEmpty()
+                )
+            }
+        }
+    }
+
     private fun reload() {
         viewModelScope.launch {
             val detail = repository.openChat(chatId)
-            _uiState.update { it.copy(detail = detail) }
+            // The window from openChat is fresh, so anything paged in before
+            // it is discarded rather than left to duplicate or contradict it.
+            _uiState.update {
+                it.copy(detail = detail, olderMessages = emptyList(), hasMoreOlder = true)
+            }
         }
     }
 }

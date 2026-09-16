@@ -137,6 +137,21 @@ class DemoTelegramClient : TelegramClient {
         )
     }
 
+    /**
+     * Demo mode has no history behind what it seeds, so this always reports
+     * the end of the conversation. It exists so the paging path is exercised
+     * offline: the screen asks, gets nothing, and stops asking — which is the
+     * behaviour worth checking without an account.
+     */
+    override suspend fun loadOlderMessages(
+        chatId: Long,
+        beforeMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(220)
+        return emptyList()
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
         delay(120)
         appendOutgoing(
