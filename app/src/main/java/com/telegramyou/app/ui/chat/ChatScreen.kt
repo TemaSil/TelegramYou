@@ -958,6 +958,143 @@ private fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
 /**
+ * What the chat has pinned, under the app bar.
+ *
+ * A `Surface` rather than a second `TopAppBar`: it is part of the
+ * conversation, not a second place to navigate from, and the accent bar down
+ * its left edge is the same device the quoted block inside a bubble uses for
+ * the same idea — this text belongs to another message.
+ *
+ * One line, ellipsised. A pinned message can be as long as any other, and a
+ * bar that grows to fit it would push the conversation off the screen to show
+ * something the tap already leads to.
+ */
+@Composable
+private fun PinnedMessageBar(
+    message: ChatMessage,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    "Pinned message",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    message.text.ifBlank { "Attachment" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The line between what has been read and what has not.
+ *
+ * The same shape as the day separator, in the primary colour rather than the
+ * neutral one: both divide the conversation, but only this one is about the
+ * reader. Where it goes is decided in :core — see `unreadDividerIndex`.
+ */
+@Composable
+private fun UnreadSeparator() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Text(
+                text = "Unread messages",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Where to send the selection.
+ *
+ * Every chat but this one, as `ListItem` rows with the avatar the list already
+ * draws — a picker that looked nothing like the chat list would be a second
+ * vocabulary for the same thing.
+ *
+ * One tap sends. There is no confirmation because there is nothing to
+ * confirm: the sheet was opened deliberately, it names the count, and a
+ * forward is undone by deleting it like any other message.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ForwardSheet(
+    targets: List<ChatPreview>,
+    count: Int,
+    onDismiss: () -> Unit,
+    onPick: (ChatPreview) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        Text(
+            if (count == 1) "Forward to…" else "Forward $count messages to…",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+        if (targets.isEmpty()) {
+            Text(
+                "No other chats to forward to.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(targets, key = { it.id }) { target ->
+                    ListItem(
+                        headlineContent = { Text(target.title, maxLines = 1) },
+                        leadingContent = {
+                            AvatarBubble(
+                                title = target.title,
+                                seed = target.avatarColor,
+                                size = 40.dp
+                            )
+                        },
+                        modifier = Modifier.clickable { onPick(target) }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+/**
  * What the paperclip opens.
  *
  * `ModalBottomSheet` with `ListItem` rows, which is what Material ships for
@@ -1452,6 +1589,11 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
     val label = when (draft) {
         is AttachmentDraft.Files -> "${draft.names.size} file(s): ${draft.names.firstOrNull().orEmpty()}"
         is AttachmentDraft.Photos -> "${draft.uris.size} photo(s)"
+        // A recording is sent the moment the finger lifts, so this chip is
+        // only ever seen for the instant between the two — named anyway,
+        // because a `when` over a sealed type is where a new case should
+        // announce itself rather than fall into an else.
+        is AttachmentDraft.Voice -> "Voice message ${formatDuration(draft.durationSeconds.toLong())}"
     }
     // An InputChip, which is the Material component for "one item you have
     // added and can take back". It was a Row painted to look like a chip,
