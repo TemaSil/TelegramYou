@@ -118,7 +118,26 @@ data class ChatMessage(
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,
     val fileSizeLabel: String? = null,
-    val mediaEmoji: String? = null
+    val mediaEmoji: String? = null,
+    /**
+     * In the server's order, which is by popularity — not ours to re-sort.
+     * Empty for the overwhelming majority of messages, so the chip row costs
+     * nothing where there is nothing to show.
+     */
+    val reactions: List<MessageReaction> = emptyList()
+)
+
+/**
+ * One emoji on a message, with how many people chose it.
+ *
+ * [isChosen] is about us specifically, not about whether anyone reacted: the
+ * chip is filled when we are one of the [count], and that is the only way to
+ * tell "3 people liked this" from "3 people including me".
+ */
+data class MessageReaction(
+    val emoji: String,
+    val count: Int,
+    val isChosen: Boolean = false
 )
 
 data class ChatDetail(
