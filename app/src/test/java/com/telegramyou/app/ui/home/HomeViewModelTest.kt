@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -93,8 +94,13 @@ class HomeViewModelTest {
         val (vm, _) = viewModel()
 
         vm.onSearchQueryChange("Design")
-        // Still inside the debounce: the request has not been made, but the
-        // screen must not be claiming "nothing found" either.
+        // runCurrent, not advanceUntilIdle: the state has to reach uiState
+        // through combine, but advancing time would also fire the debounce
+        // and finish the search this test is trying to observe mid-flight.
+        runCurrent()
+
+        // Inside the debounce: the request has not been made, but the screen
+        // must not be claiming "nothing found" either.
         assertTrue(vm.uiState.value.search.isSearching)
 
         advanceUntilIdle()
@@ -111,6 +117,7 @@ class HomeViewModelTest {
         assertEquals(2, vm.uiState.value.search.results.size)
 
         vm.onSearchExpandedChange(false)
+        runCurrent()
 
         assertEquals("", vm.uiState.value.search.query)
         assertTrue(vm.uiState.value.search.results.isEmpty())
