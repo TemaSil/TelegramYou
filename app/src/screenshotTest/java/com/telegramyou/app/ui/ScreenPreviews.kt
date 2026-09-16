@@ -29,6 +29,12 @@ import com.telegramyou.app.ui.theme.TelegramYouTheme
  * UiState and callbacks. A screen that held a repository could not be
  * previewed at all without standing up TDLib.
  *
+ * The preview functions are not private. Android Studio renders private ones
+ * quite happily, but the screenshot plugin discovers them as tests and finds
+ * nothing if they are — reported as "test sources present ... did not
+ * discover any tests", which reads like a misconfigured task rather than a
+ * visibility modifier.
+ *
  * Dynamic colour is off here on purpose: layoutlib has no wallpaper to take
  * it from, and a preview that changes with the host would be useless for
  * comparing one commit against the next.
@@ -79,7 +85,7 @@ private val sampleStories = listOf(
 
 @Preview(name = "Chat list", showBackground = true, widthDp = 411, heightDp = 891)
 @Composable
-private fun HomeScreenPreview() {
+fun HomeScreenPreview() {
     TelegramYouTheme(dynamicColor = false) {
         HomeScreen(
             state = HomeUiState(
@@ -96,7 +102,7 @@ private fun HomeScreenPreview() {
 
 @Preview(name = "Chat list, dark", showBackground = true, widthDp = 411, heightDp = 891)
 @Composable
-private fun HomeScreenDarkPreview() {
+fun HomeScreenDarkPreview() {
     TelegramYouTheme(darkTheme = true, dynamicColor = false) {
         HomeScreen(
             state = HomeUiState(
@@ -133,7 +139,7 @@ private fun message(
 
 @Preview(name = "Conversation", showBackground = true, widthDp = 411, heightDp = 891)
 @Composable
-private fun ChatScreenPreview() {
+fun ChatScreenPreview() {
     TelegramYouTheme(dynamicColor = false) {
         ChatScreen(
             state = ChatUiState(
@@ -166,7 +172,7 @@ private fun ChatScreenPreview() {
 
 @Preview(name = "Login, phone", showBackground = true, widthDp = 411, heightDp = 891)
 @Composable
-private fun AuthScreenPreview() {
+fun AuthScreenPreview() {
     TelegramYouTheme(dynamicColor = false) {
         AuthScreen(
             state = AuthFormState(
