@@ -9,11 +9,30 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.toggleReaction
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * Searching inside one conversation.
+ *
+ * [results] are whole messages rather than ids: a hit may be older than
+ * anything loaded, and the result row has to render without the conversation
+ * having reached it.
+ */
+data class ChatSearchState(
+    val isOpen: Boolean = false,
+    val query: String = "",
+    val results: List<ChatMessage> = emptyList(),
+    val isSearching: Boolean = false
+) {
+    /** A query that found nothing, as opposed to one not yet typed. */
+    val isEmpty: Boolean get() = query.isNotBlank() && !isSearching && results.isEmpty()
+}
 
 /**
  * State for one conversation.
@@ -44,7 +63,9 @@ data class ChatUiState(
     /** Empty until someone chooses Select; non-empty puts the toolbar up. */
     val selection: MessageSelection = MessageSelection(),
     /** True while the confirmation for deleting the selection is on screen. */
-    val confirmingSelectionDelete: Boolean = false
+    val confirmingSelectionDelete: Boolean = false,
+    /** Search inside this conversation; see ChatSearchState. */
+    val search: ChatSearchState = ChatSearchState()
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -172,6 +193,47 @@ class ChatViewModel(
         olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it }
     )
 
+    // ── searching ────────────────────────────────────────────────────────
+
+    /** Cancelled on each keystroke, which is what makes the delay a debounce. */
+    private var searchJob: Job? = null
+
+    fun onSearchOpenChange(open: Boolean) {
+        searchJob?.cancel()
+        // Closing clears it: a query left behind would still be filtering the
+        // next time the field is opened, with nothing on screen saying so.
+        _uiState.update {
+            it.copy(search = if (open) ChatSearchState(isOpen = true) else ChatSearchState())
+        }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        searchJob?.cancel()
+        if (query.isBlank()) {
+            _uiState.update {
+                it.copy(
+                    search = it.search.copy(
+                        query = query,
+                        results = emptyList(),
+                        isSearching = false
+                    )
+                )
+            }
+            return
+        }
+        _uiState.update { it.copy(search = it.search.copy(query = query, isSearching = true)) }
+        searchJob = viewModelScope.launch {
+            // Long enough that typing a word is one request rather than five,
+            // short enough that it does not feel like waiting. Same figure as
+            // the chat list's search, for the same reason.
+            delay(SEARCH_DEBOUNCE_MS)
+            val hits = repository.searchChatMessages(chatId, query)
+            _uiState.update {
+                it.copy(search = it.search.copy(results = hits, isSearching = false))
+            }
+        }
+    }
+
     // ── selecting ────────────────────────────────────────────────────────
 
     /**
@@ -259,6 +321,10 @@ class ChatViewModel(
                 )
             }
         }
+    }
+
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 250L
     }
 
     private fun reload() {

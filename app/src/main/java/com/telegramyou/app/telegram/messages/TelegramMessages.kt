@@ -60,6 +60,19 @@ interface TelegramMessages {
     suspend fun availableReactions(chatId: Long): List<String>
 
     /**
+     * Messages matching [query] inside one conversation, newest first.
+     *
+     * Separate from [searchMessages] rather than a chat id on it: Telegram
+     * serves the two from different calls, and a global search narrowed
+     * afterwards would page through every chat to fill one.
+     */
+    suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int = 50
+    ): List<ChatMessage>
+
+    /**
      * Messages matching [query] across every conversation, newest first.
      *
      * Blank returns nothing, for the same reason [TelegramChats.searchChats]

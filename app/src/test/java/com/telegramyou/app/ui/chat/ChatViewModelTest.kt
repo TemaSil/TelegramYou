@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.MessageReaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -22,19 +23,26 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
 
+    /**
+     * Held rather than created inline, so a test that has to advance virtual
+     * time can share this scheduler. Without that, the debounce inside the
+     * ViewModel runs on one clock and `advanceUntilIdle` moves another.
+     */
+    private val mainDispatcher = UnconfinedTestDispatcher()
+
     @Before
     fun installDispatcher() {
         // viewModelScope is Dispatchers.Main, which the JVM has no notion of.
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(mainDispatcher)
     }
 
     @After
     fun removeDispatcher() = Dispatchers.resetMain()
 
-    private fun message(id: Long) = ChatMessage(
+    private fun message(id: Long, text: String = "m$id") = ChatMessage(
         id = id,
         chatId = CHAT_ID,
-        text = "m$id",
+        text = text,
         isOutgoing = false,
         timeLabel = "",
         date = id
@@ -213,6 +221,53 @@ class ChatViewModelTest {
         vm.onSend()
 
         assertEquals(setOf(10L), vm.uiState.value.selection.ids)
+    }
+
+    @Test
+    fun `typing a word is one search, not five`() = runTest(mainDispatcher.scheduler) {
+        val (vm, client) = viewModel(listOf(message(10, text = "needle here")))
+        vm.onSearchOpenChange(true)
+
+        "needle".forEachIndexed { index, _ ->
+            vm.onSearchQueryChange("needle".take(index + 1))
+        }
+        // Each keystroke cancels the job the one before it started; only the
+        // last survives the debounce.
+        advanceUntilIdle()
+
+        assertEquals(1, client.chatSearchCount)
+        assertEquals(listOf(10L), vm.uiState.value.search.results.map { it.id })
+    }
+
+    @Test
+    fun `closing search throws the query away`() = runTest(mainDispatcher.scheduler) {
+        val (vm, _) = viewModel(listOf(message(10, text = "needle here")))
+        vm.onSearchOpenChange(true)
+        vm.onSearchQueryChange("needle")
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.search.results.isNotEmpty())
+
+        vm.onSearchOpenChange(false)
+
+        // A query left behind would still be filtering the next time the
+        // field is opened, with nothing on screen saying so.
+        assertEquals("", vm.uiState.value.search.query)
+        assertTrue(vm.uiState.value.search.results.isEmpty())
+    }
+
+    @Test
+    fun `clearing the query stops searching without asking again`() = runTest(mainDispatcher.scheduler) {
+        val (vm, client) = viewModel(listOf(message(10, text = "needle here")))
+        vm.onSearchOpenChange(true)
+        vm.onSearchQueryChange("needle")
+        advanceUntilIdle()
+
+        vm.onSearchQueryChange("")
+        advanceUntilIdle()
+
+        assertEquals("a blank field is not a request for everything",
+            1, client.chatSearchCount)
+        assertTrue(vm.uiState.value.search.results.isEmpty())
     }
 
     private companion object {

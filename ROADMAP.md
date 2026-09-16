@@ -98,7 +98,7 @@ Cleaned up on the way through, and worth keeping either way:
 
 Still to spend the move on:
 
-- [ ] `FloatingToolbar` for a message selection bar
+- [x] `FloatingToolbar` for a message selection bar
 - [ ] `ButtonGroup` in settings
 
 Careful with the ticks: CI proves these compile, not that they look right.
@@ -202,12 +202,9 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **`FloatingToolbar` for message selection** — select several messages and
-   act on them at once. Expressive ships the component; nothing in the app
-   uses it yet, and forward and multi-delete both need it.
-2. **In-chat search** — global search exists; searching inside one
-   conversation does not, and it is the same client call with a chat id.
-3. **Attachment sheet** — the composer's paperclip opens a file picker
+1. **Forward** — the one action selection cannot offer, because there is no
+   client method for it and no chat picker to send to.
+2. **Attachment sheet** — the composer's paperclip opens a file picker
    directly, where Telegram opens a sheet with gallery, camera and file.
 
 ### Screenshot rendering: groundwork laid, not working yet
@@ -335,6 +332,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Edit and delete — long-press `DropdownMenu`, `AlertDialog` for the for-me / for-everyone choice
 - [x] Reactions — `FilterChip` row inside the bubble, picker in a
       `ModalBottomSheet`; the toggle arithmetic lives in `:core` with tests
+- [x] Select several messages — `HorizontalFloatingToolbar`, copy and delete
+      in one go; what it offers is computed from what every message allows
+- [x] Search inside a chat — the field takes the app bar's title, results as
+      `ListItem` rows with the term in bold, tapping one scrolls to it
+      (only when it is in the loaded window — a hit older than that is found
+      and shown, but the list cannot jump to it yet)
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing
 - [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`

@@ -184,6 +184,18 @@ class DemoTelegramClient : TelegramClient {
         return emptyList()
     }
 
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(120)
+        if (query.isBlank()) return emptyList()
+        return chatMessages[chatId].orEmpty()
+            .filter { it.text.contains(query, ignoreCase = true) }
+            .takeLast(limit)
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
         delay(120)
         appendOutgoing(

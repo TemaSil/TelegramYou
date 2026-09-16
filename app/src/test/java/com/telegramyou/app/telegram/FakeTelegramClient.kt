@@ -89,6 +89,23 @@ class FakeTelegramClient(
         return searchableMessages.filter { it.message.text.contains(query, ignoreCase = true) }
     }
 
+    var chatSearchCount = 0
+        private set
+
+    /**
+     * Matches against the window, which is enough: the state holder's job is
+     * to debounce, not to search.
+     */
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        chatSearchCount++
+        if (query.isBlank()) return emptyList()
+        return window.filter { it.text.contains(query, ignoreCase = true) }
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
     override suspend fun sendAttachment(
         chatId: Long,

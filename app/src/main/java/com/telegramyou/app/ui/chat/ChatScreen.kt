@@ -11,6 +11,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -70,6 +72,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -88,10 +91,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -100,6 +106,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -115,6 +123,7 @@ import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
 /**
  * One conversation.
@@ -148,7 +157,9 @@ fun ChatScreen(
     onSelectionCleared: () -> Unit,
     onSelectionDeleteRequested: () -> Unit,
     onSelectionDeleteDismissed: () -> Unit,
-    onSelectionDeleted: (Boolean) -> Unit
+    onSelectionDeleted: (Boolean) -> Unit,
+    onSearchOpenChange: (Boolean) -> Unit,
+    onSearchQueryChange: (String) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -193,6 +204,7 @@ fun ChatScreen(
     val detail = state.detail
     val chat = detail?.chat
     val clipboard = LocalClipboardManager.current
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -203,23 +215,53 @@ fun ChatScreen(
                     }
                 },
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (chat != null) {
-                            AvatarBubble(title = chat.title, seed = chat.avatarColor, size = 40.dp)
-                            Spacer(Modifier.width(10.dp))
-                            Column {
-                                Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
-                                Text(
-                                    text = when {
-                                        detail?.isTyping == true -> "typing…"
-                                        else -> detail?.memberCountLabel ?: ""
-                                    },
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (detail?.isTyping == true) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                    if (state.search.isOpen) {
+                        // The field takes the title's place rather than
+                        // sliding in beneath it: the chat's name and avatar
+                        // are not what is being searched, and keeping them
+                        // there would leave two things competing for the row.
+                        ChatSearchField(
+                            query = state.search.query,
+                            onQueryChange = onSearchQueryChange
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (chat != null) {
+                                AvatarBubble(
+                                    title = chat.title,
+                                    seed = chat.avatarColor,
+                                    size = 40.dp
                                 )
+                                Spacer(Modifier.width(10.dp))
+                                Column {
+                                    Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    Text(
+                                        text = when {
+                                            detail?.isTyping == true -> "typing…"
+                                            else -> detail?.memberCountLabel ?: ""
+                                        },
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = if (detail?.isTyping == true) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        }
+                                    )
+                                }
                             }
                         }
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { onSearchOpenChange(!state.search.isOpen) }) {
+                        Icon(
+                            if (state.search.isOpen) Icons.Rounded.Close else Icons.Rounded.Search,
+                            contentDescription = if (state.search.isOpen) {
+                                "Close search"
+                            } else {
+                                "Search in chat"
+                            }
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -243,57 +285,80 @@ fun ChatScreen(
                 )
                 .imePadding()
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                // A spinner where the older messages will appear, so the wait
-                // has a place on screen instead of nothing happening.
-                if (state.isLoadingOlder) {
-                    item(key = "loading-older") {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            if (state.search.isOpen && state.search.query.isNotBlank()) {
+                // Results take the conversation's place rather than covering
+                // it. A panel over the messages would put two scrollable lists
+                // one on top of the other, and the one underneath is not what
+                // the finger is on.
+                ChatSearchResults(
+                    search = state.search,
+                    modifier = Modifier.weight(1f),
+                    onOpen = { hit ->
+                        val index = state.messages.indexOfFirst { it.id == hit.id }
+                        onSearchOpenChange(false)
+                        if (index >= 0) {
+                            scope.launch {
+                                // The spinner, when it is up, is item zero.
+                                listState.animateScrollToItem(
+                                    index + if (state.isLoadingOlder) 1 else 0
+                                )
+                            }
                         }
                     }
-                }
-
-                val messages = state.messages
-                itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
-                    val previous = messages.getOrNull(index - 1)
-                    val next = messages.getOrNull(index + 1)
-
-                    if (startsNewDay(previous, message)) {
-                        DaySeparator(message.date)
+                )
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    // A spinner where the older messages will appear, so the wait
+                    // has a place on screen instead of nothing happening.
+                    if (state.isLoadingOlder) {
+                        item(key = "loading-older") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
 
-                    MessageBubble(
-                        message = message,
-                        // Only the last message of a run carries the tail, so a
-                        // burst from one person reads as one block.
-                        isLastInRun = endsRun(message, next),
-                        isFirstInRun = endsRun(previous, message),
-                        // An avatar per message would be a column of repeats;
-                        // one against the last of a run is what reads right.
-                        showAvatar = detail?.chat?.isGroup == true,
-                        onCopy = {
-                            clipboard.setText(AnnotatedString(message.text))
-                        },
-                        onReply = { onReplyTo(message) },
-                        onEdit = { onEdit(message) },
-                        onDelete = { onDeleteRequested(message) },
-                        onReact = { onReactionsRequested(message) },
-                        onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
-                        isSelected = message.id in state.selection,
-                        isSelecting = state.selection.isActive,
-                        onSelect = { onSelectionToggled(message) }
-                    )
+                    val messages = state.messages
+                    itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
+                        val previous = messages.getOrNull(index - 1)
+                        val next = messages.getOrNull(index + 1)
+
+                        if (startsNewDay(previous, message)) {
+                            DaySeparator(message.date)
+                        }
+
+                        MessageBubble(
+                            message = message,
+                            // Only the last message of a run carries the tail, so a
+                            // burst from one person reads as one block.
+                            isLastInRun = endsRun(message, next),
+                            isFirstInRun = endsRun(previous, message),
+                            // An avatar per message would be a column of repeats;
+                            // one against the last of a run is what reads right.
+                            showAvatar = detail?.chat?.isGroup == true,
+                            onCopy = {
+                                clipboard.setText(AnnotatedString(message.text))
+                            },
+                            onReply = { onReplyTo(message) },
+                            onEdit = { onEdit(message) },
+                            onDelete = { onDeleteRequested(message) },
+                            onReact = { onReactionsRequested(message) },
+                            onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
+                            isSelected = message.id in state.selection,
+                            isSelecting = state.selection.isActive,
+                            onSelect = { onSelectionToggled(message) }
+                        )
+                    }
                 }
             }
 
@@ -676,6 +741,107 @@ private fun MessageBubble(
                             onDelete()
                             menuOpen = false
                         }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The search field that takes the chat's name out of the app bar.
+ *
+ * Focused as it appears: the field arrives because someone tapped search, and
+ * making them tap again to type in it is a step that exists for no reason.
+ */
+@Composable
+private fun ChatSearchField(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text("Search in chat") },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusRequester(focusRequester),
+        colors = TextFieldDefaults.colors(
+            // The app bar is already a surface; a second one inside it would
+            // read as a box drawn on a box.
+            focusedContainerColor = Color.Transparent,
+            unfocusedContainerColor = Color.Transparent,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
+}
+
+/**
+ * What a search inside the conversation found.
+ *
+ * `ListItem`, because that is what Material ships for a row with a headline, a
+ * supporting line and a trailing value — building the same thing by hand loses
+ * its metrics, its state layer and its accessibility, which has happened in
+ * this project once already.
+ *
+ * Each row shows one line of context around the hit rather than the whole
+ * message, with the term itself in bold. A result that reads as an unbroken
+ * wall of text says only that the word is in there somewhere.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatSearchResults(
+    search: ChatSearchState,
+    modifier: Modifier = Modifier,
+    onOpen: (ChatMessage) -> Unit
+) {
+    Box(modifier = modifier.fillMaxWidth()) {
+        when {
+            search.isSearching -> CircularProgressIndicator(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 32.dp)
+            )
+            search.isEmpty -> Text(
+                "Nothing in this chat matches “${search.query}”.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
+            )
+            else -> LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(search.results, key = { it.id }) { hit ->
+                    val line = remember(hit.id, search.query) {
+                        snippet(hit.text, search.query)
+                    }
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                buildAnnotatedString {
+                                    append(line.text)
+                                    if (line.matchLength > 0) {
+                                        addStyle(
+                                            SpanStyle(fontWeight = FontWeight.Bold),
+                                            line.matchStart,
+                                            line.matchStart + line.matchLength
+                                        )
+                                    }
+                                },
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        overlineContent = hit.senderName?.let { sender ->
+                            { Text(sender) }
+                        },
+                        trailingContent = { Text(hit.timeLabel) },
+                        modifier = Modifier.clickable { onOpen(hit) }
                     )
                 }
             }

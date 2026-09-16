@@ -210,6 +210,34 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        if (query.isBlank()) return emptyList()
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMessages")
+                    .put("chat_id", chatId)
+                    .put("query", query)
+                    .put("limit", limit)
+                    // Paging fields TDLib requires even for a first page.
+                    // from_message_id 0 means "from the newest".
+                    .put("from_message_id", 0)
+                    .put("offset", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchChatMessages: ${e.message}")
+            return emptyList()
+        }
+        // parseMessages reverses into chronological order, which is what the
+        // rest of this client returns and what the result list renders.
+        return parseMessages(chatId, found.optJSONArray("messages"))
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         awaitReady()
