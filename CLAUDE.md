@@ -55,6 +55,9 @@ Liquid Glass, Cupertino widgets or Dart, it is about the other project.
 ## Layout
 
 ```
+core/src/main/kotlin/                      plain Kotlin/JVM, no Android
+  com/telegramyou/app/telegram/model/      data classes both backends share
+  com/telegramyou/app/ui/chat/             grouping and drag maths, pure
 app/src/main/java/
   org/drinkless/tdlib/JsonClient.java      official TDLib JSON JNI binding
   com/telegramyou/app/
@@ -64,6 +67,10 @@ app/src/main/java/
     ui/                                    Compose screens
 app/src/main/jniLibs/<abi>/libtdjsonjava.so
 ```
+
+`:core` exists so that something can be compiled without the Android SDK —
+see `ARCHITECTURE.md`. New code that does not need Android goes there, with
+a test.
 
 minSdk 26, targetSdk 35, compileSdk 37, applicationId `com.telegramyou.app`.
 compileSdk is ahead of targetSdk on purpose: Compose 1.12 is built against 37
@@ -134,6 +141,16 @@ gradlew.bat :app:assembleDebug
 ```
 
 APK lands at `app\build\outputs\apk\debug\TelegramYou-0.1.0-debug.apk`.
+
+The pure module needs neither the SDK nor Google's Maven, so its tests run
+anywhere — including environments where `:app` cannot even be configured:
+
+```
+gradlew :core:test --configure-on-demand
+```
+
+Keep the flag. Without it Gradle configures `:app` too, and that resolves AGP
+from `dl.google.com`.
 
 With no credentials configured the app builds the **demo** backend: the whole
 UI offline, login code `12345`, no account needed. That covers most interface

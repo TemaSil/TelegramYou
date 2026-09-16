@@ -201,7 +201,7 @@ jobs:
           done
 
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: ./gradlew :core:test :app:testDebugUnitTest --stacktrace
 
       # Without this a green "Unit tests" step is ambiguous: Gradle reports
       # success when it runs no tests at all.
@@ -209,7 +209,9 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: app/build/test-results/**/*.xml
+          path: |
+            app/build/test-results/**/*.xml
+            core/build/test-results/**/*.xml
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -231,7 +233,8 @@ jobs:
           python3 - <<'PY'
           import glob, sys, xml.etree.ElementTree as ET
 
-          files = glob.glob('app/build/test-results/**/*.xml', recursive=True)
+          files = (glob.glob('app/build/test-results/**/*.xml', recursive=True)
+                   + glob.glob('core/build/test-results/**/*.xml', recursive=True))
           total = failed = skipped = 0
           for path in files:
               root = ET.parse(path).getroot()
