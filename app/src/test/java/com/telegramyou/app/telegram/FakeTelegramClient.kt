@@ -94,5 +94,23 @@ class FakeTelegramClient(
     ) = Unit
     override suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) = Unit
     override suspend fun editMessage(chatId: Long, messageId: Long, text: String) = Unit
+
+    /**
+     * Recorded rather than applied: the tests check what was asked for.
+     *
+     * A val, not a var: `+=` on a var of MutableList type is ambiguous between
+     * plusAssign and plus-then-reassign, and Kotlin refuses to pick.
+     */
+    val reactionCalls = mutableListOf<Triple<Long, Long, String>>()
+
+    /** Named apart from the override so neither shadows the other. */
+    var permittedReactions: List<String> = listOf("👍", "🔥")
+
+    override suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String) {
+        reactionCalls += Triple(chatId, messageId, emoji)
+    }
+
+    override suspend fun availableReactions(chatId: Long): List<String> = permittedReactions
+
     override suspend fun markStorySeen(storyId: Long) = Unit
 }

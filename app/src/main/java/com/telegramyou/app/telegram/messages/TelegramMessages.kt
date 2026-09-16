@@ -40,6 +40,26 @@ interface TelegramMessages {
     ): List<ChatMessage>
 
     /**
+     * Adds or withdraws our reaction on a message.
+     *
+     * One call for both directions, because Telegram has no separate
+     * "unreact": choosing what is already chosen removes it. The caller is
+     * expected to have updated its own copy already — see `toggleReaction` in
+     * :core — since this returns nothing and the round trip is long enough to
+     * see.
+     */
+    suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String)
+
+    /**
+     * The emoji this chat permits, in the order to offer them.
+     *
+     * Not a constant: a group can be restricted to a handful of reactions, or
+     * to none at all, and offering one the server will refuse is a tap that
+     * fails for a reason the UI could have known.
+     */
+    suspend fun availableReactions(chatId: Long): List<String>
+
+    /**
      * Messages matching [query] across every conversation, newest first.
      *
      * Blank returns nothing, for the same reason [TelegramChats.searchChats]

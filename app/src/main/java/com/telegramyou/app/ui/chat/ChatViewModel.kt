@@ -8,6 +8,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.toggleReaction
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,7 +36,11 @@ data class ChatUiState(
      * False once the client has answered a request with nothing, which is the
      * only way it says a conversation has no more history.
      */
-    val hasMoreOlder: Boolean = true
+    val hasMoreOlder: Boolean = true,
+    /** Non-null while the reaction picker is open, naming what it reacts to. */
+    val reactingTo: ChatMessage? = null,
+    /** What this chat permits, fetched once — see TelegramMessages. */
+    val availableReactions: List<String> = emptyList()
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 }
@@ -104,6 +109,55 @@ class ChatViewModel(
         }
     }
 
+    // ── reacting ─────────────────────────────────────────────────────────
+
+    fun onReactionsRequested(message: ChatMessage) =
+        _uiState.update { it.copy(reactingTo = message) }
+
+    fun onReactionPickerDismissed() = _uiState.update { it.copy(reactingTo = null) }
+
+    /**
+     * Redraws the row immediately and tells the server afterwards.
+     *
+     * No reload follows. The optimistic result is what the backends apply to
+     * their own copy as well, so re-opening the chat agrees with it; reloading
+     * here would replace a correct row with an identical one and flicker for
+     * nothing.
+     */
+    fun onReactionToggled(message: ChatMessage, emoji: String) {
+        _uiState.update { state ->
+            state.copy(reactingTo = null).mapMessage(message.id) {
+                it.copy(reactions = toggleReaction(it.reactions, emoji))
+            }
+        }
+        viewModelScope.launch {
+            repository.toggleReaction(chatId, message.id, emoji)
+        }
+    }
+
+    /**
+     * Rewrites one message wherever it happens to live.
+     *
+     * A message is in [ChatUiState.detail] or in [ChatUiState.olderMessages]
+     * depending on whether it arrived with the chat or was paged in, and a
+     * caller that has one in hand has no reason to know which.
+     */
+    private fun ChatUiState.mapMessage(
+        messageId: Long,
+        transform: (ChatMessage) -> ChatMessage
+    ): ChatUiState = copy(
+        // let rather than ?.copy(detail.messages): a safe call smart-casts its
+        // receiver, not the same property named again in the arguments.
+        detail = detail?.let { chat ->
+            chat.copy(
+                messages = chat.messages.map {
+                    if (it.id == messageId) transform(it) else it
+                }
+            )
+        },
+        olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it }
+    )
+
     // ── deleting ─────────────────────────────────────────────────────────
 
     fun onDeleteRequested(message: ChatMessage) =
@@ -156,10 +210,19 @@ class ChatViewModel(
     private fun reload() {
         viewModelScope.launch {
             val detail = repository.openChat(chatId)
+            // Asked for once per load rather than per tap: a chat's permitted
+            // reactions do not change while it is open, and the picker has to
+            // open without waiting for a request.
+            val reactions = repository.availableReactions(chatId)
             // The window from openChat is fresh, so anything paged in before
             // it is discarded rather than left to duplicate or contradict it.
             _uiState.update {
-                it.copy(detail = detail, olderMessages = emptyList(), hasMoreOlder = true)
+                it.copy(
+                    detail = detail,
+                    olderMessages = emptyList(),
+                    hasMoreOlder = true,
+                    availableReactions = reactions
+                )
             }
         }
     }

@@ -1,6 +1,5 @@
-package com.telegramyou.app.ui.chat
+package com.telegramyou.app.telegram.model
 
-import com.telegramyou.app.telegram.model.MessageReaction
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

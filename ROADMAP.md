@@ -202,11 +202,13 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Then the inventory**: search (`SearchBar`) is the natural first screen —
-   it also removes the `onClick = {}` stub that currently pretends to be a
-   feature.
-2. **Reactions** — `FilterChip` row under the bubble, picker in a sheet. Needs
-   another client method.
+1. **`FloatingToolbar` for message selection** — select several messages and
+   act on them at once. Expressive ships the component; nothing in the app
+   uses it yet, and forward and multi-delete both need it.
+2. **In-chat search** — global search exists; searching inside one
+   conversation does not, and it is the same client call with a chat id.
+3. **Attachment sheet** — the composer's paperclip opens a file picker
+   directly, where Telegram opens a sheet with gallery, camera and file.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -331,7 +333,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Reply: swipe right on a bubble, banner over the composer, quoted block
       inside it
 - [x] Edit and delete — long-press `DropdownMenu`, `AlertDialog` for the for-me / for-everyone choice
-- [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
+- [x] Reactions — `FilterChip` row inside the bubble, picker in a
+      `ModalBottomSheet`; the toggle arithmetic lives in `:core` with tests
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing
 - [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`

@@ -5,6 +5,7 @@ import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageReaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -121,6 +122,58 @@ class ChatViewModelTest {
         assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
         assertTrue("paging starts over rather than staying exhausted",
             vm.uiState.value.hasMoreOlder)
+    }
+
+    @Test
+    fun `reacting redraws the message before the client is told`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11)))
+
+        vm.onReactionToggled(message(10), "🔥")
+
+        val reacted = vm.uiState.value.messages.first { it.id == 10L }
+        assertEquals(
+            listOf(MessageReaction("🔥", count = 1, isChosen = true)),
+            reacted.reactions
+        )
+        assertEquals(
+            "the other message is left alone",
+            emptyList<MessageReaction>(),
+            vm.uiState.value.messages.first { it.id == 11L }.reactions
+        )
+        assertEquals(listOf(Triple(CHAT_ID, 10L, "🔥")), client.reactionCalls)
+    }
+
+    @Test
+    fun `reacting to a message paged in updates it where it lives`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10)), listOf(message(9)))
+        vm.onLoadOlder()
+
+        vm.onReactionToggled(message(9), "👍")
+
+        // The older page is a separate list from the opening window, and a
+        // caller holding a message has no reason to know which one it is in.
+        assertEquals(
+            listOf(MessageReaction("👍", count = 1, isChosen = true)),
+            vm.uiState.value.messages.first { it.id == 9L }.reactions
+        )
+    }
+
+    @Test
+    fun `picking a reaction closes the picker`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10)))
+
+        vm.onReactionsRequested(message(10))
+        assertEquals(10L, vm.uiState.value.reactingTo?.id)
+
+        vm.onReactionToggled(message(10), "🔥")
+        assertEquals(null, vm.uiState.value.reactingTo)
+    }
+
+    @Test
+    fun `opening a chat asks what it permits`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10)))
+
+        assertEquals(listOf("👍", "🔥"), vm.uiState.value.availableReactions)
     }
 
     private companion object {

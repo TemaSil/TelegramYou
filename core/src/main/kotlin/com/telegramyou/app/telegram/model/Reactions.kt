@@ -1,6 +1,4 @@
-package com.telegramyou.app.ui.chat
-
-import com.telegramyou.app.telegram.model.MessageReaction
+package com.telegramyou.app.telegram.model
 
 /**
  * What a reaction row looks like the instant after a tap, before the server

@@ -12,6 +12,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -40,6 +43,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.AddReaction
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
@@ -58,11 +62,14 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -71,6 +78,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -98,6 +106,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
@@ -129,7 +138,10 @@ fun ChatScreen(
     onLoadOlder: () -> Unit,
     onDeleteRequested: (ChatMessage) -> Unit,
     onDeleteDismissed: () -> Unit,
-    onDeleteConfirmed: (ChatMessage, Boolean) -> Unit
+    onDeleteConfirmed: (ChatMessage, Boolean) -> Unit,
+    onReactionsRequested: (ChatMessage) -> Unit,
+    onReactionPickerDismissed: () -> Unit,
+    onReactionToggled: (ChatMessage, String) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -268,7 +280,9 @@ fun ChatScreen(
                         },
                         onReply = { onReplyTo(message) },
                         onEdit = { onEdit(message) },
-                        onDelete = { onDeleteRequested(message) }
+                        onDelete = { onDeleteRequested(message) },
+                        onReact = { onReactionsRequested(message) },
+                        onReactionToggled = { emoji -> onReactionToggled(message, emoji) }
                     )
                 }
             }
@@ -305,6 +319,15 @@ fun ChatScreen(
                     message = target,
                     onDismiss = onDeleteDismissed,
                     onDelete = { forEveryone -> onDeleteConfirmed(target, forEveryone) }
+                )
+            }
+
+            state.reactingTo?.let { target ->
+                ReactionPicker(
+                    available = state.availableReactions,
+                    chosen = target.reactions.firstOrNull { it.isChosen }?.emoji,
+                    onDismiss = onReactionPickerDismissed,
+                    onPick = { emoji -> onReactionToggled(target, emoji) }
                 )
             }
 
@@ -352,7 +375,9 @@ private fun MessageBubble(
     onCopy: () -> Unit,
     onReply: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onReact: () -> Unit,
+    onReactionToggled: (String) -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -483,6 +508,16 @@ private fun MessageBubble(
                         color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
                     )
                 }
+                if (message.reactions.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    // Inside the bubble rather than under it, which is where
+                    // Telegram puts them and what keeps a reaction attached to
+                    // its message when the list is dense.
+                    ReactionRow(
+                        reactions = message.reactions,
+                        onToggle = onReactionToggled
+                    )
+                }
                 Spacer(Modifier.height(4.dp))
                 val footnote = (if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface)
                     .copy(alpha = 0.55f)
@@ -535,6 +570,16 @@ private fun MessageBubble(
                     }
                 )
                 DropdownMenuItem(
+                    text = { Text("React") },
+                    leadingIcon = {
+                        Icon(Icons.Rounded.AddReaction, contentDescription = null)
+                    },
+                    onClick = {
+                        onReact()
+                        menuOpen = false
+                    }
+                )
+                DropdownMenuItem(
                     text = { Text("Copy") },
                     leadingIcon = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
                     onClick = {
@@ -572,6 +617,110 @@ private fun MessageBubble(
                 }
             }
         }
+    }
+}
+
+/**
+ * The chips under a message's text.
+ *
+ * FilterChip rather than anything hand-drawn: the state it already models —
+ * selected or not, with the tonal fill and the state layer that go with it —
+ * is exactly the distinction a reaction needs, between one we are part of and
+ * one we are not. A count of one is shown as the bare emoji, because "🔥 1"
+ * says nothing "🔥" does not.
+ *
+ * Scrolls sideways rather than wrapping. A message with a dozen distinct
+ * reactions is rare enough that giving it several lines of height would cost
+ * every ordinary message the layout pass.
+ *
+ * A Row with horizontalScroll, not a LazyRow: a LazyRow measures to the width
+ * it is offered, which inside a bubble is the 320dp cap — so a single reaction
+ * would stretch every message carrying one to full width. This wraps its
+ * content and only scrolls once there is more of it than fits.
+ */
+@Composable
+private fun ReactionRow(
+    reactions: List<MessageReaction>,
+    onToggle: (String) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.horizontalScroll(rememberScrollState())
+    ) {
+        reactions.forEach { reaction ->
+            FilterChip(
+                selected = reaction.isChosen,
+                onClick = { onToggle(reaction.emoji) },
+                label = {
+                    Text(
+                        if (reaction.count > 1) "${reaction.emoji} ${reaction.count}"
+                        else reaction.emoji,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                },
+                // Tighter than the default pill, so a row of chips inside a
+                // bubble reads as an annotation on the message rather than a
+                // second control bar.
+                shape = MaterialTheme.shapes.small,
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                )
+            )
+        }
+    }
+}
+
+/**
+ * The sheet that opens from "React".
+ *
+ * A bottom sheet rather than a popup row above the bubble: the popup is what
+ * Telegram draws, and drawing it means positioning a floating surface against
+ * a bubble that may be at either edge and near either end of the list. The
+ * sheet is the platform's own answer to "choose one of these", and it is one
+ * stock component instead of a positioning problem.
+ *
+ * [chosen] marks what is already on the message, so the sheet opens showing
+ * the current state rather than a blank set — and tapping it withdraws the
+ * reaction, which is the same gesture as tapping its chip.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReactionPicker(
+    available: List<String>,
+    chosen: String?,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        if (available.isEmpty()) {
+            // A chat can forbid reactions outright, and an empty sheet with no
+            // explanation reads as a bug rather than a rule.
+            Text(
+                "This chat does not allow reactions.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+        } else {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp)
+            ) {
+                items(available, key = { it }) { emoji ->
+                    FilterChip(
+                        selected = emoji == chosen,
+                        onClick = { onPick(emoji) },
+                        label = {
+                            Text(emoji, style = MaterialTheme.typography.headlineSmall)
+                        }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
