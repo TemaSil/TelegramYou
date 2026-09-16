@@ -71,6 +71,8 @@ data class ChatUiState(
     val playingVoiceId: Long? = null,
     /** A voice message whose file is still arriving. */
     val loadingVoiceId: Long? = null,
+    /** How far through the playing message is, 0..1. */
+    val voiceProgress: Float = 0f,
     /** True while the "what would you like to attach" sheet is up. */
     val attachmentSheetOpen: Boolean = false,
     /** True while the chat picker for forwarding a selection is up. */
@@ -225,6 +227,7 @@ class ChatViewModel(
     // ── voice ────────────────────────────────────────────────────────────
 
     private val voicePlayer = VoicePlayer()
+    private var progressJob: Job? = null
 
     /**
      * Plays a voice message, stops it, or fetches it first.
@@ -238,7 +241,8 @@ class ChatViewModel(
     fun onVoiceToggled(message: ChatMessage) {
         if (_uiState.value.playingVoiceId == message.id) {
             voicePlayer.stop()
-            _uiState.update { it.copy(playingVoiceId = null) }
+            progressJob?.cancel()
+            _uiState.update { it.copy(playingVoiceId = null, voiceProgress = 0f) }
             return
         }
 
@@ -264,13 +268,61 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Moves playback within the message that is playing.
+     *
+     * A tap on a bar of any other message means play that one instead — the
+     * bar is where the finger landed, not a request to seek something that is
+     * silent.
+     */
+    fun onVoiceSeek(message: ChatMessage, fraction: Float) {
+        if (_uiState.value.playingVoiceId != message.id) {
+            onVoiceToggled(message)
+            return
+        }
+        voicePlayer.seekTo(fraction)
+        _uiState.update { it.copy(voiceProgress = fraction) }
+    }
+
     private fun start(messageId: Long, path: String) {
         val started = voicePlayer.play(messageId, path) {
             // The audio ran out on its own; nothing else would tell the bubble
             // to stop showing a pause button.
-            _uiState.update { it.copy(playingVoiceId = null) }
+            _uiState.update { it.copy(playingVoiceId = null, voiceProgress = 0f) }
         }
-        _uiState.update { it.copy(playingVoiceId = if (started) messageId else null) }
+        _uiState.update {
+            it.copy(
+                playingVoiceId = if (started) messageId else null,
+                voiceProgress = 0f
+            )
+        }
+        if (started) followProgress()
+    }
+
+    /**
+     * Reports where playback has got to, while it is playing.
+     *
+     * A poll rather than a callback, because MediaPlayer offers no position
+     * updates — it answers when asked. Ten a second is smooth enough for a
+     * bar that is a hundred pixels wide and far cheaper than a frame clock.
+     *
+     * The previous job is cancelled first: two tickers writing the same field
+     * would fight over which message's position it holds.
+     *
+     * The loop ends on the player, not on this class's own record of what is
+     * playing. A player that finished, was released, or never really started
+     * leaves that record set — and a loop reading it would tick forever with
+     * nothing to report. It did, in a unit test, where MediaPlayer is a stub
+     * that starts successfully and plays nothing.
+     */
+    private fun followProgress() {
+        progressJob?.cancel()
+        progressJob = viewModelScope.launch {
+            while (voicePlayer.isPlaying()) {
+                _uiState.update { it.copy(voiceProgress = voicePlayer.progress()) }
+                delay(PROGRESS_TICK_MS)
+            }
+        }
     }
 
     override fun onCleared() {
@@ -435,6 +487,9 @@ class ChatViewModel(
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 250L
+
+        /** Ten position reads a second, which is smooth at a hundred pixels. */
+        const val PROGRESS_TICK_MS = 100L
     }
 
     private fun reload() {

@@ -192,7 +192,8 @@ fun ChatScreen(
     onForwardRequested: () -> Unit,
     onForwardDismissed: () -> Unit,
     onForwardTo: (ChatPreview) -> Unit,
-    onVoiceToggled: (ChatMessage) -> Unit
+    onVoiceToggled: (ChatMessage) -> Unit,
+    onVoiceSeek: (ChatMessage, Float) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -478,7 +479,13 @@ fun ChatScreen(
                                 state.loadingVoiceId -> VoiceState.Loading
                                 else -> VoiceState.Idle
                             },
-                            onVoiceToggled = { onVoiceToggled(message) }
+                            onVoiceToggled = { onVoiceToggled(message) },
+                            voiceProgress = if (message.id == state.playingVoiceId) {
+                                state.voiceProgress
+                            } else {
+                                0f
+                            },
+                            onVoiceSeek = { at -> onVoiceSeek(message, at) }
                         )
                     }
                 }
@@ -691,7 +698,9 @@ private fun MessageBubble(
     isSelecting: Boolean,
     onSelect: () -> Unit,
     voiceState: VoiceState,
-    onVoiceToggled: () -> Unit
+    onVoiceToggled: () -> Unit,
+    voiceProgress: Float,
+    onVoiceSeek: (Float) -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -838,7 +847,9 @@ private fun MessageBubble(
                             waveform = message.waveform,
                             state = voiceState,
                             outgoing = outgoing,
-                            onToggle = onVoiceToggled
+                            onToggle = onVoiceToggled,
+                            progress = voiceProgress,
+                            onSeek = onVoiceSeek
                         )
                     }
                     else -> Text(
@@ -1010,7 +1021,9 @@ private fun VoiceMessage(
     waveform: List<Int>,
     state: VoiceState,
     outgoing: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    progress: Float,
+    onSeek: (Float) -> Unit
 ) {
     val tint = if (outgoing) DeepInk else MaterialTheme.colorScheme.primary
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1035,6 +1048,8 @@ private fun VoiceMessage(
         Waveform(
             bars = remember(waveform) { waveformBars(waveform, WAVEFORM_BARS) },
             color = tint,
+            progress = progress,
+            onSeek = onSeek,
             modifier = Modifier
                 .width(120.dp)
                 .height(28.dp)
@@ -1066,14 +1081,28 @@ private const val WAVEFORM_BARS = 28
 private fun Waveform(
     bars: List<Float>,
     color: Color,
+    progress: Float,
+    onSeek: (Float) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier.pointerInput(bars.size) {
+            // Tapping the bars moves playback there, which is the only reason
+            // to know where in the row the finger landed. A drag is left to
+            // the list, so scrolling past a voice message still scrolls.
+            detectTapGestures { offset ->
+                onSeek((offset.x / size.width).coerceIn(0f, 1f))
+            }
+        }
+    ) {
         if (bars.isEmpty()) return@Canvas
         val slot = size.width / bars.size
-        // A quarter of each slot is the gap between bars; the rest is the bar.
+        // Roughly a third of each slot is the gap; the rest is the bar.
         val barWidth = slot * 0.6f
         val radius = barWidth / 2f
+        // Measured in bars rather than pixels: a bar half-filled would be a
+        // second way of showing the same thing, at a resolution nobody reads.
+        val played = (bars.size * progress).toInt()
         bars.forEachIndexed { index, value ->
             val height = (size.height * value).coerceAtLeast(barWidth)
             val left = index * slot + (slot - barWidth) / 2f
@@ -1082,7 +1111,11 @@ private fun Waveform(
                 topLeft = Offset(left, (size.height - height) / 2f),
                 size = Size(barWidth, height),
                 cornerRadius = CornerRadius(radius, radius),
-                alpha = 0.85f
+                // The part already heard is solid and the rest is faded,
+                // rather than two colours: one of them would have to be picked
+                // out of the scheme for a bubble that is already tinted, and
+                // opacity says "behind you" in either palette.
+                alpha = if (index < played) 1f else 0.4f
             )
         }
     }

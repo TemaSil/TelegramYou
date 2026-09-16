@@ -54,6 +54,56 @@ class VoicePlayer {
         }
     }
 
+    /**
+     * Whether audio is actually coming out, as opposed to a player existing.
+     *
+     * Not the same question as [playingId] being set: a player can be
+     * finished, released under us, or never have started. Anything ticking
+     * alongside playback should stop on this rather than on its own
+     * bookkeeping, or it keeps ticking after the sound has gone.
+     */
+    fun isPlaying(): Boolean = try {
+        player?.isPlaying == true
+    } catch (e: IllegalStateException) {
+        Log.w(TAG, "isPlaying: ${e.message}")
+        false
+    }
+
+    /**
+     * How far through the current message is, as 0..1.
+     *
+     * Zero when nothing is playing, and zero for a file whose duration the
+     * decoder does not know — a progress bar that fills at a rate unrelated to
+     * the sound is worse than one that does not move.
+     */
+    fun progress(): Float {
+        val active = player ?: return 0f
+        return try {
+            val total = active.duration
+            if (total <= 0) 0f else (active.currentPosition.toFloat() / total).coerceIn(0f, 1f)
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "progress: ${e.message}")
+            0f
+        }
+    }
+
+    /**
+     * Jumps to [fraction] of the way through, if something is playing.
+     *
+     * Ignored when nothing is: a tap on a bar of a message that is not playing
+     * means play it, and that is the caller's decision rather than a seek to
+     * nowhere.
+     */
+    fun seekTo(fraction: Float) {
+        val active = player ?: return
+        try {
+            val total = active.duration
+            if (total > 0) active.seekTo((total * fraction.coerceIn(0f, 1f)).toInt())
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "seekTo: ${e.message}")
+        }
+    }
+
     fun stop() {
         player?.let { active ->
             try {
