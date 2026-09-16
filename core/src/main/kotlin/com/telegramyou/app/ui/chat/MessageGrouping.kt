@@ -14,6 +14,10 @@ import java.util.Locale
  * obvious and are not — a run ends on a five-minute gap, a missing date has to
  * degrade to "separate" rather than silently grouping everything, and "Today"
  * depends on when the question is asked.
+ *
+ * Everything here is public rather than `internal`. In :app that distinction
+ * was free; here it is not, because `internal` means "this module" and ChatScreen
+ * is in another one. Nothing in :core can be internal and still be used.
  */
 
 /** A run ends when more than this separates two messages from the same side. */
@@ -25,14 +29,14 @@ private const val RUN_GAP_SECONDS = 5 * 60
  * The first message of a thread always does. A message with no date cannot
  * start one, because there is nothing to label the separator with.
  */
-internal fun startsNewDay(previous: ChatMessage?, message: ChatMessage): Boolean {
+fun startsNewDay(previous: ChatMessage?, message: ChatMessage): Boolean {
     if (message.date <= 0L) return false
     if (previous == null) return true
     return !sameDay(previous.date, message.date)
 }
 
 /** True when two epoch-second instants fall on the same calendar day. */
-internal fun sameDay(a: Long, b: Long): Boolean {
+fun sameDay(a: Long, b: Long): Boolean {
     val first = Calendar.getInstance().apply { timeInMillis = a * 1000L }
     val second = Calendar.getInstance().apply { timeInMillis = b * 1000L }
     return first.get(Calendar.YEAR) == second.get(Calendar.YEAR) &&
@@ -46,7 +50,7 @@ internal fun sameDay(a: Long, b: Long): Boolean {
  * A message without a date ends its run rather than joining one — grouping on
  * an unknown instant would collapse unrelated messages together.
  */
-internal fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
+fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
     if (message == null || next == null) return true
     if (message.isOutgoing != next.isOutgoing) return true
     if (message.date <= 0L || next.date <= 0L) return true
@@ -59,7 +63,7 @@ internal fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
  * [now] is a parameter so the result does not depend on the wall clock when
  * this is under test.
  */
-internal fun dayLabel(
+fun dayLabel(
     date: Long,
     now: Long = System.currentTimeMillis() / 1000,
     locale: Locale = Locale.getDefault()

@@ -111,6 +111,10 @@ base {
 }
 
 dependencies {
+    // Models and the pure logic around them: no Android types, so they live in
+    // a plain JVM module that builds without the SDK.
+    implementation(project(":core"))
+
     // The newest BOM, because Material 3 Expressive requires it.
     //
     // Expressive is not public in any stable material3 — MaterialExpressiveTheme,

@@ -13,10 +13,13 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+// Aliased: this class has a toggleReaction of its own, with a different job.
+import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -207,6 +210,34 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        if (query.isBlank()) return emptyList()
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMessages")
+                    .put("chat_id", chatId)
+                    .put("query", query)
+                    .put("limit", limit)
+                    // Paging fields TDLib requires even for a first page.
+                    // from_message_id 0 means "from the newest".
+                    .put("from_message_id", 0)
+                    .put("offset", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchChatMessages: ${e.message}")
+            return emptyList()
+        }
+        // parseMessages reverses into chronological order, which is what the
+        // rest of this client returns and what the result list renders.
+        return parseMessages(chatId, found.optJSONArray("messages"))
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         awaitReady()
@@ -241,6 +272,28 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatNotificationSettings")
+                .put("chat_id", chatId)
+                .put(
+                    "notification_settings",
+                    JSONObject()
+                        .put("@type", "chatNotificationSettings")
+                        // use_default_mute_for false is what makes mute_for
+                        // this chat's own setting rather than the scope's;
+                        // without it the value below is ignored.
+                        .put("use_default_mute_for", false)
+                        // Telegram measures a mute in seconds. Its "forever"
+                        // is a very large number rather than a flag, and this
+                        // is the value its own clients use.
+                        .put("mute_for", if (muted) MUTE_FOREVER_SECONDS else 0)
+                )
+        )
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         awaitReady()
         val eng = requireEngine()
@@ -263,8 +316,32 @@ class TdLibTelegramClient(
             chat = preview,
             messages = mapped,
             memberCountLabel = statusLabel(chat),
-            isTyping = false
+            isTyping = false,
+            pinnedMessage = pinnedMessage(chatId, chat)
         )
+    }
+
+    /**
+     * The chat's pinned message, fetched by id.
+     *
+     * What is pinned is usually old, so it is rarely in the window that was
+     * just loaded and has to be asked for on its own. A failure here is not a
+     * failure to open the chat: the bar is missing, the conversation is not.
+     */
+    private suspend fun pinnedMessage(chatId: Long, chat: JSONObject?): ChatMessage? {
+        val pinnedId = chat?.optLong("pinned_message_id")?.takeIf { it != 0L } ?: return null
+        return try {
+            val raw = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessage")
+                    .put("chat_id", chatId)
+                    .put("message_id", pinnedId)
+            )
+            mapMessage(chatId, raw)
+        } catch (e: TdLibException) {
+            Log.w(TAG, "pinnedMessage: ${e.message}")
+            null
+        }
     }
 
     override suspend fun loadOlderMessages(
@@ -355,7 +432,68 @@ class TdLibTelegramClient(
                     sendLocalFile(chatId, path, caption, photo = false,
                         replyToId = replyToId.takeIf { index == 0 })
                 }
+            // No copy here: a recording is already a file this app wrote, in
+            // this app's own cache. Everything else arrives as a Uri from
+            // somewhere else and has to be resolved first.
+            is AttachmentDraft.Voice -> sendVoiceNote(
+                chatId = chatId,
+                path = draft.path,
+                durationSeconds = draft.durationSeconds,
+                caption = caption,
+                replyToId = replyToId
+            )
         }
+    }
+
+    private suspend fun sendVoiceNote(
+        chatId: Long,
+        path: String,
+        durationSeconds: Int,
+        caption: String,
+        replyToId: Long?
+    ) {
+        val content = JSONObject()
+            .put("@type", "inputMessageVoiceNote")
+            .put("voice_note", JSONObject().put("@type", "inputFileLocal").put("path", path))
+            .put("duration", durationSeconds)
+            // The bar chart Telegram draws behind a voice message, as 5-bit
+            // samples packed into bytes. Left empty deliberately: nothing here
+            // records amplitudes yet, and an invented waveform would be a
+            // drawing of a recording that never happened. Telegram renders a
+            // flat bar for an empty one, which is honest.
+            .put("waveform", "")
+            .put(
+                "caption",
+                JSONObject().put("@type", "formattedText").put("text", caption)
+            )
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .put("input_message_content", content)
+                .withReplyTo(replyToId)
+        )
+    }
+
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        if (messageIds.isEmpty()) return
+        awaitReady()
+        val ids = JSONArray().apply { messageIds.forEach { put(it) } }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "forwardMessages")
+                .put("chat_id", toChatId)
+                .put("from_chat_id", fromChatId)
+                .put("message_ids", ids)
+                // The plain forward: the author's name travels with it, and
+                // the copy is not presented as something we wrote.
+                .put("send_copy", false)
+                .put("remove_caption", false)
+        )
     }
 
     override suspend fun deleteMessage(
@@ -395,6 +533,77 @@ class TdLibTelegramClient(
                         )
                 )
         )
+    }
+
+    /**
+     * Two TDLib calls behind one, because TDLib splits what the tap does not:
+     * a reaction is added or removed, and which of the two this is depends on
+     * what we already chose.
+     *
+     * The local copy is updated with the same arithmetic the screen used, so a
+     * reload before updateMessageInteractionInfo arrives does not undo the tap
+     * on screen.
+     */
+    override suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String) {
+        awaitReady()
+        val known = messagesByChat[chatId]?.firstOrNull { it.id == messageId }
+        val chosen = known?.reactions?.any { it.emoji == emoji && it.isChosen } == true
+        val reactionType = JSONObject()
+            .put("@type", "reactionTypeEmoji")
+            .put("emoji", emoji)
+
+        requireEngine().send(
+            JSONObject()
+                .put("@type", if (chosen) "removeMessageReaction" else "addMessageReaction")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put("reaction_type", reactionType)
+                .apply {
+                    if (!chosen) {
+                        // Telegram shows a reaction to everyone by default;
+                        // is_big is the animated burst, which belongs to a
+                        // long press we do not have yet.
+                        put("is_big", false)
+                        put("update_recent_reactions", true)
+                    }
+                }
+        )
+
+        messagesByChat[chatId]?.let { bucket ->
+            val index = bucket.indexOfFirst { it.id == messageId }
+            if (index != -1) {
+                bucket[index] = bucket[index]
+                    .copy(reactions = applyReaction(bucket[index].reactions, emoji))
+            }
+        }
+    }
+
+    /**
+     * Read from the cached chat rather than asked for.
+     *
+     * A chat carries its own `available_reactions`: every emoji, a restricted
+     * list, or nothing at all. Offering the full set in a group that permits
+     * three would be a tap the server refuses for a reason this already knows.
+     */
+    override suspend fun availableReactions(chatId: Long): List<String> {
+        awaitReady()
+        val available = chatsById[chatId]?.optJSONObject("available_reactions")
+            ?: return DEFAULT_REACTIONS
+        return when (available.optString("@type")) {
+            "chatAvailableReactionsAll" -> DEFAULT_REACTIONS
+            "chatAvailableReactionsSome" -> {
+                val types = available.optJSONArray("reactions") ?: return emptyList()
+                (0 until types.length()).mapNotNull { index ->
+                    types.optJSONObject(index)
+                        ?.takeIf { it.optString("@type") == "reactionTypeEmoji" }
+                        ?.optString("emoji")
+                        ?.takeIf { it.isNotBlank() }
+                }
+            }
+            // An unknown shape is not a licence to guess: a chat that permits
+            // nothing and a chat this client cannot read are both "no chips".
+            else -> emptyList()
+        }
     }
 
     override suspend fun markStorySeen(storyId: Long) {
@@ -833,8 +1042,37 @@ class TdLibTelegramClient(
                 MessageContentType.Photo -> "🖼️"
                 MessageContentType.Document -> "📎"
                 else -> null
-            }
+            },
+            reactions = parseReactions(message)
         )
+    }
+
+    /**
+     * Reactions hang off interaction_info, alongside view and forward counts,
+     * and are absent on the overwhelming majority of messages.
+     *
+     * Only emoji reactions are read. A custom reaction is a sticker id that
+     * means nothing without fetching the sticker, and a chip showing a
+     * numeric id would be worse than showing nothing.
+     */
+    private fun parseReactions(message: JSONObject): List<MessageReaction> {
+        val array = message.optJSONObject("interaction_info")
+            ?.optJSONObject("reactions")
+            ?.optJSONArray("reactions")
+            ?: return emptyList()
+        return (0 until array.length()).mapNotNull { index ->
+            val reaction = array.optJSONObject(index) ?: return@mapNotNull null
+            val emoji = reaction.optJSONObject("type")
+                ?.takeIf { it.optString("@type") == "reactionTypeEmoji" }
+                ?.optString("emoji")
+                ?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
+            MessageReaction(
+                emoji = emoji,
+                count = reaction.optInt("total_count"),
+                isChosen = reaction.optBoolean("is_chosen")
+            )
+        }
     }
 
     private fun mapUser(user: JSONObject): TelegramUser =
@@ -890,5 +1128,19 @@ class TdLibTelegramClient(
         private const val TAG = "TdLibTelegramClient"
         // TDLib uses very large order values for pinned chats
         private const val PINNED_ORDER_THRESHOLD = 1L shl 50
+
+        /** Telegram's own "muted forever": about 100 years, in seconds. */
+        private const val MUTE_FOREVER_SECONDS = 2_147_483_647
+
+        /**
+         * What a chat offers when it does not restrict reactions.
+         *
+         * TDLib says "all" without enumerating them, and the full set runs to
+         * thousands once custom emoji are counted. These are Telegram's own
+         * defaults, in its order, and they are what a picker can reasonably
+         * show without a grid and a search field.
+         */
+        private val DEFAULT_REACTIONS =
+            listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
     }
 }

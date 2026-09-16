@@ -40,6 +40,48 @@ interface TelegramMessages {
     ): List<ChatMessage>
 
     /**
+     * Sends copies of [messageIds] from [fromChatId] into [toChatId].
+     *
+     * A list rather than one id, because Telegram forwards a run as one block:
+     * sent one at a time they arrive as separate forwards, each with its own
+     * header, which is not what was selected.
+     */
+    suspend fun forwardMessages(fromChatId: Long, messageIds: List<Long>, toChatId: Long)
+
+    /**
+     * Adds or withdraws our reaction on a message.
+     *
+     * One call for both directions, because Telegram has no separate
+     * "unreact": choosing what is already chosen removes it. The caller is
+     * expected to have updated its own copy already — see `toggleReaction` in
+     * :core — since this returns nothing and the round trip is long enough to
+     * see.
+     */
+    suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String)
+
+    /**
+     * The emoji this chat permits, in the order to offer them.
+     *
+     * Not a constant: a group can be restricted to a handful of reactions, or
+     * to none at all, and offering one the server will refuse is a tap that
+     * fails for a reason the UI could have known.
+     */
+    suspend fun availableReactions(chatId: Long): List<String>
+
+    /**
+     * Messages matching [query] inside one conversation, newest first.
+     *
+     * Separate from [searchMessages] rather than a chat id on it: Telegram
+     * serves the two from different calls, and a global search narrowed
+     * afterwards would page through every chat to fill one.
+     */
+    suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int = 50
+    ): List<ChatMessage>
+
+    /**
      * Messages matching [query] across every conversation, newest first.
      *
      * Blank returns nothing, for the same reason [TelegramChats.searchChats]

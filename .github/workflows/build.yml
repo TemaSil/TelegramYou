@@ -183,7 +183,9 @@ jobs:
       # explanation.
       - name: Assemble debug
         timeout-minutes: 15
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build-log.txt
 
       # A BOM pins versions without naming them, and material3 is pinned past
       # the BOM on top of that, so "which Expressive is this" is otherwise a
@@ -200,8 +202,13 @@ jobs:
             [ -n "$found" ] && echo "::notice title=Resolved::$found"
           done
 
+      # Appended to the same log, so a test source set that fails to compile
+      # is reported by the Compile errors step below just like the app's.
       - name: Unit tests
-        run: ./gradlew :app:testDebugUnitTest --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :core:check :app:testDebugUnitTest --stacktrace 2>&1 \
+            | tee -a build-log.txt
 
       # Without this a green "Unit tests" step is ambiguous: Gradle reports
       # success when it runs no tests at all.
@@ -209,7 +216,9 @@ jobs:
         if: always()
         with:
           name: test-results
-          path: app/build/test-results/**/*.xml
+          path: |
+            app/build/test-results/**/*.xml
+            core/build/test-results/**/*.xml
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v4
@@ -219,19 +228,45 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
-      # Last, so the numbers land where the log tail can be read.
+      # Last, so both numbers and errors land where the log tail can be read.
       #
       # A green "Unit tests" step proves nothing on its own: Gradle reports
       # success when it runs no tests at all, and the artifact cannot be
       # downloaded from every environment. Failing here on an empty run turns
       # a green build into evidence that tests actually executed.
-      - name: Test summary
+      #
+      # The compile errors are reported from the same step for the same
+      # reason. A Kotlin error arrives wrapped in a Gradle stack trace two
+      # hundred frames deep, and the one line that says what is wrong scrolls
+      # past long before the end. Pulled out here, both the count and the
+      # errors sit in the last few lines of the log — and as annotations, for
+      # anyone reading the checks tab instead.
+      - name: Summary
         if: always()
         run: |
           python3 - <<'PY'
-          import glob, sys, xml.etree.ElementTree as ET
+          import glob, pathlib, re, sys, xml.etree.ElementTree as ET
 
-          files = glob.glob('app/build/test-results/**/*.xml', recursive=True)
+          # Compile errors first, so the test count stays the last line.
+          log = pathlib.Path('build-log.txt')
+          errors = []
+          if log.exists():
+              for line in log.read_text(errors='replace').splitlines():
+                  if not line.startswith('e: '):
+                      continue
+                  # The runner's absolute path is noise; the repo path is not.
+                  cleaned = re.sub(r'^file://\S*?/(?=app/|core/)', '', line[3:].strip())
+                  if cleaned not in errors:
+                      errors.append(cleaned)
+
+          for error in errors[:20]:
+              print(f"::error title=Compile error::{error}")
+              print(error)
+          if len(errors) > 20:
+              print(f"::error::and {len(errors) - 20} more")
+
+          files = (glob.glob('app/build/test-results/**/*.xml', recursive=True)
+                   + glob.glob('core/build/test-results/**/*.xml', recursive=True))
           total = failed = skipped = 0
           for path in files:
               root = ET.parse(path).getroot()
@@ -248,6 +283,13 @@ jobs:
           print(f"::notice title=Unit tests::{total} tests, "
                 f"{failed} failed, {skipped} skipped")
           print(f"TOTAL: {total} tests, {failed} failed, {skipped} skipped")
+
+          if errors:
+              # Naming the real cause: the tests did not run because nothing
+              # compiled, and "no tests ran" would send the next reader looking
+              # in the wrong place.
+              print(f"::error::{len(errors)} compile error(s); see above.")
+              sys.exit(1)
           if total == 0:
               print("::error::No tests ran. A green build must mean tests executed.")
               sys.exit(1)

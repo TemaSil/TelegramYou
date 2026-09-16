@@ -44,7 +44,12 @@ for four screens and will not survive forty.
 ## Target
 
 ```
-com.telegramyou.app
+:core   (plain Kotlin/JVM — no Android, no Compose)
+  telegram/model/                     data classes shared by both backends
+  ui/chat/MessageGrouping.kt          date headers, run grouping
+  ui/chat/SwipeToReply.kt             drag maths for swipe-to-reply
+
+:app    (Android)
   MainActivity, TelegramYouApp        entry points, dependency wiring
   navigation/
     Route.kt                          every destination, one sealed hierarchy
@@ -53,7 +58,6 @@ com.telegramyou.app
     TelegramClient.kt                 one socket, split by domain below
     auth/ chats/ messages/ stories/   focused interfaces per domain
     tdlib/  demo/                     the two backends
-    model/                            data classes shared by both
   ui/
     <feature>/
       <Feature>Screen.kt              Composable: renders state, emits events
@@ -61,6 +65,10 @@ com.telegramyou.app
     components/                       shared, stateless
     theme/
 ```
+
+Package names do not change across the split: `MessageGrouping.kt` is still
+`com.telegramyou.app.ui.chat`. The module boundary is about what a file
+*needs*, not about where it belongs conceptually.
 
 Three rules, and the whole restructure follows from them.
 
@@ -76,6 +84,49 @@ repository. Its inputs are plain method calls.
 **Navigation carries arguments, not state.** Every destination is a type in
 one sealed hierarchy, and everything a screen needs to be rebuilt from
 scratch arrives as an argument.
+
+## Why :core is a separate module
+
+Not for reuse, and not for build times. For a **feedback loop**.
+
+Nothing in this project could be compiled outside CI. The environment the
+code is written in has no Android SDK and cannot reach `dl.google.com`, so
+every mistake — a missing import, a renamed parameter, a broken assertion —
+cost a push and a CI round. That is minutes per typo, and it is why several
+commits in this repository exist only to fix the one before.
+
+`:core` is the part that needs none of that: plain Kotlin, JUnit, Maven
+Central. It compiles and its tests run in seconds, locally:
+
+```
+gradlew :core:check --configure-on-demand
+```
+
+`--configure-on-demand` is not optional there. Without it Gradle configures
+every project in the build, `:app` included, and configuring `:app` means
+resolving AGP from Google's Maven — which is exactly what is unreachable.
+For the same reason the root `build.gradle.kts` declares no plugins at all,
+not even `apply false`: naming a plugin resolves its marker.
+
+`:core:check` also runs `checkNoInternalApi`, which fails on any `internal`
+declaration in the module. `internal` means "this module", so an internal
+function here compiles clean, passes every test in `:core`, and then breaks
+`:app` in CI — which is precisely the round trip this module exists to
+remove. It caught nothing on the way in only because CI found it first: the
+four helpers in `MessageGrouping.kt` were `internal` and had to be made
+public.
+
+One thing the move costs, and it is worth knowing before writing code against
+these types: **Kotlin does not smart-cast a public property of another
+module.** `if (!message.senderName.isNullOrBlank()) Text(message.senderName)`
+compiled when `ChatMessage` lived in `:app` and does not now, because the
+compiler cannot assume a property it did not compile stays what it was. Bind
+it to a local first — `val sender = message.senderName?.takeIf { ... }` — or
+use `let`. The guard above cannot catch this one; only `:app` can.
+
+So the rule for new code is: **if it does not need Android, put it in
+`:core` and write a test.** Anything that touches Compose, `ViewModel` or
+TDLib stays in `:app` and waits for CI, as before.
 
 ## Screen inventory
 

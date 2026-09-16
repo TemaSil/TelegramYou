@@ -65,7 +65,9 @@ fun HomeScreen(
     onOpenChat: (Long) -> Unit,
     onOpenStory: (StoryItem) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onOpenSettings: () -> Unit,
+    onMutedChange: (Long, Boolean) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -103,10 +105,14 @@ fun HomeScreen(
                     IconButton(onClick = { onSearchExpandedChange(true) }) {
                         Icon(Icons.Rounded.Search, contentDescription = "Search")
                     }
+                    // The avatar is the way into settings, the way it is in
+                    // every other app on the phone — a gear beside it would be
+                    // a second control for the same destination.
                     AvatarBubble(
                         title = state.me?.displayName ?: "You",
                         seed = state.me?.avatarColor ?: 1,
                         size = 36.dp,
+                        onClick = onOpenSettings,
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
@@ -167,7 +173,8 @@ fun HomeScreen(
                             onClick = { onOpenChat(chat.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
+                                .padding(horizontal = 12.dp),
+                            onMutedChange = { muted -> onMutedChange(chat.id, muted) }
                         )
                     }
                 }

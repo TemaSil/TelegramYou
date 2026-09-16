@@ -118,14 +118,41 @@ data class ChatMessage(
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,
     val fileSizeLabel: String? = null,
-    val mediaEmoji: String? = null
+    val mediaEmoji: String? = null,
+    /**
+     * In the server's order, which is by popularity — not ours to re-sort.
+     * Empty for the overwhelming majority of messages, so the chip row costs
+     * nothing where there is nothing to show.
+     */
+    val reactions: List<MessageReaction> = emptyList()
+)
+
+/**
+ * One emoji on a message, with how many people chose it.
+ *
+ * [isChosen] is about us specifically, not about whether anyone reacted: the
+ * chip is filled when we are one of the [count], and that is the only way to
+ * tell "3 people liked this" from "3 people including me".
+ */
+data class MessageReaction(
+    val emoji: String,
+    val count: Int,
+    val isChosen: Boolean = false
 )
 
 data class ChatDetail(
     val chat: ChatPreview,
     val messages: List<ChatMessage>,
     val memberCountLabel: String? = null,
-    val isTyping: Boolean = false
+    val isTyping: Boolean = false,
+    /**
+     * The chat's pinned message, if it has one.
+     *
+     * A whole message rather than an id: what is pinned is usually old, so it
+     * is rarely in the loaded window, and a bar showing "pinned message" with
+     * nothing in it would say less than no bar at all.
+     */
+    val pinnedMessage: ChatMessage? = null
 )
 
 /**
@@ -142,4 +169,15 @@ data class MessageHit(
 sealed interface AttachmentDraft {
     data class Files(val uris: List<String>, val names: List<String>) : AttachmentDraft
     data class Photos(val uris: List<String>) : AttachmentDraft
+
+    /**
+     * A recording made in the composer.
+     *
+     * [path] is a real file in the app's cache rather than a Uri, for the same
+     * reason the pickers copy what they return: TDLib opens a filesystem path.
+     * [durationSeconds] travels with it because the file's own header is not
+     * read anywhere, and a voice message with no length is a bubble that says
+     * nothing about what tapping it costs.
+     */
+    data class Voice(val path: String, val durationSeconds: Int) : AttachmentDraft
 }

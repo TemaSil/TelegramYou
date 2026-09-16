@@ -12,7 +12,9 @@ val TelegramYouShapes = Shapes(
     extraLarge = RoundedCornerShape(36.dp)
 )
 
-val BubbleOutgoingShape = RoundedCornerShape(22.dp, 22.dp, 8.dp, 22.dp)
-val BubbleIncomingShape = RoundedCornerShape(22.dp, 22.dp, 22.dp, 8.dp)
-val StoryRingShape = RoundedCornerShape(50)
+// No bubble shapes here any more. A bubble's corners depend on where it sits
+// in a run — tight against its neighbours, tailed on the last of them — so
+// MessageBubble builds its own RoundedCornerShape per message. A pair of
+// fixed shapes alongside that would be a second answer to the same question,
+// and the wrong one.
 val ComposerShape = RoundedCornerShape(28.dp)

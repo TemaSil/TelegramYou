@@ -98,8 +98,9 @@ Cleaned up on the way through, and worth keeping either way:
 
 Still to spend the move on:
 
-- [ ] `FloatingToolbar` for a message selection bar
-- [ ] `ButtonGroup` in settings
+- [x] `FloatingToolbar` for a message selection bar
+- [~] Settings uses `SingleChoiceSegmentedButtonRow` for the theme choice;
+      `ButtonGroup` is still unused and is the Expressive alternative
 
 Careful with the ticks: CI proves these compile, not that they look right.
 Nothing in the pipeline renders a screen.
@@ -176,12 +177,50 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
-## Where this was left, 15 September 2026
+## Where this was left, 16 September 2026
 
-CI is green on `main`. Twelve unit tests, over the message-grouping logic;
-everything else is proved only to compile.
+CI is green on the working branch, **79 unit tests** (57 of them in `:core`),
+and the conversation screen is close to complete. Landed today: reactions,
+multi-select with copy, forward and delete, in-chat search, an attachment
+sheet with camera, the unread divider, jump-to-latest, the pinned message bar,
+a drawn typing indicator, hold-to-record voice messages, and a settings screen
+with the dynamic-colour switch this client is named after.
 
-**The stack moved a long way today, and all of it was forced.** Material 3
+Two controls that pretended to be features are gone: the microphone records
+now, and the avatar opens settings.
+
+**The feedback loop changed more than any of the features.** There is now a
+`:core` module — plain Kotlin, no Android — that compiles and tests in about
+ten seconds in any environment, including ones with no SDK and no reach to
+Google's Maven. Rules that can be wrong quietly live there: reaction
+arithmetic, selection, search snippets, the unread divider, message grouping,
+swipe thresholds. See ARCHITECTURE.md for what it costs (`internal` is
+module-scoped, and Kotlin will not smart-cast another module's public
+properties) and for the `checkNoInternalApi` guard that catches the first of
+those locally.
+
+CI reports differently too: one `Summary` step, last in the job, prints the
+Kotlin errors and the test count together. Before that, a one-line compile
+error arrived two hundred stack frames deep and cost a round trip to read.
+
+**One thing worth recording as a mistake rather than a fix.** Reading
+`sendLocalFile` on its own, it looked as though attachments could never be
+sent live — `inputFileLocal` takes a filesystem path and a picker returns a
+`content://` Uri. `sendAttachment`, one screen up, already resolved the Uri
+through `copyUriToCache`. Copying again in `ChatScreen` was redundant and
+then actively broke it, because the second copy handed the backend a path it
+tried to parse as a Uri. Reverted. The lesson is cheap and worth keeping:
+read the caller before concluding the callee is broken.
+
+**Still true: nothing in CI renders a screen.** Every visual claim above is
+"it compiles and the logic is tested", not "it looks right". The app has not
+been run since the reaction chips, the selection toolbar, the search field,
+the attachment sheet, the unread line, the jump button and the pinned bar all
+went in — and several of those share the same vertical space.
+
+### The older history, still worth knowing
+
+**The stack moved a long way on 15 September, and all of it was forced.** Material 3
 Expressive is `internal` in every stable `material3` — 1.4.0 included — so
 reaching it meant `material3:1.5.0-alpha28`, which declares Compose core
 1.12.0, which requires compileSdk 37, which requires AGP 9, which requires
@@ -196,17 +235,17 @@ that looks like a mistake and is not — `setup-android` must **not** name
 `platforms;android-37`, because sdkmanager refuses it by name while listing
 it as available. AGP installs it itself.
 
-**The architecture was rebuilt**, per ARCHITECTURE.md: four state holders, no
+**The architecture was rebuilt** on the same day, per ARCHITECTURE.md: four
+state holders, no
 screen holding a repository, typed routes, and `TelegramClient` split into
 four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Then the inventory**: search (`SearchBar`) is the natural first screen —
-   it also removes the `onClick = {}` stub that currently pretends to be a
-   feature.
-2. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
-   method.
+1. **Playing a voice message back** — recording and sending work; a received
+   voice note is still a bubble that does nothing. Needs TDLib's file download
+   and a `MediaPlayer`, and then the waveform, which is the one place left
+   where custom drawing is justified.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -249,6 +288,11 @@ push costs more than the feature is currently worth.
 
 ### Known debts, none of them hidden
 
+- **Swipe-to-reply is compiled and unproven.** Its arithmetic is tested — how
+  far the bubble travels, where the threshold sits, that a leftward drag does
+  nothing — but whether the gesture feels right under a thumb, and whether it
+  fights the list's vertical scroll, can only be judged on a device. Nobody
+  has held it.
 - **Nothing renders a screen in CI.** The app was installed once today and
   the chat list, avatars and motion were confirmed by hand; everything since
   — the ViewModel rebuild, typed routes, the interface split — is unverified
@@ -323,16 +367,31 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Date separators — `Surface` pill, `labelSmall`
 - [x] Sender name and avatar in groups
 - [x] Delivery state — `Icons.Rounded.Done` / `DoneAll`; Material ships both, so nothing is drawn by hand
-- [~] Reply: banner over the composer and quoted block in bubble; swipe-to-reply still missing
+- [x] Reply: swipe right on a bubble, banner over the composer, quoted block
+      inside it
 - [x] Edit and delete — long-press `DropdownMenu`, `AlertDialog` for the for-me / for-everyone choice
-- [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
-- [~] Copy via long-press `DropdownMenu`; forward and select still missing
-- [ ] Attachment sheet — `ModalBottomSheet` with gallery, camera, file
+- [x] Reactions — `FilterChip` row inside the bubble, picker in a
+      `ModalBottomSheet`; the toggle arithmetic lives in `:core` with tests
+- [x] Select several messages — `HorizontalFloatingToolbar`, copy and delete
+      in one go; what it offers is computed from what every message allows
+- [x] Search inside a chat — the field takes the app bar's title, results as
+      `ListItem` rows with the term in bold, tapping one scrolls to it
+      (only when it is in the loaded window — a hit older than that is found
+      and shown, but the list cannot jump to it yet)
+- [x] Copy, forward and select — long-press to select, then the toolbar's own
+      copy, forward and delete; forwarding picks a chat in a `ModalBottomSheet`
+- [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
+      camera and file. Everything travels as a `content://` Uri; the TDLib
+      backend resolves it into the upload cache, which is where that belongs
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
-- [ ] Voice messages: record on hold, play with a waveform (custom draw)
-- [ ] Unread divider and jump-to-latest `FloatingActionButton`
-- [ ] Pinned message bar — `Surface` under the `TopAppBar`
-- [ ] Typing indicator (custom draw)
+- [~] Voice messages: hold the microphone to record, release to send. Playing
+      one back, and the waveform behind it, are still missing — and so is the
+      amplitude capture the waveform would be drawn from
+- [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
+      divider goes is decided in `:core` with tests
+- [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping
+      it scrolls to the message when it is in the loaded window
+- [x] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text
 - [ ] In-chat search with jump to the hit — global message search is in, this
       is the same query narrowed to one conversation
@@ -350,7 +409,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Search — `SearchBar`, server-side across chats **and** message text,
       in two labelled sections
 - [ ] Compose — `FloatingActionButton` into a contact picker
-- [ ] Pin, mute, mark read from a long-press `DropdownMenu`
+- [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
+      still need client methods
 - [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets
 
 ## 3. Settings and profile

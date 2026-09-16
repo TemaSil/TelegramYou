@@ -1,22 +1,32 @@
 package com.telegramyou.app.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material3.Badge
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,16 +44,30 @@ import com.telegramyou.app.telegram.model.ChatPreview
  * ListItem brings the spec's metrics and the ripple back, and the unread
  * count is a [Badge] rather than a Box with a fifty-percent corner radius.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatListRow(
     chat: ChatPreview,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onMutedChange: ((Boolean) -> Unit)? = null
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
+
+    Box {
     ListItem(
         modifier = modifier
             .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                // Long press only where there is something to offer, so a row
+                // without actions does not grow a menu with nothing in it.
+                onLongClick = if (onMutedChange != null) {
+                    { menuOpen = true }
+                } else {
+                    null
+                }
+            ),
         colors = ListItemDefaults.colors(
             containerColor = if (chat.isPinned) {
                 MaterialTheme.colorScheme.surfaceContainerHigh
@@ -130,4 +154,27 @@ fun ChatListRow(
             }
         }
     )
+
+    if (onMutedChange != null) {
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(if (chat.isMuted) "Unmute" else "Mute") },
+                leadingIcon = {
+                    Icon(
+                        if (chat.isMuted) Icons.Rounded.NotificationsActive
+                        else Icons.Rounded.NotificationsOff,
+                        contentDescription = null
+                    )
+                },
+                onClick = {
+                    // The opposite of what is drawn, not of what the server
+                    // last said: the row the finger is on is the one the
+                    // person means.
+                    onMutedChange(!chat.isMuted)
+                    menuOpen = false
+                }
+            )
+        }
+    }
+    }
 }

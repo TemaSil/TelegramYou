@@ -7,10 +7,13 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
+import com.telegramyou.app.ui.chat.formatDuration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -151,6 +154,13 @@ class DemoTelegramClient : TelegramClient {
             .take(limit)
     }
 
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        delay(80)
+        _chats.update { list ->
+            list.map { if (it.id == chatId) it.copy(isMuted = muted) else it }
+        }
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
         val chat = _chats.value.first { it.id == chatId }
@@ -163,7 +173,9 @@ class DemoTelegramClient : TelegramClient {
                 chat.isGroup -> "42 members"
                 else -> if (chat.isOnline) "online" else "last seen recently"
             },
-            isTyping = chatId == 2L
+            isTyping = chatId == 2L,
+            // One chat has something pinned, so the bar is visible offline.
+            pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null
         )
     }
 
@@ -180,6 +192,18 @@ class DemoTelegramClient : TelegramClient {
     ): List<ChatMessage> {
         delay(220)
         return emptyList()
+    }
+
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(120)
+        if (query.isBlank()) return emptyList()
+        return chatMessages[chatId].orEmpty()
+            .filter { it.text.contains(query, ignoreCase = true) }
+            .takeLast(limit)
     }
 
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
@@ -213,6 +237,15 @@ class DemoTelegramClient : TelegramClient {
                     )
                 }
             }
+            is AttachmentDraft.Voice -> {
+                appendOutgoing(
+                    chatId = chatId,
+                    text = formatDuration(draft.durationSeconds.toLong()),
+                    type = MessageContentType.Voice,
+                    mediaEmoji = "🎤",
+                    replyToId = replyToId
+                )
+            }
             is AttachmentDraft.Photos -> {
                 draft.uris.forEachIndexed { index, _ ->
                     appendOutgoing(
@@ -224,6 +257,30 @@ class DemoTelegramClient : TelegramClient {
                     )
                 }
             }
+        }
+    }
+
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        delay(160)
+        val source = chatMessages[fromChatId].orEmpty().filter { it.id in messageIds }
+        val target = chatMessages.getOrPut(toChatId) { mutableListOf() }
+        source.forEach { original ->
+            // A forward is a new message in the target chat, outgoing because
+            // we are the one sending it, and without the original's reactions
+            // or delivery state — none of which travel with a forward.
+            target += original.copy(
+                id = messageId.incrementAndGet(),
+                chatId = toChatId,
+                isOutgoing = true,
+                reactions = emptyList(),
+                isRead = false,
+                canBeEdited = false,
+                canBeDeletedForEveryone = true
+            )
         }
     }
 
@@ -243,6 +300,26 @@ class DemoTelegramClient : TelegramClient {
         if (index == -1) return
         bucket[index] = bucket[index].copy(text = text, isEdited = true)
     }
+
+    /**
+     * Applies the same arithmetic the screen already applied optimistically,
+     * so a reload does not contradict what the tap drew. Imported under
+     * another name because this class has a toggleReaction of its own.
+     */
+    override suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String) {
+        delay(120)
+        val bucket = chatMessages[chatId] ?: return
+        val index = bucket.indexOfFirst { it.id == messageId }
+        if (index == -1) return
+        val message = bucket[index]
+        bucket[index] = message.copy(reactions = applyReaction(message.reactions, emoji))
+    }
+
+    /**
+     * Telegram's own default set, in its order. Demo mode has no chat
+     * restrictions to honour, so every chat offers all of them.
+     */
+    override suspend fun availableReactions(chatId: Long): List<String> = DEMO_REACTIONS
 
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
@@ -337,9 +414,9 @@ class DemoTelegramClient : TelegramClient {
 
         chatMessages[1] = mutableListOf(
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
-            demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design"),
+            demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true))),
             demoMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, today + 120, "Material Design"),
-            demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true)
+            demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true, reactions = listOf(MessageReaction("❤️", count = 1)))
         )
         chatMessages[2] = mutableListOf(
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
@@ -362,7 +439,8 @@ class DemoTelegramClient : TelegramClient {
         isRead: Boolean = false,
         contentType: MessageContentType = MessageContentType.Text,
         fileName: String? = null,
-        fileSizeLabel: String? = null
+        fileSizeLabel: String? = null,
+        reactions: List<MessageReaction> = emptyList()
     ) = ChatMessage(
         id = id,
         chatId = chatId,
@@ -378,8 +456,12 @@ class DemoTelegramClient : TelegramClient {
         isRead = isRead,
         contentType = contentType,
         fileName = fileName,
-        fileSizeLabel = fileSizeLabel
+        fileSizeLabel = fileSizeLabel,
+        reactions = reactions
     )
 
-    private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    /** Telegram's default reaction set, in its order. */
+private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
+
+private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 }

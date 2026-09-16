@@ -9,6 +9,9 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!-- Held to record a voice message; requested at the moment the mic
+         button is first pressed, not at startup. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -37,6 +40,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Hands the camera app a Uri it may write to, without making the file
+            itself world-readable. grantUriPermissions is what makes the grant
+            temporary: it lasts for the one intent and no longer.
+
+            No <uses-permission android:name="android.permission.CAMERA" />
+            anywhere, deliberately. ACTION_IMAGE_CAPTURE delegates to whatever
+            camera app is installed, and declaring the permission would oblige
+            this app to request it at runtime for a camera it never opens.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/camera_paths" />
+        </provider>
 
         <service
             android:name=".telegram.TelegramForegroundService"

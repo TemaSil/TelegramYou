@@ -24,4 +24,13 @@ interface TelegramChats {
      * on screen behind it.
      */
     suspend fun searchChats(query: String, limit: Int = 30): List<ChatPreview>
+
+    /**
+     * Silences a chat, or stops silencing it.
+     *
+     * [muted] rather than a toggle, so the caller sends what it drew: a toggle
+     * computed on the far side can disagree with the row the finger was on
+     * when two updates arrive close together.
+     */
+    suspend fun setChatMuted(chatId: Long, muted: Boolean)
 }

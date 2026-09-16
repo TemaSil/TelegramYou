@@ -34,6 +34,11 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    data object Settings : Route {
+        const val PATTERN = "settings"
+        override val path = PATTERN
+    }
+
     data class Chat(val chatId: Long) : Route {
         override val path = "chat/$chatId"
 

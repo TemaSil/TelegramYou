@@ -18,7 +18,11 @@ import kotlinx.coroutines.flow.StateFlow
  * "did not ask again" is exactly what the paging guard has to prove.
  */
 class FakeTelegramClient(
-    private val window: List<ChatMessage> = emptyList(),
+    /**
+     * The window openChat answers with. A var, so a test can make a message
+     * disappear between reloads the way another client deleting it would.
+     */
+    var window: List<ChatMessage> = emptyList(),
     /** Pages returned by successive calls; an exhausted list answers empty. */
     private val olderPages: MutableList<List<ChatMessage>> = mutableListOf(),
     /** Everything searchChats may match against. */
@@ -41,7 +45,13 @@ class FakeTelegramClient(
         private set
 
     override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
-    override val chats: StateFlow<List<ChatPreview>> = MutableStateFlow(emptyList())
+    /** Settable, so a test can give the forward picker somewhere to point. */
+    private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
+    override val chats: StateFlow<List<ChatPreview>> = _chats
+
+    fun setChats(value: List<ChatPreview>) {
+        _chats.value = value
+    }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
 
     override fun start() = Unit
@@ -85,6 +95,43 @@ class FakeTelegramClient(
         return searchableMessages.filter { it.message.text.contains(query, ignoreCase = true) }
     }
 
+    var chatSearchCount = 0
+        private set
+
+    /**
+     * Matches against the window, which is enough: the state holder's job is
+     * to debounce, not to search.
+     */
+    override suspend fun searchChatMessages(
+        chatId: Long,
+        query: String,
+        limit: Int
+    ): List<ChatMessage> {
+        chatSearchCount++
+        if (query.isBlank()) return emptyList()
+        return window.filter { it.text.contains(query, ignoreCase = true) }
+    }
+
+    /** The one forward that was asked for, as (from, ids, to). */
+    var forwarded: Triple<Long, List<Long>, Long>? = null
+        private set
+
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        forwarded = Triple(fromChatId, messageIds, toChatId)
+    }
+
+    /** The last mute asked for, as (chat, muted). */
+    var muted: Pair<Long, Boolean>? = null
+        private set
+
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        this.muted = chatId to muted
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
     override suspend fun sendAttachment(
         chatId: Long,
@@ -92,7 +139,30 @@ class FakeTelegramClient(
         caption: String,
         replyToId: Long?
     ) = Unit
-    override suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) = Unit
+    /** In call order, so a batch delete can be checked message by message. */
+    val deletedIds = mutableListOf<Long>()
+
+    override suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) {
+        deletedIds += messageId
+    }
     override suspend fun editMessage(chatId: Long, messageId: Long, text: String) = Unit
+
+    /**
+     * Recorded rather than applied: the tests check what was asked for.
+     *
+     * A val, not a var: `+=` on a var of MutableList type is ambiguous between
+     * plusAssign and plus-then-reassign, and Kotlin refuses to pick.
+     */
+    val reactionCalls = mutableListOf<Triple<Long, Long, String>>()
+
+    /** Named apart from the override so neither shadows the other. */
+    var permittedReactions: List<String> = listOf("👍", "🔥")
+
+    override suspend fun toggleReaction(chatId: Long, messageId: Long, emoji: String) {
+        reactionCalls += Triple(chatId, messageId, emoji)
+    }
+
+    override suspend fun availableReactions(chatId: Long): List<String> = permittedReactions
+
     override suspend fun markStorySeen(storyId: Long) = Unit
 }
