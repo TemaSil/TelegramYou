@@ -183,7 +183,49 @@ jobs:
       # explanation.
       - name: Assemble debug
         timeout-minutes: 15
-        run: ./gradlew :app:assembleDebug --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build-log.txt
+
+      # A Kotlin compile error arrives wrapped in a Gradle stack trace two
+      # hundred frames deep, and the one line that says what is actually wrong
+      # scrolls past long before the end of the log. Reading it then costs a
+      # round trip through the API for a log that is mostly
+      # DefaultBuildOperationRunner.
+      #
+      # So the `e:` lines are pulled out and posted as annotations, which are
+      # readable without downloading anything.
+      - name: Compile errors
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import re, pathlib
+
+          log = pathlib.Path('build-log.txt')
+          if not log.exists():
+              print("No build log: the build failed before Gradle ran.")
+              raise SystemExit(0)
+
+          # Kotlin prefixes errors with "e: " and warnings with "w: ". The
+          # file: URI is dropped because the runner's absolute path is noise.
+          seen = []
+          for line in log.read_text(errors='replace').splitlines():
+              if not line.startswith('e: '):
+                  continue
+              cleaned = re.sub(r'^file://\S*?/(?=app/|core/)', '', line[3:].strip())
+              if cleaned not in seen:
+                  seen.append(cleaned)
+
+          if not seen:
+              print("The build failed without a Kotlin compile error.")
+              raise SystemExit(0)
+
+          for error in seen[:20]:
+              print(f"::error title=Compile error::{error}")
+              print(error)
+          if len(seen) > 20:
+              print(f"::error::and {len(seen) - 20} more")
+          PY
 
       # A BOM pins versions without naming them, and material3 is pinned past
       # the BOM on top of that, so "which Expressive is this" is otherwise a
