@@ -146,7 +146,7 @@ The pure module needs neither the SDK nor Google's Maven, so its tests run
 anywhere — including environments where `:app` cannot even be configured:
 
 ```
-gradlew :core:test --configure-on-demand
+gradlew :core:check --configure-on-demand
 ```
 
 Keep the flag. Without it Gradle configures `:app` too, and that resolves AGP

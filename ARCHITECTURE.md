@@ -99,7 +99,7 @@ commits in this repository exist only to fix the one before.
 Central. It compiles and its tests run in seconds, locally:
 
 ```
-gradlew :core:test --configure-on-demand
+gradlew :core:check --configure-on-demand
 ```
 
 `--configure-on-demand` is not optional there. Without it Gradle configures
@@ -107,6 +107,14 @@ every project in the build, `:app` included, and configuring `:app` means
 resolving AGP from Google's Maven — which is exactly what is unreachable.
 For the same reason the root `build.gradle.kts` declares no plugins at all,
 not even `apply false`: naming a plugin resolves its marker.
+
+`:core:check` also runs `checkNoInternalApi`, which fails on any `internal`
+declaration in the module. `internal` means "this module", so an internal
+function here compiles clean, passes every test in `:core`, and then breaks
+`:app` in CI — which is precisely the round trip this module exists to
+remove. It caught nothing on the way in only because CI found it first: the
+four helpers in `MessageGrouping.kt` were `internal` and had to be made
+public.
 
 So the rule for new code is: **if it does not need Android, put it in
 `:core` and write a test.** Anything that touches Compose, `ViewModel` or
