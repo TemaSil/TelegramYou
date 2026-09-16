@@ -99,7 +99,8 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [ ] `ButtonGroup` in settings
+- [~] Settings uses `SingleChoiceSegmentedButtonRow` for the theme choice;
+      `ButtonGroup` is still unused and is the Expressive alternative
 
 Careful with the ticks: CI proves these compile, not that they look right.
 Nothing in the pipeline renders a screen.

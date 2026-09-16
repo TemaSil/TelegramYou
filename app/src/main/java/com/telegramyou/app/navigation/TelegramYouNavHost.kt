@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.telegramyou.app.settings.AppearanceStore
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
@@ -22,11 +23,15 @@ import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
+import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
 @Composable
-fun TelegramYouNavHost(repository: TelegramRepository) {
+fun TelegramYouNavHost(
+    repository: TelegramRepository,
+    appearance: AppearanceStore
+) {
     val navController = rememberNavController()
     // Only the auth state is read here, and only to decide where to send the
     // person. Everything else a screen needs it asks its own state holder for.
@@ -43,7 +48,8 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 val alreadyInside = current in setOf(
                     Route.Home.PATTERN,
                     Route.Chat.PATTERN,
-                    Route.Story.PATTERN
+                    Route.Story.PATTERN,
+                    Route.Settings.PATTERN
                 )
                 if (!alreadyInside) {
                     navController.navigate(Route.Home) {
@@ -117,7 +123,28 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 onOpenChat = { id -> navController.navigate(Route.Chat(id)) },
                 onOpenStory = { story -> navController.navigate(Route.Story(story.id)) },
                 onSearchExpandedChange = homeViewModel::onSearchExpandedChange,
-                onSearchQueryChange = homeViewModel::onSearchQueryChange
+                onSearchQueryChange = homeViewModel::onSearchQueryChange,
+                onOpenSettings = { navController.navigate(Route.Settings) }
+            )
+        }
+        composable(Route.Settings.PATTERN) {
+            val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
+            val home by homeViewModel.uiState.collectAsStateWithLifecycle()
+            // Collected here rather than passed down as a value: the switch
+            // has to redraw the screen it is on, not only the theme around it.
+            val settings by appearance.settings.collectAsStateWithLifecycle()
+            SettingsScreen(
+                settings = settings,
+                me = home.me,
+                onBack = { navController.popBackStack() },
+                onThemeChange = appearance::setTheme,
+                onDynamicColorChange = appearance::setDynamicColor,
+                onLogout = {
+                    // The auth redirect above takes it from here: logging out
+                    // moves the client's state, and the graph follows state
+                    // rather than being navigated by hand.
+                    homeViewModel.logout()
+                }
             )
         }
         composable(

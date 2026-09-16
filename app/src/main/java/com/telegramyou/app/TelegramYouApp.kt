@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import com.telegramyou.app.settings.AppearanceStore
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.demo.DemoTelegramClient
 import com.telegramyou.app.telegram.tdlib.TdLibTelegramClient
@@ -12,9 +13,14 @@ class TelegramYouApp : Application() {
     lateinit var telegramRepository: TelegramRepository
         private set
 
+    /** Read once here so the activity does not touch disk on every recreate. */
+    lateinit var appearance: AppearanceStore
+        private set
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+        appearance = AppearanceStore(this)
 
         val client = if (BuildConfig.USE_DEMO_CLIENT) {
             DemoTelegramClient()

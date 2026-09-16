@@ -123,6 +123,18 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Ends the session.
+     *
+     * Nothing navigates afterwards: the graph watches the auth state and moves
+     * to the login screen when the client reports it, so a hand-written
+     * navigation here would be a second answer that can disagree with the
+     * first.
+     */
+    fun logout() {
+        viewModelScope.launch { repository.logout() }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             refreshing.value = true
