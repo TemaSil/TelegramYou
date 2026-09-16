@@ -43,6 +43,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.Forward
 import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.rounded.AddReaction
@@ -118,6 +119,7 @@ import androidx.compose.ui.unit.IntOffset
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.ui.components.AvatarBubble
@@ -167,7 +169,10 @@ fun ChatScreen(
     onSelectionDeleted: (Boolean) -> Unit,
     onSearchOpenChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onAttachmentSheetOpenChange: (Boolean) -> Unit
+    onAttachmentSheetOpenChange: (Boolean) -> Unit,
+    onForwardRequested: () -> Unit,
+    onForwardDismissed: () -> Unit,
+    onForwardTo: (ChatPreview) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -454,6 +459,15 @@ fun ChatScreen(
                 // The toolbar takes the composer's place rather than floating
                 // over it. Nothing can be typed while a selection is up, so
                 // leaving the field there would be a control that does nothing.
+                if (state.forwardSheetOpen) {
+                    ForwardSheet(
+                        targets = state.forwardTargets,
+                        count = state.selection.count,
+                        onDismiss = onForwardDismissed,
+                        onPick = onForwardTo
+                    )
+                }
+
                 SelectionToolbar(
                     count = state.selection.count,
                     actions = state.availableActions,
@@ -461,6 +475,7 @@ fun ChatScreen(
                         clipboard.setText(AnnotatedString(copyText(state.selectedMessages)))
                         onSelectionCleared()
                     },
+                    onForward = onForwardRequested,
                     onDelete = onSelectionDeleteRequested,
                     onClear = onSelectionCleared
                 )
@@ -845,6 +860,62 @@ private fun copyIn(context: Context, uri: Uri): File? = runCatching {
 }.getOrNull()
 
 /**
+ * Where to send the selection.
+ *
+ * Every chat but this one, as `ListItem` rows with the avatar the list already
+ * draws — a picker that looked nothing like the chat list would be a second
+ * vocabulary for the same thing.
+ *
+ * One tap sends. There is no confirmation because there is nothing to
+ * confirm: the sheet was opened deliberately, it names the count, and a
+ * forward is undone by deleting it like any other message.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ForwardSheet(
+    targets: List<ChatPreview>,
+    count: Int,
+    onDismiss: () -> Unit,
+    onPick: (ChatPreview) -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        Text(
+            if (count == 1) "Forward to…" else "Forward $count messages to…",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+        if (targets.isEmpty()) {
+            Text(
+                "No other chats to forward to.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
+            )
+        } else {
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(targets, key = { it.id }) { target ->
+                    ListItem(
+                        headlineContent = { Text(target.title, maxLines = 1) },
+                        leadingContent = {
+                            AvatarBubble(
+                                title = target.title,
+                                seed = target.avatarColor,
+                                size = 40.dp
+                            )
+                        },
+                        modifier = Modifier.clickable { onPick(target) }
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+/**
  * What the paperclip opens.
  *
  * `ModalBottomSheet` with `ListItem` rows, which is what Material ships for
@@ -1003,6 +1074,7 @@ private fun SelectionToolbar(
     count: Int,
     actions: SelectionActions,
     onCopy: () -> Unit,
+    onForward: () -> Unit,
     onDelete: () -> Unit,
     onClear: () -> Unit
 ) {
@@ -1027,6 +1099,12 @@ private fun SelectionToolbar(
                 IconButton(onClick = onCopy) {
                     Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy")
                 }
+            }
+            // No flag guards this one: anything that can be selected can be
+            // sent on, and Telegram refuses at the far end if the target chat
+            // does not accept it.
+            IconButton(onClick = onForward) {
+                Icon(Icons.AutoMirrored.Rounded.Forward, contentDescription = "Forward")
             }
             if (actions.canDeleteForSelf || actions.canDeleteForEveryone) {
                 IconButton(onClick = onDelete) {

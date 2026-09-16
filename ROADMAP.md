@@ -202,9 +202,7 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Forward** — the one action selection cannot offer, because there is no
-   client method for it and no chat picker to send to.
-2. **Voice messages** — the composer's microphone is still `onClick = {}`, a
+1. **Voice messages** — the composer's microphone is still `onClick = {}`, a
    control that pretends to be a feature. Recording, playback and the waveform
    (the one place custom drawing is justified) are all still missing.
 
@@ -339,7 +337,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       `ListItem` rows with the term in bold, tapping one scrolls to it
       (only when it is in the loaded window — a hit older than that is found
       and shown, but the list cannot jump to it yet)
-- [~] Copy via long-press `DropdownMenu`; forward and select still missing
+- [x] Copy, forward and select — long-press to select, then the toolbar's own
+      copy, forward and delete; forwarding picks a chat in a `ModalBottomSheet`
 - [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
       camera and file. What a picker returns is copied into the app's cache
       first: TDLib opens a filesystem path, and a `content://` Uri is not one

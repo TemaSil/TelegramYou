@@ -40,6 +40,15 @@ interface TelegramMessages {
     ): List<ChatMessage>
 
     /**
+     * Sends copies of [messageIds] from [fromChatId] into [toChatId].
+     *
+     * A list rather than one id, because Telegram forwards a run as one block:
+     * sent one at a time they arrive as separate forwards, each with its own
+     * header, which is not what was selected.
+     */
+    suspend fun forwardMessages(fromChatId: Long, messageIds: List<Long>, toChatId: Long)
+
+    /**
      * Adds or withdraws our reaction on a message.
      *
      * One call for both directions, because Telegram has no separate

@@ -45,7 +45,13 @@ class FakeTelegramClient(
         private set
 
     override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
-    override val chats: StateFlow<List<ChatPreview>> = MutableStateFlow(emptyList())
+    /** Settable, so a test can give the forward picker somewhere to point. */
+    private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
+    override val chats: StateFlow<List<ChatPreview>> = _chats
+
+    fun setChats(value: List<ChatPreview>) {
+        _chats.value = value
+    }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
 
     override fun start() = Unit
@@ -104,6 +110,18 @@ class FakeTelegramClient(
         chatSearchCount++
         if (query.isBlank()) return emptyList()
         return window.filter { it.text.contains(query, ignoreCase = true) }
+    }
+
+    /** The one forward that was asked for, as (from, ids, to). */
+    var forwarded: Triple<Long, List<Long>, Long>? = null
+        private set
+
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        forwarded = Triple(fromChatId, messageIds, toChatId)
     }
 
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit

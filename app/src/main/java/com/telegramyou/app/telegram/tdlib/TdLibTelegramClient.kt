@@ -389,6 +389,27 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        if (messageIds.isEmpty()) return
+        awaitReady()
+        val ids = JSONArray().apply { messageIds.forEach { put(it) } }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "forwardMessages")
+                .put("chat_id", toChatId)
+                .put("from_chat_id", fromChatId)
+                .put("message_ids", ids)
+                // The plain forward: the author's name travels with it, and
+                // the copy is not presented as something we wrote.
+                .put("send_copy", false)
+                .put("remove_caption", false)
+        )
+    }
+
     override suspend fun deleteMessage(
         chatId: Long,
         messageId: Long,

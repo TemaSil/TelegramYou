@@ -5,6 +5,7 @@ import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageReaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -268,6 +269,28 @@ class ChatViewModelTest {
         assertEquals("a blank field is not a request for everything",
             1, client.chatSearchCount)
         assertTrue(vm.uiState.value.search.results.isEmpty())
+    }
+
+    @Test
+    fun `forwarding sends the selection on and clears it`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11)))
+        client.setChats(
+            listOf(
+                ChatPreview(id = CHAT_ID, title = "this one", lastMessage = "", timestampLabel = ""),
+                ChatPreview(id = 99, title = "somewhere else", lastMessage = "", timestampLabel = "")
+            )
+        )
+        vm.onSelectionToggled(message(10))
+        vm.onSelectionToggled(message(11))
+
+        val target = vm.uiState.value.forwardTargets.single()
+        assertEquals("the chat being read is not a place to forward to", 99L, target.id)
+
+        vm.onForwardTo(target)
+
+        assertEquals(Triple(CHAT_ID, listOf(10L, 11L), 99L), client.forwarded)
+        assertFalse(vm.uiState.value.selection.isActive)
+        assertFalse(vm.uiState.value.forwardSheetOpen)
     }
 
     private companion object {

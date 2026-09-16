@@ -241,6 +241,30 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    override suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long
+    ) {
+        delay(160)
+        val source = chatMessages[fromChatId].orEmpty().filter { it.id in messageIds }
+        val target = chatMessages.getOrPut(toChatId) { mutableListOf() }
+        source.forEach { original ->
+            // A forward is a new message in the target chat, outgoing because
+            // we are the one sending it, and without the original's reactions
+            // or delivery state — none of which travel with a forward.
+            target += original.copy(
+                id = messageId.incrementAndGet(),
+                chatId = toChatId,
+                isOutgoing = true,
+                reactions = emptyList(),
+                isRead = false,
+                canBeEdited = false,
+                canBeDeletedForEveryone = true
+            )
+        }
+    }
+
     override suspend fun deleteMessage(
         chatId: Long,
         messageId: Long,

@@ -8,6 +8,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.toggleReaction
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -67,7 +68,11 @@ data class ChatUiState(
     /** Search inside this conversation; see ChatSearchState. */
     val search: ChatSearchState = ChatSearchState(),
     /** True while the "what would you like to attach" sheet is up. */
-    val attachmentSheetOpen: Boolean = false
+    val attachmentSheetOpen: Boolean = false,
+    /** True while the chat picker for forwarding a selection is up. */
+    val forwardSheetOpen: Boolean = false,
+    /** Somewhere to forward to; every chat but this one. */
+    val forwardTargets: List<ChatPreview> = emptyList()
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -100,6 +105,18 @@ class ChatViewModel(
 
     init {
         reload()
+        viewModelScope.launch {
+            // Forwarding needs somewhere to forward to, and the chat list is
+            // already a flow the repository keeps current — asking for it per
+            // tap would put a request between the button and the sheet.
+            repository.observeChats().collect { chats ->
+                _uiState.update { state ->
+                    // This chat is excluded: forwarding a message into the
+                    // conversation it came from is a copy of itself.
+                    state.copy(forwardTargets = chats.filter { it.id != chatId })
+                }
+            }
+        }
     }
 
     // ── composing ────────────────────────────────────────────────────────
@@ -256,6 +273,29 @@ class ChatViewModel(
 
     fun onSelectionCleared() =
         _uiState.update { it.copy(selection = it.selection.cleared()) }
+
+    fun onForwardRequested() =
+        _uiState.update { it.copy(forwardSheetOpen = true) }
+
+    fun onForwardDismissed() =
+        _uiState.update { it.copy(forwardSheetOpen = false) }
+
+    /**
+     * Sends the selection on, then puts both the sheet and the selection away.
+     *
+     * The conversation is not reloaded: the messages went somewhere else, and
+     * nothing about this one changed.
+     */
+    fun onForwardTo(target: ChatPreview) {
+        val ids = _uiState.value.selection.ids.toList()
+        if (ids.isEmpty()) return
+        _uiState.update {
+            it.copy(forwardSheetOpen = false, selection = it.selection.cleared())
+        }
+        viewModelScope.launch {
+            repository.forwardMessages(chatId, ids, target.id)
+        }
+    }
 
     fun onSelectionDeleteRequested() =
         _uiState.update { it.copy(confirmingSelectionDelete = true) }
