@@ -429,29 +429,35 @@ fun ChatScreen(
 
                     // Shown only once the conversation has been scrolled away
                     // from: a button that is always there is one more thing
-                    // over the messages for no reason.
-                    AnimatedVisibility(
-                        visible = !atLatest,
-                        enter = fadeIn(),
-                        exit = fadeOut(),
+                    // over the messages for no reason. The Column is not
+                    // decoration either: AnimatedVisibility's overloads are
+                    // scope extensions, and inside a Box there is no receiver
+                    // for any of them to resolve against.
+                    Column(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(16.dp)
                     ) {
-                        SmallFloatingActionButton(
-                            onClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(
-                                        (listState.layoutInfo.totalItemsCount - 1)
-                                            .coerceAtLeast(0)
-                                    )
-                                }
-                            }
+                        AnimatedVisibility(
+                            visible = !atLatest,
+                            enter = fadeIn(),
+                            exit = fadeOut()
                         ) {
-                            Icon(
-                                Icons.Rounded.KeyboardArrowDown,
-                                contentDescription = "Jump to latest"
-                            )
+                            SmallFloatingActionButton(
+                                onClick = {
+                                    scope.launch {
+                                        listState.animateScrollToItem(
+                                            (listState.layoutInfo.totalItemsCount - 1)
+                                                .coerceAtLeast(0)
+                                        )
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    Icons.Rounded.KeyboardArrowDown,
+                                    contentDescription = "Jump to latest"
+                                )
+                            }
                         }
                     }
                 }
