@@ -410,7 +410,47 @@ class TdLibTelegramClient(
                     sendLocalFile(chatId, path, caption, photo = false,
                         replyToId = replyToId.takeIf { index == 0 })
                 }
+            // No copy here: a recording is already a file this app wrote, in
+            // this app's own cache. Everything else arrives as a Uri from
+            // somewhere else and has to be resolved first.
+            is AttachmentDraft.Voice -> sendVoiceNote(
+                chatId = chatId,
+                path = draft.path,
+                durationSeconds = draft.durationSeconds,
+                caption = caption,
+                replyToId = replyToId
+            )
         }
+    }
+
+    private suspend fun sendVoiceNote(
+        chatId: Long,
+        path: String,
+        durationSeconds: Int,
+        caption: String,
+        replyToId: Long?
+    ) {
+        val content = JSONObject()
+            .put("@type", "inputMessageVoiceNote")
+            .put("voice_note", JSONObject().put("@type", "inputFileLocal").put("path", path))
+            .put("duration", durationSeconds)
+            // The bar chart Telegram draws behind a voice message, as 5-bit
+            // samples packed into bytes. Left empty deliberately: nothing here
+            // records amplitudes yet, and an invented waveform would be a
+            // drawing of a recording that never happened. Telegram renders a
+            // flat bar for an empty one, which is honest.
+            .put("waveform", "")
+            .put(
+                "caption",
+                JSONObject().put("@type", "formattedText").put("text", caption)
+            )
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .put("input_message_content", content)
+                .withReplyTo(replyToId)
+        )
     }
 
     override suspend fun forwardMessages(

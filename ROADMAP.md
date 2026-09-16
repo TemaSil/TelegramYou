@@ -238,9 +238,10 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Voice messages** — the composer's microphone is still `onClick = {}`, a
-   control that pretends to be a feature. Recording, playback and the waveform
-   (the one place custom drawing is justified) are all still missing.
+1. **Playing a voice message back** — recording and sending work; a received
+   voice note is still a bubble that does nothing. Needs TDLib's file download
+   and a `MediaPlayer`, and then the waveform, which is the one place left
+   where custom drawing is justified.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -379,7 +380,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       camera and file. Everything travels as a `content://` Uri; the TDLib
       backend resolves it into the upload cache, which is where that belongs
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
-- [ ] Voice messages: record on hold, play with a waveform (custom draw)
+- [~] Voice messages: hold the microphone to record, release to send. Playing
+      one back, and the waveform behind it, are still missing — and so is the
+      amplitude capture the waveform would be drawn from
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
       divider goes is decided in `:core` with tests
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping

@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
+import com.telegramyou.app.ui.chat.formatDuration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -228,6 +229,15 @@ class DemoTelegramClient : TelegramClient {
                         replyToId = replyToId.takeIf { index == 0 }
                     )
                 }
+            }
+            is AttachmentDraft.Voice -> {
+                appendOutgoing(
+                    chatId = chatId,
+                    text = formatDuration(draft.durationSeconds.toLong()),
+                    type = MessageContentType.Voice,
+                    mediaEmoji = "🎤",
+                    replyToId = replyToId
+                )
             }
             is AttachmentDraft.Photos -> {
                 draft.uris.forEachIndexed { index, _ ->

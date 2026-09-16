@@ -1,6 +1,8 @@
 package com.telegramyou.app.ui.chat
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,6 +14,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -95,6 +98,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -130,9 +134,11 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -198,6 +204,19 @@ fun ChatScreen(
         if (taken && uri != null) {
             onAttachmentPicked(AttachmentDraft.Photos(listOf(uri.toString())))
         }
+    }
+
+    // One recorder for the life of the screen: it holds the microphone, and a
+    // new one per press would race the previous one's release.
+    val recorder = remember(context) { VoiceRecorder(context) }
+    var recordingSince by remember { mutableStateOf<Long?>(null) }
+    val microphone = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        // Nothing starts on the grant itself. The press that asked for it is
+        // long over by the time the dialog is answered, and starting then
+        // would record from a finger that is no longer down.
+        if (!granted) Unit
     }
 
     val filePicker = rememberLauncherForActivityResult(
@@ -576,7 +595,35 @@ fun ChatScreen(
                     value = state.draft,
                     onValueChange = onDraftChange,
                     onAttach = { onAttachmentSheetOpenChange(true) },
-                    onSend = onSend
+                    onSend = onSend,
+                    recordingSince = recordingSince,
+                    onRecordStart = {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            microphone.launch(Manifest.permission.RECORD_AUDIO)
+                        } else if (recorder.start()) {
+                            recordingSince = System.currentTimeMillis()
+                        }
+                    },
+                    onRecordStop = {
+                        recordingSince = null
+                        recorder.stop()?.let { recording ->
+                            onAttachmentPicked(
+                                AttachmentDraft.Voice(
+                                    path = recording.path,
+                                    durationSeconds = recording.durationSeconds
+                                )
+                            )
+                            onSend()
+                        }
+                    },
+                    onRecordCancel = {
+                        recordingSince = null
+                        recorder.cancel()
+                    }
                 )
             }
         }
@@ -1437,7 +1484,11 @@ private fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAttach: () -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    recordingSince: Long?,
+    onRecordStart: () -> Unit,
+    onRecordStop: () -> Unit,
+    onRecordCancel: () -> Unit
 ) {
     Surface(
         tonalElevation = 3.dp,
@@ -1457,6 +1508,27 @@ private fun ComposerBar(
             IconButton(onClick = onAttach) {
                 Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
             }
+            if (recordingSince != null) {
+                // The field is replaced rather than covered: nothing can be
+                // typed one-handed while the other thumb is holding the
+                // microphone down, and a running clock is the one thing worth
+                // knowing at that moment.
+                var elapsed by remember(recordingSince) { mutableLongStateOf(0L) }
+                LaunchedEffect(recordingSince) {
+                    while (true) {
+                        elapsed = (System.currentTimeMillis() - recordingSince) / 1000
+                        delay(250)
+                    }
+                }
+                Text(
+                    "Recording  ${formatDuration(elapsed)}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp, vertical = 16.dp)
+                )
+            } else {
             TextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -1472,16 +1544,36 @@ private fun ComposerBar(
                 ),
                 maxLines = 5
             )
+            }
             Spacer(Modifier.width(8.dp))
             if (value.isBlank()) {
                 FilledIconButton(
+                    // onClick stays empty because this is a hold, not a tap:
+                    // the gesture below owns press, release and cancel, and a
+                    // tap that fired as well would send an empty recording.
                     onClick = {},
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
+                        containerColor = if (recordingSince != null) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        }
+                    ),
+                    modifier = Modifier.pointerInput(Unit) {
+                        detectTapGestures(
+                            onPress = {
+                                onRecordStart()
+                                // Waits here until the finger lifts or the
+                                // gesture is taken over by a scroll; either
+                                // way the recording ends where it started.
+                                val released = tryAwaitRelease()
+                                if (released) onRecordStop() else onRecordCancel()
+                            }
+                        )
+                    }
                 ) {
-                    Icon(Icons.Rounded.Mic, contentDescription = "Voice")
+                    Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
                 }
             } else {
                 FilledIconButton(
