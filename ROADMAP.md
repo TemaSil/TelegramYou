@@ -242,10 +242,10 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Playing a voice message back** — recording and sending work; a received
-   voice note is still a bubble that does nothing. Needs TDLib's file download
-   and a `MediaPlayer`, and then the waveform, which is the one place left
-   where custom drawing is justified.
+1. **The voice waveform** — the one place left where custom drawing is
+   justified. Needs amplitudes: `MediaRecorder.getMaxAmplitude` sampled while
+   recording for our own, and TDLib's packed 5-bit waveform decoded for
+   everyone else's. Today a voice bubble is a play button and a length.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -384,9 +384,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       camera and file. Everything travels as a `content://` Uri; the TDLib
       backend resolves it into the upload cache, which is where that belongs
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
-- [~] Voice messages: hold the microphone to record, release to send. Playing
-      one back, and the waveform behind it, are still missing — and so is the
-      amplitude capture the waveform would be drawn from
+- [~] Voice messages: hold the microphone to record, release to send, tap to
+      play. The waveform is still missing, and so is the amplitude capture it
+      would be drawn from — nothing here reads TDLib's own waveform either
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
       divider goes is decided in `:core` with tests
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping

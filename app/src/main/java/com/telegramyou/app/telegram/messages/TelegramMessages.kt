@@ -49,6 +49,15 @@ interface TelegramMessages {
     suspend fun forwardMessages(fromChatId: Long, messageIds: List<Long>, toChatId: Long)
 
     /**
+     * Fetches a file to this device and answers with its path.
+     *
+     * Null when the download fails or the backend has nothing to fetch. The
+     * caller is a play button, and the only thing it can do about a file that
+     * will not arrive is stay where it is.
+     */
+    suspend fun downloadFile(fileId: Int): String?
+
+    /**
      * Adds or withdraws our reaction on a message.
      *
      * One call for both directions, because Telegram has no separate

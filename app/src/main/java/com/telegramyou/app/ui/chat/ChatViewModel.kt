@@ -67,6 +67,10 @@ data class ChatUiState(
     val confirmingSelectionDelete: Boolean = false,
     /** Search inside this conversation; see ChatSearchState. */
     val search: ChatSearchState = ChatSearchState(),
+    /** The voice message currently playing, if any. */
+    val playingVoiceId: Long? = null,
+    /** A voice message whose file is still arriving. */
+    val loadingVoiceId: Long? = null,
     /** True while the "what would you like to attach" sheet is up. */
     val attachmentSheetOpen: Boolean = false,
     /** True while the chat picker for forwarding a selection is up. */
@@ -217,6 +221,64 @@ class ChatViewModel(
         },
         olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it }
     )
+
+    // ── voice ────────────────────────────────────────────────────────────
+
+    private val voicePlayer = VoicePlayer()
+
+    /**
+     * Plays a voice message, stops it, or fetches it first.
+     *
+     * Tapping the one that is playing stops it, which is the same gesture
+     * meaning the opposite thing — the button shows which of the two it is.
+     * A message whose file has not arrived is downloaded on the tap rather
+     * than on arrival in the window: a conversation of voice notes would
+     * otherwise fetch every one of them to play none.
+     */
+    fun onVoiceToggled(message: ChatMessage) {
+        if (_uiState.value.playingVoiceId == message.id) {
+            voicePlayer.stop()
+            _uiState.update { it.copy(playingVoiceId = null) }
+            return
+        }
+
+        val local = message.voicePath
+        if (local != null) {
+            start(message.id, local)
+            return
+        }
+
+        val fileId = message.voiceFileId ?: return
+        _uiState.update { it.copy(loadingVoiceId = message.id) }
+        viewModelScope.launch {
+            val path = repository.downloadFile(fileId)
+            _uiState.update { it.copy(loadingVoiceId = null) }
+            if (path != null) {
+                // Kept on the message too, so a second play does not fetch it
+                // again for as long as the window lives.
+                _uiState.update { state ->
+                    state.mapMessage(message.id) { it.copy(voicePath = path) }
+                }
+                start(message.id, path)
+            }
+        }
+    }
+
+    private fun start(messageId: Long, path: String) {
+        val started = voicePlayer.play(messageId, path) {
+            // The audio ran out on its own; nothing else would tell the bubble
+            // to stop showing a pause button.
+            _uiState.update { it.copy(playingVoiceId = null) }
+        }
+        _uiState.update { it.copy(playingVoiceId = if (started) messageId else null) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // The screen can go away mid-sentence, and a MediaPlayer left holding
+        // a file handle outlives it.
+        voicePlayer.stop()
+    }
 
     // ── searching ────────────────────────────────────────────────────────
 
