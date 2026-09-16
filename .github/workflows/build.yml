@@ -70,6 +70,15 @@ jobs:
               ("material3", GOOGLE, "androidx/compose/material3/material3"),
               ("AGP", GOOGLE, "com/android/tools/build/gradle"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
+              # The Compose preview screenshot plugin, by its Gradle plugin
+              # marker. Versioned independently of AGP, so which one pairs
+              # with AGP 9 cannot be guessed from the AGP version.
+              (
+                  "screenshot-plugin",
+                  GOOGLE,
+                  "com/android/compose/screenshot/"
+                  "com.android.compose.screenshot.gradle.plugin",
+              ),
           )
 
           # -alpha, -beta, -rc, -dev and friends. A BOM's own date-shaped
@@ -87,8 +96,11 @@ jobs:
                   continue
               found = re.findall(r"<version>([^<]+)</version>", xml)
               stable = [v for v in found if not PRERELEASE.search(v)][-10:]
-              print(f"::notice title={name} (stable)::" + ", ".join(stable))
-              print(f"{name}: latest {found[-1]}, stable {stable}")
+              # This one has only ever shipped alphas; showing "stable" for it
+              # would print an empty list and say nothing.
+              shown = stable if stable else found[-10:]
+              print(f"::notice title={name}::" + ", ".join(shown))
+              print(f"{name}: latest {found[-1]}, shown {shown}")
               if name == "compose-bom":
                   boms = [v for v in found if not PRERELEASE.search(v)][-30:]
 
