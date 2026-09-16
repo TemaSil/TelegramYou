@@ -344,7 +344,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       first: TDLib opens a filesystem path, and a `content://` Uri is not one
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
 - [ ] Voice messages: record on hold, play with a waveform (custom draw)
-- [ ] Unread divider and jump-to-latest `FloatingActionButton`
+- [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
+      divider goes is decided in `:core` with tests
 - [ ] Pinned message bar — `Surface` under the `TopAppBar`
 - [ ] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text

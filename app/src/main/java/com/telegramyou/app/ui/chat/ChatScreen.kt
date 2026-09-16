@@ -57,6 +57,7 @@ import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
@@ -79,6 +80,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -242,6 +244,19 @@ fun ChatScreen(
         if (nearTop && state.hasMoreOlder) onLoadOlder()
     }
 
+    // Same reasoning as nearTop: this changes on scroll, and without
+    // derivedStateOf the whole screen recomposes on every pixel of it.
+    val atLatest by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()
+            // An empty list counts as "at the latest": there is nothing to
+            // jump to, and offering the button would be a control that does
+            // nothing.
+            last == null || last.index >= info.totalItemsCount - 1
+        }
+    }
+
     val detail = state.detail
     val chat = detail?.chat
     val clipboard = LocalClipboardManager.current
@@ -347,9 +362,13 @@ fun ChatScreen(
                     }
                 )
             } else {
+                // The Box carries the weight now; inside it the list fills,
+                // and the jump-to-latest button sits over it rather than in a
+                // row of its own.
+                Box(modifier = Modifier.weight(1f)) {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
@@ -369,12 +388,19 @@ fun ChatScreen(
                     }
 
                     val messages = state.messages
+                    val unreadFrom = unreadDividerIndex(
+                        messages,
+                        detail?.chat?.unreadCount ?: 0
+                    )
                     itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
                         val previous = messages.getOrNull(index - 1)
                         val next = messages.getOrNull(index + 1)
 
                         if (startsNewDay(previous, message)) {
                             DaySeparator(message.date)
+                        }
+                        if (index == unreadFrom) {
+                            UnreadSeparator()
                         }
 
                         MessageBubble(
@@ -398,6 +424,35 @@ fun ChatScreen(
                             isSelecting = state.selection.isActive,
                             onSelect = { onSelectionToggled(message) }
                         )
+                    }
+                }
+
+                    // Shown only once the conversation has been scrolled away
+                    // from: a button that is always there is one more thing
+                    // over the messages for no reason.
+                    AnimatedVisibility(
+                        visible = !atLatest,
+                        enter = fadeIn(),
+                        exit = fadeOut(),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(16.dp)
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                scope.launch {
+                                    listState.animateScrollToItem(
+                                        (listState.layoutInfo.totalItemsCount - 1)
+                                            .coerceAtLeast(0)
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.KeyboardArrowDown,
+                                contentDescription = "Jump to latest"
+                            )
+                        }
                     }
                 }
             }
@@ -858,6 +913,35 @@ private fun copyIn(context: Context, uri: Uri): File? = runCatching {
     } ?: return null
     target
 }.getOrNull()
+
+/**
+ * The line between what has been read and what has not.
+ *
+ * The same shape as the day separator, in the primary colour rather than the
+ * neutral one: both divide the conversation, but only this one is about the
+ * reader. Where it goes is decided in :core — see `unreadDividerIndex`.
+ */
+@Composable
+private fun UnreadSeparator() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Text(
+                text = "Unread messages",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
 
 /**
  * Where to send the selection.
