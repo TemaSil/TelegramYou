@@ -79,10 +79,6 @@ android {
         buildConfig = true
     }
 
-    // Required while the screenshot plugin is experimental. Without it the
-    // screenshotTest source set is not registered and the previews in it are
-    // silently ignored, which looks exactly like previews that render nothing.
-    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     packaging {
         resources {
