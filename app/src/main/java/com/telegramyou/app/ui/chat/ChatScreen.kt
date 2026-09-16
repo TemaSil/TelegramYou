@@ -125,6 +125,7 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.ui.components.AvatarBubble
+import com.telegramyou.app.ui.components.TypingIndicator
 import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
@@ -290,18 +291,26 @@ fun ChatScreen(
                                 Spacer(Modifier.width(10.dp))
                                 Column {
                                     Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    Text(
-                                        text = when {
-                                            detail?.isTyping == true -> "typing…"
-                                            else -> detail?.memberCountLabel ?: ""
-                                        },
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = if (detail?.isTyping == true) {
-                                            MaterialTheme.colorScheme.primary
-                                        } else {
-                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                    if (detail?.isTyping == true) {
+                                        // Drawn rather than written: "typing…"
+                                        // is a word that has to be read, and
+                                        // this is a thing that is happening.
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            TypingIndicator()
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                "typing",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
                                         }
-                                    )
+                                    } else {
+                                        Text(
+                                            text = detail?.memberCountLabel ?: "",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -381,7 +381,7 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       divider goes is decided in `:core` with tests
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping
       it scrolls to the message when it is in the loaded window
-- [ ] Typing indicator (custom draw)
+- [x] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text
 - [ ] In-chat search with jump to the hit — global message search is in, this
       is the same query narrowed to one conversation
