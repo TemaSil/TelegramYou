@@ -169,4 +169,15 @@ data class MessageHit(
 sealed interface AttachmentDraft {
     data class Files(val uris: List<String>, val names: List<String>) : AttachmentDraft
     data class Photos(val uris: List<String>) : AttachmentDraft
+
+    /**
+     * A recording made in the composer.
+     *
+     * [path] is a real file in the app's cache rather than a Uri, for the same
+     * reason the pickers copy what they return: TDLib opens a filesystem path.
+     * [durationSeconds] travels with it because the file's own header is not
+     * read anywhere, and a voice message with no length is a bubble that says
+     * nothing about what tapping it costs.
+     */
+    data class Voice(val path: String, val durationSeconds: Int) : AttachmentDraft
 }

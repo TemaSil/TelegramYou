@@ -133,9 +133,7 @@ import com.telegramyou.app.ui.theme.DeepInk
 import androidx.core.content.FileProvider
 import java.io.File
 import kotlin.math.roundToInt
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 /**
  * One conversation.
@@ -185,16 +183,20 @@ fun ChatScreen(
     // Held across the launch because TakePicture answers with a boolean, not
     // with the Uri: the destination is chosen here and has to survive until
     // the camera app comes back.
-    var cameraTarget by remember { mutableStateOf<File?>(null) }
+    var cameraTarget by remember { mutableStateOf<Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { taken ->
-        val file = cameraTarget
+        val uri = cameraTarget
         cameraTarget = null
         // false means the camera app was cancelled, and the empty file it was
         // given is left for the cache to clear rather than sent as a photo.
-        if (taken && file != null) {
-            onAttachmentPicked(AttachmentDraft.Photos(listOf(file.absolutePath)))
+        //
+        // The FileProvider Uri, not the path behind it: the backend takes what
+        // a picker returns and resolves it itself, and handing it two shapes
+        // would mean two paths through the same code.
+        if (taken && uri != null) {
+            onAttachmentPicked(AttachmentDraft.Photos(listOf(uri.toString())))
         }
     }
 
@@ -202,28 +204,19 @@ fun ChatScreen(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        scope.launch {
-            val copied = withContext(Dispatchers.IO) { uris.mapNotNull { copyIn(context, it) } }
-            if (copied.isEmpty()) return@launch
-            onAttachmentPicked(
-                AttachmentDraft.Files(
-                    uris = copied.map { it.absolutePath },
-                    names = copied.map { it.name }
-                )
+        onAttachmentPicked(
+            AttachmentDraft.Files(
+                uris = uris.map { it.toString() },
+                names = uris.map { it.lastPathSegment?.substringAfterLast('/') ?: "file" }
             )
-        }
+        )
     }
 
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        scope.launch {
-            val copied = withContext(Dispatchers.IO) { uris.mapNotNull { copyIn(context, it) } }
-            if (copied.isNotEmpty()) {
-                onAttachmentPicked(AttachmentDraft.Photos(copied.map { it.absolutePath }))
-            }
-        }
+        onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
     }
 
     // Keyed on the newest message, not on the count. Paging older history in
@@ -572,9 +565,9 @@ fun ChatScreen(
                         onPickPhoto = { photoPicker.launch("image/*") },
                         onPickFile = { filePicker.launch(arrayOf("*/*")) },
                         onTakePhoto = {
-                            val file = newCameraFile(context)
-                            cameraTarget = file
-                            cameraLauncher.launch(cameraUri(context, file))
+                            val uri = cameraUri(context, newCameraFile(context))
+                            cameraTarget = uri
+                            cameraLauncher.launch(uri)
                         }
                     )
                 }
@@ -899,9 +892,8 @@ private fun MessageBubble(
 /**
  * Where the camera app writes, in the app's own cache.
  *
- * A real file rather than a gallery entry: nothing is left behind if the shot
- * is cancelled, and TDLib is handed a path it can open — see [copyIn] for why
- * that matters.
+ * A real file rather than a gallery entry: nothing is left behind in the
+ * user's gallery if the shot is cancelled, and the app owns what it sends.
  */
 private fun newCameraFile(context: Context): File {
     val directory = File(context.cacheDir, "camera").apply { mkdirs() }
@@ -917,170 +909,6 @@ private fun newCameraFile(context: Context): File {
  */
 private fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-
-/**
- * Copies what a picker returned into the app's cache, and answers with the
- * file.
- *
- * TDLib's `inputFileLocal` takes a filesystem path and opens it directly. A
- * picker hands back a `content://` Uri, which is not a path and which TDLib
- * cannot open — so passing one through, as this screen did, meant every
- * attachment failed to send in live mode while looking fine in demo mode,
- * where the backend ignores the value entirely.
- *
- * Null when the Uri cannot be read at all: a permission already revoked, or a
- * provider that has gone away. The caller drops it rather than attaching a
- * path to nothing.
- */
-private fun copyIn(context: Context, uri: Uri): File? = runCatching {
-    val directory = File(context.cacheDir, "outgoing").apply { mkdirs() }
-    // Prefixed with the clock so two files of the same name do not collide,
-    // and stripped of separators so a hostile name cannot climb out of the
-    // directory.
-    val name = uri.lastPathSegment?.substringAfterLast('/').orEmpty().ifBlank { "attachment" }
-    val target = File(directory, "${System.currentTimeMillis()}-$name")
-    context.contentResolver.openInputStream(uri)?.use { input ->
-        target.outputStream().use { output -> input.copyTo(output) }
-    } ?: return null
-    target
-}.getOrNull()
-
-/**
- * What the chat has pinned, under the app bar.
- *
- * A `Surface` rather than a second `TopAppBar`: it is part of the
- * conversation, not a second place to navigate from, and the accent bar down
- * its left edge is the same device the quoted block inside a bubble uses for
- * the same idea — this text belongs to another message.
- *
- * One line, ellipsised. A pinned message can be as long as any other, and a
- * bar that grows to fit it would push the conversation off the screen to show
- * something the tap already leads to.
- */
-@Composable
-private fun PinnedMessageBar(
-    message: ChatMessage,
-    onClick: () -> Unit
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .width(3.dp)
-                    .height(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(
-                    "Pinned message",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    message.text.ifBlank { "Attachment" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-    }
-}
-
-/**
- * The line between what has been read and what has not.
- *
- * The same shape as the day separator, in the primary colour rather than the
- * neutral one: both divide the conversation, but only this one is about the
- * reader. Where it goes is decided in :core — see `unreadDividerIndex`.
- */
-@Composable
-private fun UnreadSeparator() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Text(
-                text = "Unread messages",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-            )
-        }
-    }
-}
-
-/**
- * Where to send the selection.
- *
- * Every chat but this one, as `ListItem` rows with the avatar the list already
- * draws — a picker that looked nothing like the chat list would be a second
- * vocabulary for the same thing.
- *
- * One tap sends. There is no confirmation because there is nothing to
- * confirm: the sheet was opened deliberately, it names the count, and a
- * forward is undone by deleting it like any other message.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ForwardSheet(
-    targets: List<ChatPreview>,
-    count: Int,
-    onDismiss: () -> Unit,
-    onPick: (ChatPreview) -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState()
-    ) {
-        Text(
-            if (count == 1) "Forward to…" else "Forward $count messages to…",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-        if (targets.isEmpty()) {
-            Text(
-                "No other chats to forward to.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-            )
-        } else {
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(targets, key = { it.id }) { target ->
-                    ListItem(
-                        headlineContent = { Text(target.title, maxLines = 1) },
-                        leadingContent = {
-                            AvatarBubble(
-                                title = target.title,
-                                seed = target.avatarColor,
-                                size = 40.dp
-                            )
-                        },
-                        modifier = Modifier.clickable { onPick(target) }
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-    }
-}
 
 /**
  * What the paperclip opens.

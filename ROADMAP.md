@@ -199,11 +199,14 @@ CI reports differently too: one `Summary` step, last in the job, prints the
 Kotlin errors and the test count together. Before that, a one-line compile
 error arrived two hundred stack frames deep and cost a round trip to read.
 
-**One real bug turned up on the way.** Attachments have never been sendable
-against a live account: TDLib's `inputFileLocal` opens a filesystem path, and
-a picker hands back a `content://` Uri. Demo mode ignores the value entirely,
-which is exactly the kind of bug it is good at hiding. Pickers now copy into
-the app's cache and send the copy's path.
+**One thing worth recording as a mistake rather than a fix.** Reading
+`sendLocalFile` on its own, it looked as though attachments could never be
+sent live — `inputFileLocal` takes a filesystem path and a picker returns a
+`content://` Uri. `sendAttachment`, one screen up, already resolved the Uri
+through `copyUriToCache`. Copying again in `ChatScreen` was redundant and
+then actively broke it, because the second copy handed the backend a path it
+tried to parse as a Uri. Reverted. The lesson is cheap and worth keeping:
+read the caller before concluding the callee is broken.
 
 **Still true: nothing in CI renders a screen.** Every visual claim above is
 "it compiles and the logic is tested", not "it looks right". The app has not
@@ -373,8 +376,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Copy, forward and select — long-press to select, then the toolbar's own
       copy, forward and delete; forwarding picks a chat in a `ModalBottomSheet`
 - [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
-      camera and file. What a picker returns is copied into the app's cache
-      first: TDLib opens a filesystem path, and a `content://` Uri is not one
+      camera and file. Everything travels as a `content://` Uri; the TDLib
+      backend resolves it into the upload cache, which is where that belongs
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
 - [ ] Voice messages: record on hold, play with a waveform (custom draw)
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
