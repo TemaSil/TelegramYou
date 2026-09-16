@@ -210,9 +210,17 @@ jobs:
       - name: Render screenshots
         if: github.event_name == 'push'
         run: |
-          set -o pipefail
-          ./gradlew :app:updateDebugScreenshotTest --stacktrace
-          find app/build -name '*.png' -path '*screenshot*' -print
+          # Diagnostics regardless of outcome: "did not discover any tests"
+          # says nothing about whether the previews were compiled at all, and
+          # that is the difference between a wrong source directory and a
+          # preview layoutlib cannot draw.
+          status=0
+          ./gradlew :app:updateDebugScreenshotTest --stacktrace || status=$?
+          echo "--- compiled screenshotTest classes ---"
+          find app/build -path '*screenshotTest*' -name '*.class' -print | head -20
+          echo "--- rendered images ---"
+          find app/build app/src -name '*.png' -print | head -20
+          exit $status
 
       - name: Commit screenshots
         if: github.event_name == 'push'
