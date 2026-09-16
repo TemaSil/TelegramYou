@@ -139,7 +139,15 @@ data class ChatMessage(
      * Separate from [voicePath] because one exists before the other: the id
      * comes with the message, the path only after the bytes do.
      */
-    val voiceFileId: Int? = null
+    val voiceFileId: Int? = null,
+    /**
+     * The voice note's own picture of itself, as 5-bit samples.
+     *
+     * Empty when Telegram sent none, or when it is a format this does not
+     * read — the bubble then draws a flat row rather than nothing, so a voice
+     * message is the same shape whether or not its waveform arrived.
+     */
+    val waveform: List<Int> = emptyList()
 )
 
 /**
@@ -194,5 +202,16 @@ sealed interface AttachmentDraft {
      * read anywhere, and a voice message with no length is a bubble that says
      * nothing about what tapping it costs.
      */
-    data class Voice(val path: String, val durationSeconds: Int) : AttachmentDraft
+    data class Voice(
+        val path: String,
+        val durationSeconds: Int,
+        /**
+         * Amplitudes measured while recording, as 5-bit samples.
+         *
+         * Captured rather than derived: reading them back out of an encoded
+         * Opus file would mean decoding it, and the recorder already has the
+         * numbers as it writes.
+         */
+        val waveform: List<Int> = emptyList()
+    ) : AttachmentDraft
 }

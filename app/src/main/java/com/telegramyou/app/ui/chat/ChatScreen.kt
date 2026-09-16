@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -109,6 +110,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -129,6 +133,7 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.TypingIndicator
 import com.telegramyou.app.ui.theme.ComposerShape
@@ -139,6 +144,14 @@ import java.io.File
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/**
+ * How often the recorder is asked for an amplitude, and the clock redrawn.
+ *
+ * Four a second: fast enough that a two-second message still has eight bars
+ * to draw, slow enough that it is not a reading per frame.
+ */
+private const val RECORDING_TICK_MS = 250L
 
 /**
  * One conversation.
@@ -620,7 +633,8 @@ fun ChatScreen(
                             onAttachmentPicked(
                                 AttachmentDraft.Voice(
                                     path = recording.path,
-                                    durationSeconds = recording.durationSeconds
+                                    durationSeconds = recording.durationSeconds,
+                                    waveform = recording.waveform
                                 )
                             )
                             onSend()
@@ -629,7 +643,8 @@ fun ChatScreen(
                     onRecordCancel = {
                         recordingSince = null
                         recorder.cancel()
-                    }
+                    },
+                    onSampleAmplitude = recorder::sample
                 )
             }
         }
@@ -820,6 +835,7 @@ private fun MessageBubble(
                     MessageContentType.Voice -> {
                         VoiceMessage(
                             label = message.text.ifBlank { "Voice message" },
+                            waveform = message.waveform,
                             state = voiceState,
                             outgoing = outgoing,
                             onToggle = onVoiceToggled
@@ -991,6 +1007,7 @@ enum class VoiceState { Idle, Loading, Playing }
 @Composable
 private fun VoiceMessage(
     label: String,
+    waveform: List<Int>,
     state: VoiceState,
     outgoing: Boolean,
     onToggle: () -> Unit
@@ -1015,10 +1032,59 @@ private fun VoiceMessage(
             }
         }
         Spacer(Modifier.width(10.dp))
+        Waveform(
+            bars = remember(waveform) { waveformBars(waveform, WAVEFORM_BARS) },
+            color = tint,
+            modifier = Modifier
+                .width(120.dp)
+                .height(28.dp)
+        )
+        Spacer(Modifier.width(10.dp))
         Text(
             label,
+            style = MaterialTheme.typography.labelMedium,
             color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+/** How many bars a voice bubble draws, whatever the recording's length. */
+private const val WAVEFORM_BARS = 28
+
+/**
+ * The shape of what was said.
+ *
+ * Drawn rather than composed, and this is the case CLAUDE.md keeps a place
+ * for: Material has no component for a bar chart of amplitudes, and
+ * twenty-eight Boxes with animated heights would be twenty-eight layout nodes
+ * per bubble in a list that scrolls.
+ *
+ * A silent bar is still drawn, at a minimum height, because a row with gaps in
+ * it reads as a broken picture rather than as a pause.
+ */
+@Composable
+private fun Waveform(
+    bars: List<Float>,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        if (bars.isEmpty()) return@Canvas
+        val slot = size.width / bars.size
+        // A quarter of each slot is the gap between bars; the rest is the bar.
+        val barWidth = slot * 0.6f
+        val radius = barWidth / 2f
+        bars.forEachIndexed { index, value ->
+            val height = (size.height * value).coerceAtLeast(barWidth)
+            val left = index * slot + (slot - barWidth) / 2f
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(left, (size.height - height) / 2f),
+                size = Size(barWidth, height),
+                cornerRadius = CornerRadius(radius, radius),
+                alpha = 0.85f
+            )
+        }
     }
 }
 
@@ -1695,7 +1761,8 @@ private fun ComposerBar(
     recordingSince: Long?,
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
-    onRecordCancel: () -> Unit
+    onRecordCancel: () -> Unit,
+    onSampleAmplitude: () -> Unit
 ) {
     Surface(
         tonalElevation = 3.dp,
@@ -1724,7 +1791,12 @@ private fun ComposerBar(
                 LaunchedEffect(recordingSince) {
                     while (true) {
                         elapsed = (System.currentTimeMillis() - recordingSince) / 1000
-                        delay(250)
+                        // The same beat takes an amplitude reading, because
+                        // getMaxAmplitude answers for the time since the last
+                        // call — an irregular tick makes bars that stand for
+                        // different lengths of recording.
+                        onSampleAmplitude()
+                        delay(RECORDING_TICK_MS)
                     }
                 }
                 Text(

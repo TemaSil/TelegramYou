@@ -14,6 +14,8 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.packWaveform
+import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
@@ -36,6 +38,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Base64
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -439,6 +442,7 @@ class TdLibTelegramClient(
                 chatId = chatId,
                 path = draft.path,
                 durationSeconds = draft.durationSeconds,
+                waveform = draft.waveform,
                 caption = caption,
                 replyToId = replyToId
             )
@@ -449,6 +453,7 @@ class TdLibTelegramClient(
         chatId: Long,
         path: String,
         durationSeconds: Int,
+        waveform: List<Int>,
         caption: String,
         replyToId: Long?
     ) {
@@ -456,12 +461,11 @@ class TdLibTelegramClient(
             .put("@type", "inputMessageVoiceNote")
             .put("voice_note", JSONObject().put("@type", "inputFileLocal").put("path", path))
             .put("duration", durationSeconds)
-            // The bar chart Telegram draws behind a voice message, as 5-bit
-            // samples packed into bytes. Left empty deliberately: nothing here
-            // records amplitudes yet, and an invented waveform would be a
-            // drawing of a recording that never happened. Telegram renders a
-            // flat bar for an empty one, which is honest.
-            .put("waveform", "")
+            // The bar chart Telegram draws behind a voice message: 5-bit
+            // samples packed into bytes and base64'd. Measured while
+            // recording, so every client that opens this message sees the
+            // shape of what was actually said.
+            .put("waveform", Base64.getEncoder().encodeToString(packWaveform(waveform)))
             .put(
                 "caption",
                 JSONObject().put("@type", "formattedText").put("text", caption)
@@ -1084,7 +1088,8 @@ class TdLibTelegramClient(
                 ?.optJSONObject("local")
                 ?.takeIf { it.optBoolean("is_downloading_completed") }
                 ?.optString("path")
-                ?.takeIf { it.isNotBlank() }
+                ?.takeIf { it.isNotBlank() },
+            waveform = parseWaveform(content)
         )
     }
 
@@ -1113,6 +1118,27 @@ class TdLibTelegramClient(
                 count = reaction.optInt("total_count"),
                 isChosen = reaction.optBoolean("is_chosen")
             )
+        }
+    }
+
+    /**
+     * The voice note's waveform, unpacked.
+     *
+     * Base64 in the JSON, 5-bit samples inside that. A message that is not a
+     * voice note has none, and one whose base64 will not decode is treated
+     * the same as one that sent nothing: an empty waveform draws a flat row,
+     * which is better than refusing to draw the message.
+     */
+    private fun parseWaveform(content: JSONObject?): List<Int> {
+        val encoded = content?.optJSONObject("voice_note")
+            ?.optString("waveform")
+            ?.takeIf { it.isNotBlank() }
+            ?: return emptyList()
+        return try {
+            unpackWaveform(Base64.getDecoder().decode(encoded))
+        } catch (e: IllegalArgumentException) {
+            Log.w(TAG, "parseWaveform: ${e.message}")
+            emptyList()
         }
     }
 
