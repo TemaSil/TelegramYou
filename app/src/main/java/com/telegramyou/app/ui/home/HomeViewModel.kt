@@ -135,6 +135,18 @@ class HomeViewModel(
         viewModelScope.launch { repository.logout() }
     }
 
+    /**
+     * Silences a chat, or stops silencing it.
+     *
+     * Nothing is updated here. The chat list is a flow the client owns, and
+     * the row redraws when the client says so — writing an optimistic copy
+     * into a list that is about to be replaced would flicker rather than feel
+     * faster.
+     */
+    fun onMutedChange(chatId: Long, muted: Boolean) {
+        viewModelScope.launch { repository.setChatMuted(chatId, muted) }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             refreshing.value = true

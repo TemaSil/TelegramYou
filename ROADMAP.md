@@ -409,7 +409,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Search — `SearchBar`, server-side across chats **and** message text,
       in two labelled sections
 - [ ] Compose — `FloatingActionButton` into a contact picker
-- [ ] Pin, mute, mark read from a long-press `DropdownMenu`
+- [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
+      still need client methods
 - [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets
 
 ## 3. Settings and profile

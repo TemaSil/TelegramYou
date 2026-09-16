@@ -124,7 +124,8 @@ fun TelegramYouNavHost(
                 onOpenStory = { story -> navController.navigate(Route.Story(story.id)) },
                 onSearchExpandedChange = homeViewModel::onSearchExpandedChange,
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
-                onOpenSettings = { navController.navigate(Route.Settings) }
+                onOpenSettings = { navController.navigate(Route.Settings) },
+                onMutedChange = homeViewModel::onMutedChange
             )
         }
         composable(Route.Settings.PATTERN) {

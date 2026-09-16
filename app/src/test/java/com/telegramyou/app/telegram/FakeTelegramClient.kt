@@ -124,6 +124,14 @@ class FakeTelegramClient(
         forwarded = Triple(fromChatId, messageIds, toChatId)
     }
 
+    /** The last mute asked for, as (chat, muted). */
+    var muted: Pair<Long, Boolean>? = null
+        private set
+
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        this.muted = chatId to muted
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
     override suspend fun sendAttachment(
         chatId: Long,

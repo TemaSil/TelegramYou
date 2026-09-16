@@ -66,7 +66,8 @@ fun HomeScreen(
     onOpenStory: (StoryItem) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onMutedChange: (Long, Boolean) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -172,7 +173,8 @@ fun HomeScreen(
                             onClick = { onOpenChat(chat.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
+                                .padding(horizontal = 12.dp),
+                            onMutedChange = { muted -> onMutedChange(chat.id, muted) }
                         )
                     }
                 }

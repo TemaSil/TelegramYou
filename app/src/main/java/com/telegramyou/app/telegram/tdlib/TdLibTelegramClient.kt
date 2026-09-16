@@ -272,6 +272,28 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatNotificationSettings")
+                .put("chat_id", chatId)
+                .put(
+                    "notification_settings",
+                    JSONObject()
+                        .put("@type", "chatNotificationSettings")
+                        // use_default_mute_for false is what makes mute_for
+                        // this chat's own setting rather than the scope's;
+                        // without it the value below is ignored.
+                        .put("use_default_mute_for", false)
+                        // Telegram measures a mute in seconds. Its "forever"
+                        // is a very large number rather than a flag, and this
+                        // is the value its own clients use.
+                        .put("mute_for", if (muted) MUTE_FOREVER_SECONDS else 0)
+                )
+        )
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         awaitReady()
         val eng = requireEngine()
@@ -1106,6 +1128,9 @@ class TdLibTelegramClient(
         private const val TAG = "TdLibTelegramClient"
         // TDLib uses very large order values for pinned chats
         private const val PINNED_ORDER_THRESHOLD = 1L shl 50
+
+        /** Telegram's own "muted forever": about 100 years, in seconds. */
+        private const val MUTE_FOREVER_SECONDS = 2_147_483_647
 
         /**
          * What a chat offers when it does not restrict reactions.

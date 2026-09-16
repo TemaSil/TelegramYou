@@ -154,6 +154,13 @@ class DemoTelegramClient : TelegramClient {
             .take(limit)
     }
 
+    override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        delay(80)
+        _chats.update { list ->
+            list.map { if (it.id == chatId) it.copy(isMuted = muted) else it }
+        }
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
         val chat = _chats.value.first { it.id == chatId }
