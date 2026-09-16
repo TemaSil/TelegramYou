@@ -809,6 +809,26 @@ private fun MessageBubble(
                     MessageContentType.Photo -> {
                         Text("${message.mediaEmoji ?: "🖼"} ${message.text}")
                     }
+                    MessageContentType.Voice -> {
+                        // A microphone and a length, and nothing that looks
+                        // like a play button: there is no playback yet, and a
+                        // triangle that does nothing is a worse bubble than an
+                        // honest one. ROADMAP has the rest.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Rounded.Mic,
+                                contentDescription = "Voice message",
+                                tint = if (outgoing) DeepInk
+                                else MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                message.text.ifBlank { "Voice message" },
+                                color = if (outgoing) DeepInk
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                     else -> Text(
                         message.text,
                         color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
