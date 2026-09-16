@@ -116,6 +116,14 @@ remove. It caught nothing on the way in only because CI found it first: the
 four helpers in `MessageGrouping.kt` were `internal` and had to be made
 public.
 
+One thing the move costs, and it is worth knowing before writing code against
+these types: **Kotlin does not smart-cast a public property of another
+module.** `if (!message.senderName.isNullOrBlank()) Text(message.senderName)`
+compiled when `ChatMessage` lived in `:app` and does not now, because the
+compiler cannot assume a property it did not compile stays what it was. Bind
+it to a local first — `val sender = message.senderName?.takeIf { ... }` — or
+use `let`. The guard above cannot catch this one; only `:app` can.
+
 So the rule for new code is: **if it does not need Android, put it in
 `:core` and write a test.** Anything that touches Compose, `ViewModel` or
 TDLib stays in `:app` and waits for CI, as before.

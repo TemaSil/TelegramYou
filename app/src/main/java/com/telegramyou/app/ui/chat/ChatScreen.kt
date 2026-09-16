@@ -472,9 +472,14 @@ private fun MessageBubble(
                     )
                     Spacer(Modifier.height(6.dp))
                 }
-                if (!outgoing && isFirstInRun && !message.senderName.isNullOrBlank()) {
+                // takeIf/let rather than a null check and a bare read: since
+                // ChatMessage moved to :core, Kotlin will not smart-cast its
+                // nullable properties — a public property of another module can
+                // change under a compiled caller.
+                val sender = message.senderName?.takeIf { it.isNotBlank() }
+                if (!outgoing && isFirstInRun && sender != null) {
                     Text(
-                        message.senderName,
+                        sender,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
                         fontWeight = FontWeight.Bold
