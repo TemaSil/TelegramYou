@@ -242,12 +242,9 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Playback progress on the waveform** — the bars are drawn, but nothing
-   shows how far through a message is. Needs a position ticker off the
-   `MediaPlayer` and a second colour up to that point, which is also what
-   makes seeking by tapping a bar possible.
-2. **Photos and video in bubbles** — an image arrives as a caption and an
-   emoji today. Needs an image loader and TDLib's thumbnail sizes.
+1. **Photos and video in bubbles** — an image arrives as a caption and an
+   emoji today. Needs an image loader and TDLib's thumbnail sizes, and then a
+   full-screen viewer as a `Dialog`.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -388,7 +385,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
 - [x] Voice messages: hold to record, release to send, tap to play, with the
       waveform drawn behind it — amplitudes measured while recording, and
-      Telegram's own packed 5-bit waveform decoded for everyone else's
+      Telegram's own packed 5-bit waveform decoded for everyone else's. The
+      played part is solid, the rest faded, and tapping a bar seeks there
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
       divider goes is decided in `:core` with tests
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping
