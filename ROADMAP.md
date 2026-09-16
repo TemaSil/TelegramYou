@@ -176,12 +176,43 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
-## Where this was left, 15 September 2026
+## Where this was left, 16 September 2026
 
-CI is green on `main`. Twelve unit tests, over the message-grouping logic;
-everything else is proved only to compile.
+CI is green on the working branch, **70 unit tests** (48 of them in `:core`),
+and the conversation
+screen is close to complete: reactions, multi-select with copy, forward and
+delete, in-chat search, an attachment sheet with camera, the unread divider,
+jump-to-latest and the pinned message bar all landed today.
 
-**The stack moved a long way today, and all of it was forced.** Material 3
+**The feedback loop changed more than any of the features.** There is now a
+`:core` module — plain Kotlin, no Android — that compiles and tests in about
+ten seconds in any environment, including ones with no SDK and no reach to
+Google's Maven. Rules that can be wrong quietly live there: reaction
+arithmetic, selection, search snippets, the unread divider, message grouping,
+swipe thresholds. See ARCHITECTURE.md for what it costs (`internal` is
+module-scoped, and Kotlin will not smart-cast another module's public
+properties) and for the `checkNoInternalApi` guard that catches the first of
+those locally.
+
+CI reports differently too: one `Summary` step, last in the job, prints the
+Kotlin errors and the test count together. Before that, a one-line compile
+error arrived two hundred stack frames deep and cost a round trip to read.
+
+**One real bug turned up on the way.** Attachments have never been sendable
+against a live account: TDLib's `inputFileLocal` opens a filesystem path, and
+a picker hands back a `content://` Uri. Demo mode ignores the value entirely,
+which is exactly the kind of bug it is good at hiding. Pickers now copy into
+the app's cache and send the copy's path.
+
+**Still true: nothing in CI renders a screen.** Every visual claim above is
+"it compiles and the logic is tested", not "it looks right". The app has not
+been run since the reaction chips, the selection toolbar, the search field,
+the attachment sheet, the unread line, the jump button and the pinned bar all
+went in — and several of those share the same vertical space.
+
+### The older history, still worth knowing
+
+**The stack moved a long way on 15 September, and all of it was forced.** Material 3
 Expressive is `internal` in every stable `material3` — 1.4.0 included — so
 reaching it meant `material3:1.5.0-alpha28`, which declares Compose core
 1.12.0, which requires compileSdk 37, which requires AGP 9, which requires
@@ -196,7 +227,8 @@ that looks like a mistake and is not — `setup-android` must **not** name
 `platforms;android-37`, because sdkmanager refuses it by name while listing
 it as available. AGP installs it itself.
 
-**The architecture was rebuilt**, per ARCHITECTURE.md: four state holders, no
+**The architecture was rebuilt** on the same day, per ARCHITECTURE.md: four
+state holders, no
 screen holding a repository, typed routes, and `TelegramClient` split into
 four domain interfaces without touching either backend.
 
