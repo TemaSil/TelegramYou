@@ -95,7 +95,9 @@ fun HomeScreenPreview() {
             ),
             onRefresh = {},
             onOpenChat = {},
-            onOpenStory = {}
+            onOpenStory = {},
+            onSearchExpandedChange = {},
+            onSearchQueryChange = {}
         )
     }
 }
@@ -112,7 +114,9 @@ fun HomeScreenDarkPreview() {
             ),
             onRefresh = {},
             onOpenChat = {},
-            onOpenStory = {}
+            onOpenStory = {},
+            onSearchExpandedChange = {},
+            onSearchQueryChange = {}
         )
     }
 }

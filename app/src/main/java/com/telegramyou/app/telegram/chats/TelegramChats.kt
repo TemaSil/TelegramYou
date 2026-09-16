@@ -15,4 +15,13 @@ interface TelegramChats {
      * recent messages today; paging is the next thing this owes.
      */
     suspend fun openChat(chatId: Long): ChatDetail
+
+    /**
+     * Chats matching [query], best matches first.
+     *
+     * A blank query returns nothing rather than everything: an empty search
+     * field is not a request to list the world, and the chat list is already
+     * on screen behind it.
+     */
+    suspend fun searchChats(query: String, limit: Int = 30): List<ChatPreview>
 }

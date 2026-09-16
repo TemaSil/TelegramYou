@@ -19,7 +19,9 @@ import kotlinx.coroutines.flow.StateFlow
 class FakeTelegramClient(
     private val window: List<ChatMessage> = emptyList(),
     /** Pages returned by successive calls; an exhausted list answers empty. */
-    private val olderPages: MutableList<List<ChatMessage>> = mutableListOf()
+    private val olderPages: MutableList<List<ChatMessage>> = mutableListOf(),
+    /** Everything searchChats may match against. */
+    private val searchable: List<ChatPreview> = emptyList()
 ) : TelegramClient {
 
     var openChatCount = 0
@@ -27,6 +29,10 @@ class FakeTelegramClient(
     var loadOlderCount = 0
         private set
     var lastLoadOlderBefore: Long? = null
+        private set
+    var searchCount = 0
+        private set
+    var lastSearchQuery: String? = null
         private set
 
     override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
@@ -62,6 +68,13 @@ class FakeTelegramClient(
     override suspend fun resendCode() = Unit
     override suspend fun logout() = Unit
     override suspend fun refreshChats() = Unit
+
+    override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
+        searchCount++
+        lastSearchQuery = query
+        return searchable.filter { it.title.contains(query, ignoreCase = true) }
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
     override suspend fun sendAttachment(
         chatId: Long,

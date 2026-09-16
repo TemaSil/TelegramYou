@@ -176,6 +176,36 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
+        if (query.isBlank()) return emptyList()
+        awaitReady()
+        // searchChatsOnServer, not searchChats: the local one only looks at
+        // what has been loaded, so a conversation you have not scrolled to
+        // would appear not to exist.
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatsOnServer")
+                    .put("query", query)
+                    .put("limit", limit)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchChatsOnServer: ${e.message}")
+            return emptyList()
+        }
+
+        val ids = found.optJSONArray("chat_ids") ?: return emptyList()
+        val out = ArrayList<ChatPreview>(ids.length())
+        for (i in 0 until ids.length()) {
+            val id = ids.optLong(i)
+            // TDLib guarantees the chat itself is known once it has returned
+            // the id, so this is a lookup rather than a request per result.
+            val chat = chatsById[id] ?: continue
+            out += toPreview(chat)
+        }
+        return out
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         awaitReady()
         val eng = requireEngine()

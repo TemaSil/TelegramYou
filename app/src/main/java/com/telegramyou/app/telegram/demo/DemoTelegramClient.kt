@@ -121,6 +121,20 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
+        if (query.isBlank()) return emptyList()
+        delay(140)
+        // Title and last message both, because searching for a phrase you
+        // remember from a conversation is the common case, not searching for
+        // a name you already know.
+        return _chats.value
+            .filter {
+                it.title.contains(query, ignoreCase = true) ||
+                    it.lastMessage.contains(query, ignoreCase = true)
+            }
+            .take(limit)
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
         val chat = _chats.value.first { it.id == chatId }

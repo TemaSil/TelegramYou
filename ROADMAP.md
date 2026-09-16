@@ -307,8 +307,9 @@ Both are now what they said they were. Fixed with them:
   `0.55f / StiffnessMediumLow` pair deleted from `ExpressiveMotion` as
   unread. Half the migration had gone unspent.
 
-Still open, and honest about it: `onClick = {}` stubs remain on the search
-button and the composer's voice button. They look like features and are not.
+Still open, and honest about it: the composer's voice button is still an
+`onClick = {}` stub. It looks like a feature and is not. The search button
+was the other one, and it works now.
 
 ## 1. Conversation
 
@@ -345,7 +346,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Swipe actions: mute, pin, archive, delete — `SwipeToDismissBox`
 - [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
 - [ ] Archive: entry row and its own screen
-- [ ] Search — `SearchBar`, server-side across chats and messages
+- [~] Search — `SearchBar`, server-side across chats. Messages still to come:
+      TDLib answers `searchChatsOnServer`, and searching message text is a
+      separate call
 - [ ] Compose — `FloatingActionButton` into a contact picker
 - [ ] Pin, mute, mark read from a long-press `DropdownMenu`
 - [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets

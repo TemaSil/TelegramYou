@@ -115,7 +115,9 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 state = state,
                 onRefresh = homeViewModel::refresh,
                 onOpenChat = { id -> navController.navigate(Route.Chat(id)) },
-                onOpenStory = { story -> navController.navigate(Route.Story(story.id)) }
+                onOpenStory = { story -> navController.navigate(Route.Story(story.id)) },
+                onSearchExpandedChange = homeViewModel::onSearchExpandedChange,
+                onSearchQueryChange = homeViewModel::onSearchQueryChange
             )
         }
         composable(
