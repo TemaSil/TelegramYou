@@ -90,6 +90,43 @@ Three consequences worth remembering, each of which cost a red build:
   refuses `platforms;android-37` by name even though `--list` shows it in the
   stable channel. AGP installs what `compileSdk` needs by itself.
 
+## Deliberately on the newest of everything — keep it that way
+
+This project runs the **newest alpha `material3`** and the **newest Android
+toolchain**, on purpose. That is not carelessness: Material 3 Expressive is
+`internal` in every stable `material3`, so the alpha is the only way to have
+the thing this client exists to show. Having accepted an alpha there, staying
+current everywhere else costs little and keeps the app on what Android
+actually looks like today.
+
+**Check for newer versions at the start of a session, and when anything here
+feels dated.** The Build workflow prints what Google's Maven and Maven
+Central offer on every run — compose-bom, material3, AGP, Kotlin, and the
+screenshot plugin — as check-run annotations titled `Available versions`.
+Read those rather than guessing: this environment cannot reach
+`dl.google.com` at all, so a version invented from memory is a red build.
+
+When bumping, remember the chain runs one way and the whole stack moves
+together:
+
+```
+material3 alpha  →  Compose core  →  compileSdk  →  AGP  →  Gradle
+```
+
+A newer `material3:1.5.0-alphaNN` declares a Compose core; that core sets the
+minimum compileSdk; that compileSdk sets the minimum AGP; that AGP sets the
+minimum Gradle. Reading the alpha's POM first (the workflow prints its
+dependencies too) tells you how far the rest has to move before you try.
+
+Two things to hold on to while doing it:
+
+- **An alpha under every screen is a real risk, taken knowingly.** The way
+  back is `compose-bom 2025.09.01` with stable `material3` 1.4.0, which built
+  green — but it has no Expressive at all.
+- **Green means it compiles.** An alpha can change behaviour without changing
+  a signature, and nothing in CI renders a screen. After a bump, look at the
+  screenshots and at the app before calling it fine.
+
 ## Building
 
 ```bat

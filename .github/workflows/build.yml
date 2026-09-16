@@ -200,6 +200,45 @@ jobs:
             [ -n "$found" ] && echo "::notice title=Resolved::$found"
           done
 
+      # Render every @Preview to a PNG, and commit the results.
+      #
+      # Committed rather than uploaded as an artifact on purpose. Artifact
+      # downloads redirect to blob storage that not every environment this is
+      # written in can reach, so a screenshot in an artifact is a screenshot
+      # nobody here can look at. In the tree it can be opened, diffed against
+      # the previous commit, and reviewed like any other change.
+      - name: Render screenshots
+        if: github.event_name == 'push'
+        run: |
+          set -o pipefail
+          ./gradlew :app:updateDebugScreenshotTest --stacktrace
+          find app/build -name '*.png' -path '*screenshot*' -print
+
+      - name: Commit screenshots
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          rendered=app/src/debug/screenshotTest/reference
+          if [ ! -d "$rendered" ]; then
+            echo "::warning::No reference screenshots were produced."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A "$rendered"
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          git commit -m "Update rendered screenshots
+
+          Rendered by the Build workflow from the previews in
+          app/src/screenshotTest. Committed rather than uploaded so they can
+          be looked at and diffed rather than downloaded.
+
+          [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Unit tests
         run: ./gradlew :app:testDebugUnitTest --stacktrace
 

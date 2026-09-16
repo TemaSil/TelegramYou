@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("com.android.compose.screenshot")
 }
 
 /** Used for both versionName and the APK name, so the two cannot drift. */
@@ -77,6 +78,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // Required while the screenshot plugin is experimental. Without it the
+    // screenshotTest source set is not registered and the previews in it are
+    // silently ignored, which looks exactly like previews that render nothing.
+    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
     packaging {
         resources {
