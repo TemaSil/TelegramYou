@@ -123,15 +123,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
 import com.telegramyou.app.telegram.model.AttachmentDraft
-import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.TypingIndicator
-import com.telegramyou.app.ui.theme.BubbleIncomingShape
-import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
 import androidx.core.content.ContextCompat
