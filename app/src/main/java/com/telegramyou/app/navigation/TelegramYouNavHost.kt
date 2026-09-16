@@ -152,7 +152,8 @@ fun TelegramYouNavHost(repository: TelegramRepository) {
                 onSelectionDeleteDismissed = chatViewModel::onSelectionDeleteDismissed,
                 onSelectionDeleted = chatViewModel::onSelectionDeleted,
                 onSearchOpenChange = chatViewModel::onSearchOpenChange,
-                onSearchQueryChange = chatViewModel::onSearchQueryChange
+                onSearchQueryChange = chatViewModel::onSearchQueryChange,
+                onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange
             )
         }
         composable(

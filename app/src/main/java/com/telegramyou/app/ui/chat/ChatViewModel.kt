@@ -65,7 +65,9 @@ data class ChatUiState(
     /** True while the confirmation for deleting the selection is on screen. */
     val confirmingSelectionDelete: Boolean = false,
     /** Search inside this conversation; see ChatSearchState. */
-    val search: ChatSearchState = ChatSearchState()
+    val search: ChatSearchState = ChatSearchState(),
+    /** True while the "what would you like to attach" sheet is up. */
+    val attachmentSheetOpen: Boolean = false
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -104,8 +106,14 @@ class ChatViewModel(
 
     fun onDraftChange(text: String) = _uiState.update { it.copy(draft = text) }
 
+    fun onAttachmentSheetOpenChange(open: Boolean) =
+        _uiState.update { it.copy(attachmentSheetOpen = open) }
+
     fun onAttachmentPicked(draft: AttachmentDraft) =
-        _uiState.update { it.copy(pendingAttachment = draft) }
+        // Closing here rather than where the picker is launched: the sheet has
+        // to stay up while the system picker is in front of it, or coming back
+        // from a cancelled pick lands on the composer with nothing explained.
+        _uiState.update { it.copy(pendingAttachment = draft, attachmentSheetOpen = false) }
 
     fun onAttachmentCleared() = _uiState.update { it.copy(pendingAttachment = null) }
 

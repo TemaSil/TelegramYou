@@ -159,7 +159,8 @@ fun ChatScreen(
     onSelectionDeleteDismissed: () -> Unit,
     onSelectionDeleted: (Boolean) -> Unit,
     onSearchOpenChange: (Boolean) -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onAttachmentSheetOpenChange: (Boolean) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -430,11 +431,18 @@ fun ChatScreen(
                     onClear = onSelectionCleared
                 )
             } else {
+                if (state.attachmentSheetOpen) {
+                    AttachmentSheet(
+                        onDismiss = { onAttachmentSheetOpenChange(false) },
+                        onPickPhoto = { photoPicker.launch("image/*") },
+                        onPickFile = { filePicker.launch(arrayOf("*/*")) }
+                    )
+                }
+
                 ComposerBar(
                     value = state.draft,
                     onValueChange = onDraftChange,
-                    onAttachFile = { filePicker.launch(arrayOf("*/*")) },
-                    onAttachPhoto = { photoPicker.launch("image/*") },
+                    onAttach = { onAttachmentSheetOpenChange(true) },
                     onSend = onSend
                 )
             }
@@ -745,6 +753,44 @@ private fun MessageBubble(
                 }
             }
         }
+    }
+}
+
+/**
+ * What the paperclip opens.
+ *
+ * `ModalBottomSheet` with `ListItem` rows, which is what Material ships for
+ * "choose one of these" — Telegram draws a grid of its own here, and this is
+ * the platform's answer to the same question.
+ *
+ * Camera is deliberately absent rather than present and dead. Taking a photo
+ * needs a FileProvider, a manifest entry and a runtime permission, and a row
+ * that opens nothing is worse than a row that is not there. ROADMAP says so.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AttachmentSheet(
+    onDismiss: () -> Unit,
+    onPickPhoto: () -> Unit,
+    onPickFile: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState()
+    ) {
+        ListItem(
+            headlineContent = { Text("Photo or video") },
+            supportingContent = { Text("From the gallery") },
+            leadingContent = { Icon(Icons.Rounded.Image, contentDescription = null) },
+            modifier = Modifier.clickable(onClick = onPickPhoto)
+        )
+        ListItem(
+            headlineContent = { Text("File") },
+            supportingContent = { Text("Anything else") },
+            leadingContent = { Icon(Icons.Rounded.AttachFile, contentDescription = null) },
+            modifier = Modifier.clickable(onClick = onPickFile)
+        )
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -1223,8 +1269,7 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
 private fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
-    onAttachFile: () -> Unit,
-    onAttachPhoto: () -> Unit,
+    onAttach: () -> Unit,
     onSend: () -> Unit
 ) {
     Surface(
@@ -1239,11 +1284,11 @@ private fun ComposerBar(
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = onAttachFile) {
-                Icon(Icons.Rounded.AttachFile, contentDescription = "Attach file")
-            }
-            IconButton(onClick = onAttachPhoto) {
-                Icon(Icons.Rounded.Image, contentDescription = "Attach photo")
+            // One button, not two. Which system picker to open is a question
+            // for the sheet, and a composer that grows an icon per attachment
+            // type runs out of room before it runs out of types.
+            IconButton(onClick = onAttach) {
+                Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
             }
             TextField(
                 value = value,
