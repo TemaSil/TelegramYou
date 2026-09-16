@@ -204,10 +204,7 @@ four domain interfaces without touching either backend.
 
 1. **Forward** — the one action selection cannot offer, because there is no
    client method for it and no chat picker to send to.
-2. **Camera in the attachment sheet** — the sheet is there with gallery and
-   file; the camera row needs a FileProvider, a manifest entry and a runtime
-   permission, which is a self-contained piece of work.
-3. **Voice messages** — the composer's microphone is still `onClick = {}`, a
+2. **Voice messages** — the composer's microphone is still `onClick = {}`, a
    control that pretends to be a feature. Recording, playback and the waveform
    (the one place custom drawing is justified) are all still missing.
 
@@ -343,9 +340,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       (only when it is in the loaded window — a hit older than that is found
       and shown, but the list cannot jump to it yet)
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing
-- [~] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery
-      and file; camera is deliberately absent rather than dead, since it needs
-      a FileProvider, a manifest entry and a runtime permission
+- [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
+      camera and file. What a picker returns is copied into the app's cache
+      first: TDLib opens a filesystem path, and a `content://` Uri is not one
 - [ ] Photos and video in bubbles, full-screen viewer as a `Dialog`
 - [ ] Voice messages: record on hold, play with a waveform (custom draw)
 - [ ] Unread divider and jump-to-latest `FloatingActionButton`

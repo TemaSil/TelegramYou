@@ -38,6 +38,26 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Hands the camera app a Uri it may write to, without making the file
+            itself world-readable. grantUriPermissions is what makes the grant
+            temporary: it lasts for the one intent and no longer.
+
+            No <uses-permission android:name="android.permission.CAMERA" />
+            anywhere, deliberately. ACTION_IMAGE_CAPTURE delegates to whatever
+            camera app is installed, and declaring the permission would oblige
+            this app to request it at runtime for a camera it never opens.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/camera_paths" />
+        </provider>
+
         <service
             android:name=".telegram.TelegramForegroundService"
             android:exported="false"

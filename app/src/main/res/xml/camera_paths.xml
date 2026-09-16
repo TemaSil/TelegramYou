@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Where a photo taken from the composer is written.
+
+    One directory, inside the app's own cache: the camera app needs a writable
+    Uri and nothing else should be reachable through the provider. A path that
+    granted the whole cache would hand every temporary file the app has to
+    whichever camera the user happens to have installed.
+-->
+<paths>
+    <cache-path name="camera" path="camera/" />
+</paths>

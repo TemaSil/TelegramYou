@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -103,6 +105,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
@@ -122,8 +125,12 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
+import androidx.core.content.FileProvider
+import java.io.File
 import kotlin.math.roundToInt
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * One conversation.
@@ -164,23 +171,51 @@ fun ChatScreen(
 ) {
     val listState = rememberLazyListState()
 
+    val context = LocalContext.current
+    // Declared before the pickers, which launch work on it from their callbacks.
+    val scope = rememberCoroutineScope()
+    // Held across the launch because TakePicture answers with a boolean, not
+    // with the Uri: the destination is chosen here and has to survive until
+    // the camera app comes back.
+    var cameraTarget by remember { mutableStateOf<File?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { taken ->
+        val file = cameraTarget
+        cameraTarget = null
+        // false means the camera app was cancelled, and the empty file it was
+        // given is left for the cache to clear rather than sent as a photo.
+        if (taken && file != null) {
+            onAttachmentPicked(AttachmentDraft.Photos(listOf(file.absolutePath)))
+        }
+    }
+
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        onAttachmentPicked(
-            AttachmentDraft.Files(
-                uris = uris.map { it.toString() },
-                names = uris.map { it.lastPathSegment?.substringAfterLast('/') ?: "file" }
+        scope.launch {
+            val copied = withContext(Dispatchers.IO) { uris.mapNotNull { copyIn(context, it) } }
+            if (copied.isEmpty()) return@launch
+            onAttachmentPicked(
+                AttachmentDraft.Files(
+                    uris = copied.map { it.absolutePath },
+                    names = copied.map { it.name }
+                )
             )
-        )
+        }
     }
 
     val photoPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
+        scope.launch {
+            val copied = withContext(Dispatchers.IO) { uris.mapNotNull { copyIn(context, it) } }
+            if (copied.isNotEmpty()) {
+                onAttachmentPicked(AttachmentDraft.Photos(copied.map { it.absolutePath }))
+            }
+        }
     }
 
     // Keyed on the newest message, not on the count. Paging older history in
@@ -205,7 +240,6 @@ fun ChatScreen(
     val detail = state.detail
     val chat = detail?.chat
     val clipboard = LocalClipboardManager.current
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -435,7 +469,12 @@ fun ChatScreen(
                     AttachmentSheet(
                         onDismiss = { onAttachmentSheetOpenChange(false) },
                         onPickPhoto = { photoPicker.launch("image/*") },
-                        onPickFile = { filePicker.launch(arrayOf("*/*")) }
+                        onPickFile = { filePicker.launch(arrayOf("*/*")) },
+                        onTakePhoto = {
+                            val file = newCameraFile(context)
+                            cameraTarget = file
+                            cameraLauncher.launch(cameraUri(context, file))
+                        }
                     )
                 }
 
@@ -757,22 +796,71 @@ private fun MessageBubble(
 }
 
 /**
+ * Where the camera app writes, in the app's own cache.
+ *
+ * A real file rather than a gallery entry: nothing is left behind if the shot
+ * is cancelled, and TDLib is handed a path it can open — see [copyIn] for why
+ * that matters.
+ */
+private fun newCameraFile(context: Context): File {
+    val directory = File(context.cacheDir, "camera").apply { mkdirs() }
+    return File(directory, "capture-${System.currentTimeMillis()}.jpg")
+}
+
+/**
+ * The same file as a Uri the camera app is allowed to write to.
+ *
+ * The authority matches the provider in the manifest; getting it wrong throws
+ * at the launch rather than returning null, which is the right failure — a
+ * silent one would look like a camera that does nothing.
+ */
+private fun cameraUri(context: Context, file: File): Uri =
+    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+/**
+ * Copies what a picker returned into the app's cache, and answers with the
+ * file.
+ *
+ * TDLib's `inputFileLocal` takes a filesystem path and opens it directly. A
+ * picker hands back a `content://` Uri, which is not a path and which TDLib
+ * cannot open — so passing one through, as this screen did, meant every
+ * attachment failed to send in live mode while looking fine in demo mode,
+ * where the backend ignores the value entirely.
+ *
+ * Null when the Uri cannot be read at all: a permission already revoked, or a
+ * provider that has gone away. The caller drops it rather than attaching a
+ * path to nothing.
+ */
+private fun copyIn(context: Context, uri: Uri): File? = runCatching {
+    val directory = File(context.cacheDir, "outgoing").apply { mkdirs() }
+    // Prefixed with the clock so two files of the same name do not collide,
+    // and stripped of separators so a hostile name cannot climb out of the
+    // directory.
+    val name = uri.lastPathSegment?.substringAfterLast('/').orEmpty().ifBlank { "attachment" }
+    val target = File(directory, "${System.currentTimeMillis()}-$name")
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        target.outputStream().use { output -> input.copyTo(output) }
+    } ?: return null
+    target
+}.getOrNull()
+
+/**
  * What the paperclip opens.
  *
  * `ModalBottomSheet` with `ListItem` rows, which is what Material ships for
  * "choose one of these" — Telegram draws a grid of its own here, and this is
  * the platform's answer to the same question.
  *
- * Camera is deliberately absent rather than present and dead. Taking a photo
- * needs a FileProvider, a manifest entry and a runtime permission, and a row
- * that opens nothing is worse than a row that is not there. ROADMAP says so.
+ * Camera hands the photo straight to the composer as a draft, the same shape
+ * the gallery picker produces, so everything downstream treats the two alike.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AttachmentSheet(
     onDismiss: () -> Unit,
     onPickPhoto: () -> Unit,
-    onPickFile: () -> Unit
+    onPickFile: () -> Unit,
+    onTakePhoto: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -783,6 +871,12 @@ private fun AttachmentSheet(
             supportingContent = { Text("From the gallery") },
             leadingContent = { Icon(Icons.Rounded.Image, contentDescription = null) },
             modifier = Modifier.clickable(onClick = onPickPhoto)
+        )
+        ListItem(
+            headlineContent = { Text("Camera") },
+            supportingContent = { Text("Take a photo now") },
+            leadingContent = { Icon(Icons.Rounded.PhotoCamera, contentDescription = null) },
+            modifier = Modifier.clickable(onClick = onTakePhoto)
         )
         ListItem(
             headlineContent = { Text("File") },
