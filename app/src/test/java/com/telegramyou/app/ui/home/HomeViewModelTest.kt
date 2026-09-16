@@ -5,7 +5,10 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatPreview
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -32,7 +35,7 @@ class HomeViewModelTest {
     private fun chat(id: Long, title: String) =
         ChatPreview(id = id, title = title, lastMessage = "", timestampLabel = "")
 
-    private fun viewModel(): Pair<HomeViewModel, FakeTelegramClient> {
+    private fun TestScope.viewModel(): Pair<HomeViewModel, FakeTelegramClient> {
         val client = FakeTelegramClient(
             searchable = listOf(
                 chat(1, "Material Design"),
@@ -40,7 +43,15 @@ class HomeViewModelTest {
                 chat(3, "Design crit")
             )
         )
-        return HomeViewModel(TelegramRepository(client)) to client
+        val vm = HomeViewModel(TelegramRepository(client))
+        // uiState is stateIn(WhileSubscribed): with nothing collecting it, it
+        // reports its initial value forever, so reading .value in a test
+        // measures the placeholder rather than the view model. The screen
+        // subscribes; a test has to as well, or it asserts against a constant.
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect {}
+        }
+        return vm to client
     }
 
     @Test
