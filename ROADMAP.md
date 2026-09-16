@@ -346,7 +346,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Voice messages: record on hold, play with a waveform (custom draw)
 - [x] Unread divider and jump-to-latest `SmallFloatingActionButton`; where the
       divider goes is decided in `:core` with tests
-- [ ] Pinned message bar — `Surface` under the `TopAppBar`
+- [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping
+      it scrolls to the message when it is in the loaded window
 - [ ] Typing indicator (custom draw)
 - [ ] Link previews — `Card` under the text
 - [ ] In-chat search with jump to the hit — global message search is in, this

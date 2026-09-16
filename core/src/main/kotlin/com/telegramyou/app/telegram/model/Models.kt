@@ -144,7 +144,15 @@ data class ChatDetail(
     val chat: ChatPreview,
     val messages: List<ChatMessage>,
     val memberCountLabel: String? = null,
-    val isTyping: Boolean = false
+    val isTyping: Boolean = false,
+    /**
+     * The chat's pinned message, if it has one.
+     *
+     * A whole message rather than an id: what is pinned is usually old, so it
+     * is rarely in the loaded window, and a bar showing "pinned message" with
+     * nothing in it would say less than no bar at all.
+     */
+    val pinnedMessage: ChatMessage? = null
 )
 
 /**

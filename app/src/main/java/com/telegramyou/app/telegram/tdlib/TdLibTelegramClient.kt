@@ -294,8 +294,32 @@ class TdLibTelegramClient(
             chat = preview,
             messages = mapped,
             memberCountLabel = statusLabel(chat),
-            isTyping = false
+            isTyping = false,
+            pinnedMessage = pinnedMessage(chatId, chat)
         )
+    }
+
+    /**
+     * The chat's pinned message, fetched by id.
+     *
+     * What is pinned is usually old, so it is rarely in the window that was
+     * just loaded and has to be asked for on its own. A failure here is not a
+     * failure to open the chat: the bar is missing, the conversation is not.
+     */
+    private suspend fun pinnedMessage(chatId: Long, chat: JSONObject?): ChatMessage? {
+        val pinnedId = chat?.optLong("pinned_message_id")?.takeIf { it != 0L } ?: return null
+        return try {
+            val raw = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessage")
+                    .put("chat_id", chatId)
+                    .put("message_id", pinnedId)
+            )
+            mapMessage(chatId, raw)
+        } catch (e: TdLibException) {
+            Log.w(TAG, "pinnedMessage: ${e.message}")
+            null
+        }
     }
 
     override suspend fun loadOlderMessages(

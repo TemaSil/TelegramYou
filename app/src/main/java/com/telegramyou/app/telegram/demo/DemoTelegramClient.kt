@@ -165,7 +165,9 @@ class DemoTelegramClient : TelegramClient {
                 chat.isGroup -> "42 members"
                 else -> if (chat.isOnline) "online" else "last seen recently"
             },
-            isTyping = chatId == 2L
+            isTyping = chatId == 2L,
+            // One chat has something pinned, so the bar is visible offline.
+            pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null
         )
     }
 

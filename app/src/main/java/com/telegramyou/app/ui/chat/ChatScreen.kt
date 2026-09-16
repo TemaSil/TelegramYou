@@ -340,6 +340,22 @@ fun ChatScreen(
                 )
                 .imePadding()
         ) {
+            detail?.pinnedMessage?.let { pinned ->
+                PinnedMessageBar(
+                    message = pinned,
+                    onClick = {
+                        val index = state.messages.indexOfFirst { it.id == pinned.id }
+                        if (index >= 0) {
+                            scope.launch {
+                                listState.animateScrollToItem(
+                                    index + if (state.isLoadingOlder) 1 else 0
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+
             if (state.search.isOpen && state.search.query.isNotBlank()) {
                 // Results take the conversation's place rather than covering
                 // it. A panel over the messages would put two scrollable lists
@@ -919,6 +935,58 @@ private fun copyIn(context: Context, uri: Uri): File? = runCatching {
     } ?: return null
     target
 }.getOrNull()
+
+/**
+ * What the chat has pinned, under the app bar.
+ *
+ * A `Surface` rather than a second `TopAppBar`: it is part of the
+ * conversation, not a second place to navigate from, and the accent bar down
+ * its left edge is the same device the quoted block inside a bubble uses for
+ * the same idea — this text belongs to another message.
+ *
+ * One line, ellipsised. A pinned message can be as long as any other, and a
+ * bar that grows to fit it would push the conversation off the screen to show
+ * something the tap already leads to.
+ */
+@Composable
+private fun PinnedMessageBar(
+    message: ChatMessage,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(
+                    "Pinned message",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    message.text.ifBlank { "Attachment" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
 
 /**
  * The line between what has been read and what has not.
