@@ -74,6 +74,15 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // android.jar in a unit test is stubs, and every stub throws
+    // "RuntimeException: Stub!" rather than doing nothing. That is fine until
+    // production code logs on a path a test exercises — VoicePlayer catching a
+    // failed MediaPlayer and calling Log.w turned a caught error into an
+    // uncaught one, inside the catch block. Default values instead of throws.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
