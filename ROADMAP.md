@@ -208,6 +208,45 @@ four domain interfaces without touching either backend.
 2. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
    method.
 
+### Screenshot rendering: groundwork laid, not working yet
+
+Compose Preview Screenshot Testing is applied and configured, and the build
+is green with it. What does not work is the rendering, and six runs narrowed
+why to one fact:
+
+```
+--- compiled screenshotTest classes ---
+                    (nothing)
+```
+
+**The previews are never compiled.** Not from `src/screenshotTest/java`, not
+from `src/screenshotTest/kotlin` — both were tried. So this is not layoutlib
+refusing a Material 3 Expressive alpha, and not a preview that cannot be
+drawn; the source set simply is not being built. `updateDebugScreenshotTest`
+then reports "test sources present ... did not discover any tests", which
+sounds like a task misconfiguration and is really an empty classpath.
+
+What is already in place and correct:
+
+- Plugin `com.android.compose.screenshot:0.0.1-alpha16` — the newest; the
+  Build workflow prints the list.
+- `android.experimental.enableScreenshotTest` in **both** `gradle.properties`
+  and the module's `experimentalProperties`. Both are required, and each
+  failure names only the other one.
+- Four previews in `app/src/screenshotTest/kotlin` — chat list in both
+  themes, a conversation, the login screen — non-private, with dynamic colour
+  off and fixed instants so they render identically on any machine.
+
+Where to look next: whether AGP 9's built-in Kotlin compiles the
+`screenshotTest` source set at all, and what `./gradlew :app:tasks` and
+`:app:sourceSets` actually report for it. The plugin's alphas track AGP
+closely and 9.4 is very new, so "not supported yet" is a live possibility —
+in which case Roborazzi is the fallback.
+
+The rendering steps have been taken back out of the workflow. A step that
+always fails teaches nothing after the first time, and a red build on every
+push costs more than the feature is currently worth.
+
 ### Known debts, none of them hidden
 
 - **Nothing renders a screen in CI.** The app was installed once today and
