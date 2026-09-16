@@ -55,6 +55,21 @@ class VoicePlayer {
     }
 
     /**
+     * Whether audio is actually coming out, as opposed to a player existing.
+     *
+     * Not the same question as [playingId] being set: a player can be
+     * finished, released under us, or never have started. Anything ticking
+     * alongside playback should stop on this rather than on its own
+     * bookkeeping, or it keeps ticking after the sound has gone.
+     */
+    fun isPlaying(): Boolean = try {
+        player?.isPlaying == true
+    } catch (e: IllegalStateException) {
+        Log.w(TAG, "isPlaying: ${e.message}")
+        false
+    }
+
+    /**
      * How far through the current message is, as 0..1.
      *
      * Zero when nothing is playing, and zero for a file whose duration the

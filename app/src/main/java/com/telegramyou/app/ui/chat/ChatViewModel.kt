@@ -308,11 +308,17 @@ class ChatViewModel(
      *
      * The previous job is cancelled first: two tickers writing the same field
      * would fight over which message's position it holds.
+     *
+     * The loop ends on the player, not on this class's own record of what is
+     * playing. A player that finished, was released, or never really started
+     * leaves that record set — and a loop reading it would tick forever with
+     * nothing to report. It did, in a unit test, where MediaPlayer is a stub
+     * that starts successfully and plays nothing.
      */
     private fun followProgress() {
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
-            while (_uiState.value.playingVoiceId != null) {
+            while (voicePlayer.isPlaying()) {
                 _uiState.update { it.copy(voiceProgress = voicePlayer.progress()) }
                 delay(PROGRESS_TICK_MS)
             }

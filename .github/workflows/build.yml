@@ -204,7 +204,11 @@ jobs:
 
       # Appended to the same log, so a test source set that fails to compile
       # is reported by the Compile errors step below just like the app's.
+      # timeout-minutes because a test that hangs has no other bound. One did:
+      # a progress ticker looping on state nothing in a unit test ever clears.
+      # Without this the job sits on the runner until GitHub's six-hour limit.
       - name: Unit tests
+        timeout-minutes: 10
         run: |
           set -o pipefail
           ./gradlew :core:check :app:testDebugUnitTest --stacktrace 2>&1 \
