@@ -147,7 +147,24 @@ data class ChatMessage(
      * read — the bubble then draws a flat row rather than nothing, so a voice
      * message is the same shape whether or not its waveform arrived.
      */
-    val waveform: List<Int> = emptyList()
+    val waveform: List<Int> = emptyList(),
+    /**
+     * A photo's file on this device, once it is here.
+     *
+     * Null while it is still only on Telegram's servers, which is the normal
+     * state for a message that has just scrolled into view.
+     */
+    val photoPath: String? = null,
+    /** TDLib's id for that file, which a download is asked for by. */
+    val photoFileId: Int? = null,
+    /**
+     * The photo's shape, as width divided by height.
+     *
+     * Carried because the bubble has to reserve the right space before the
+     * bytes arrive. Without it every photo would open as a square and then
+     * jump, which in a list means everything below it jumps too.
+     */
+    val photoAspect: Float = 1f
 )
 
 /**

@@ -155,6 +155,13 @@ dependencies {
 
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
+
+    // Images in bubbles. Coil rather than hand-rolled decoding: a photo in a
+    // scrolling list needs a cache, request cancellation when the row leaves
+    // the window, and downsampling to the size actually drawn — all of which
+    // is a library's job. 3.x is the Compose-first line and loads a File or a
+    // content:// Uri without help.
+    implementation("io.coil-kt.coil3:coil-compose:3.6.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")

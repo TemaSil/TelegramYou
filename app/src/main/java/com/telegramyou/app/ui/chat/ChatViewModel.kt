@@ -332,6 +332,28 @@ class ChatViewModel(
         voicePlayer.stop()
     }
 
+    /**
+     * Fetches a photo the first time its bubble is on screen.
+     *
+     * Unlike a voice note, a photo is meant to be seen without being asked
+     * for, so this is driven by the bubble appearing rather than by a tap. The
+     * set of ids already asked for is what stops a message being fetched again
+     * every time it scrolls back into view.
+     */
+    fun onPhotoVisible(message: ChatMessage) {
+        val fileId = message.photoFileId ?: return
+        if (message.photoPath != null || !requestedPhotos.add(fileId)) return
+        viewModelScope.launch {
+            val path = repository.downloadFile(fileId) ?: return@launch
+            _uiState.update { state ->
+                state.mapMessage(message.id) { it.copy(photoPath = path) }
+            }
+        }
+    }
+
+    /** File ids already asked for, so scrolling does not re-request them. */
+    private val requestedPhotos = mutableSetOf<Int>()
+
     // ── searching ────────────────────────────────────────────────────────
 
     /** Cancelled on each keystroke, which is what makes the delay a debounce. */
