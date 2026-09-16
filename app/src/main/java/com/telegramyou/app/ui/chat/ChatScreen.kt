@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -121,6 +122,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -128,6 +130,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
+import coil3.compose.AsyncImage
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -193,7 +196,8 @@ fun ChatScreen(
     onForwardDismissed: () -> Unit,
     onForwardTo: (ChatPreview) -> Unit,
     onVoiceToggled: (ChatMessage) -> Unit,
-    onVoiceSeek: (ChatMessage, Float) -> Unit
+    onVoiceSeek: (ChatMessage, Float) -> Unit,
+    onPhotoVisible: (ChatMessage) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -485,7 +489,8 @@ fun ChatScreen(
                             } else {
                                 0f
                             },
-                            onVoiceSeek = { at -> onVoiceSeek(message, at) }
+                            onVoiceSeek = { at -> onVoiceSeek(message, at) },
+                            onPhotoVisible = { onPhotoVisible(message) }
                         )
                     }
                 }
@@ -700,7 +705,8 @@ private fun MessageBubble(
     voiceState: VoiceState,
     onVoiceToggled: () -> Unit,
     voiceProgress: Float,
-    onVoiceSeek: (Float) -> Unit
+    onVoiceSeek: (Float) -> Unit,
+    onPhotoVisible: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -839,7 +845,13 @@ private fun MessageBubble(
                         }
                     }
                     MessageContentType.Photo -> {
-                        Text("${message.mediaEmoji ?: "🖼"} ${message.text}")
+                        PhotoMessage(
+                            path = message.photoPath,
+                            aspect = message.photoAspect,
+                            caption = message.text,
+                            outgoing = outgoing,
+                            onVisible = onPhotoVisible
+                        )
                     }
                     MessageContentType.Voice -> {
                         VoiceMessage(
@@ -999,6 +1011,67 @@ private fun newCameraFile(context: Context): File {
  */
 private fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+/**
+ * A photo in a bubble.
+ *
+ * The space is reserved from the photo's own aspect ratio before any bytes
+ * arrive, so the bubble does not change size when they do — in a list, one
+ * bubble resizing moves everything below it, which is the difference between
+ * a conversation loading and a conversation jumping.
+ *
+ * The download is asked for when this appears rather than on a tap, because a
+ * photo is meant to be seen without being asked for. Coil takes it from there:
+ * a cache, cancellation when the row scrolls away, and downsampling to the
+ * size actually drawn.
+ */
+@Composable
+private fun PhotoMessage(
+    path: String?,
+    aspect: Float,
+    caption: String,
+    outgoing: Boolean,
+    onVisible: () -> Unit
+) {
+    LaunchedEffect(path) {
+        if (path == null) onVisible()
+    }
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                // Clamped: a panorama would otherwise be a sliver and a very
+                // tall photo would fill the screen on its own.
+                .aspectRatio(aspect.coerceIn(0.6f, 1.9f))
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            if (path == null) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(24.dp)
+                )
+            } else {
+                AsyncImage(
+                    model = path,
+                    contentDescription = caption.ifBlank { "Photo" },
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+        // "Photo" is what a message with no caption is called, not something
+        // the sender wrote, so it is not repeated under the picture.
+        if (caption.isNotBlank() && caption != "Photo") {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                caption,
+                color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
 
 /** What the play button on a voice bubble is currently doing. */
 enum class VoiceState { Idle, Loading, Playing }

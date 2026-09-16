@@ -252,13 +252,17 @@ class DemoTelegramClient : TelegramClient {
                 )
             }
             is AttachmentDraft.Photos -> {
-                draft.uris.forEachIndexed { index, _ ->
+                draft.uris.forEachIndexed { index, uri ->
                     appendOutgoing(
                         chatId = chatId,
                         text = caption.ifBlank { "Photo" },
                         type = MessageContentType.Photo,
                         mediaEmoji = "🖼️",
-                        replyToId = replyToId.takeIf { index == 0 }
+                        replyToId = replyToId.takeIf { index == 0 },
+                        // The Uri the picker returned. Coil opens a content://
+                        // as readily as a file, so a photo picked in demo mode
+                        // is actually drawn rather than described.
+                        photoPath = uri
                     )
                 }
             }
@@ -355,7 +359,8 @@ class DemoTelegramClient : TelegramClient {
         mediaEmoji: String? = null,
         replyToId: Long? = null,
         voicePath: String? = null,
-        waveform: List<Int> = emptyList()
+        waveform: List<Int> = emptyList(),
+        photoPath: String? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -379,7 +384,8 @@ class DemoTelegramClient : TelegramClient {
             canBeDeletedForSelf = true,
             canBeDeletedForEveryone = true,
             voicePath = voicePath,
-            waveform = waveform
+            waveform = waveform,
+            photoPath = photoPath
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

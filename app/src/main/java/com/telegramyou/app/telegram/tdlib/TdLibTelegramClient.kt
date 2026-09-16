@@ -1089,7 +1089,20 @@ class TdLibTelegramClient(
                 ?.takeIf { it.optBoolean("is_downloading_completed") }
                 ?.optString("path")
                 ?.takeIf { it.isNotBlank() },
-            waveform = parseWaveform(content)
+            waveform = parseWaveform(content),
+            photoFileId = largestPhotoSize(content)?.optJSONObject("photo")?.optInt("id")
+                ?.takeIf { it != 0 },
+            photoPath = largestPhotoSize(content)
+                ?.optJSONObject("photo")
+                ?.optJSONObject("local")
+                ?.takeIf { it.optBoolean("is_downloading_completed") }
+                ?.optString("path")
+                ?.takeIf { it.isNotBlank() },
+            photoAspect = largestPhotoSize(content)?.let { size ->
+                val width = size.optInt("width")
+                val height = size.optInt("height")
+                if (width > 0 && height > 0) width.toFloat() / height else 1f
+            } ?: 1f
         )
     }
 
@@ -1140,6 +1153,19 @@ class TdLibTelegramClient(
             Log.w(TAG, "parseWaveform: ${e.message}")
             emptyList()
         }
+    }
+
+    /**
+     * The biggest size Telegram offers for a photo.
+     *
+     * A messagePhoto carries several, smallest first — thumbnails through to
+     * the original. The last is the one worth showing: anything smaller is
+     * visibly soft at the width a bubble draws it, and TDLib downsamples on
+     * request anyway.
+     */
+    private fun largestPhotoSize(content: JSONObject?): JSONObject? {
+        val sizes = content?.optJSONObject("photo")?.optJSONArray("sizes") ?: return null
+        return sizes.optJSONObject(sizes.length() - 1)
     }
 
     private fun mapUser(user: JSONObject): TelegramUser =
