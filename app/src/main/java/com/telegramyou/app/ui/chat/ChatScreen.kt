@@ -4,11 +4,13 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -52,6 +55,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -72,6 +76,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -79,11 +84,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntOffset
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
@@ -93,6 +102,7 @@ import com.telegramyou.app.ui.theme.BubbleIncomingShape
 import com.telegramyou.app.ui.theme.BubbleOutgoingShape
 import com.telegramyou.app.ui.theme.ComposerShape
 import com.telegramyou.app.ui.theme.DeepInk
+import kotlin.math.roundToInt
 
 /**
  * One conversation.
@@ -331,7 +341,7 @@ private fun DaySeparator(date: Long) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun MessageBubble(
     message: ChatMessage,
@@ -345,6 +355,29 @@ private fun MessageBubble(
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
+
+    // Swipe right to reply. The drag is kept in pixels because that is what
+    // the pointer reports; the thresholds are dp, so they convert once here
+    // rather than on every frame.
+    val density = LocalDensity.current
+    val maxOffsetPx = with(density) { SwipeToReply.MAX_OFFSET_DP.dp.toPx() }
+    val triggerOffsetPx = with(density) { SwipeToReply.TRIGGER_OFFSET_DP.dp.toPx() }
+    var rawDrag by remember { mutableFloatStateOf(0f) }
+    val offset by animateFloatAsState(
+        targetValue = swipeOffset(rawDrag, maxOffsetPx),
+        // Released, the bubble springs back; this is the theme's own spring,
+        // so it moves like everything else rather than to a number chosen here.
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "swipeToReply"
+    )
+    val haptics = LocalHapticFeedback.current
+    val armed = shouldTriggerReply(offset, triggerOffsetPx)
+    LaunchedEffect(armed) {
+        // Felt at the moment the threshold is crossed, not when the finger
+        // lifts: by then the decision has already been made.
+        if (armed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
+
     val corner = 20.dp
     val tail = 6.dp
     // Tight corners where a run continues, the tail only on its last message.
@@ -355,7 +388,25 @@ private fun MessageBubble(
         bottomEnd = if (!outgoing || isLastInRun) corner else tail
     )
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset { IntOffset(offset.roundToInt(), 0) }
+            .pointerInput(message.id) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (shouldTriggerReply(swipeOffset(rawDrag, maxOffsetPx), triggerOffsetPx)) {
+                            onReply()
+                        }
+                        rawDrag = 0f
+                    },
+                    onDragCancel = { rawDrag = 0f }
+                ) { change, dragAmount ->
+                    // Consumed so the conversation does not scroll sideways
+                    // underneath the gesture.
+                    change.consume()
+                    rawDrag += dragAmount
+                }
+            },
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {

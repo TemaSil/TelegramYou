@@ -205,8 +205,8 @@ four domain interfaces without touching either backend.
 1. **Then the inventory**: search (`SearchBar`) is the natural first screen —
    it also removes the `onClick = {}` stub that currently pretends to be a
    feature.
-2. **Swipe-to-reply**, which closes the `[~]` on Reply and needs no client
-   method.
+2. **Reactions** — `FilterChip` row under the bubble, picker in a sheet. Needs
+   another client method.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -249,6 +249,11 @@ push costs more than the feature is currently worth.
 
 ### Known debts, none of them hidden
 
+- **Swipe-to-reply is compiled and unproven.** Its arithmetic is tested — how
+  far the bubble travels, where the threshold sits, that a leftward drag does
+  nothing — but whether the gesture feels right under a thumb, and whether it
+  fights the list's vertical scroll, can only be judged on a device. Nobody
+  has held it.
 - **Nothing renders a screen in CI.** The app was installed once today and
   the chat list, avatars and motion were confirmed by hand; everything since
   — the ViewModel rebuild, typed routes, the interface split — is unverified
@@ -323,7 +328,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Date separators — `Surface` pill, `labelSmall`
 - [x] Sender name and avatar in groups
 - [x] Delivery state — `Icons.Rounded.Done` / `DoneAll`; Material ships both, so nothing is drawn by hand
-- [~] Reply: banner over the composer and quoted block in bubble; swipe-to-reply still missing
+- [x] Reply: swipe right on a bubble, banner over the composer, quoted block
+      inside it
 - [x] Edit and delete — long-press `DropdownMenu`, `AlertDialog` for the for-me / for-everyone choice
 - [ ] Reactions — `FilterChip` row under the bubble, picker in a sheet
 - [~] Copy via long-press `DropdownMenu`; forward and select still missing
