@@ -228,17 +228,42 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: warn
 
-      # Last, so the numbers land where the log tail can be read.
+      # Last, so both numbers and errors land where the log tail can be read.
       #
       # A green "Unit tests" step proves nothing on its own: Gradle reports
       # success when it runs no tests at all, and the artifact cannot be
       # downloaded from every environment. Failing here on an empty run turns
       # a green build into evidence that tests actually executed.
-      - name: Test summary
+      #
+      # The compile errors are reported from the same step for the same
+      # reason. A Kotlin error arrives wrapped in a Gradle stack trace two
+      # hundred frames deep, and the one line that says what is wrong scrolls
+      # past long before the end. Pulled out here, both the count and the
+      # errors sit in the last few lines of the log — and as annotations, for
+      # anyone reading the checks tab instead.
+      - name: Summary
         if: always()
         run: |
           python3 - <<'PY'
-          import glob, sys, xml.etree.ElementTree as ET
+          import glob, pathlib, re, sys, xml.etree.ElementTree as ET
+
+          # Compile errors first, so the test count stays the last line.
+          log = pathlib.Path('build-log.txt')
+          errors = []
+          if log.exists():
+              for line in log.read_text(errors='replace').splitlines():
+                  if not line.startswith('e: '):
+                      continue
+                  # The runner's absolute path is noise; the repo path is not.
+                  cleaned = re.sub(r'^file://\S*?/(?=app/|core/)', '', line[3:].strip())
+                  if cleaned not in errors:
+                      errors.append(cleaned)
+
+          for error in errors[:20]:
+              print(f"::error title=Compile error::{error}")
+              print(error)
+          if len(errors) > 20:
+              print(f"::error::and {len(errors) - 20} more")
 
           files = (glob.glob('app/build/test-results/**/*.xml', recursive=True)
                    + glob.glob('core/build/test-results/**/*.xml', recursive=True))
@@ -258,51 +283,16 @@ jobs:
           print(f"::notice title=Unit tests::{total} tests, "
                 f"{failed} failed, {skipped} skipped")
           print(f"TOTAL: {total} tests, {failed} failed, {skipped} skipped")
+
+          if errors:
+              # Naming the real cause: the tests did not run because nothing
+              # compiled, and "no tests ran" would send the next reader looking
+              # in the wrong place.
+              print(f"::error::{len(errors)} compile error(s); see above.")
+              sys.exit(1)
           if total == 0:
               print("::error::No tests ran. A green build must mean tests executed.")
               sys.exit(1)
           if failed:
               sys.exit(1)
-          PY
-
-      # A Kotlin compile error arrives wrapped in a Gradle stack trace two
-      # hundred frames deep, and the one line that says what is actually wrong
-      # scrolls past long before the end of the log. Reading it then costs a
-      # round trip through the API for a log that is mostly
-      # DefaultBuildOperationRunner.
-      #
-      # So the `e:` lines are pulled out and posted as annotations. This step
-      # is deliberately last: annotations are what a person reads in the checks
-      # tab, but the tail of the log is the only route some tooling has, and
-      # the tail is whatever ran last.
-      - name: Compile errors
-        if: always()
-        run: |
-          python3 - <<'PY'
-          import re, pathlib
-
-          log = pathlib.Path('build-log.txt')
-          if not log.exists():
-              print("No build log: the build failed before Gradle ran.")
-              raise SystemExit(0)
-
-          # Kotlin prefixes errors with "e: " and warnings with "w: ". The
-          # file: URI is dropped because the runner's absolute path is noise.
-          seen = []
-          for line in log.read_text(errors='replace').splitlines():
-              if not line.startswith('e: '):
-                  continue
-              cleaned = re.sub(r'^file://\S*?/(?=app/|core/)', '', line[3:].strip())
-              if cleaned not in seen:
-                  seen.append(cleaned)
-
-          if not seen:
-              print("The build failed without a Kotlin compile error.")
-              raise SystemExit(0)
-
-          for error in seen[:20]:
-              print(f"::error title=Compile error::{error}")
-              print(error)
-          if len(seen) > 20:
-              print(f"::error::and {len(seen) - 20} more")
           PY
