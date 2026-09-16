@@ -62,6 +62,8 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
@@ -176,7 +178,8 @@ fun ChatScreen(
     onAttachmentSheetOpenChange: (Boolean) -> Unit,
     onForwardRequested: () -> Unit,
     onForwardDismissed: () -> Unit,
-    onForwardTo: (ChatPreview) -> Unit
+    onForwardTo: (ChatPreview) -> Unit,
+    onVoiceToggled: (ChatMessage) -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -456,7 +459,13 @@ fun ChatScreen(
                             onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
                             isSelected = message.id in state.selection,
                             isSelecting = state.selection.isActive,
-                            onSelect = { onSelectionToggled(message) }
+                            onSelect = { onSelectionToggled(message) },
+                            voiceState = when (message.id) {
+                                state.playingVoiceId -> VoiceState.Playing
+                                state.loadingVoiceId -> VoiceState.Loading
+                                else -> VoiceState.Idle
+                            },
+                            onVoiceToggled = { onVoiceToggled(message) }
                         )
                     }
                 }
@@ -665,7 +674,9 @@ private fun MessageBubble(
     onReactionToggled: (String) -> Unit,
     isSelected: Boolean,
     isSelecting: Boolean,
-    onSelect: () -> Unit
+    onSelect: () -> Unit,
+    voiceState: VoiceState,
+    onVoiceToggled: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -807,24 +818,12 @@ private fun MessageBubble(
                         Text("${message.mediaEmoji ?: "🖼"} ${message.text}")
                     }
                     MessageContentType.Voice -> {
-                        // A microphone and a length, and nothing that looks
-                        // like a play button: there is no playback yet, and a
-                        // triangle that does nothing is a worse bubble than an
-                        // honest one. ROADMAP has the rest.
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Rounded.Mic,
-                                contentDescription = "Voice message",
-                                tint = if (outgoing) DeepInk
-                                else MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                message.text.ifBlank { "Voice message" },
-                                color = if (outgoing) DeepInk
-                                else MaterialTheme.colorScheme.onSurface
-                            )
-                        }
+                        VoiceMessage(
+                            label = message.text.ifBlank { "Voice message" },
+                            state = voiceState,
+                            outgoing = outgoing,
+                            onToggle = onVoiceToggled
+                        )
                     }
                     else -> Text(
                         message.text,
@@ -973,6 +972,55 @@ private fun newCameraFile(context: Context): File {
  */
 private fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+
+/** What the play button on a voice bubble is currently doing. */
+enum class VoiceState { Idle, Loading, Playing }
+
+/**
+ * A voice message, with the one control it needs.
+ *
+ * Play and pause are the same button showing which of the two it is, because
+ * the gesture is the same tap and a second button would have to be greyed out
+ * half the time. A file still arriving gets a spinner in the button's place
+ * rather than a play triangle that does nothing for two seconds.
+ *
+ * There is no waveform yet. Nothing captures amplitudes when recording and
+ * TDLib's own waveform is not read here, so drawing one would be drawing a
+ * shape that has nothing to do with the sound.
+ */
+@Composable
+private fun VoiceMessage(
+    label: String,
+    state: VoiceState,
+    outgoing: Boolean,
+    onToggle: () -> Unit
+) {
+    val tint = if (outgoing) DeepInk else MaterialTheme.colorScheme.primary
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        when (state) {
+            VoiceState.Loading -> CircularProgressIndicator(
+                strokeWidth = 2.dp,
+                color = tint,
+                modifier = Modifier
+                    .size(24.dp)
+                    .padding(2.dp)
+            )
+            else -> IconButton(onClick = onToggle, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    if (state == VoiceState.Playing) Icons.Rounded.Pause
+                    else Icons.Rounded.PlayArrow,
+                    contentDescription = if (state == VoiceState.Playing) "Pause" else "Play",
+                    tint = tint
+                )
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            label,
+            color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
 
 /**
  * What the chat has pinned, under the app bar.

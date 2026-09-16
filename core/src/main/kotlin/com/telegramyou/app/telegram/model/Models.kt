@@ -124,7 +124,22 @@ data class ChatMessage(
      * Empty for the overwhelming majority of messages, so the chip row costs
      * nothing where there is nothing to show.
      */
-    val reactions: List<MessageReaction> = emptyList()
+    val reactions: List<MessageReaction> = emptyList(),
+    /**
+     * Where a voice note's audio is, once it is on this device.
+     *
+     * Null while it is still only on Telegram's servers. A voice message can
+     * be shown, and its length read, long before the file arrives — so the
+     * bubble draws either way and only the play button waits on this.
+     */
+    val voicePath: String? = null,
+    /**
+     * TDLib's id for that file, which is what a download is asked for by.
+     *
+     * Separate from [voicePath] because one exists before the other: the id
+     * comes with the message, the path only after the bytes do.
+     */
+    val voiceFileId: Int? = null
 )
 
 /**

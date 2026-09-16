@@ -293,6 +293,35 @@ class ChatViewModelTest {
         assertFalse(vm.uiState.value.forwardSheetOpen)
     }
 
+    @Test
+    fun `a voice message with no file yet is fetched on the tap`() = runTest {
+        val voice = message(10).copy(voiceFileId = 77)
+        val (vm, client) = viewModel(listOf(voice))
+        client.downloadedPath = "/cache/voice.ogg"
+
+        vm.onVoiceToggled(voice)
+
+        // Fetched on the tap, not on arrival in the window: a conversation of
+        // voice notes would otherwise download every one of them to play none.
+        // The path is kept so a second tap does not fetch it again.
+        assertEquals(
+            "/cache/voice.ogg",
+            vm.uiState.value.messages.first { it.id == 10L }.voicePath
+        )
+        assertEquals(null, vm.uiState.value.loadingVoiceId)
+    }
+
+    @Test
+    fun `a voice message with neither a file nor an id is left alone`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+
+        vm.onVoiceToggled(message(10))
+
+        assertEquals(null, client.downloadedPath)
+        assertEquals(null, vm.uiState.value.loadingVoiceId)
+        assertEquals(null, vm.uiState.value.playingVoiceId)
+    }
+
     private companion object {
         const val CHAT_ID = 1L
     }

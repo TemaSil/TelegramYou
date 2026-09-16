@@ -243,7 +243,10 @@ class DemoTelegramClient : TelegramClient {
                     text = formatDuration(draft.durationSeconds.toLong()),
                     type = MessageContentType.Voice,
                     mediaEmoji = "🎤",
-                    replyToId = replyToId
+                    replyToId = replyToId,
+                    // The file the recorder just wrote, so a voice message
+                    // made in demo mode plays back offline.
+                    voicePath = draft.path
                 )
             }
             is AttachmentDraft.Photos -> {
@@ -321,6 +324,15 @@ class DemoTelegramClient : TelegramClient {
      */
     override suspend fun availableReactions(chatId: Long): List<String> = DEMO_REACTIONS
 
+    /**
+     * Demo mode holds no remote files, so there is never anything to fetch.
+     *
+     * A recording made here is already a path on this device and arrives on
+     * the message itself — which is why playing back your own voice message
+     * works offline, and why nothing else does.
+     */
+    override suspend fun downloadFile(fileId: Int): String? = null
+
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
@@ -339,7 +351,8 @@ class DemoTelegramClient : TelegramClient {
         fileName: String? = null,
         fileSizeLabel: String? = null,
         mediaEmoji: String? = null,
-        replyToId: Long? = null
+        replyToId: Long? = null,
+        voicePath: String? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -361,7 +374,8 @@ class DemoTelegramClient : TelegramClient {
             replyToSender = quoted?.senderName,
             canBeEdited = true,
             canBeDeletedForSelf = true,
-            canBeDeletedForEveryone = true
+            canBeDeletedForEveryone = true,
+            voicePath = voicePath
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

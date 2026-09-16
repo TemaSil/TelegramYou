@@ -606,6 +606,35 @@ class TdLibTelegramClient(
         }
     }
 
+    /**
+     * Downloads a file and waits for it, then answers with its path.
+     *
+     * priority 32 is TDLib's "the user is looking at this"; synchronous true
+     * makes the call return when the bytes are there rather than immediately
+     * with a file that is still arriving, which is what a play button needs.
+     */
+    override suspend fun downloadFile(fileId: Int): String? {
+        awaitReady()
+        return try {
+            val file = requireEngine().send(
+                JSONObject()
+                    .put("@type", "downloadFile")
+                    .put("file_id", fileId)
+                    .put("priority", 32)
+                    .put("offset", 0)
+                    .put("limit", 0)
+                    .put("synchronous", true)
+            )
+            file.optJSONObject("local")
+                ?.takeIf { it.optBoolean("is_downloading_completed") }
+                ?.optString("path")
+                ?.takeIf { it.isNotBlank() }
+        } catch (e: TdLibException) {
+            Log.w(TAG, "downloadFile($fileId): ${e.message}")
+            null
+        }
+    }
+
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
@@ -1043,7 +1072,19 @@ class TdLibTelegramClient(
                 MessageContentType.Document -> "📎"
                 else -> null
             },
-            reactions = parseReactions(message)
+            reactions = parseReactions(message),
+            // Only a voice note carries these, and only once TDLib has the
+            // bytes: the id arrives with the message, the path with the file.
+            voiceFileId = content?.optJSONObject("voice_note")
+                ?.optJSONObject("voice")
+                ?.optInt("id")
+                ?.takeIf { it != 0 },
+            voicePath = content?.optJSONObject("voice_note")
+                ?.optJSONObject("voice")
+                ?.optJSONObject("local")
+                ?.takeIf { it.optBoolean("is_downloading_completed") }
+                ?.optString("path")
+                ?.takeIf { it.isNotBlank() }
         )
     }
 

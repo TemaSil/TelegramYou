@@ -132,6 +132,11 @@ class FakeTelegramClient(
         this.muted = chatId to muted
     }
 
+    /** What downloadFile answers with; null unless a test sets it. */
+    var downloadedPath: String? = null
+
+    override suspend fun downloadFile(fileId: Int): String? = downloadedPath
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
     override suspend fun sendAttachment(
         chatId: Long,

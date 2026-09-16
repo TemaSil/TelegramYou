@@ -184,7 +184,8 @@ fun TelegramYouNavHost(
                 onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange,
                 onForwardRequested = chatViewModel::onForwardRequested,
                 onForwardDismissed = chatViewModel::onForwardDismissed,
-                onForwardTo = chatViewModel::onForwardTo
+                onForwardTo = chatViewModel::onForwardTo,
+                onVoiceToggled = chatViewModel::onVoiceToggled
             )
         }
         composable(
