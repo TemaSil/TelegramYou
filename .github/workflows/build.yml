@@ -371,7 +371,7 @@ jobs:
         continue-on-error: true
         run: |
           V=1.5.0-alpha28
-          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3
+          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
           curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
           unzip -o -q m3.aar classes.jar -d m3
           for C in MaterialShapes MaterialShapesKt; do
