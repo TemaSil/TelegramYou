@@ -136,6 +136,17 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
+    // The app run on a real Android runtime, driven from outside itself.
+    //
+    // UiAutomator rather than Compose's own test rule, deliberately. The
+    // Compose rule synchronises on the composition being idle, and this app is
+    // never idle — the typing indicator and the Expressive loading indicator
+    // are infinite animations, which is exactly the case that hangs it.
+    // UiAutomator reads the accessibility tree instead and does not care.
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+
     // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
     // this is the only way to reach Expressive at all. It is an alpha, and
     // the theme every screen is built on, so it is worth knowing that is a
