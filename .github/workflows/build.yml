@@ -361,24 +361,29 @@ jobs:
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
 
-      # TEMPORARY. Delete once the MaterialShapes call is right.
+      # TEMPORARY. Delete once the shape code is right.
       #
-      # Same trick as the ButtonGroup probe, for the same reason: the alpha is
-      # documented nowhere, this environment cannot reach dl.google.com, and
-      # guessing at a signature costs a red build each time. See ROADMAP.md.
-      - name: What MaterialShapes actually looks like
+      # MaterialShapes turned out to be internal in alpha28 — every one of the
+      # thirty-five — so the shapes have to be built from graphics-shapes
+      # directly. That artifact is a stable 1.0.1, and this reads its real API
+      # rather than guessing at it. See ROADMAP.md for why javap in CI is the
+      # only authority available here.
+      - name: What graphics-shapes actually offers
         if: always()
         continue-on-error: true
         run: |
-          V=1.5.0-alpha28
-          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
-          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
+          G=https://dl.google.com/dl/android/maven2/androidx/graphics/graphics-shapes-android
+          curl -fsSL "$G/1.0.1/graphics-shapes-android-1.0.1.aar" -o gs.aar
+          unzip -o -q gs.aar classes.jar -d gs
+          for C in RoundedPolygonKt RoundedPolygon 'RoundedPolygon$Companion' \
+                   CornerRounding 'CornerRounding$Companion'; do
+            echo "--- $C ---"
+            javap -classpath gs/classes.jar -public "androidx.graphics.shapes.$C" \
+              2>/dev/null || echo "(no such class)"
+          done
+          echo "--- is toShape public? ---"
+          M3=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3
+          curl -fsSL "$M3/material3-android/1.5.0-alpha28/material3-android-1.5.0-alpha28.aar" \
+            -o m3.aar
           unzip -o -q m3.aar classes.jar -d m3
-          # The POM as well as the classes. MaterialShapes hands back
-          # androidx.graphics.shapes.RoundedPolygon, so that artifact has to
-          # be on the compile classpath — transitively if material3 declares
-          # it `api`, and explicitly if not. Either way the version has to
-          # come from here rather than from memory.
-          curl -fsSL "$B/material3-android/$V/material3-android-$V.pom" \
-            | grep -A 3 graphics-shapes || echo "(no graphics-shapes in the POM)"
-
+          javap -classpath m3/classes.jar -public androidx.compose.material3.MaterialShapesKt
