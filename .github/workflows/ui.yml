@@ -1,0 +1,124 @@
+# Runs the app on a real Android runtime, and brings back pictures.
+#
+# The Build workflow proves the code compiles and that pure logic behaves.
+# What neither it nor any unit test can say is whether a screen appears at
+# all — every composable in this project is written without a device, and the
+# first time anyone found out that the chat list crashed after login was by
+# installing the APK by hand.
+#
+# So this boots an emulator, drives the demo client from a cold start to the
+# chat list, and pushes the screenshots to a branch. A branch rather than an
+# artifact because artifacts need a login to fetch and expire in ninety days,
+# while a branch can simply be cloned.
+name: UI
+
+on:
+  # Not on every push: an emulator takes minutes where the Build workflow
+  # takes one, and the fast loop is worth keeping fast.
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # KVM is what makes an x86_64 emulator usable rather than an hour of
+      # ARM interpretation. GitHub's ubuntu runners have it; it just needs to
+      # be readable by the runner's user.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the app on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          # Everything that would otherwise be drawn over the app, or would
+          # slow the boot to no purpose.
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb logcat -c
+            adb logcat > logcat.txt &
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace || echo "TESTS_FAILED" > failed.marker
+            # Pulled whether or not the test passed: a screenshot of the wrong
+            # screen is the most useful thing there is when it failed.
+            mkdir -p screenshots
+            adb pull /sdcard/Android/data/com.telegramyou.app.debug/files/screenshots/. screenshots/ || true
+
+      # The app's own crash, if it had one, in the words Android used. This is
+      # the part a person cannot read off a phone without a cable.
+      - name: What the app said
+        if: always()
+        run: |
+          echo "--- screenshots taken ---"
+          ls -la screenshots/ 2>/dev/null || echo "(none)"
+          echo "--- crashes and fatal errors in logcat ---"
+          grep -E "FATAL EXCEPTION|AndroidRuntime|com\.telegramyou" logcat.txt \
+            | tail -80 || echo "(nothing from this app)"
+
+      # Pushed rather than uploaded: an artifact is behind a login and expires,
+      # and the point of these is to be looked at by whoever is working on the
+      # screens, including from a checkout with no GitHub session.
+      - name: Publish the screenshots
+        if: always()
+        run: |
+          if [ ! -d screenshots ] || [ -z "$(ls -A screenshots 2>/dev/null)" ]; then
+            echo "Nothing to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # An orphan branch, rewritten each time: these are the current state
+          # of the screens, not a history of them, and PNGs accumulate fast.
+          git checkout --orphan ui-screenshots
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -not -name . -not -name .git -not -name screenshots \
+            -exec rm -rf {} + 2>/dev/null || true
+          {
+            echo "# Screenshots"
+            echo
+            echo "Taken by the UI workflow from commit ${GITHUB_SHA}."
+            echo "This branch is rewritten on every run."
+          } > README.md
+          git add -A
+          git commit -q -m "Screens at ${GITHUB_SHA}"
+          git push -f origin ui-screenshots
+
+      - name: Keep the log too
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logcat
+          path: logcat.txt
+          if-no-files-found: warn
