@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.toggleReaction
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -125,6 +126,29 @@ class ChatViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            // Arrivals for this chat, appended as they land. Without this the
+            // conversation is whatever openChat returned and never changes:
+            // a message sent while it was on screen only appeared after a
+            // reload, which for a messenger is the whole feature missing.
+            repository.incomingMessages
+                .filter { it.chatId == chatId }
+                .collect { message -> appendArrival(message) }
+        }
+    }
+
+    /**
+     * Adds a newly arrived message to the window already on screen.
+     *
+     * Guarded by id: TDLib can repeat an update after a reconnect, and a
+     * message drawn twice is worse than one drawn late. The detail is patched
+     * rather than reloaded because a reload would discard the paged-in
+     * history above it and jump the list.
+     */
+    private fun appendArrival(message: ChatMessage) = _uiState.update { state ->
+        val detail = state.detail ?: return@update state
+        if (detail.messages.any { it.id == message.id }) return@update state
+        state.copy(detail = detail.copy(messages = detail.messages + message))
     }
 
     // ── composing ────────────────────────────────────────────────────────

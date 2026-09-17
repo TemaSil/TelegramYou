@@ -11,6 +11,7 @@ import androidx.test.uiautomator.Until
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.regex.Pattern
 import org.junit.runner.RunWith
 
 /**
@@ -76,6 +77,12 @@ class SmokeTest {
         type("12345")
         tap(By.text("Sign in"))
 
+        // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
+        // the system dialog covers the very chat this test waits for. Granting
+        // it rather than dismissing it, because a refusal would leave the
+        // notification service posting into nothing for the rest of the run.
+        allowNotifications()
+
         // Anchored on a chat the demo backend seeds, not on the app's name.
         // "TelegramYou" is written across the login screen too, so waiting for
         // it passed while the app was crashing on the way to the chat list —
@@ -87,6 +94,26 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         screenshot("04-chat")
+    }
+
+    /**
+     * Answers the notification permission dialog, if one is up.
+     *
+     * Not a [waitFor]: below Android 13 the permission is granted at install
+     * and no dialog appears, so its absence is not a failure. The wait is
+     * short for the same reason — this is a look, not an expectation.
+     *
+     * The button's label is the system's, not ours, so it is matched
+     * case-insensitively: it has been "Allow" and "ALLOW" on different
+     * versions, and a test that breaks on the capitalisation of a platform
+     * string tells nobody anything about this app.
+     */
+    private fun allowNotifications() {
+        val allow = By.text(Pattern.compile("allow", Pattern.CASE_INSENSITIVE))
+        if (device.wait(Until.hasObject(allow), DIALOG_TIMEOUT)) {
+            device.findObject(allow)?.click()
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
     }
 
     private fun waitFor(selector: BySelector, what: String) {
@@ -139,5 +166,12 @@ class SmokeTest {
         const val LAUNCH_TIMEOUT = 20_000L
         const val STEP_TIMEOUT = 20_000L
         const val IDLE_TIMEOUT = 5_000L
+
+        /**
+         * Short, because a missing permission dialog is a valid outcome —
+         * below Android 13 there is none — and this would otherwise add
+         * twenty seconds of waiting for nothing to every run.
+         */
+        const val DIALOG_TIMEOUT = 4_000L
     }
 }

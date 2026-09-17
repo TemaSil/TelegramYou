@@ -3,9 +3,24 @@ package com.telegramyou.app.telegram.messages
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import kotlinx.coroutines.flow.Flow
 
 /** What can be done to a message once a conversation is open. */
 interface TelegramMessages {
+    /**
+     * Messages as they arrive, from every chat.
+     *
+     * A `Flow` rather than a `StateFlow`: an arrival is an event, and a
+     * state holder would let a subscriber that joins late re-handle the last
+     * one. For a notification that means buzzing twice for a message already
+     * shown, which is precisely the failure this is meant to avoid.
+     *
+     * Every subscriber sees every message, including the conversation on
+     * screen and the service that posts notifications. Deciding which of
+     * them to ignore is `decideNotification` in :core, not this.
+     */
+    val incomingMessages: Flow<ChatMessage>
+
     /** [replyToId] answers an existing message, or null for a fresh one. */
     suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null)
 

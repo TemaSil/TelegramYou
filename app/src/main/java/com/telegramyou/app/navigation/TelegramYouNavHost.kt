@@ -5,6 +5,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -14,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.telegramyou.app.settings.AppearanceStore
+import com.telegramyou.app.telegram.AppVisibility
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
@@ -21,6 +23,7 @@ import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
+import com.telegramyou.app.ui.components.RequestNotificationPermission
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.settings.SettingsScreen
@@ -30,7 +33,11 @@ import com.telegramyou.app.ui.stories.StoryViewerScreen
 @Composable
 fun TelegramYouNavHost(
     repository: TelegramRepository,
-    appearance: AppearanceStore
+    appearance: AppearanceStore,
+    /** A chat a notification asked to open, or null. */
+    openChatId: Long? = null,
+    /** Called once the request above has been acted on. */
+    onChatOpened: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     // Only the auth state is read here, and only to decide where to send the
@@ -70,6 +77,22 @@ fun TelegramYouNavHost(
                 }
             }
         }
+    }
+
+    // Keyed on the id, so two notifications for the same chat in a row do not
+    // navigate twice, and one for a different chat still does. Gated on the
+    // auth state because a notification can be tapped before the client has
+    // finished signing in, and navigating to a chat from the login screen
+    // would strand someone on a conversation they are not authorised to read.
+    LaunchedEffect(openChatId, auth.state) {
+        val chatId = openChatId ?: return@LaunchedEffect
+        if (auth.state != AuthState.Ready) return@LaunchedEffect
+        navController.navigateTo(Route.Chat(chatId)) {
+            // Home underneath, so back from a chat opened out of the shade
+            // lands on the chat list rather than leaving the app.
+            popUpTo(Route.Home.PATTERN)
+        }
+        onChatOpened()
     }
 
     NavHost(
@@ -117,6 +140,10 @@ fun TelegramYouNavHost(
         composable(Route.Home.PATTERN) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+            // Here rather than at launch: by now there is a chat list on
+            // screen, so "let us tell you when these people write" explains
+            // itself. See the composable for why it is asked only once.
+            RequestNotificationPermission()
             HomeScreen(
                 state = state,
                 onRefresh = homeViewModel::refresh,
@@ -157,6 +184,16 @@ fun TelegramYouNavHost(
             // of its state rather than only as long as this composition.
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
             val state by chatViewModel.uiState.collectAsStateWithLifecycle()
+            // Tells the notification service which chat is being read, so it
+            // does not announce a message the person is looking at. Cleared on
+            // leaving rather than on the next chat's arrival: between two
+            // conversations there is no open chat, and claiming the old one
+            // would silence a message that belongs in the shade.
+            val openChat = state.detail?.chat?.id
+            DisposableEffect(openChat) {
+                AppVisibility.openChatId = openChat
+                onDispose { AppVisibility.openChatId = null }
+            }
             ChatScreen(
                 state = state,
                 onBack = { navController.popBackStack() },

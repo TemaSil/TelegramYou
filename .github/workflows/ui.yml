@@ -136,10 +136,20 @@ jobs:
           git commit -q -m "Screens at ${GITHUB_SHA}"
           git push -f origin ui-screenshots
 
-      # Last, and this is the point: the previous version swallowed a failing
-      # test with `|| echo marker` and never looked at the marker, so a run
-      # where nothing worked reported success. Everything above has `always()`
-      # so the evidence is published either way — and then this fails.
+      # Last, and this is the point. Two versions of this have now reported
+      # success on a run where the app never reached the chat list.
+      #
+      # The first swallowed the failure with `|| echo marker` and never looked
+      # at the marker. The second looked at the marker — but AGP 9 does not
+      # fail the Gradle invocation when an instrumentation test fails. It
+      # writes failures="1" into the report, writes 1 into
+      # test-result-exit-code.txt, and exits 0. So the marker was never
+      # written, and a red test was reported green a second time.
+      #
+      # The report is therefore the authority, not Gradle's exit code — the
+      # same rule the Build workflow already applies to unit tests. A run with
+      # no tests in it fails too: an emulator that never got as far as running
+      # anything must not look like a pass.
       - name: Did the app actually work
         if: always()
         run: |
@@ -147,8 +157,30 @@ jobs:
             echo "The app crashed. First fatal exception:"
             head -30 evidence/crash.txt
           fi
-          if [ -f failed.marker ]; then
-            echo "::error::The smoke test failed. See the ui-screenshots branch."
-            exit 1
-          fi
-          echo "The app started, signed in and reached the chat list."
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+
+          total = failed = 0
+          for path in glob.glob('evidence/results/**/*.xml', recursive=True):
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              for suite in root.iter('testsuite'):
+                  total += int(suite.get('tests', 0))
+                  failed += int(suite.get('failures', 0)) + int(suite.get('errors', 0))
+              for case in root.iter('testcase'):
+                  for problem in list(case.iter('failure')) + list(case.iter('error')):
+                      print(f"::error title={case.get('name')}::"
+                            + (problem.text or '').strip().splitlines()[0])
+                      print((problem.text or '').strip())
+
+          print(f"::notice title=Emulator::{total} tests, {failed} failed")
+          if total == 0:
+              print("::error::No instrumentation tests ran.")
+              sys.exit(1)
+          if failed:
+              print("::error::The smoke test failed. See the ui-screenshots branch.")
+              sys.exit(1)
+          print("The app started, signed in and reached the chat list.")
+          PY

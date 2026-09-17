@@ -20,6 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +71,8 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -77,6 +80,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -157,6 +161,9 @@ import kotlinx.coroutines.launch
  * to draw, slow enough that it is not a reading per frame.
  */
 private const val RECORDING_TICK_MS = 250L
+
+/** The gap Material specifies between the buttons of a connected group. */
+private val CONNECTED_BUTTON_SPACING = 2.dp
 
 /**
  * One conversation.
@@ -1972,12 +1979,6 @@ private fun ComposerBar(
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            // One button, not two. Which system picker to open is a question
-            // for the sheet, and a composer that grows an icon per attachment
-            // type runs out of room before it runs out of types.
-            IconButton(onClick = onAttach) {
-                Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
-            }
             if (recordingSince != null) {
                 // The field is replaced rather than covered: nothing can be
                 // typed one-handed while the other thumb is holding the
@@ -2021,47 +2022,153 @@ private fun ComposerBar(
             )
             }
             Spacer(Modifier.width(8.dp))
-            if (value.isBlank()) {
-                FilledIconButton(
-                    // onClick stays empty because this is a hold, not a tap:
-                    // the gesture below owns press, release and cancel, and a
-                    // tap that fired as well would send an empty recording.
-                    onClick = {},
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (recordingSince != null) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        }
-                    ),
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                onRecordStart()
-                                // Waits here until the finger lifts or the
-                                // gesture is taken over by a scroll; either
-                                // way the recording ends where it started.
-                                val released = tryAwaitRelease()
-                                if (released) onRecordStop() else onRecordCancel()
-                            }
-                        )
-                    }
-                ) {
-                    Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
-                }
-            } else {
-                FilledIconButton(
-                    onClick = onSend,
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
-                }
-            }
+            ComposerActions(
+                hasText = value.isNotBlank(),
+                recording = recordingSince != null,
+                onAttach = onAttach,
+                onSend = onSend,
+                onRecordStart = onRecordStart,
+                onRecordStop = onRecordStop,
+                onRecordCancel = onRecordCancel
+            )
         }
+    }
+}
+
+/**
+ * The composer's two buttons, as one Expressive [ButtonGroup].
+ *
+ * They used to sit either side of the field — a paperclip on the left, send
+ * or the microphone on the right — which is three separate things in a row
+ * and no relationship between any of them. A ButtonGroup only means
+ * something when its buttons touch: pressing one widens it and squeezes its
+ * neighbour, which is the whole point of the component, and cannot happen
+ * across a text field.
+ *
+ * `customItem` rather than `clickableItem`, and that is forced: the scope's
+ * ready-made items draw a Button with a text label, while these are icons,
+ * and the microphone is a press-and-hold rather than a click. Each item
+ * therefore supplies both a button and what to show in the overflow menu if
+ * it ever does not fit. With two items it never does, but the parameter is
+ * not optional.
+ *
+ * The microphone's width does not animate, unlike the paperclip's. Its
+ * pointerInput consumes the gesture before the interaction source sees a
+ * press, and a recording that starts reliably is worth more than a squeeze.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ComposerActions(
+    hasText: Boolean,
+    recording: Boolean,
+    onAttach: () -> Unit,
+    onSend: () -> Unit,
+    onRecordStart: () -> Unit,
+    onRecordStop: () -> Unit,
+    onRecordCancel: () -> Unit
+) {
+    ButtonGroup(
+        // Positional, deliberately: this parameter has no default and is the
+        // menu shown when an item does not fit.
+        { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) },
+        // The connected spacing, not the default one. These buttons wear the
+        // connected leading and trailing shapes, and the standard gap leaves
+        // them looking like two unrelated icons that happen to be near each
+        // other — which is what the emulator screenshot showed.
+        //
+        // The literal rather than ButtonGroupDefaults.connectedSpaceBetween:
+        // javap shows a getConnectedSpaceBetween-D9Ej5fM() on that object,
+        // but Kotlin will not resolve the property from here — the mangled
+        // name a Dp return gives it appears not to map back. 2.dp is what
+        // Material specifies for a connected group, so the value is right
+        // even if the route to it is not the tidy one.
+        horizontalArrangement = Arrangement.spacedBy(CONNECTED_BUTTON_SPACING)
+    ) {
+        customItem(
+            {
+                val interaction = remember { MutableInteractionSource() }
+                FilledTonalIconButton(
+                    onClick = onAttach,
+                    // One button, not two. Which system picker to open is a
+                    // question for the sheet, and a composer that grows an
+                    // icon per attachment type runs out of room before it
+                    // runs out of types.
+                    enabled = !recording,
+                    shape = ButtonGroupDefaults.connectedLeadingButtonShape,
+                    interactionSource = interaction,
+                    modifier = Modifier.animateWidth(interaction)
+                ) {
+                    Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
+                }
+            },
+            { menuState ->
+                DropdownMenuItem(
+                    text = { Text("Attach") },
+                    onClick = {
+                        menuState.dismiss()
+                        onAttach()
+                    }
+                )
+            }
+        )
+        customItem(
+            {
+                if (hasText) {
+                    val interaction = remember { MutableInteractionSource() }
+                    FilledIconButton(
+                        onClick = onSend,
+                        shape = ButtonGroupDefaults.connectedTrailingButtonShape,
+                        interactionSource = interaction,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier.animateWidth(interaction)
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
+                    }
+                } else {
+                    FilledIconButton(
+                        // onClick stays empty because this is a hold, not a
+                        // tap: the gesture below owns press, release and
+                        // cancel, and a tap that fired as well would send an
+                        // empty recording.
+                        onClick = {},
+                        shape = ButtonGroupDefaults.connectedTrailingButtonShape,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (recording) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            }
+                        ),
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    onRecordStart()
+                                    // Waits here until the finger lifts or
+                                    // the gesture is taken over by a scroll;
+                                    // either way the recording ends where it
+                                    // started.
+                                    val released = tryAwaitRelease()
+                                    if (released) onRecordStop() else onRecordCancel()
+                                }
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
+                    }
+                }
+            },
+            { menuState ->
+                DropdownMenuItem(
+                    text = { Text(if (hasText) "Send" else "Record") },
+                    onClick = {
+                        menuState.dismiss()
+                        if (hasText) onSend()
+                    }
+                )
+            }
+        )
     }
 }

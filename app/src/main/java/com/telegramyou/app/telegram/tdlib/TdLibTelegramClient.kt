@@ -26,7 +26,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -76,6 +79,12 @@ class TdLibTelegramClient(
 
     private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
+
+    // extraBufferCapacity so emitting never suspends: this is written from
+    // the TDLib update callback, which must return promptly — blocking it
+    // stalls every other update behind this one.
+    private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
+    override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
     private val _stories = MutableStateFlow<List<StoryItem>>(emptyList())
     override val stories: StateFlow<List<StoryItem>> = _stories.asStateFlow()
@@ -756,6 +765,10 @@ class TdLibTelegramClient(
                 val mapped = mapMessage(chatId, message)
                 messagesByChat.getOrPut(chatId) { mutableListOf() }.add(mapped)
                 chatsById[chatId]?.put("last_message", message)
+                // Announced before publishChats, because a subscriber that
+                // reacts to the message should not have to race the chat list
+                // rebuild to see it.
+                _incomingMessages.tryEmit(mapped)
                 scope.launch { publishChats() }
             }
             "updateMessageSendSucceeded" -> {

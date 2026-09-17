@@ -22,6 +22,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -44,12 +53,76 @@ class DemoTelegramClient : TelegramClient {
 
     private val chatMessages = mutableMapOf<Long, MutableList<ChatMessage>>()
 
+    // extraBufferCapacity so an emit never suspends: this flow is written to
+    // from a timer that must not be held up by a slow subscriber, and there
+    // is no sensible backpressure answer for "a message arrived".
+    private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
+    override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var chatter: Job? = null
+
     override fun start() {
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber, isLoading = false)
         seedMessages()
     }
 
-    override fun shutdown() = Unit
+    override fun shutdown() {
+        chatter?.cancel()
+        chatter = null
+    }
+
+    /**
+     * A demo chat that says something every so often.
+     *
+     * Without this there is nothing to notify about offline, and notification
+     * work would be unverifiable without a live account — which is exactly
+     * the position this backend exists to avoid. It starts once the person is
+     * signed in, not at construction, so the login screen is quiet.
+     */
+    private fun startDemoChatter() {
+        if (chatter != null) return
+        chatter = scope.launch {
+            var index = 0
+            while (isActive) {
+                delay(DEMO_CHATTER_INTERVAL_MS)
+                val chat = _chats.value.firstOrNull { !it.isMuted } ?: continue
+                val line = DEMO_CHATTER_LINES[index % DEMO_CHATTER_LINES.size]
+                index++
+                appendIncoming(chat.id, chat.title, line)
+            }
+        }
+    }
+
+    /** A message from the other side: stored, counted and announced. */
+    private fun appendIncoming(chatId: Long, senderName: String, text: String) {
+        val msg = ChatMessage(
+            id = messageId.incrementAndGet(),
+            chatId = chatId,
+            text = text,
+            isOutgoing = false,
+            timeLabel = demoTimeFormat.format(Date()),
+            date = System.currentTimeMillis() / 1000,
+            senderName = senderName,
+            isRead = false,
+            contentType = MessageContentType.Text
+        )
+        chatMessages.getOrPut(chatId) { mutableListOf() }.add(msg)
+        _chats.update { list ->
+            list.map { chat ->
+                if (chat.id == chatId) {
+                    chat.copy(
+                        lastMessage = text,
+                        timestampLabel = msg.timeLabel,
+                        unreadCount = chat.unreadCount + 1
+                    )
+                } else {
+                    chat
+                }
+            }
+        }
+        _incomingMessages.tryEmit(msg)
+    }
 
     override suspend fun submitPhoneNumber(phone: String) {
         _authState.update {
@@ -94,6 +167,7 @@ class DemoTelegramClient : TelegramClient {
                 )
             )
         }
+        startDemoChatter()
     }
 
     override suspend fun submitPassword(password: String) {
@@ -106,6 +180,7 @@ class DemoTelegramClient : TelegramClient {
                 me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive")
             )
         }
+        startDemoChatter()
     }
 
     override suspend fun resendCode() {
@@ -486,6 +561,25 @@ class DemoTelegramClient : TelegramClient {
 
     /** Telegram's default reaction set, in its order. */
 private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
+
+/**
+ * How often the demo chat says something.
+ *
+ * Long enough not to be a nuisance while someone is looking at the interface,
+ * short enough that a notification arrives within one emulator test.
+ *
+ * `val` rather than `const val`: everything from DEMO_REACTIONS down is
+ * inside the class body, whatever the indentation suggests, and const is
+ * only allowed at the top level or in an object.
+ */
+private val DEMO_CHATTER_INTERVAL_MS = 25_000L
+
+private val DEMO_CHATTER_LINES = listOf(
+    "Did the ButtonGroup land?",
+    "The shade should show this one.",
+    "Tapping this ought to open the right chat.",
+    "Muting me should stop these."
+)
 
 private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 }

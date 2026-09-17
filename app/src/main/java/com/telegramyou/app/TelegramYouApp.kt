@@ -19,7 +19,7 @@ class TelegramYouApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
         appearance = AppearanceStore(this)
 
         val client = if (BuildConfig.USE_DEMO_CLIENT) {
@@ -35,19 +35,41 @@ class TelegramYouApp : Application() {
         telegramRepository.start()
     }
 
-    private fun createNotificationChannel() {
+    /**
+     * Two channels, because they are two different promises.
+     *
+     * The sync channel is IMPORTANCE_LOW: it exists because Android requires
+     * a foreground service to show something, and nobody wants to be told
+     * their messenger is connected. Messages are IMPORTANCE_HIGH, since a
+     * message is the thing a person installed this for.
+     *
+     * Separate channels also hand the settings app the right knobs: someone
+     * can silence the connection notice without silencing their messages,
+     * which one shared channel would make impossible.
+     */
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(
+        val sync = NotificationChannel(
             CHANNEL_SYNC,
             getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = getString(R.string.notification_channel_desc)
         }
-        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+        val messages = NotificationChannel(
+            CHANNEL_MESSAGES,
+            getString(R.string.notification_channel_messages_name),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.notification_channel_messages_desc)
+        }
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(sync)
+        manager.createNotificationChannel(messages)
     }
 
     companion object {
         const val CHANNEL_SYNC = "telegram_sync"
+        const val CHANNEL_MESSAGES = "telegram_messages"
     }
 }
