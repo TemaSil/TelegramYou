@@ -76,10 +76,17 @@ class SmokeTest {
         type("12345")
         tap(By.text("Sign in"))
 
-        // The moment that crashed on a real phone: everything above worked and
-        // the chat list never arrived.
-        waitFor(By.text("TelegramYou"), "the chat list")
+        // Anchored on a chat the demo backend seeds, not on the app's name.
+        // "TelegramYou" is written across the login screen too, so waiting for
+        // it passed while the app was crashing on the way to the chat list —
+        // a green test and a screenshot of the code screen labelled "chats".
+        waitFor(By.text("Material Design"), "the chat list")
         screenshot("03-chats")
+
+        // Into a conversation, which is where most of this project's code is.
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        screenshot("04-chat")
     }
 
     private fun waitFor(selector: BySelector, what: String) {
