@@ -237,6 +237,54 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
+## Where this was left, 17 September 2026
+
+**Two branches are green and unmerged.** Both build, both pass, neither has
+been looked at on a phone. Merging them is the first thing tomorrow, after
+somebody has judged how they look — which is the half of this CI cannot do.
+
+- `feat/floating-composer` — the composer is one floating capsule held clear
+  of the edges, with plus, camera, the field and the microphone inside it.
+  Seen on the emulator in its earlier form; the three-button version has not
+  been.
+- `feat/avatar-cluster` — a group's header shows its members overlapping,
+  each in a different shape. Compiles; never rendered.
+
+Landed on `main` today: the notification stack (a foreground service that is
+actually started, two channels, `MessagingStyle`, tap-opens-the-chat, mute
+and the open chat respected), `incomingMessages` in both backends — which
+also gives a conversation that updates live rather than only on reopen — and
+the emulator test now watches a notification arrive in the shade.
+
+### What the next session should pick up
+
+1. **Look at the two branches and merge them.** Both are waiting on an
+   opinion, not on work.
+2. **Reply from the notification** — `RemoteInput`. The one unticked line in
+   the notifications section.
+3. **A real member list.** The avatar cluster is built from whoever has
+   written in the loaded window, because `TelegramClient` cannot ask who is
+   in a group. It shows who is talking rather than who is present. The TDLib
+   call belongs under groups and channels below.
+4. **The bottom navigation bar on Home** — `ShortNavigationBar`, deferred
+   twice now.
+
+### Two things learned today that cost rounds
+
+**`MaterialShapes` is unusable.** All thirty-five shapes are `internal` in
+material3 1.5.0-alpha28, and alpha28 is the newest material3 that exists —
+checked against Google's Maven, not assumed. `javap` shows their lazy
+accessors (`access$get_flower$cp`), which reads exactly like a public API and
+is not; the compiler refused twelve of them at once. The shapes are built
+from `androidx.graphics:graphics-shapes` instead, which is the library that
+catalogue is itself made of, at a stable 1.0.1. When androidx opens the
+catalogue, swapping to it is mechanical.
+
+**AGP 9 exits 0 when an instrumentation test fails.** It writes
+`failures="1"` into the report and `1` into `test-result-exit-code.txt`, and
+returns success. The UI workflow trusted that exit code and reported green on
+a red test twice. It reads the report now. See CLAUDE.md.
+
 ## Where this was left, 16 September 2026
 
 CI is green on the working branch, **79 unit tests** (57 of them in `:core`),
