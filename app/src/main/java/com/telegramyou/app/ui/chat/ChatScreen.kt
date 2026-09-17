@@ -2029,7 +2029,7 @@ private fun ComposerBar(
             // Attach moves to this side to join it. On the far left it was a
             // third thing in a row of three, and the sheet it opens is the
             // same kind of decision as sending.
-            ButtonGroup(42) {
+            ButtonGroup {
                 IconButton(onClick = onAttach) {
                     Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
                 }
