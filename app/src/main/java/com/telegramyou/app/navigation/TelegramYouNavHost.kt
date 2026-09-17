@@ -52,7 +52,7 @@ fun TelegramYouNavHost(
                     Route.Settings.PATTERN
                 )
                 if (!alreadyInside) {
-                    navController.navigate(Route.Home) {
+                    navController.navigateTo(Route.Home) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -64,7 +64,7 @@ fun TelegramYouNavHost(
             AuthState.Error,
             AuthState.Closed -> {
                 if (navController.currentDestination?.route != Route.Auth.PATTERN) {
-                    navController.navigate(Route.Auth) {
+                    navController.navigateTo(Route.Auth) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -120,11 +120,11 @@ fun TelegramYouNavHost(
             HomeScreen(
                 state = state,
                 onRefresh = homeViewModel::refresh,
-                onOpenChat = { id -> navController.navigate(Route.Chat(id)) },
-                onOpenStory = { story -> navController.navigate(Route.Story(story.id)) },
+                onOpenChat = { id -> navController.navigateTo(Route.Chat(id)) },
+                onOpenStory = { story -> navController.navigateTo(Route.Story(story.id)) },
                 onSearchExpandedChange = homeViewModel::onSearchExpandedChange,
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
-                onOpenSettings = { navController.navigate(Route.Settings) },
+                onOpenSettings = { navController.navigateTo(Route.Settings) },
                 onMutedChange = homeViewModel::onMutedChange
             )
         }

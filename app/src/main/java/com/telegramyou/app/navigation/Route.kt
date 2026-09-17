@@ -12,7 +12,7 @@ import androidx.navigation.navArgument
  * A destination has two forms and they are easy to confuse: the **pattern**
  * the graph registers (`chat/{chatId}`) and the **path** a navigation goes to
  * (`chat/42`). Each type below owns both, so a caller writes
- * `navigate(Route.Chat(id))` and cannot get either wrong — the argument is
+ * `navigateTo(Route.Chat(id))` and cannot get either wrong — the argument is
  * checked by the compiler and formatted in exactly one place.
  *
  * The inventory in ARCHITECTURE.md runs past a hundred screens. String
@@ -68,6 +68,17 @@ sealed interface Route {
  * The argument names in the companions above are the same keys the state
  * holders read out of `SavedStateHandle`, so a renamed argument breaks at
  * compile time in both places at once.
+ *
+ * **Named `navigateTo`, not `navigate`, and that is not a style choice.**
+ * Navigation has carried its own `navigate(route: T)` for type-safe routes
+ * since 2.8, and it is a member function — members win over extensions, so
+ * `navController.navigate(Route.Home)` called Navigation's, which asks
+ * kotlinx.serialization for a serializer this project deliberately does not
+ * generate. It compiled, and it threw at the first navigation after login:
+ *
+ *     SerializationException: Serializer for class 'Home' is not found.
+ *
+ * A different name cannot be shadowed by a library adding an overload.
  */
-fun NavController.navigate(route: Route, builder: NavOptionsBuilder.() -> Unit = {}) =
+fun NavController.navigateTo(route: Route, builder: NavOptionsBuilder.() -> Unit = {}) =
     navigate(route.path, builder)
