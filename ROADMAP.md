@@ -99,11 +99,71 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [~] Settings uses `SingleChoiceSegmentedButtonRow` for the theme choice;
-      `ButtonGroup` is still unused and is the Expressive alternative
+- [x] `ButtonGroup` for the chat composer's attach and send/record buttons
+- [~] Settings still uses `SingleChoiceSegmentedButtonRow` for the theme
+      choice; `ButtonGroup` is the Expressive alternative
+- [ ] A bottom navigation bar on Home — `ShortNavigationBar`, not
+      `ButtonGroup`: it is navigation, and Expressive has a component for
+      exactly that
 
 Careful with the ticks: CI proves these compile, not that they look right.
 Nothing in the pipeline renders a screen.
+
+### `ButtonGroup`, written down because it cost six red builds
+
+Nothing documents an alpha, and guessing at this one burned an afternoon.
+The signature below was read out of `material3-android:1.5.0-alpha28` with
+`javap`, which is the only authority there is. Two things about it are not
+what you would assume:
+
+```kotlin
+ButtonGroup(
+    overflowIndicator: @Composable (ButtonGroupMenuState) -> Unit,  // no default
+    modifier: Modifier = Modifier,
+    expandedRatio: Float = ButtonGroupDefaults.expandedRatio,
+    horizontalArrangement: Arrangement.Horizontal = ButtonGroupDefaults.horizontalArrangement,
+    verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
+    content: ButtonGroupScope.() -> Unit                            // NOT @Composable
+)
+```
+
+**`content` is a builder, not a row.** Calling `IconButton` straight inside
+it fails with *"@Composable invocations can only happen from the context of a
+@Composable function"*, which reads like a mistake somewhere else entirely.
+Items go in through the scope:
+
+```kotlin
+interface ButtonGroupScope {
+    fun Modifier.weight(weight: Float): Modifier
+    fun Modifier.animateWidth(interactionSource: InteractionSource): Modifier
+    fun Modifier.align(alignment: Alignment.Vertical): Modifier
+    fun clickableItem(onClick, label: String, icon: @Composable () -> Unit, weight, enabled)
+    fun toggleableItem(checked, label, onCheckedChange, icon, weight, enabled)
+    fun customItem(
+        buttonGroupContent: @Composable () -> Unit,
+        menuContent: @Composable (ButtonGroupMenuState) -> Unit
+    )
+}
+```
+
+**`clickableItem` draws a labelled Button.** An icon-only button, or one
+driven by a gesture rather than a click, needs `customItem` — and
+`customItem` demands a menu entry as well, for the overflow menu shown when
+an item does not fit. `Modifier.animateWidth(interactionSource)` is what
+makes a pressed button widen and its neighbour squeeze; without it the group
+is just a row.
+
+`ButtonGroupDefaults` supplies the connected shapes —
+`connectedLeadingButtonShape`, `connectedTrailingButtonShape` and the
+middle and pressed variants — plus `OverflowIndicator`, which is the sane
+thing to pass as `overflowIndicator`.
+
+If a later alpha changes any of this: the way to find out is a workflow step
+that curls
+`.../androidx/compose/material3/material3-android/<v>/material3-android-<v>.aar`
+— **material3-android**, its own coordinate, not `material3/` — unzips
+`classes.jar` and runs `javap -public` over the classes. This environment
+cannot reach `dl.google.com`, so that has to happen in CI.
 
 ## What Expressive contains, and what our alpha exposes
 

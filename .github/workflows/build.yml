@@ -360,31 +360,3 @@ jobs:
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
-
-      # TEMPORARY. Delete once the ButtonGroup call is right.
-      #
-      # Guessing at an alpha API cost five rounds. The library itself is the
-      # only authority, and CI is the one place that can reach Google's Maven
-      # — so it fetches the artifact and reads the signatures out of it.
-      - name: What ButtonGroup actually looks like
-        if: always()
-        continue-on-error: true
-        run: |
-          # Two earlier attempts at this failed for reasons worth writing
-          # down. The first asked dl.google.com for
-          # .../material3/<v>/material3-android-<v>.aar and unzipped the 404
-          # page: the Android artifact has its own coordinates,
-          # material3-android, so the directory is material3-android/ too.
-          # The second looked in ~/.gradle/caches, where setup-gradle's
-          # read-only cache had not put an .aar at all. So: the corrected
-          # URL, with -f so a 404 fails loudly instead of quietly.
-          V=1.5.0-alpha28
-          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
-          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
-          unzip -o -q m3.aar classes.jar -d m3
-          for C in ButtonGroupKt ButtonGroupScope ButtonGroupDefaults \
-                   ButtonGroupMenuState ToggleButtonDefaults; do
-            echo "--- $C ---"
-            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
-              2>/dev/null || echo "(no such class)"
-          done
