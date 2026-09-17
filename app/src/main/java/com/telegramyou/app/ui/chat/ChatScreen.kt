@@ -2067,7 +2067,13 @@ private fun ComposerActions(
     ButtonGroup(
         // Positional, deliberately: this parameter has no default and is the
         // menu shown when an item does not fit.
-        { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) }
+        { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) },
+        // The connected spacing, not the default one. These buttons wear the
+        // connected leading and trailing shapes, and the standard gap leaves
+        // them looking like two unrelated icons that happen to be near each
+        // other — which is what the screenshot showed.
+        horizontalArrangement =
+            Arrangement.spacedBy(ButtonGroupDefaults.connectedSpaceBetween)
     ) {
         customItem(
             {
