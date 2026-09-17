@@ -46,6 +46,12 @@ android {
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Screenshots taken by an instrumentation test have nowhere safe to
+        // live: the app's own external files go with it when Gradle uninstalls
+        // the APK at the end of the run, which is why the first attempt came
+        // back with none. TestStorage writes through a service that outlives
+        // the app, and AGP copies the result into build/outputs.
+        testInstrumentationRunnerArguments["useTestStorageService"] = "true"
         vectorDrawables.useSupportLibrary = true
 
         ndk {
@@ -146,6 +152,11 @@ dependencies {
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    // The service behind useTestStorageService above. androidTestUtil, not
+    // androidTestImplementation: it is an APK installed alongside the tests
+    // rather than a library they link against.
+    androidTestUtil("androidx.test.services:test-services:1.5.0")
 
     // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
     // this is the only way to reach Expressive at all. It is an alpha, and
