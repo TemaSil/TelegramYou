@@ -1971,10 +1971,16 @@ private fun ComposerBar(
     // capsule is what makes it read as one, so the buttons are plain icon
     // buttons inside it and the group is gone. ButtonGroup is still the right
     // component for a segmented choice — see ROADMAP.md — just not for this.
+    // No navigationBarsPadding here, and its absence is the fix. The Scaffold
+    // this sits inside already applies the bottom inset through the padding
+    // it hands its content, so adding it again spaced the capsule off the
+    // navigation bar twice. The call was inherited from the full-width bar
+    // this replaced, where it went unnoticed: that bar was painted to the
+    // bottom of the screen, so a doubled inset only made it look tall. Give
+    // it a shape and lift it off the edges and the gap becomes a hole.
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         // No shadow, and that is the correction rather than an omission. The
