@@ -567,8 +567,12 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  *
  * Long enough not to be a nuisance while someone is looking at the interface,
  * short enough that a notification arrives within one emulator test.
+ *
+ * `val` rather than `const val`: everything from DEMO_REACTIONS down is
+ * inside the class body, whatever the indentation suggests, and const is
+ * only allowed at the top level or in an object.
  */
-private const val DEMO_CHATTER_INTERVAL_MS = 25_000L
+private val DEMO_CHATTER_INTERVAL_MS = 25_000L
 
 private val DEMO_CHATTER_LINES = listOf(
     "Did the ButtonGroup land?",
