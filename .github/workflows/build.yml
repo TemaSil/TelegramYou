@@ -7,9 +7,11 @@ name: Build
 
 on:
   push:
-    # Work happens on claude/* branches before it reaches main, and an
-    # unbuilt branch is not worth reviewing.
-    branches: [main, 'claude/**']
+    # Every branch, not a prefix. Branches are named after the work now — 
+    # fix/outgoing-bubble-contrast rather than claude/some-generated-name — so
+    # a pattern that listed prefixes would silently stop building the moment
+    # somebody chose a new one. That happened within an hour of the rename.
+    branches: ['**']
   pull_request:
   workflow_dispatch:
 
