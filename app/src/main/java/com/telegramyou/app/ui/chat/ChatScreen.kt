@@ -162,6 +162,9 @@ import kotlinx.coroutines.launch
  */
 private const val RECORDING_TICK_MS = 250L
 
+/** The gap Material specifies between the buttons of a connected group. */
+private val CONNECTED_BUTTON_SPACING = 2.dp
+
 /**
  * One conversation.
  *
@@ -2071,9 +2074,15 @@ private fun ComposerActions(
         // The connected spacing, not the default one. These buttons wear the
         // connected leading and trailing shapes, and the standard gap leaves
         // them looking like two unrelated icons that happen to be near each
-        // other — which is what the screenshot showed.
-        horizontalArrangement =
-            Arrangement.spacedBy(ButtonGroupDefaults.connectedSpaceBetween)
+        // other — which is what the emulator screenshot showed.
+        //
+        // The literal rather than ButtonGroupDefaults.connectedSpaceBetween:
+        // javap shows a getConnectedSpaceBetween-D9Ej5fM() on that object,
+        // but Kotlin will not resolve the property from here — the mangled
+        // name a Dp return gives it appears not to map back. 2.dp is what
+        // Material specifies for a connected group, so the value is right
+        // even if the route to it is not the tidy one.
+        horizontalArrangement = Arrangement.spacedBy(CONNECTED_BUTTON_SPACING)
     ) {
         customItem(
             {
