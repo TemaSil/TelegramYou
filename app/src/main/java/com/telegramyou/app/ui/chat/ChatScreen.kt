@@ -52,6 +52,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Forward
 import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddReaction
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -639,6 +640,15 @@ fun ChatScreen(
                     value = state.draft,
                     onValueChange = onDraftChange,
                     onAttach = { onAttachmentSheetOpenChange(true) },
+                    onCamera = {
+                        // The same launch the sheet's camera entry makes. Kept
+                        // as one expression rather than shared with it: this
+                        // is three lines, and a helper that exists to avoid
+                        // repeating three lines is the harder thing to read.
+                        val uri = cameraUri(context, newCameraFile(context))
+                        cameraTarget = uri
+                        cameraLauncher.launch(uri)
+                    },
                     onSend = onSend,
                     recordingSince = recordingSince,
                     onRecordStart = {
@@ -1953,6 +1963,8 @@ private fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAttach: () -> Unit,
+    /** The camera, straight from the composer rather than through the sheet. */
+    onCamera: () -> Unit,
     onSend: () -> Unit,
     recordingSince: Long?,
     onRecordStart: () -> Unit,
@@ -2008,15 +2020,25 @@ private fun ComposerBar(
                 // beside its last line rather than floating them in the middle.
                 verticalAlignment = Alignment.Bottom
             ) {
-                // One button, not two. Which system picker to open is a
-                // question for the sheet, and a composer that grows an icon
-                // per attachment type runs out of room before it runs out of
-                // types.
+                // Three, not one, and that reverses an earlier decision in
+                // this project: the argument was that a composer growing an
+                // icon per attachment type runs out of room before it runs
+                // out of types. True in general, and beside the point here —
+                // these three are not "types of attachment" but the three
+                // things people actually reach for, which is why the messaging
+                // app this was modelled on puts exactly these three here. The
+                // sheet still exists behind the plus for everything else.
                 IconButton(
                     onClick = onAttach,
                     enabled = recordingSince == null
                 ) {
-                    Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
+                    Icon(Icons.Rounded.Add, contentDescription = "Attach")
+                }
+                IconButton(
+                    onClick = onCamera,
+                    enabled = recordingSince == null
+                ) {
+                    Icon(Icons.Rounded.PhotoCamera, contentDescription = "Camera")
                 }
 
                 if (recordingSince != null) {

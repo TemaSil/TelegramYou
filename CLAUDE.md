@@ -217,6 +217,14 @@ drawing is justified only where Material has no equivalent and Telegram does
 have the thing: the voice waveform, delivery ticks, the typing indicator, the
 chat wallpaper.
 
+The composer carries three buttons on its left — plus, camera, and the
+microphone opposite them — which reverses an earlier rule here that it should
+carry one. That rule's argument was that a composer growing an icon per
+attachment type runs out of room before it runs out of types, and it is still
+right about attachment types. These three are not types: they are the three
+things people reach for, and the attachment sheet is still behind the plus
+for everything else.
+
 ## Who checks what
 
 Split deliberately, because the two halves need different things.
