@@ -1,14 +1,13 @@
 package com.telegramyou.app
 
-import android.content.Context
 import android.content.Intent
+import androidx.test.core.graphics.writeToTestStorage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
-import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,15 +62,18 @@ class SmokeTest {
         waitFor(By.text("Your phone"), "the login screen")
         screenshot("01-login")
 
-        type(By.text("+1 234 567 8900"), "+10000000000")
+        // Into the field, not into its placeholder. Compose publishes a
+        // TextField as an EditText in the accessibility tree and the
+        // placeholder as a plain TextView beside it — typing into the latter
+        // does nothing, silently, which is how the first run of this test
+        // "failed to reach the code screen" while the app was working fine.
+        type("+10000000000")
         tap(By.text("Continue"))
 
         waitFor(By.text("Enter code"), "the code screen")
         screenshot("02-code")
 
-        // The field shows the demo code as its placeholder, which is also what
-        // gets typed into it — so this reads oddly and is right.
-        type(By.text("12345"), "12345")
+        type("12345")
         tap(By.text("Sign in"))
 
         // The moment that crashed on a real phone: everything above worked and
@@ -96,22 +98,34 @@ class SmokeTest {
         device.waitForIdle(IDLE_TIMEOUT)
     }
 
-    private fun type(selector: BySelector, text: String) {
-        device.wait(Until.hasObject(selector), STEP_TIMEOUT)
-        val field = device.findObject(selector) ?: error("no field: $selector")
-        field.click()
-        field.text = text
+    /**
+     * Types into the one text field on screen.
+     *
+     * By class rather than by the text in it: the placeholder is a separate
+     * node that happens to carry the words, and setting text on that is a
+     * no-op that reports success.
+     */
+    private fun type(text: String) {
+        val field = By.clazz("android.widget.EditText")
+        device.wait(Until.hasObject(field), STEP_TIMEOUT)
+        val node = device.findObject(field) ?: error("no text field on screen")
+        node.click()
+        node.text = text
         device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /**
-     * Into the app's own external files, which is a path adb can pull from
-     * without any permission being granted to anybody.
+     * Through TestStorage, so the file outlives the app.
+     *
+     * The obvious place — the app's own external files — is deleted when
+     * Gradle uninstalls the APK at the end of the run, which happens before
+     * anything can copy it off the device. TestStorage is served by a separate
+     * APK that is still there afterwards, and AGP collects what it holds into
+     * build/outputs.
      */
     private fun screenshot(name: String) {
-        val target: Context = InstrumentationRegistry.getInstrumentation().targetContext
-        val directory = File(target.getExternalFilesDir(null), "screenshots").apply { mkdirs() }
-        device.takeScreenshot(File(directory, "$name.png"))
+        val shot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        shot.writeToTestStorage(name)
     }
 
     private companion object {
