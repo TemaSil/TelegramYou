@@ -480,17 +480,23 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 
 Material 3 covers this area completely; nothing custom is warranted.
 
-- [ ] Settings list — `Scaffold`, `LargeTopAppBar`, `ListItem`, `Switch`
+These were all marked undone until 17 September 2026, when counting them
+against the code showed `SettingsScreen.kt` had already been carrying half of
+them. Ticks are only worth something if somebody moves them.
+
+- [x] Settings list — `Scaffold`, `ListItem`, `Switch`
+- [~] Appearance: theme and dynamic colour are done, through
+      `SingleChoiceSegmentedButtonRow`; text size is not
+- [~] Sign out is there; the rest of privacy and active sessions is not
 - [ ] Profile: view and edit name, bio, username
-- [ ] Appearance: theme, dynamic colour, text size — `SegmentedButton`, `Slider`
-- [ ] Notifications settings
-- [ ] Privacy, active sessions, sign out
+- [ ] Notifications settings — the two channels now exist, so this is
+      per-chat overrides rather than a global switch
 - [ ] Language — Russian and English
 - [ ] Data and storage, cache size
 
 ## 4. Media
 
-- [ ] Image loading — Coil `AsyncImage`
+- [x] Image loading — Coil `AsyncImage`, used by the chat's photo messages
 - [ ] Shared media grid — `LazyVerticalGrid`
 - [ ] Full-screen viewer with zoom and drag-to-dismiss
 - [ ] Download and upload progress — `LinearProgressIndicator`
@@ -501,10 +507,28 @@ Material 3 covers this area completely; nothing custom is warranted.
 
 Without these it is not a messenger you can leave closed.
 
-- [ ] Foreground service holding the TDLib connection
-- [ ] A notification per chat, tap opens the conversation
-- [ ] Mute respected, open chat stays silent
-- [ ] Reply from the notification
+- [x] Foreground service holding the TDLib connection — it was declared in
+      the manifest and written, but nothing started it and it listened to
+      nothing
+- [x] A notification per chat, tap opens the conversation — `MessagingStyle`,
+      so a chat reads as a conversation rather than one interruption per line
+- [x] Mute respected, open chat stays silent — decided by
+      `decideNotification` in :core, with tests, because these rules fail
+      quietly and no screenshot shows it
+- [x] POST_NOTIFICATIONS asked for, from the chat list
+- [ ] Reply from the notification — `RemoteInput`
+
+Not yet verified on a device. The emulator test walks to a chat and stops
+there, so nothing has watched a notification arrive, and "it compiles" is all
+CI can say about this section. Widening the smoke test is the honest next
+step, and it is cheap: the demo backend now has a chat that speaks every
+twenty-five seconds precisely so that this can be watched without an account.
+
+The arrivals themselves were missing before this. `TelegramClient` had no way
+to say a message had come in — a conversation was loaded once by `openChat`
+and never heard from again — so `incomingMessages` was added to both backends
+and the conversation screen now appends to the window it is showing. That was
+a live-updating chat as much as it was groundwork for notifications.
 
 ## 6. Groups and channels
 
