@@ -4,10 +4,17 @@ Android Telegram client with a **Material You Expressive–inspired** UI.
 
 ## Download
 
-**[⬇ TelegramYou-0.1.0-debug.apk](https://github.com/TemaSil/TelegramYou/releases/latest/download/TelegramYou-0.1.0-debug.apk)** — rebuilt from `main` on every push.
+### ⬇ **[Get the APK](https://github.com/TemaSil/TelegramYou/releases/tag/latest)**
 
-That link always points at the newest green build, so it is worth bookmarking
-rather than copying a version out of it.
+That is the release page, rebuilt from `main` on every green push — the APK is
+the file attached at the bottom of it.
+
+If you would rather have the file itself:
+[TelegramYou-0.1.0-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-0.1.0-debug.apk).
+
+> Clicked one of these before the first release existed and got **Page not
+> found**? The browser cached that 404. Reload the page ignoring the cache
+> (Ctrl+Shift+R, or ⌘+Shift+R on a Mac), or open it in a private window.
 
 **It is the demo build, and that is not a limitation of the build — it is the
 only one CI can make.** The whole interface is there, the login code is
