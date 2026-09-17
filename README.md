@@ -2,6 +2,23 @@
 
 Android Telegram client with a **Material You Expressive–inspired** UI.
 
+## Download
+
+**[⬇ TelegramYou-0.1.0-debug.apk](https://github.com/TemaSil/TelegramYou/releases/latest/download/TelegramYou-0.1.0-debug.apk)** — rebuilt from `main` on every push.
+
+That link always points at the newest green build, so it is worth bookmarking
+rather than copying a version out of it.
+
+**It is the demo build, and that is not a limitation of the build — it is the
+only one CI can make.** The whole interface is there, the login code is
+`12345`, and nothing leaves the phone. The live client needs a Telegram
+`api_id` and `api_hash`, which are deliberately not in this repository, and
+TDLib's native libraries, which are far too large for git. Building it is a
+local job; see below.
+
+It is debug-signed, so Android will ask whether to allow installing from this
+source.
+
 Live Telegram connectivity uses the **official TDLib JSON interface**:
 - Docs: https://core.telegram.org/tdlib/getting-started
 - Java binding: `org.drinkless.tdlib.JsonClient` (from [tdlib/td](https://github.com/tdlib/td))

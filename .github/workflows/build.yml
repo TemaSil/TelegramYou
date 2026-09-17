@@ -300,3 +300,38 @@ jobs:
           if failed:
               sys.exit(1)
           PY
+
+      # A workflow artifact is behind a login and expires in ninety days, so
+      # "where is the APK" had no good answer. A release does: the file keeps
+      # one URL, /releases/latest/download/, which the README can point at and
+      # which does not rot.
+      #
+      # Only from main, and only when everything above passed — Summary is the
+      # step that fails a build with no tests, so this sits after it.
+      #
+      # The tag is moved rather than added to. One rolling "latest" is what
+      # makes the download URL stable; every green main would otherwise leave
+      # a release nobody asked for.
+      - name: Publish the APK
+        if: success() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          files: app/build/outputs/apk/debug/*.apk
+          # Not a prerelease: /releases/latest resolves only to a full one,
+          # and that path is the entire point.
+          prerelease: false
+          make_latest: true
+          body: |
+            The newest build of `main`, rebuilt on every push.
+
+            **This is the demo build.** It has the whole interface and no
+            account: the login code is `12345` and nothing leaves the phone.
+            CI cannot build the live client — the Telegram `api_id` and
+            `api_hash` are deliberately not in this repository, and TDLib's
+            native libraries are too large for git. Live mode is a local
+            build; see the README.
+
+            Debug-signed, so Android will ask you to allow installing from
+            this source. Built from ${{ github.sha }}.
