@@ -370,16 +370,18 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          V=1.5.0-alpha28
-          BASE=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3
-          curl -sSL "$BASE/$V/material3-android-$V.aar" -o m3.aar
-          unzip -o -q m3.aar classes.jar -d m3
-          echo "--- ButtonGroupKt ---"
-          javap -classpath m3/classes.jar -public androidx.compose.material3.ButtonGroupKt \
-            2>/dev/null | grep -i buttongroup || echo "(no ButtonGroupKt)"
-          echo "--- ButtonGroupScope ---"
-          javap -classpath m3/classes.jar -public androidx.compose.material3.ButtonGroupScope \
-            2>/dev/null || echo "(no ButtonGroupScope)"
-          echo "--- ButtonGroupDefaults ---"
-          javap -classpath m3/classes.jar -public androidx.compose.material3.ButtonGroupDefaults \
-            2>/dev/null | head -20 || echo "(none)"
+          # The AAR Gradle already downloaded, not a guessed URL: the
+          # previous attempt asked for .../material3/1.5.0-alpha28/
+          # material3-android-....aar and got an error page, because the
+          # Android artifact lives under material3-android/. The cache
+          # cannot be wrong about its own coordinates.
+          AAR=$(find ~/.gradle/caches -name 'material3-android-*.aar' | head -1)
+          echo "AAR: ${AAR:-none}"
+          [ -n "$AAR" ] || exit 0
+          unzip -o -q "$AAR" classes.jar -d m3
+          for C in ButtonGroupKt ButtonGroupScope ButtonGroupDefaults \
+                   ButtonGroupMenuState ToggleButtonDefaults; do
+            echo "--- $C ---"
+            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
+              2>/dev/null || echo "(no such class)"
+          done
