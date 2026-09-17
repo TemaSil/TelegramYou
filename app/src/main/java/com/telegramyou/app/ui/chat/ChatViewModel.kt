@@ -73,6 +73,8 @@ data class ChatUiState(
     val loadingVoiceId: Long? = null,
     /** How far through the playing message is, 0..1. */
     val voiceProgress: Float = 0f,
+    /** The photo open full-screen, if one is. */
+    val viewingPhoto: ChatMessage? = null,
     /** True while the "what would you like to attach" sheet is up. */
     val attachmentSheetOpen: Boolean = false,
     /** True while the chat picker for forwarding a selection is up. */
@@ -353,6 +355,20 @@ class ChatViewModel(
 
     /** File ids already asked for, so scrolling does not re-request them. */
     private val requestedPhotos = mutableSetOf<Int>()
+
+    /**
+     * Opens a photo full-screen.
+     *
+     * Only one that has arrived: tapping a bubble still loading would open a
+     * black screen and a spinner, which is a worse answer than the bubble the
+     * finger is already on.
+     */
+    fun onPhotoOpened(message: ChatMessage) {
+        if (message.photoPath == null) return
+        _uiState.update { it.copy(viewingPhoto = message) }
+    }
+
+    fun onPhotoClosed() = _uiState.update { it.copy(viewingPhoto = null) }
 
     // ── searching ────────────────────────────────────────────────────────
 

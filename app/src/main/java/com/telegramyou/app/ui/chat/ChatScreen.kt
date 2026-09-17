@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -130,6 +131,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
@@ -197,7 +200,9 @@ fun ChatScreen(
     onForwardTo: (ChatPreview) -> Unit,
     onVoiceToggled: (ChatMessage) -> Unit,
     onVoiceSeek: (ChatMessage, Float) -> Unit,
-    onPhotoVisible: (ChatMessage) -> Unit
+    onPhotoVisible: (ChatMessage) -> Unit,
+    onPhotoOpened: (ChatMessage) -> Unit,
+    onPhotoClosed: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -490,7 +495,8 @@ fun ChatScreen(
                                 0f
                             },
                             onVoiceSeek = { at -> onVoiceSeek(message, at) },
-                            onPhotoVisible = { onPhotoVisible(message) }
+                            onPhotoVisible = { onPhotoVisible(message) },
+                            onPhotoOpened = { onPhotoOpened(message) }
                         )
                     }
                 }
@@ -563,6 +569,14 @@ fun ChatScreen(
                     message = target,
                     onDismiss = onDeleteDismissed,
                     onDelete = { forEveryone -> onDeleteConfirmed(target, forEveryone) }
+                )
+            }
+
+            state.viewingPhoto?.let { photo ->
+                PhotoViewer(
+                    path = photo.photoPath.orEmpty(),
+                    caption = photo.text,
+                    onDismiss = onPhotoClosed
                 )
             }
 
@@ -706,7 +720,8 @@ private fun MessageBubble(
     onVoiceToggled: () -> Unit,
     voiceProgress: Float,
     onVoiceSeek: (Float) -> Unit,
-    onPhotoVisible: () -> Unit
+    onPhotoVisible: () -> Unit,
+    onPhotoOpened: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -850,7 +865,8 @@ private fun MessageBubble(
                             aspect = message.photoAspect,
                             caption = message.text,
                             outgoing = outgoing,
-                            onVisible = onPhotoVisible
+                            onVisible = onPhotoVisible,
+                            onOpen = onPhotoOpened
                         )
                     }
                     MessageContentType.Voice -> {
@@ -1013,6 +1029,71 @@ private fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
 /**
+ * One photo, full screen.
+ *
+ * A `Dialog` rather than a route: it is not somewhere the conversation has
+ * navigated to, and back should return to the message rather than to whatever
+ * the graph thinks came before. usePlatformDefaultWidth false is what lets it
+ * reach the edges — without it a dialog is inset like an alert, which is not
+ * what a photo wants.
+ *
+ * `ContentScale.Fit`, not Crop: the bubble crops to keep the list tidy, and
+ * the whole point of opening it is to see the parts the bubble cut off.
+ *
+ * Pinch to zoom is not here yet. A photo that fills the screen is most of the
+ * way to the thing, and a half-working gesture would be worse than none.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PhotoViewer(
+    path: String,
+    caption: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                // Its own scrim, because the photo is the content rather than
+                // something sitting on a surface.
+                .background(Color.Black.copy(alpha = 0.92f))
+                .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = path,
+                contentDescription = caption.ifBlank { "Photo" },
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize()
+            )
+            if (caption.isNotBlank() && caption != "Photo") {
+                Text(
+                    caption,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(24.dp)
+                )
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(8.dp)
+            ) {
+                Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+            }
+        }
+    }
+}
+
+/**
  * A photo in a bubble.
  *
  * The space is reserved from the photo's own aspect ratio before any bytes
@@ -1031,7 +1112,8 @@ private fun PhotoMessage(
     aspect: Float,
     caption: String,
     outgoing: Boolean,
-    onVisible: () -> Unit
+    onVisible: () -> Unit,
+    onOpen: () -> Unit
 ) {
     LaunchedEffect(path) {
         if (path == null) onVisible()
@@ -1044,7 +1126,8 @@ private fun PhotoMessage(
                 // tall photo would fill the screen on its own.
                 .aspectRatio(aspect.coerceIn(0.6f, 1.9f))
                 .clip(MaterialTheme.shapes.medium)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .clickable(onClick = onOpen),
             contentAlignment = Alignment.Center
         ) {
             if (path == null) {

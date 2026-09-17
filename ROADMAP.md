@@ -242,9 +242,8 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **A full-screen photo viewer** — a photo in a bubble is capped at the
-   bubble's width and cropped to a sane aspect; tapping one should open it
-   whole, as a `Dialog`, with pinch to zoom.
+1. **Pinch to zoom in the photo viewer** — a photo opens whole now, and that
+   is as far as it goes.
 2. **Video in bubbles** — still a caption and an emoji. Needs a thumbnail and
    a player, and the thumbnail is most of it.
 
@@ -385,8 +384,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       camera and file. Everything travels as a `content://` Uri; the TDLib
       backend resolves it into the upload cache, which is where that belongs
 - [~] Photos in bubbles — `AsyncImage`, space reserved from the photo's own
-      aspect before the bytes arrive. Video and a full-screen viewer are still
-      missing
+      aspect before the bytes arrive; tapping one opens it full-screen as a
+      `Dialog`. Pinch to zoom and video are still missing
 - [x] Voice messages: hold to record, release to send, tap to play, with the
       waveform drawn behind it — amplitudes measured while recording, and
       Telegram's own packed 5-bit waveform decoded for everyone else's. The
