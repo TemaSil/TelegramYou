@@ -217,6 +217,56 @@ drawing is justified only where Material has no equivalent and Telegram does
 have the thing: the voice waveform, delivery ticks, the typing indicator, the
 chat wallpaper.
 
+## Who checks what
+
+Split deliberately, because the two halves need different things.
+
+**Machines catch errors.** Anything that crashes, throws, fails to appear, or
+computes the wrong answer is found in CI, and the person on the other end of
+this project should not have to install an APK to discover it. That is what
+the `UI` workflow is for: it boots an emulator, drives the demo client through
+real screens, and fails when one of them does not arrive. A bug that reaches a
+phone is a hole in that test, and the fix is to widen the test as well as the
+code.
+
+**A person judges how it looks and feels.** Spacing, colour, whether an
+animation reads as a ripple or a stutter, whether a gesture lands where the
+thumb expects — none of that is assertable and none of it should be faked with
+a pixel comparison. The APK on the front page is for that, and the answer
+comes back as an opinion, not a failure.
+
+So: **do not ask for the app to be installed in order to find a crash.**
+Reproduce it on the emulator, read the trace, fix it, and let the install be
+about the design.
+
+### Seeing the screens without a device
+
+The `UI` workflow pushes what it saw to the **`ui-screenshots`** branch, which
+is rewritten on every run and can simply be fetched:
+
+```
+git fetch origin ui-screenshots && git show FETCH_HEAD:evidence/screenshots/03-chats.png
+```
+
+It holds three things: `evidence/screenshots/` — one PNG per step of the smoke
+test, `evidence/results/` — the instrumentation report, which names the test,
+the assertion and the stack trace, and `evidence/crash.txt` — the app's own
+fatal exceptions when there were any.
+
+A branch rather than a workflow artifact, and that is not a preference: an
+artifact needs a GitHub session to fetch and the environment this project is
+written in cannot reach the storage it redirects to. A branch clones.
+
+Two things learned the hard way while building it, both worth keeping:
+
+- **Type into the field, not into its placeholder.** Compose publishes a
+  `TextField` as an `EditText` and its placeholder as a separate `TextView`.
+  Selecting by the placeholder's words finds the `TextView`, and setting text
+  on that silently does nothing.
+- **Screenshots must go through `TestStorage`.** Written to the app's own
+  files they are deleted when Gradle uninstalls the APK at the end of the run,
+  which is before anything can collect them.
+
 ## What CI proves, and what it does not
 
 Every push builds the app and runs the unit tests. A green build means the
@@ -226,10 +276,14 @@ nothing. The count comes back as a check-run annotation, which is the only
 route to it here: the log tail is buried by post-job steps and artifact
 downloads redirect to storage some environments cannot reach.
 
-What CI cannot say is how any of it looks. Nothing in the pipeline renders a
-screen, so layout, spacing and colour are unverified until somebody runs the
-app. Do not describe a visual change as working on the strength of a green
-build. Screenshot tests would close this and are not set up.
+What the Build workflow cannot say is whether a screen appears — it never
+constructs one. The `UI` workflow does, on an emulator, and that is where a
+crash or a screen that never arrives is caught.
+
+What neither can say is how any of it **looks**. A green emulator run means
+the chat list exists, not that it is the right shape. Do not describe a visual
+change as working on the strength of a green build, or of a screenshot that
+merely proves something was drawn.
 
 ## History worth knowing
 
