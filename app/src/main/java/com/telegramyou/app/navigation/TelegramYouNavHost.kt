@@ -23,6 +23,7 @@ import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
+import com.telegramyou.app.ui.components.RequestNotificationPermission
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.settings.SettingsScreen
@@ -139,6 +140,10 @@ fun TelegramYouNavHost(
         composable(Route.Home.PATTERN) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+            // Here rather than at launch: by now there is a chat list on
+            // screen, so "let us tell you when these people write" explains
+            // itself. See the composable for why it is asked only once.
+            RequestNotificationPermission()
             HomeScreen(
                 state = state,
                 onRefresh = homeViewModel::refresh,
