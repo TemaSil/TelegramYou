@@ -71,6 +71,7 @@ import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -1948,6 +1949,8 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
     }
 }
 
+// ButtonGroup is Expressive, and everything Expressive is behind this opt-in.
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ComposerBar(
     value: String,
@@ -1972,12 +1975,6 @@ private fun ComposerBar(
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            // One button, not two. Which system picker to open is a question
-            // for the sheet, and a composer that grows an icon per attachment
-            // type runs out of room before it runs out of types.
-            IconButton(onClick = onAttach) {
-                Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
-            }
             if (recordingSince != null) {
                 // The field is replaced rather than covered: nothing can be
                 // typed one-handed while the other thumb is holding the
@@ -2021,45 +2018,60 @@ private fun ComposerBar(
             )
             }
             Spacer(Modifier.width(8.dp))
-            if (value.isBlank()) {
-                FilledIconButton(
-                    // onClick stays empty because this is a hold, not a tap:
-                    // the gesture below owns press, release and cancel, and a
-                    // tap that fired as well would send an empty recording.
-                    onClick = {},
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (recordingSince != null) {
-                            MaterialTheme.colorScheme.error
-                        } else {
-                            MaterialTheme.colorScheme.secondaryContainer
-                        }
-                    ),
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                onRecordStart()
-                                // Waits here until the finger lifts or the
-                                // gesture is taken over by a scroll; either
-                                // way the recording ends where it started.
-                                val released = tryAwaitRelease()
-                                if (released) onRecordStop() else onRecordCancel()
-                            }
-                        )
-                    }
-                ) {
-                    Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
+
+            // Attach and send are one control, not two that happen to be
+            // near each other — so they are a ButtonGroup, which is the
+            // Expressive component for exactly that. It gives them a shared
+            // shape and the press behaviour where a squeezed button pushes
+            // into its neighbour, which is the motion this client exists to
+            // show and which a pair of loose IconButtons cannot do.
+            //
+            // Attach moves to this side to join it. On the far left it was a
+            // third thing in a row of three, and the sheet it opens is the
+            // same kind of decision as sending.
+            ButtonGroup {
+                IconButton(onClick = onAttach) {
+                    Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
                 }
-            } else {
-                FilledIconButton(
-                    onClick = onSend,
-                    shape = CircleShape,
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
+                if (value.isBlank()) {
+                    FilledIconButton(
+                        // onClick stays empty because this is a hold, not a
+                        // tap: the gesture below owns press, release and
+                        // cancel, and a tap firing as well would send an
+                        // empty recording.
+                        onClick = {},
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (recordingSince != null) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.secondaryContainer
+                            }
+                        ),
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    onRecordStart()
+                                    // Waits here until the finger lifts or the
+                                    // gesture is taken over by a scroll;
+                                    // either way it ends where it started.
+                                    val released = tryAwaitRelease()
+                                    if (released) onRecordStop() else onRecordCancel()
+                                }
+                            )
+                        }
+                    ) {
+                        Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
+                    }
+                } else {
+                    FilledIconButton(
+                        onClick = onSend,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
+                    }
                 }
             }
         }
