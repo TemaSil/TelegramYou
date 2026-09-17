@@ -257,8 +257,16 @@ A branch rather than a workflow artifact, and that is not a preference: an
 artifact needs a GitHub session to fetch and the environment this project is
 written in cannot reach the storage it redirects to. A branch clones.
 
-Two things learned the hard way while building it, both worth keeping:
+Three things learned the hard way while building it, all worth keeping:
 
+- **Gradle's exit code does not tell you whether the test passed.** AGP 9
+  writes `failures="1"` into the instrumentation report, writes `1` into
+  `test-result-exit-code.txt`, and then exits **0**. A workflow that trusts
+  `|| echo failed > marker` therefore reports green on a run where the app
+  never reached the chat list — which happened twice, the second time after
+  the first was supposedly fixed. The report is the authority, the same way
+  it already is for unit tests in the Build workflow, and a run with zero
+  tests in it fails too.
 - **Type into the field, not into its placeholder.** Compose publishes a
   `TextField` as an `EditText` and its placeholder as a separate `TextView`.
   Selecting by the placeholder's words finds the `TextView`, and setting text
