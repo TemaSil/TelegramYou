@@ -69,56 +69,81 @@ jobs:
           disable-animations: true
           script: |
             adb logcat -c
-            adb logcat > logcat.txt &
-            ./gradlew :app:connectedDebugAndroidTest --stacktrace || echo "TESTS_FAILED" > failed.marker
+            adb logcat > logcat-full.txt &
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
-            mkdir -p screenshots
-            adb pull /sdcard/Android/data/com.telegramyou.app.debug/files/screenshots/. screenshots/ || true
+            mkdir -p evidence/screenshots
+            adb pull /sdcard/Android/data/com.telegramyou.app.debug/files/screenshots/. \
+              evidence/screenshots/ || true
 
-      # The app's own crash, if it had one, in the words Android used. This is
-      # the part a person cannot read off a phone without a cable.
-      - name: What the app said
+      # Everything worth reading, gathered into one directory.
+      #
+      # The instrumentation report is the useful artefact and not logcat: it
+      # names the test, the assertion and the stack trace. Logcat is kept only
+      # for the app's own fatal exceptions, because grepping it for the package
+      # name returns three hundred lines of the package manager installing and
+      # uninstalling the app.
+      - name: Gather the evidence
         if: always()
         run: |
-          echo "--- screenshots taken ---"
-          ls -la screenshots/ 2>/dev/null || echo "(none)"
-          echo "--- crashes and fatal errors in logcat ---"
-          grep -E "FATAL EXCEPTION|AndroidRuntime|com\.telegramyou" logcat.txt \
-            | tail -80 || echo "(nothing from this app)"
+          mkdir -p evidence
+          cp -r app/build/outputs/androidTest-results/connected/. evidence/results/ \
+            2>/dev/null || true
+          # A fatal exception and the forty lines under it, which is the trace.
+          if [ -f logcat-full.txt ]; then
+            grep -A 40 "FATAL EXCEPTION" logcat-full.txt > evidence/crash.txt 2>/dev/null || true
+            [ -s evidence/crash.txt ] || rm -f evidence/crash.txt
+          fi
+          echo "--- gathered ---"
+          find evidence -type f | sort
 
-      # Pushed rather than uploaded: an artifact is behind a login and expires,
-      # and the point of these is to be looked at by whoever is working on the
-      # screens, including from a checkout with no GitHub session.
-      - name: Publish the screenshots
+      # Pushed rather than uploaded. An artifact needs a GitHub session to
+      # fetch and expires in ninety days; a branch can simply be cloned, which
+      # is what makes this readable from a machine that only has git.
+      - name: Publish the evidence
         if: always()
         run: |
-          if [ ! -d screenshots ] || [ -z "$(ls -A screenshots 2>/dev/null)" ]; then
+          if [ -z "$(find evidence -type f 2>/dev/null)" ]; then
             echo "Nothing to publish."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # An orphan branch, rewritten each time: these are the current state
-          # of the screens, not a history of them, and PNGs accumulate fast.
+          # An orphan branch, rewritten each run: this is the current state of
+          # the screens, not a history of them, and PNGs accumulate fast.
           git checkout --orphan ui-screenshots
           git rm -rf --cached . >/dev/null 2>&1 || true
-          find . -maxdepth 1 -not -name . -not -name .git -not -name screenshots \
+          find . -maxdepth 1 -not -name . -not -name .git -not -name evidence \
             -exec rm -rf {} + 2>/dev/null || true
           {
-            echo "# Screenshots"
+            echo "# What the app looked like"
             echo
-            echo "Taken by the UI workflow from commit ${GITHUB_SHA}."
-            echo "This branch is rewritten on every run."
+            echo "From commit ${GITHUB_SHA}, run ${GITHUB_RUN_ID}."
+            echo "Rewritten on every run of the UI workflow."
+            echo
+            echo '- `evidence/screenshots/` — one per step of the smoke test'
+            echo '- `evidence/results/` — the instrumentation report, including'
+            echo '  the stack trace of anything that failed'
+            echo '- `evidence/crash.txt` — the app'"'"'s own fatal exceptions, if any'
           } > README.md
           git add -A
           git commit -q -m "Screens at ${GITHUB_SHA}"
           git push -f origin ui-screenshots
 
-      - name: Keep the log too
+      # Last, and this is the point: the previous version swallowed a failing
+      # test with `|| echo marker` and never looked at the marker, so a run
+      # where nothing worked reported success. Everything above has `always()`
+      # so the evidence is published either way — and then this fails.
+      - name: Did the app actually work
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: logcat
-          path: logcat.txt
-          if-no-files-found: warn
+        run: |
+          if [ -f evidence/crash.txt ]; then
+            echo "The app crashed. First fatal exception:"
+            head -30 evidence/crash.txt
+          fi
+          if [ -f failed.marker ]; then
+            echo "::error::The smoke test failed. See the ui-screenshots branch."
+            exit 1
+          fi
+          echo "The app started, signed in and reached the chat list."
