@@ -370,15 +370,18 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
-          # The AAR Gradle already downloaded, not a guessed URL: the
-          # previous attempt asked for .../material3/1.5.0-alpha28/
-          # material3-android-....aar and got an error page, because the
-          # Android artifact lives under material3-android/. The cache
-          # cannot be wrong about its own coordinates.
-          AAR=$(find ~/.gradle/caches -name 'material3-android-*.aar' | head -1)
-          echo "AAR: ${AAR:-none}"
-          [ -n "$AAR" ] || exit 0
-          unzip -o -q "$AAR" classes.jar -d m3
+          # Two earlier attempts at this failed for reasons worth writing
+          # down. The first asked dl.google.com for
+          # .../material3/<v>/material3-android-<v>.aar and unzipped the 404
+          # page: the Android artifact has its own coordinates,
+          # material3-android, so the directory is material3-android/ too.
+          # The second looked in ~/.gradle/caches, where setup-gradle's
+          # read-only cache had not put an .aar at all. So: the corrected
+          # URL, with -f so a 404 fails loudly instead of quietly.
+          V=1.5.0-alpha28
+          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
+          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
+          unzip -o -q m3.aar classes.jar -d m3
           for C in ButtonGroupKt ButtonGroupScope ButtonGroupDefaults \
                    ButtonGroupMenuState ToggleButtonDefaults; do
             echo "--- $C ---"
