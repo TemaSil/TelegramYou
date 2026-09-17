@@ -374,9 +374,11 @@ jobs:
           B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
           curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
           unzip -o -q m3.aar classes.jar -d m3
-          for C in MaterialShapes MaterialShapesKt; do
-            echo "--- $C ---"
-            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
-              2>/dev/null || echo "(no such class)"
-          done
+          # The POM as well as the classes. MaterialShapes hands back
+          # androidx.graphics.shapes.RoundedPolygon, so that artifact has to
+          # be on the compile classpath — transitively if material3 declares
+          # it `api`, and explicitly if not. Either way the version has to
+          # come from here rather than from memory.
+          curl -fsSL "$B/material3-android/$V/material3-android-$V.pom" \
+            | grep -A 3 graphics-shapes || echo "(no graphics-shapes in the POM)"
 

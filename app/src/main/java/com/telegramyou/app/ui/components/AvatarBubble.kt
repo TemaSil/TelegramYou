@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,11 @@ fun AvatarBubble(
     seed: Long,
     modifier: Modifier = Modifier,
     size: Dp = 52.dp,
+    /**
+     * The outline. A circle unless a caller says otherwise — the cluster in a
+     * group's header hands each member one of Material's shapes instead.
+     */
+    shape: Shape = CircleShape,
     showOnline: Boolean = false,
     ring: Boolean = false,
     ringSeen: Boolean = false,
@@ -83,11 +89,11 @@ fun AvatarBubble(
                                 )
                             )
                         },
-                        shape = CircleShape
+                        shape = shape
                     )
                 } else Modifier
             )
-            .clip(CircleShape)
+            .clip(shape)
             .background(
                 Brush.linearGradient(listOf(base, base.copy(alpha = 0.75f)))
             )
