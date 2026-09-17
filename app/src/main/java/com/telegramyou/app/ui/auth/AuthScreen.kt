@@ -52,7 +52,6 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
 import com.telegramyou.app.ui.theme.CoralPop
-import com.telegramyou.app.ui.theme.DeepInk
 import com.telegramyou.app.ui.theme.TealSeed
 
 /**
@@ -251,7 +250,7 @@ private fun AuthFieldColumn(
             shape = MaterialTheme.shapes.large,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = DeepInk
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         ) {
             Text(submitLabel, style = MaterialTheme.typography.labelLarge)
@@ -260,8 +259,8 @@ private fun AuthFieldColumn(
                 onClick = onSubmit,
                 modifier = Modifier.size(28.dp),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = DeepInk.copy(alpha = 0.15f),
-                    contentColor = DeepInk
+                    containerColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f),
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = null, modifier = Modifier.size(16.dp))

@@ -3,6 +3,10 @@ package com.telegramyou.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 val TealSeed = Color(0xFF1EE2A8)
+// Only ever the fallback palette's ink, below Android 12 where there is no
+// wallpaper to take a colour from. Never written at a call site: a fixed
+// foreground on top of a dynamic primary is the one mistake this client is
+// named after not making, and it produced black text on a dark blue bubble.
 val DeepInk = Color(0xFF0B1F1A)
 val Mist = Color(0xFFE7F7F1)
 val CoralPop = Color(0xFFFF6B4A)
