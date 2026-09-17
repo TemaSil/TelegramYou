@@ -7,7 +7,9 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -53,6 +55,18 @@ class FakeTelegramClient(
         _chats.value = value
     }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
+
+    private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 16)
+    override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages
+
+    /**
+     * Delivers a message as though it had just arrived from the server.
+     *
+     * `suspend` and `emit` rather than `tryEmit`: a test needs the collector
+     * to have run by the time it asserts, and tryEmit would return before
+     * anyone had seen it.
+     */
+    suspend fun deliver(message: ChatMessage) = _incomingMessages.emit(message)
 
     override fun start() = Unit
     override fun shutdown() = Unit

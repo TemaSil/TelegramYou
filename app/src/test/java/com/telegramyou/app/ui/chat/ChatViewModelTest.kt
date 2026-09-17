@@ -62,6 +62,42 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `a message that arrives is appended to the window`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+
+        client.deliver(message(11, "arrived"))
+        advanceUntilIdle()
+
+        assertEquals(listOf(10L, 11L), vm.uiState.value.messages.map { it.id })
+    }
+
+    @Test
+    fun `the same message arriving twice is drawn once`() = runTest {
+        // TDLib repeats an update after a reconnect, and a duplicate message
+        // is worse than a late one.
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+
+        client.deliver(message(11))
+        client.deliver(message(11))
+        advanceUntilIdle()
+
+        assertEquals(listOf(10L, 11L), vm.uiState.value.messages.map { it.id })
+    }
+
+    @Test
+    fun `a message for another chat is ignored`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+
+        client.deliver(message(11).copy(chatId = CHAT_ID + 1))
+        advanceUntilIdle()
+
+        assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
+    }
+
+    @Test
     fun `older pages arrive before the opening window, oldest first`() = runTest {
         val (vm, _) = viewModel(
             listOf(message(10), message(11)),
