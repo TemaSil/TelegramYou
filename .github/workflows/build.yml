@@ -204,6 +204,12 @@ jobs:
 
       # Appended to the same log, so a test source set that fails to compile
       # is reported by the Compile errors step below just like the app's.
+      #
+      # assembleDebugAndroidTest compiles the instrumentation tests without
+      # running them. They only run on an emulator, in the UI workflow, which
+      # takes twenty minutes — so without this a typo in a UI test would be
+      # found there, after a boot and an install, rather than here.
+      #
       # timeout-minutes because a test that hangs has no other bound. One did:
       # a progress ticker looping on state nothing in a unit test ever clears.
       # Without this the job sits on the runner until GitHub's six-hour limit.
@@ -211,8 +217,8 @@ jobs:
         timeout-minutes: 10
         run: |
           set -o pipefail
-          ./gradlew :core:check :app:testDebugUnitTest --stacktrace 2>&1 \
-            | tee -a build-log.txt
+          ./gradlew :core:check :app:testDebugUnitTest :app:assembleDebugAndroidTest \
+            --stacktrace 2>&1 | tee -a build-log.txt
 
       # Without this a green "Unit tests" step is ambiguous: Gradle reports
       # success when it runs no tests at all.
