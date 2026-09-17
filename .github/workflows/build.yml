@@ -261,21 +261,38 @@ jobs:
 
           # Compile errors first, so the test count stays the last line.
           log = pathlib.Path('build-log.txt')
+          # Continuation lines are kept, and that is the point. Kotlin reports
+          # an unresolved overload as "none of the following candidates is
+          # applicable" followed by the candidates, indented and with no
+          # prefix — so taking only `e:` lines throws away the half that says
+          # what the right call would have been. It did, once, and cost a
+          # round.
           errors = []
+          following = False
           if log.exists():
               for line in log.read_text(errors='replace').splitlines():
-                  if not line.startswith('e: '):
+                  if line.startswith('e: '):
+                      # The runner's absolute path is noise; the repo path is not.
+                      cleaned = re.sub(
+                          r'^file://\S*?/(?=app/|core/)', '', line[3:].strip()
+                      )
+                      following = True
+                  elif following and line.startswith(('    ', '\t')):
+                      cleaned = '    ' + line.strip()
+                  else:
+                      following = False
                       continue
-                  # The runner's absolute path is noise; the repo path is not.
-                  cleaned = re.sub(r'^file://\S*?/(?=app/|core/)', '', line[3:].strip())
                   if cleaned not in errors:
                       errors.append(cleaned)
 
-          for error in errors[:20]:
-              print(f"::error title=Compile error::{error}")
+          for error in errors[:60]:
+              # Only the error lines become annotations; a candidate list is
+              # context for the line above it, not sixty separate problems.
+              if not error.startswith('    '):
+                  print(f"::error title=Compile error::{error}")
               print(error)
-          if len(errors) > 20:
-              print(f"::error::and {len(errors) - 20} more")
+          if len(errors) > 60:
+              print(f"::error::and {len(errors) - 60} more")
 
           files = (glob.glob('app/build/test-results/**/*.xml', recursive=True)
                    + glob.glob('core/build/test-results/**/*.xml', recursive=True))
