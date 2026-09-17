@@ -143,7 +143,6 @@ import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.TypingIndicator
 import com.telegramyou.app.ui.theme.ComposerShape
-import com.telegramyou.app.ui.theme.DeepInk
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
@@ -822,7 +821,8 @@ private fun MessageBubble(
                     QuotedMessage(
                         sender = message.replyToSender,
                         text = message.replyToText,
-                        onTint = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+                        onTint = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(Modifier.height(6.dp))
                 }
@@ -882,7 +882,8 @@ private fun MessageBubble(
                     }
                     else -> Text(
                         message.text,
-                        color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+                        color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface
                     )
                 }
                 if (message.reactions.isNotEmpty()) {
@@ -896,7 +897,10 @@ private fun MessageBubble(
                     )
                 }
                 Spacer(Modifier.height(4.dp))
-                val footnote = (if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface)
+                val footnote = (
+                    if (outgoing) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurface
+                )
                     .copy(alpha = 0.55f)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1150,7 +1154,8 @@ private fun PhotoMessage(
             Spacer(Modifier.height(6.dp))
             Text(
                 caption,
-                color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -1181,7 +1186,8 @@ private fun VoiceMessage(
     progress: Float,
     onSeek: (Float) -> Unit
 ) {
-    val tint = if (outgoing) DeepInk else MaterialTheme.colorScheme.primary
+    val tint = if (outgoing) MaterialTheme.colorScheme.onPrimary
+    else MaterialTheme.colorScheme.primary
     Row(verticalAlignment = Alignment.CenterVertically) {
         when (state) {
             VoiceState.Loading -> CircularProgressIndicator(
@@ -1214,7 +1220,8 @@ private fun VoiceMessage(
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (outgoing) DeepInk else MaterialTheme.colorScheme.onSurface
+            color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -2049,7 +2056,7 @@ private fun ComposerBar(
                     shape = CircleShape,
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = DeepInk
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
