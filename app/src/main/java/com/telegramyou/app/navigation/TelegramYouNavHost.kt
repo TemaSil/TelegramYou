@@ -187,7 +187,9 @@ fun TelegramYouNavHost(
                 onForwardTo = chatViewModel::onForwardTo,
                 onVoiceToggled = chatViewModel::onVoiceToggled,
                 onVoiceSeek = chatViewModel::onVoiceSeek,
-                onPhotoVisible = chatViewModel::onPhotoVisible
+                onPhotoVisible = chatViewModel::onPhotoVisible,
+                onPhotoOpened = chatViewModel::onPhotoOpened,
+                onPhotoClosed = chatViewModel::onPhotoClosed
             )
         }
         composable(
