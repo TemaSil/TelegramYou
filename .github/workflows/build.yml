@@ -360,3 +360,23 @@ jobs:
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
+
+      # TEMPORARY. Delete once the MaterialShapes call is right.
+      #
+      # Same trick as the ButtonGroup probe, for the same reason: the alpha is
+      # documented nowhere, this environment cannot reach dl.google.com, and
+      # guessing at a signature costs a red build each time. See ROADMAP.md.
+      - name: What MaterialShapes actually looks like
+        if: always()
+        continue-on-error: true
+        run: |
+          V=1.5.0-alpha28
+          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3
+          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
+          unzip -o -q m3.aar classes.jar -d m3
+          for C in MaterialShapes MaterialShapesKt; do
+            echo "--- $C ---"
+            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
+              2>/dev/null || echo "(no such class)"
+          done
+
