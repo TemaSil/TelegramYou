@@ -4,9 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.CornerRounding
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
@@ -76,28 +79,61 @@ fun AvatarCluster(
 /**
  * The shapes a cluster draws from.
  *
- * A chosen subset of the thirty-five, not all of them. Several — `pill`,
- * `oval`, `semiCircle`, `arch` — are far from square, and an avatar built on
- * one comes out a different size from its neighbours, which reads as a
- * layout bug rather than as variety. These are the ones that fill a square.
+ * Built here rather than taken from `MaterialShapes`, and not by choice:
+ * every one of that object's thirty-five shapes is `internal` in
+ * material3 1.5.0-alpha28. `javap` shows their lazy accessors, which is what
+ * fooled the first attempt at this — the compiler then refused all twelve.
  *
- * `circle` is deliberately first and deliberately present: a cluster where
- * nothing is a plain circle looks like a novelty, and one where the first
- * face is familiar does not.
+ * So they are made from `androidx.graphics:graphics-shapes`, which is the
+ * library the Material catalogue is itself built on and, unlike the
+ * catalogue, a stable 1.0.1. Regular polygons with a vertex count and a
+ * corner rounding cover what a cluster needs: the difference the eye uses is
+ * how many sides and how soft they are, not whether a shape is precisely
+ * Material's "puffy".
+ *
+ * `normalized()` matters. A polygon is built around its own radius, and
+ * without it the shapes come out at different sizes from each other, which
+ * reads as a layout bug rather than as variety.
+ *
+ * Circle is first and deliberately a plain [CircleShape]: a cluster where
+ * nothing is an ordinary round avatar looks like a novelty, and a polygon
+ * with enough vertices to pass for a circle is more work for the same
+ * result.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun materialShapeSet(): List<Shape> = listOf(
-    MaterialShapes.circle.toShape(),
-    MaterialShapes.cookie4Sided.toShape(),
-    MaterialShapes.clover4Leaf.toShape(),
-    MaterialShapes.square.toShape(),
-    MaterialShapes.sunny.toShape(),
-    MaterialShapes.cookie6Sided.toShape(),
-    MaterialShapes.pentagon.toShape(),
-    MaterialShapes.flower.toShape(),
-    MaterialShapes.gem.toShape(),
-    MaterialShapes.burst.toShape(),
-    MaterialShapes.puffy.toShape(),
-    MaterialShapes.cookie9Sided.toShape()
+    CircleShape,
+    polygonShape(vertices = 4, rounding = 0.30f),
+    polygonShape(vertices = 6, rounding = 0.80f),
+    polygonShape(vertices = 5, rounding = 0.22f),
+    polygonShape(vertices = 3, rounding = 0.40f),
+    polygonShape(vertices = 8, rounding = 0.26f),
+    polygonShape(vertices = 12, rounding = 0.50f),
+    polygonShape(vertices = 4, rounding = 0.14f),
+    polygonShape(vertices = 7, rounding = 0.35f),
+    polygonShape(vertices = 6, rounding = 0.20f),
+    polygonShape(vertices = 9, rounding = 0.45f),
+    polygonShape(vertices = 5, rounding = 0.60f)
 )
+
+/**
+ * One regular polygon, as a [Shape] an avatar can be clipped to.
+ *
+ * [rounding] is a fraction of the distance to the neighbouring vertex, so 0
+ * is a hard corner and values near 1 round the shape away towards a circle.
+ * Smoothing is left at its maximum: an unsmoothed rounding meets the
+ * straight edge with a visible kink at this size.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun polygonShape(vertices: Int, rounding: Float): Shape =
+    remember(vertices, rounding) {
+        RoundedPolygon(
+            numVertices = vertices,
+            radius = 1f,
+            centerX = 0f,
+            centerY = 0f,
+            rounding = CornerRounding(radius = rounding, smoothing = 1f)
+        ).normalized()
+    }.toShape()

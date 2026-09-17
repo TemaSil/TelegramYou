@@ -172,6 +172,18 @@ dependencies {
     // at 1.7.x and dropped it from later BOMs, so an unversioned coordinate
     // stops resolving. The icons themselves have not changed.
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
+
+    // The shape library the avatar cluster builds its outlines from.
+    //
+    // Declared rather than leaned on: material3 already pulls it in — its POM
+    // names graphics-shapes-android 1.0.1 at compile scope — but this code
+    // calls RoundedPolygon and CornerRounding itself, and a dependency used
+    // directly belongs in the build file rather than arriving by luck.
+    //
+    // Worth knowing that this one is stable while material3 is an alpha. The
+    // catalogue of thirty-five named shapes lives in material3 and every one
+    // of them is `internal` there, so the shapes are built from this instead.
+    implementation("androidx.graphics:graphics-shapes:1.0.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

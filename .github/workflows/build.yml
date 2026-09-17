@@ -361,29 +361,29 @@ jobs:
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
 
-      # TEMPORARY. Delete once the shape code is right.
+      # TEMPORARY. Delete once it is settled which material3 to be on.
       #
-      # MaterialShapes turned out to be internal in alpha28 — every one of the
-      # thirty-five — so the shapes have to be built from graphics-shapes
-      # directly. That artifact is a stable 1.0.1, and this reads its real API
-      # rather than guessing at it. See ROADMAP.md for why javap in CI is the
-      # only authority available here.
-      - name: What graphics-shapes actually offers
+      # Every MaterialShapes shape is internal in the pinned 1.5.0-alpha28 —
+      # the compiler says so, twenty-three times. But alpha28 is only what
+      # this project happens to pin, and the catalogue may well have been
+      # opened since. Taking Material's own thirty-five named shapes beats
+      # building lookalikes out of polygons, so this checks before settling
+      # for the second best.
+      - name: Is MaterialShapes public in a newer alpha
         if: always()
         continue-on-error: true
         run: |
-          G=https://dl.google.com/dl/android/maven2/androidx/graphics/graphics-shapes-android
-          curl -fsSL "$G/1.0.1/graphics-shapes-android-1.0.1.aar" -o gs.aar
-          unzip -o -q gs.aar classes.jar -d gs
-          for C in RoundedPolygonKt RoundedPolygon 'RoundedPolygon$Companion' \
-                   CornerRounding 'CornerRounding$Companion'; do
-            echo "--- $C ---"
-            javap -classpath gs/classes.jar -public "androidx.graphics.shapes.$C" \
-              2>/dev/null || echo "(no such class)"
-          done
-          echo "--- is toShape public? ---"
-          M3=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3
-          curl -fsSL "$M3/material3-android/1.5.0-alpha28/material3-android-1.5.0-alpha28.aar" \
-            -o m3.aar
-          unzip -o -q m3.aar classes.jar -d m3
-          javap -classpath m3/classes.jar -public androidx.compose.material3.MaterialShapesKt
+          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
+          LATEST=$(curl -fsSL "$B/material3/maven-metadata.xml" \
+            | grep -o '<version>[^<]*</version>' \
+            | sed 's/<[^>]*>//g' | tail -1)
+          echo "newest material3: $LATEST   (pinned: 1.5.0-alpha28)"
+          curl -fsSL "$B/material3-android/$LATEST/material3-android-$LATEST.aar" \
+            -o new.aar
+          unzip -o -q new.aar classes.jar -d new
+          echo "--- public shape getters in $LATEST ---"
+          javap -classpath new/classes.jar -public \
+            androidx.compose.material3.MaterialShapes 2>/dev/null \
+            | grep -iE 'public.*(getCircle|getFlower|getClover|getPuffy|circle\(|flower\()' \
+            || echo "STILL INTERNAL: no public shape accessors in $LATEST"
+
