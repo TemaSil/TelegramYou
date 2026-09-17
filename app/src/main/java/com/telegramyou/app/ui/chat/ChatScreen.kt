@@ -1977,13 +1977,23 @@ private fun ComposerBar(
             .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
+        // No shadow, and that is the correction rather than an omission. The
+        // first version of this carried shadowElevation = 6.dp, inherited
+        // from the full-width bar it replaced and then nudged by eye. Material
+        // 3 expresses depth as tone — the surfaceContainer ladder — and keeps
+        // shadows for the few things that genuinely hover, like a FAB. The
+        // apps this shape was taken from have no shadow under their composer
+        // either: theirs reads as lifted because it is plainly darker than the
+        // conversation, not because something is cast beneath it.
+        //
+        // Highest, because the conversation's own background runs from
+        // surfaceContainerLow to surface, and one step above that is not
+        // enough to separate. tonalElevation is gone with the shadow: Compose
+        // only applies it when the colour is `surface`, so on an explicit
+        // container colour it was doing nothing at all.
         Surface(
             shape = ComposerShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = 3.dp,
-            // Enough to lift it off the conversation behind, not so much that
-            // it reads as a dialog over the chat.
-            shadowElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
