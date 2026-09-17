@@ -360,30 +360,3 @@ jobs:
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
-
-      # TEMPORARY. Delete once it is settled which material3 to be on.
-      #
-      # Every MaterialShapes shape is internal in the pinned 1.5.0-alpha28 —
-      # the compiler says so, twenty-three times. But alpha28 is only what
-      # this project happens to pin, and the catalogue may well have been
-      # opened since. Taking Material's own thirty-five named shapes beats
-      # building lookalikes out of polygons, so this checks before settling
-      # for the second best.
-      - name: Is MaterialShapes public in a newer alpha
-        if: always()
-        continue-on-error: true
-        run: |
-          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
-          LATEST=$(curl -fsSL "$B/material3/maven-metadata.xml" \
-            | grep -o '<version>[^<]*</version>' \
-            | sed 's/<[^>]*>//g' | tail -1)
-          echo "newest material3: $LATEST   (pinned: 1.5.0-alpha28)"
-          curl -fsSL "$B/material3-android/$LATEST/material3-android-$LATEST.aar" \
-            -o new.aar
-          unzip -o -q new.aar classes.jar -d new
-          echo "--- public shape getters in $LATEST ---"
-          javap -classpath new/classes.jar -public \
-            androidx.compose.material3.MaterialShapes 2>/dev/null \
-            | grep -iE 'public.*(getCircle|getFlower|getClover|getPuffy|circle\(|flower\()' \
-            || echo "STILL INTERNAL: no public shape accessors in $LATEST"
-

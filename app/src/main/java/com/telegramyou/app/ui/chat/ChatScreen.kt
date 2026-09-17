@@ -1971,36 +1971,6 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
 }
 
 @Composable
-/**
- * The people to draw in a group's header.
- *
- * Taken from who has written in the loaded window, not from a member list —
- * there is no member list. `TelegramClient` can open a chat and page its
- * history, and that is all; fetching participants is a TDLib call this
- * project has not made yet, and it is in ROADMAP.md under groups and
- * channels.
- *
- * So this is an honest approximation and not the real thing: it shows who is
- * talking rather than who is present, and a member who has said nothing
- * recently is missing from it. For a header whose job is "who is in here"
- * that is close enough to be worth having now, and the shape each person
- * gets is keyed on their id, so nobody's shape changes when the list does.
- *
- * Own messages are left out. The cluster answers "who else is here", and a
- * person already knows they are.
- */
-private fun clusterMembers(messages: List<ChatMessage>): List<ClusterMember> =
-    messages
-        .asReversed()
-        .asSequence()
-        .filterNot { it.isOutgoing }
-        .mapNotNull { message ->
-            val name = message.senderName?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            ClusterMember(name = name, seed = message.senderId ?: name.hashCode().toLong())
-        }
-        .distinctBy { it.seed }
-        .toList()
-
 private fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
@@ -2217,3 +2187,33 @@ private fun ComposerActions(
         )
     }
 }
+
+/**
+ * The people to draw in a group's header.
+ *
+ * Taken from who has written in the loaded window, not from a member list —
+ * there is no member list. `TelegramClient` can open a chat and page its
+ * history, and that is all; fetching participants is a TDLib call this
+ * project has not made yet, and it is in ROADMAP.md under groups and
+ * channels.
+ *
+ * So this is an honest approximation and not the real thing: it shows who is
+ * talking rather than who is present, and a member who has said nothing
+ * recently is missing from it. For a header whose job is "who is in here"
+ * that is close enough to be worth having now, and the shape each person
+ * gets is keyed on their id, so nobody's shape changes when the list does.
+ *
+ * Own messages are left out. The cluster answers "who else is here", and a
+ * person already knows they are.
+ */
+private fun clusterMembers(messages: List<ChatMessage>): List<ClusterMember> =
+    messages
+        .asReversed()
+        .asSequence()
+        .filterNot { it.isOutgoing }
+        .mapNotNull { message ->
+            val name = message.senderName?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            ClusterMember(name = name, seed = message.senderId ?: name.hashCode().toLong())
+        }
+        .distinctBy { it.seed }
+        .toList()

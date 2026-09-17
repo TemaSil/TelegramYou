@@ -84,9 +84,14 @@ fun AvatarCluster(
  * material3 1.5.0-alpha28. `javap` shows their lazy accessors, which is what
  * fooled the first attempt at this — the compiler then refused all twelve.
  *
+ * And alpha28 is not merely what this project pins — it is the newest
+ * material3 there is, checked against Google's Maven rather than assumed.
+ * There is no version to wait for.
+ *
  * So they are made from `androidx.graphics:graphics-shapes`, which is the
  * library the Material catalogue is itself built on and, unlike the
- * catalogue, a stable 1.0.1. Regular polygons with a vertex count and a
+ * catalogue, a stable 1.0.1. This is Material's shape library, used one
+ * level down: what is missing is the names, not the shapes. Regular polygons with a vertex count and a
  * corner rounding cover what a cluster needs: the difference the eye uses is
  * how many sides and how soft they are, not whether a shape is precisely
  * Material's "puffy".
