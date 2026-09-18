@@ -9,6 +9,7 @@ import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.util.regex.Pattern
@@ -94,6 +95,41 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         screenshot("04-chat")
+
+        // And out again, to watch a notification arrive. The demo backend has
+        // a chat that speaks on a timer precisely so this can be checked with
+        // no account and no live server.
+        //
+        // Leaving the app is not incidental. The chat that speaks is the one
+        // just opened, so while it is on screen its messages are suppressed —
+        // which is the behaviour, not an obstacle. Only once the activity has
+        // stopped is there anything to see.
+        device.pressHome()
+        device.waitForIdle(IDLE_TIMEOUT)
+        waitForNotification()
+        screenshot("05-notification")
+    }
+
+    /**
+     * Opens the shade and waits for the demo chat to appear in it.
+     *
+     * Reopened on each attempt rather than opened once: the shade can be
+     * closed by the system between polls, and a wait against a shade that is
+     * no longer up would time out on a notification that did arrive.
+     *
+     * The timeout has to exceed the demo chat's interval twice over. The
+     * first message it sends lands while the conversation is still on screen
+     * and is suppressed, so the one this waits for is the second.
+     */
+    private fun waitForNotification() {
+        val entry = By.textContains(NOTIFYING_CHAT)
+        val deadline = System.currentTimeMillis() + NOTIFICATION_TIMEOUT
+        while (System.currentTimeMillis() < deadline) {
+            device.openNotification()
+            if (device.wait(Until.hasObject(entry), SHADE_POLL)) return
+        }
+        screenshot("failed-waiting-for-the-notification")
+        fail("no notification from $NOTIFYING_CHAT ever arrived")
     }
 
     /**
@@ -173,5 +209,21 @@ class SmokeTest {
          * twenty seconds of waiting for nothing to every run.
          */
         const val DIALOG_TIMEOUT = 4_000L
+
+        /**
+         * The chat the demo backend's timer writes to — the first unmuted one
+         * it finds, which is the seeded "Material Design".
+         */
+        const val NOTIFYING_CHAT = "Material Design"
+
+        /**
+         * Longer than twice the demo chat's twenty-five second interval,
+         * because the first message it sends arrives while the conversation
+         * is still open and is deliberately suppressed.
+         */
+        const val NOTIFICATION_TIMEOUT = 70_000L
+
+        /** One look at the shade before reopening it and looking again. */
+        const val SHADE_POLL = 5_000L
     }
 }
