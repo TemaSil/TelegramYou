@@ -192,7 +192,12 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
-                    contentPadding = PaddingValues(bottom = 96.dp),
+                    // Room for the floating button, which now shares the
+                    // bottom of the screen with a navigation bar. Ninety-six
+                    // was enough when the button was the only thing down
+                    // there; with the bar under it the last chat ended up
+                    // behind the pencil.
+                    contentPadding = PaddingValues(bottom = 112.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
