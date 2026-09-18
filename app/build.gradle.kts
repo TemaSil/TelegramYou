@@ -43,6 +43,28 @@ android {
     // decision from which components are available to compile against.
     compileSdk = 37
 
+    // One debug key for everybody, tracked in the repository.
+    //
+    // Without this AGP makes a debug keystore on whatever machine is building,
+    // and a GitHub runner is a fresh machine every time — so every APK CI
+    // published was signed by a different key, and Android refuses to install
+    // one over another. It reads as a package conflict, and the only way
+    // through it was to uninstall first, losing whatever was in the app.
+    //
+    // The password is `android` and the alias `androiddebugkey`, which are the
+    // values the Android SDK's own debug keystore has used forever. This one
+    // is a secret in no sense that matters: it signs debug builds of a demo
+    // client and nothing else. A release key would be a different question and
+    // is still git-ignored, along with every other *.jks and *.keystore.
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.telegramyou.app"
         minSdk = 26

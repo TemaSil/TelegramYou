@@ -20,6 +20,10 @@ app/build/
 core/build/
 *.jks
 *.keystore
+# ...except the debug one, which is deliberately tracked. See CLAUDE.md:
+# it is not a secret, and CI regenerating it per run is what made every
+# published APK refuse to install over the last.
+!app/debug.keystore
 secrets.properties
 third_party/
 /tmp-tdlib/

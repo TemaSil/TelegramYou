@@ -191,7 +191,20 @@ a committed hash is public permanently, on an account that cannot be detached
 from it. `TELEGRAM_API_ID=0` selects the demo backend, which is the right
 answer whenever live access is not actually required.
 
-The same goes for signing keys: `*.jks` is git-ignored and should stay so.
+The same goes for signing keys: `*.jks` and `*.keystore` are git-ignored and
+should stay so — **with one deliberate exception**, `app/debug.keystore`, which
+is tracked.
+
+That exception has a reason and a boundary. AGP creates a debug keystore on
+whatever machine is building when there is none, and a GitHub runner is a fresh
+machine every run, so every APK this repository published was signed by a
+different key. Android will not install one over another: it reports a package
+conflict, and the only way through was to uninstall the app and lose everything
+in it. A single tracked debug key fixes that for CI and for both developers at
+once. Its password is `android` and its alias `androiddebugkey`, the values the
+Android SDK has used for its own debug keystore forever; it signs debug builds
+of a demo client and nothing else. **A release key is not covered by this** and
+must never be committed.
 
 ## Working here
 
