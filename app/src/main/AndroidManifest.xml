@@ -61,6 +61,15 @@
                 android:resource="@xml/camera_paths" />
         </provider>
 
+        <!--
+            Replying from the shade. Not exported: nothing outside this app
+            has any business sending a message as this account, and a reply
+            action's PendingIntent reaches its own receiver regardless.
+        -->
+        <receiver
+            android:name=".telegram.NotificationReplyReceiver"
+            android:exported="false" />
+
         <service
             android:name=".telegram.TelegramForegroundService"
             android:exported="false"
