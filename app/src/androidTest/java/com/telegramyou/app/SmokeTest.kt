@@ -61,28 +61,7 @@ class SmokeTest {
 
     @Test
     fun signsInWithTheDemoCodeAndReachesTheChatList() {
-        waitFor(By.text("Your phone"), "the login screen")
-        screenshot("01-login")
-
-        // Into the field, not into its placeholder. Compose publishes a
-        // TextField as an EditText in the accessibility tree and the
-        // placeholder as a plain TextView beside it — typing into the latter
-        // does nothing, silently, which is how the first run of this test
-        // "failed to reach the code screen" while the app was working fine.
-        type("+10000000000")
-        tap(By.text("Continue"))
-
-        waitFor(By.text("Enter code"), "the code screen")
-        screenshot("02-code")
-
-        type("12345")
-        tap(By.text("Sign in"))
-
-        // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
-        // the system dialog covers the very chat this test waits for. Granting
-        // it rather than dismissing it, because a refusal would leave the
-        // notification service posting into nothing for the rest of the run.
-        allowNotifications()
+        signIn()
 
         // Anchored on a chat the demo backend seeds, not on the app's name.
         // "TelegramYou" is written across the login screen too, so waiting for
@@ -108,6 +87,84 @@ class SmokeTest {
         device.waitForIdle(IDLE_TIMEOUT)
         waitForNotification()
         screenshot("05-notification")
+    }
+
+    /**
+     * A group's header, which is the only place the avatar cluster appears.
+     *
+     * A second test rather than more of the first: that one ends on the home
+     * screen with the shade open, and getting from there to another
+     * conversation means starting over — which is what a fresh test method
+     * does for free.
+     *
+     * The chat it opens is the seeded group with several people talking in
+     * it. A cluster needs more than one member; with one it falls back to a
+     * single avatar, correctly and without showing anything.
+     */
+    @Test
+    fun aGroupHeaderShowsItsMembers() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
+        tap(By.text(GROUP_CHAT))
+        // Anchored on a message only this group has, so landing in the wrong
+        // conversation fails here rather than producing a confident
+        // screenshot of the wrong screen. It has to be a recent one: the
+        // conversation opens at the bottom, and the group's oldest message —
+        // the first thing anchored on here — was scrolled off the top.
+        waitFor(By.textContains("Figma dump"), "the group")
+
+        // The demo chat speaks on a timer, and its heads-up notification
+        // lands across the top of the screen — over the very header this
+        // test exists to photograph. Waiting for it to go is cheap: it names
+        // the chat it came from, which is not this one, so its absence is
+        // exactly the condition wanted.
+        device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
+        screenshot("06-group-header")
+    }
+
+    /**
+     * Signs in, if signing in is what the app is asking for.
+     *
+     * The second test to run finds itself already signed in, and that is not
+     * a leak to be plugged: `FLAG_ACTIVITY_CLEAR_TASK` in `launchFromCold`
+     * clears the activity stack, not the process, and the demo client holds
+     * its authentication in `Application`, which outlives both tests. The
+     * first version of this waited for the login screen unconditionally and
+     * failed with "the login screen never appeared" — a true statement about
+     * a working app.
+     *
+     * So the login screen is looked for rather than expected. Whichever test
+     * runs first takes the screenshots of it; JUnit does not promise an
+     * order, and it does not matter which one does.
+     */
+    private fun signIn() {
+        val loginIsUp = device.wait(
+            Until.hasObject(By.text("Your phone")),
+            DIALOG_TIMEOUT
+        )
+        if (!loginIsUp) return
+        screenshot("01-login")
+
+        // Into the field, not into its placeholder. Compose publishes a
+        // TextField as an EditText in the accessibility tree and the
+        // placeholder as a plain TextView beside it — typing into the latter
+        // does nothing, silently, which is how the first run of this test
+        // "failed to reach the code screen" while the app was working fine.
+        type("+10000000000")
+        tap(By.text("Continue"))
+
+        waitFor(By.text("Enter code"), "the code screen")
+        screenshot("02-code")
+
+        type("12345")
+        tap(By.text("Sign in"))
+
+        // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
+        // the system dialog covers the very chat the tests wait for. Granting
+        // it rather than dismissing it, because a refusal would leave the
+        // notification service posting into nothing for the rest of the run.
+        allowNotifications()
     }
 
     /**
@@ -215,6 +272,15 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+
+        /** The seeded group with more than one person talking in it. */
+        const val GROUP_CHAT = "Design Circle"
+
+        /**
+         * Long enough for a heads-up notification to retreat into the status
+         * bar, which Android does after a few seconds by itself.
+         */
+        const val HEADS_UP_TIMEOUT = 10_000L
 
         /**
          * Longer than twice the demo chat's twenty-five second interval,
