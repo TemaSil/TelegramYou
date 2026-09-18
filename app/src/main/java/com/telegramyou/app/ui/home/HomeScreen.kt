@@ -154,7 +154,11 @@ fun HomeScreen(
             ) {
                 LazyColumn(
                     contentPadding = PaddingValues(bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // No spacing between rows. Rows inside a container sit
+                    // against each other and are told apart by a divider;
+                    // spacing them would turn every one back into its own
+                    // card, which is the thing being fixed.
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
                     item {
                         StoriesRail(
@@ -163,19 +167,36 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                     }
+                    // Grouped into containers rather than laid out as one
+                    // card per chat. Material's fourth expressive principle
+                    // is to contain content: a run of rows sharing a
+                    // container reads as one informative grouping, where the
+                    // same rows floating separately read as a pile of
+                    // unrelated things. Pinned chats get a container of their
+                    // own, because chosen and recent are different kinds of
+                    // thing and the separation then needs no heading.
+                    //
                     // No AnimatedVisibility here. It wrapped every row with
                     // visible = true, which never transitions, so the enter
                     // animation could not run — a composition layer that cost
                     // something and did nothing.
-                    itemsIndexed(state.chats, key = { _, chat -> chat.id }) { _, chat ->
-                        ChatListRow(
-                            chat = chat,
-                            onClick = { onOpenChat(chat.id) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp),
-                            onMutedChange = { muted -> onMutedChange(chat.id, muted) }
-                        )
+                    groupChats(state.chats) { it.isPinned }.forEach { group ->
+                        itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
+                            ChatListRow(
+                                chat = chat,
+                                position = rowPosition(index, group.size),
+                                onClick = { onOpenChat(chat.id) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp),
+                                onMutedChange = { muted -> onMutedChange(chat.id, muted) }
+                            )
+                        }
+                        // Between containers, not between rows: the gap is
+                        // what makes two groups read as two.
+                        item(key = "gap-${group.first().id}") {
+                            Spacer(Modifier.height(12.dp))
+                        }
                     }
                 }
             }

@@ -34,6 +34,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.ui.home.RowPosition
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
  * One chat in the list.
@@ -50,14 +53,28 @@ fun ChatListRow(
     chat: ChatPreview,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Where this row sits in its container, which decides which of its
+     * corners are rounded. A row on its own keeps all four; a run shares one
+     * container and only the ends are cut.
+     */
+    position: RowPosition = RowPosition.Single,
     onMutedChange: ((Boolean) -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val corner = 20.dp
+    val shape = RoundedCornerShape(
+        topStart = if (position.roundedTop) corner else 0.dp,
+        topEnd = if (position.roundedTop) corner else 0.dp,
+        bottomStart = if (position.roundedBottom) corner else 0.dp,
+        bottomEnd = if (position.roundedBottom) corner else 0.dp
+    )
 
     Box {
+    Column {
     ListItem(
         modifier = modifier
-            .clip(MaterialTheme.shapes.large)
+            .clip(shape)
             .combinedClickable(
                 onClick = onClick,
                 // Long press only where there is something to offer, so a row
@@ -68,12 +85,12 @@ fun ChatListRow(
                     null
                 }
             ),
+        // One colour for every row, pinned or not. The pinned ones used to
+        // be tinted, which was a second way of saying what their own
+        // container already says — and it made the group look striped rather
+        // than whole.
         colors = ListItemDefaults.colors(
-            containerColor = if (chat.isPinned) {
-                MaterialTheme.colorScheme.surfaceContainerHigh
-            } else {
-                MaterialTheme.colorScheme.surfaceContainerLowest
-            }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
         leadingContent = {
             AvatarBubble(
@@ -154,6 +171,17 @@ fun ChatListRow(
             }
         }
     )
+
+    // Inside a container, not under it: the divider separates two rows that
+    // share a surface, so it stops short of the ends where the container's
+    // own edge already does the separating.
+    if (!position.roundedBottom) {
+        HorizontalDivider(
+            modifier = Modifier.padding(start = 76.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        )
+    }
+    }
 
     if (onMutedChange != null) {
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
