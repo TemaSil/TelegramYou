@@ -2019,14 +2019,15 @@ private fun ComposerBar(
         // either: theirs reads as lifted because it is plainly darker than the
         // conversation, not because something is cast beneath it.
         //
-        // Highest, because the conversation's own background runs from
-        // surfaceContainerLow to surface, and one step above that is not
-        // enough to separate. tonalElevation is gone with the shadow: Compose
-        // only applies it when the colour is `surface`, so on an explicit
-        // container colour it was doing nothing at all.
+        // tonalElevation is gone with the shadow: Compose only applies it when
+        // the colour is `surface`, so on an explicit container colour it was
+        // doing nothing at all.
+        //
+        // The capsule sits one step below the field inside it, which is why
+        // it is not at the top of the ladder. See the field's colours below.
         Surface(
             shape = ComposerShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -2085,16 +2086,30 @@ private fun ComposerBar(
                     TextField(
                         value = value,
                         onValueChange = onValueChange,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 2.dp),
                         placeholder = { Text("Message") },
-                        // Every container colour transparent, because the
-                        // capsule behind it is the background now. A field
-                        // with its own fill inside a filled surface draws a
-                        // second shape nobody asked for.
+                        shape = ComposerShape,
+                        // The field carries its own fill, a step above the
+                        // capsule around it. An earlier version made every
+                        // container colour transparent on the argument that a
+                        // filled field inside a filled surface draws a second
+                        // shape nobody asked for — which is true about shapes
+                        // and wrong about people. With nothing to fill it, the
+                        // field was invisible: the words "Message" floated in
+                        // a bar whose tappable part could not be told from its
+                        // buttons, and the first person to look at it said so.
+                        //
+                        // A text field has to look like somewhere to type.
+                        // That is what the second shape is for.
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
+                            focusedContainerColor =
+                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                            unfocusedContainerColor =
+                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                            disabledContainerColor =
+                                MaterialTheme.colorScheme.surfaceContainerHighest,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent
