@@ -102,6 +102,22 @@ class FakeTelegramClient(
     /** Chat actions, in order, kept apart from the profile's own calls. */
     val chatCalls = mutableListOf<String>()
 
+    /**
+     * Handed to the picker; empty unless a test says otherwise.
+     *
+     * Named contactList rather than contacts because the interface's own
+     * member is a function of that name — both compile, and reading them
+     * side by side would not.
+     */
+    var contactList: List<TelegramUser> = emptyList()
+
+    override suspend fun contacts(): List<TelegramUser> = contactList
+
+    override suspend fun openPrivateChat(userId: Long): Long {
+        chatCalls += "openPrivateChat:$userId"
+        return userId
+    }
+
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
         chatCalls += "setChatPinned:$chatId:$pinned"
     }

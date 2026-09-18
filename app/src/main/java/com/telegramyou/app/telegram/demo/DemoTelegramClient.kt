@@ -236,6 +236,53 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    override suspend fun contacts(): List<TelegramUser> {
+        delay(150)
+        return demoContacts
+    }
+
+    override suspend fun openPrivateChat(userId: Long): Long {
+        delay(200)
+        val contact = demoContacts.firstOrNull { it.id == userId } ?: return 1L
+        // An existing conversation with that person if there is one, so the
+        // picker lands where the chat list would have. Matching on the title
+        // is the demo backend's whole idea of identity; a real one has user
+        // ids on both sides of this.
+        _chats.value.firstOrNull { it.title == contact.displayName }?.let {
+            return it.id
+        }
+        // Otherwise a new, empty conversation, which is the case worth having
+        // offline: it is the only way to see what this screen does when there
+        // is nothing to show yet.
+        val id = (_chats.value.maxOfOrNull { it.id } ?: 0L) + 1
+        _chats.update { list ->
+            list + ChatPreview(
+                id = id,
+                title = contact.displayName,
+                lastMessage = "",
+                timestampLabel = "now",
+                avatarColor = contact.id
+            )
+        }
+        chatMessages[id] = mutableListOf()
+        return id
+    }
+
+    /**
+     * People to start a conversation with.
+     *
+     * Deliberately not the same set as the chat list: two of these have no
+     * conversation yet, which is the case the picker exists for and the only
+     * way to see an empty chat offline.
+     */
+    private val demoContacts = listOf(
+        TelegramUser(id = 11, firstName = "Lina", lastName = "Park"),
+        TelegramUser(id = 12, firstName = "Artem", lastName = "S"),
+        TelegramUser(id = 21, firstName = "Dasha", lastName = "Nikitina"),
+        TelegramUser(id = 22, firstName = "Ilya", lastName = "Voronov"),
+        TelegramUser(id = 14, firstName = "Nadia", lastName = "Orlova")
+    ).sortedBy { it.displayName.lowercase() }
+
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
         delay(80)
         _chats.update { list ->

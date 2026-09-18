@@ -186,6 +186,10 @@ fun TelegramYouNavHost(
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,
                 onProfileSave = homeViewModel::saveProfile,
                 onProfileErrorShown = homeViewModel::onProfileErrorShown,
+                onComposeOpen = homeViewModel::onComposeOpen,
+                onComposeDismiss = homeViewModel::onComposeDismiss,
+                onContactPicked = homeViewModel::onContactPicked,
+                onComposeNavigated = homeViewModel::onComposeNavigated,
                 onLogout = homeViewModel::logout
             )
         }

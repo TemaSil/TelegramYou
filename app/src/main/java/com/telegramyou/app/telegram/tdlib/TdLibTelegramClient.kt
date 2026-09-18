@@ -284,6 +284,51 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun contacts(): List<TelegramUser> {
+        awaitReady()
+        return try {
+            val ids = requireEngine()
+                .send(JSONObject().put("@type", "getContacts"))
+                .optJSONArray("user_ids")
+                ?: return emptyList()
+            val users = mutableListOf<TelegramUser>()
+            for (index in 0 until minOf(ids.length(), CONTACT_LIMIT)) {
+                val userId = ids.optLong(index)
+                val raw = usersById[userId] ?: try {
+                    requireEngine()
+                        .send(JSONObject().put("@type", "getUser").put("user_id", userId))
+                        .also { usersById[userId] = it }
+                } catch (_: Throwable) {
+                    continue
+                }
+                users += mapUser(raw)
+            }
+            // By name, because a picker is read rather than scanned for
+            // recency — the list of who you have spoken to lately is the chat
+            // list, and it is the thing this button is an alternative to.
+            users.sortedBy { it.displayName.lowercase() }
+        } catch (e: Throwable) {
+            Log.w(TAG, "contacts: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun openPrivateChat(userId: Long): Long {
+        awaitReady()
+        // force = false lets Telegram return the existing chat rather than
+        // making a second one; creating it is what happens when there is none.
+        val chat = requireEngine().send(
+            JSONObject()
+                .put("@type", "createPrivateChat")
+                .put("user_id", userId)
+                .put("force", false)
+        )
+        val chatId = chat.optLong("id")
+        chatsById[chatId] = chat
+        refreshChats()
+        return chatId
+    }
+
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
         awaitReady()
         requireEngine().send(
@@ -1421,6 +1466,15 @@ class TdLibTelegramClient(
          * thousand people in it, and each one not already cached costs a call.
          */
         private const val MEMBER_LIMIT = 12
+
+        /**
+         * How many contacts the picker lists.
+         *
+         * Each one not already cached costs a getUser, and a sheet nobody
+         * can scroll to the end of is a search field's job rather than a
+         * list's. Search across chats already exists for the rest.
+         */
+        private const val CONTACT_LIMIT = 100
 
         /**
          * What a chat offers when it does not restrict reactions.

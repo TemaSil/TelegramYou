@@ -35,6 +35,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -49,6 +51,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +91,10 @@ fun HomeScreen(
     onProfileDraftChange: (ProfileDraft) -> Unit,
     onProfileSave: () -> Unit,
     onProfileErrorShown: () -> Unit,
+    onComposeOpen: () -> Unit,
+    onComposeDismiss: () -> Unit,
+    onContactPicked: (Long) -> Unit,
+    onComposeNavigated: () -> Unit,
     onLogout: () -> Unit
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
@@ -96,6 +103,15 @@ fun HomeScreen(
     // success has nothing to show once the form has gone back to matching the
     // account — without this, saving would look like nothing happening.
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // One-shot: navigate, then tell the view model it happened. Leaving the id
+    // in state would reopen the conversation on the next rotation.
+    state.compose.openChatId?.let { chatId ->
+        LaunchedEffect(chatId) {
+            onComposeNavigated()
+            onOpenChat(chatId)
+        }
+    }
 
     state.profile.errorMessage?.let { message ->
         LaunchedEffect(message) {
@@ -180,7 +196,10 @@ fun HomeScreen(
             // pencil is a button with nowhere to go.
             if (tab != HomeTab.Chats) return@Scaffold
             FloatingActionButton(
-                onClick = { state.chats.firstOrNull()?.let { onOpenChat(it.id) } },
+                // A contact picker, not the first chat in the list. That is
+                // what this used to open, which made the pencil a button that
+                // looked like composing and was not.
+                onClick = onComposeOpen,
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = MaterialTheme.shapes.large
@@ -189,6 +208,14 @@ fun HomeScreen(
             }
         }
     ) { padding ->
+        if (state.compose.sheetOpen) {
+            ContactPickerSheet(
+                compose = state.compose,
+                onDismiss = onComposeDismiss,
+                onPick = onContactPicked
+            )
+        }
+
         // Profile and Settings are their own content, not another list with
         // a gradient behind it, so they take the padding and stop there.
         when (tab) {
@@ -484,5 +511,73 @@ private fun HomeNavigationBar(selected: HomeTab, onSelected: (HomeTab) -> Unit) 
                 label = { Text(tab.label) }
             )
         }
+    }
+}
+
+/**
+ * Who to start a conversation with.
+ *
+ * A `ModalBottomSheet` rather than a screen: picking one name is a step on the
+ * way somewhere, and a screen would put a back stack entry between the chat
+ * list and the conversation that opens.
+ *
+ * Contacts, not everyone ever spoken to — the chat list already is the second,
+ * and this button exists as the alternative to scrolling it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ContactPickerSheet(
+    compose: ComposeState,
+    onDismiss: () -> Unit,
+    onPick: (Long) -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            "New message",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
+        )
+        when {
+            compose.isLoading && compose.contacts.isEmpty() -> {
+                // The stock Expressive indicator rather than a spinner drawn
+                // here, for the reason ROADMAP.md gives about the last one.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
+            compose.contacts.isEmpty() -> {
+                ListItem(
+                    headlineContent = { Text("No contacts") },
+                    supportingContent = {
+                        Text("Nobody in this account's contact list to write to yet")
+                    }
+                )
+            }
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                    items(compose.contacts, key = { it.id }) { person ->
+                        ListItem(
+                            headlineContent = { Text(person.displayName) },
+                            supportingContent = person.username?.let { name ->
+                                { Text("@$name") }
+                            },
+                            leadingContent = {
+                                AvatarBubble(
+                                    title = person.displayName,
+                                    seed = person.avatarColor
+                                )
+                            },
+                            modifier = Modifier.clickable { onPick(person.id) }
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(Modifier.height(16.dp))
     }
 }

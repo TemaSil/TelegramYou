@@ -36,7 +36,22 @@ data class HomeUiState(
     val stories: List<StoryItem> = emptyList(),
     val isRefreshing: Boolean = false,
     val search: SearchState = SearchState(),
-    val profile: ProfileUiState = ProfileUiState()
+    val profile: ProfileUiState = ProfileUiState(),
+    val compose: ComposeState = ComposeState()
+)
+
+/**
+ * The contact picker behind the pencil.
+ *
+ * [openChatId] is a one-shot: the screen navigates to it and calls back to
+ * clear it. Without that a rotation would reopen the conversation, because
+ * the state that caused the navigation would still be there.
+ */
+data class ComposeState(
+    val sheetOpen: Boolean = false,
+    val contacts: List<TelegramUser> = emptyList(),
+    val isLoading: Boolean = false,
+    val openChatId: Long? = null
 )
 
 /**
@@ -106,6 +121,8 @@ class HomeViewModel(
 
     private val profileEditing = MutableStateFlow(ProfileEditing())
 
+    private val compose = MutableStateFlow(ComposeState())
+
     // Two combines rather than one of six flows: the six-argument overload
     // hands back an Array<Any?> and every field would be read out of it by
     // index and cast. Chaining keeps both halves typed.
@@ -125,6 +142,8 @@ class HomeViewModel(
         )
     }.combine(profileEditing) { home, editing ->
         home.copy(profile = profileState(home.me, editing))
+    }.combine(compose) { home, composeState ->
+        home.copy(compose = composeState)
     }.stateIn(
         scope = viewModelScope,
         // Kept briefly past the last subscriber: a rotation unsubscribes and
@@ -297,6 +316,47 @@ class HomeViewModel(
     /** Clears a chat's unread badge without opening it. */
     fun onMarkRead(chatId: Long) {
         viewModelScope.launch { repository.markChatRead(chatId) }
+    }
+
+    // ── composing ────────────────────────────────────────────────────────
+
+    /**
+     * Opens the contact picker and fetches what goes in it.
+     *
+     * Fetched on opening rather than held from startup: contacts change
+     * rarely and are read once in a while, so keeping them current all the
+     * time would be a subscription paying for a button nobody has pressed.
+     */
+    fun onComposeOpen() {
+        compose.value = ComposeState(sheetOpen = true, isLoading = true)
+        viewModelScope.launch {
+            val list = repository.contacts()
+            compose.update { it.copy(contacts = list, isLoading = false) }
+        }
+    }
+
+    fun onComposeDismiss() {
+        compose.value = ComposeState()
+    }
+
+    /**
+     * Opens the conversation with a contact, creating it if there is not one.
+     *
+     * The sheet closes on the answer rather than on the tap, so a slow create
+     * does not leave the person looking at a chat list wondering whether the
+     * tap registered.
+     */
+    fun onContactPicked(userId: Long) {
+        viewModelScope.launch {
+            compose.update { it.copy(isLoading = true) }
+            val chatId = repository.openPrivateChat(userId)
+            compose.value = ComposeState(openChatId = chatId)
+        }
+    }
+
+    /** Called once the screen has navigated, so a rotation does not repeat it. */
+    fun onComposeNavigated() {
+        compose.value = ComposeState()
     }
 
     fun refresh() {

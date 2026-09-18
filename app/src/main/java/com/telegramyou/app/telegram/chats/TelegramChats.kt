@@ -2,6 +2,7 @@ package com.telegramyou.app.telegram.chats
 
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.flow.StateFlow
 
 /** The list of conversations, and opening one. */
@@ -50,4 +51,21 @@ interface TelegramChats {
      * anybody reaches for it.
      */
     suspend fun markChatRead(chatId: Long)
+
+    /**
+     * The account's own contacts, for starting a conversation.
+     *
+     * Contacts rather than "everybody you have ever spoken to": the chat list
+     * already holds the second, and a picker that repeats it is a longer way
+     * to reach what is behind the button.
+     */
+    suspend fun contacts(): List<TelegramUser>
+
+    /**
+     * The private chat with [userId], creating it if there is not one yet.
+     *
+     * Returns its id, because the caller's next move is to navigate there and
+     * the chat may not have existed a moment ago.
+     */
+    suspend fun openPrivateChat(userId: Long): Long
 }
