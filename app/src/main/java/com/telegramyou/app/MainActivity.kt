@@ -1,5 +1,6 @@
 package com.telegramyou.app
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,6 +51,15 @@ class MainActivity : ComponentActivity() {
                 Color.TRANSPARENT
             )
         )
+        // And the one the styles above do not cover. Since Android 10 the
+        // system lays its own contrast scrim under a three-button navigation
+        // bar unless an app says otherwise — gesture navigation is left
+        // transparent, buttons are not. That scrim is the pale band that
+        // stayed under the composer after both bars had been made
+        // transparent, and this is the only way to be rid of it.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
         val app = application as TelegramYouApp
         pendingChatId = intent.chatIdExtra()
         // Started from the activity rather than from Application.onCreate:
