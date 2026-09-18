@@ -432,6 +432,13 @@ fun ChatScreen(
                 )
             }
 
+            // The list and the composer share one Box, and that is what makes
+            // the composer float. It used to be the next row of a Column, so
+            // the messages stopped above it and the strip it sat on was bare
+            // chat background — a band, not something hovering over anything.
+            // The list fills the Box now and the composer sits on top, so what
+            // shows behind and around the capsule is the conversation.
+            Box(modifier = Modifier.weight(1f)) {
             if (state.search.isOpen && state.search.query.isNotBlank()) {
                 // Results take the conversation's place rather than covering
                 // it. A panel over the messages would put two scrollable lists
@@ -439,7 +446,7 @@ fun ChatScreen(
                 // the finger is on.
                 ChatSearchResults(
                     search = state.search,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                     onOpen = { hit ->
                         val index = state.messages.indexOfFirst { it.id == hit.id }
                         onSearchOpenChange(false)
@@ -454,14 +461,22 @@ fun ChatScreen(
                     }
                 )
             } else {
-                // The Box carries the weight now; inside it the list fills,
-                // and the jump-to-latest button sits over it rather than in a
-                // row of its own.
-                Box(modifier = Modifier.weight(1f)) {
+                // The jump-to-latest button sits over the list rather than
+                // in a row of its own.
+                Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    // Sixteen on three sides, and room for the composer on
+                    // the fourth. The list runs underneath it now, so without
+                    // this the newest message would sit behind the capsule
+                    // permanently — the price of floating it, paid here.
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 16.dp,
+                        bottom = 96.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     // A spinner where the older messages will appear, so the wait
@@ -488,6 +503,35 @@ fun ChatScreen(
                         val previous = messages.getOrNull(index - 1)
                         val next = messages.getOrNull(index + 1)
 
+                        // A message arriving fades in, and the ones already on
+                        // screen spring out of its way rather than jumping.
+                        //
+                        // `animateItem` and not an AnimatedVisibility around
+                        // the bubble: a list item that animates itself into
+                        // place is what the modifier is for, and the earlier
+                        // attempt at this — AnimatedVisibility with
+                        // visible = true — could never transition at all,
+                        // because nothing ever changed. Wrapping every row in
+                        // a composition layer that did nothing is a cost this
+                        // project has paid once already, on the chat list.
+                        //
+                        // The specs come from the theme rather than from
+                        // animateItem's defaults, which is the whole point of
+                        // setting MotionScheme.expressive() on it: spatial
+                        // springs for things that move, effects springs for
+                        // things that only change alpha. Material's own
+                        // components read the same two.
+                        //
+                        // The Column is the item's single root, which the
+                        // modifier needs; the separators above the bubble
+                        // belong to the same item and have to move with it.
+                        Column(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                                fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
+                            )
+                        ) {
                         if (startsNewDay(previous, message)) {
                             DaySeparator(message.date)
                         }
@@ -530,6 +574,7 @@ fun ChatScreen(
                             onPhotoVisible = { onPhotoVisible(message) },
                             onPhotoOpened = { onPhotoOpened(message) }
                         )
+                        }
                     }
                 }
 
@@ -586,31 +631,130 @@ fun ChatScreen(
                 }
             }
 
-            AnimatedVisibility(
-                visible = state.replyTo != null || state.editing != null,
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut()
+
+            // The composer and its banners, over the list rather than
+            // under it. Bottom-centred in the shared Box; the Column keeps
+            // the reply banner and the attachment chip stacked above the
+            // capsule and moving with it.
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
             ) {
-                // One banner for both: they are alternatives, never both at
-                // once, and each cancels the other when chosen.
-                (state.editing ?: state.replyTo)?.let { message ->
-                    ComposerBanner(
-                        message = message,
-                        isEditing = state.editing != null,
-                        onCancel = onComposerBannerCancelled
+                AnimatedVisibility(
+                    visible = state.replyTo != null || state.editing != null,
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut()
+                ) {
+                    // One banner for both: they are alternatives, never both at
+                    // once, and each cancels the other when chosen.
+                    (state.editing ?: state.replyTo)?.let { message ->
+                        ComposerBanner(
+                            message = message,
+                            isEditing = state.editing != null,
+                            onCancel = onComposerBannerCancelled
+                        )
+                    }
+                }
+
+                AnimatedVisibility(
+                    visible = state.pendingAttachment != null,
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut()
+                ) {
+                    AttachmentChip(
+                        draft = state.pendingAttachment,
+                        onClear = onAttachmentCleared
+                    )
+                }
+
+                if (state.selection.isActive) {
+                    // The toolbar takes the composer's place rather than floating
+                    // over it. Nothing can be typed while a selection is up, so
+                    // leaving the field there would be a control that does nothing.
+                    if (state.forwardSheetOpen) {
+                        ForwardSheet(
+                            targets = state.forwardTargets,
+                            count = state.selection.count,
+                            onDismiss = onForwardDismissed,
+                            onPick = onForwardTo
+                        )
+                    }
+
+                    SelectionToolbar(
+                        count = state.selection.count,
+                        actions = state.availableActions,
+                        onCopy = {
+                            clipboard.setText(AnnotatedString(copyText(state.selectedMessages)))
+                            onSelectionCleared()
+                        },
+                        onForward = onForwardRequested,
+                        onDelete = onSelectionDeleteRequested,
+                        onClear = onSelectionCleared
+                    )
+                } else {
+                    if (state.attachmentSheetOpen) {
+                        AttachmentSheet(
+                            onDismiss = { onAttachmentSheetOpenChange(false) },
+                            onPickPhoto = { photoPicker.launch("image/*") },
+                            onPickFile = { filePicker.launch(arrayOf("*/*")) },
+                            onTakePhoto = {
+                                val uri = cameraUri(context, newCameraFile(context))
+                                cameraTarget = uri
+                                cameraLauncher.launch(uri)
+                            }
+                        )
+                    }
+
+                    ComposerBar(
+                        value = state.draft,
+                        onValueChange = onDraftChange,
+                        onAttach = { onAttachmentSheetOpenChange(true) },
+                        onCamera = {
+                            // The same launch the sheet's camera entry makes. Kept
+                            // as one expression rather than shared with it: this
+                            // is three lines, and a helper that exists to avoid
+                            // repeating three lines is the harder thing to read.
+                            val uri = cameraUri(context, newCameraFile(context))
+                            cameraTarget = uri
+                            cameraLauncher.launch(uri)
+                        },
+                        onSend = onSend,
+                        recordingSince = recordingSince,
+                        onRecordStart = {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
+                                microphone.launch(Manifest.permission.RECORD_AUDIO)
+                            } else if (recorder.start()) {
+                                recordingSince = System.currentTimeMillis()
+                            }
+                        },
+                        onRecordStop = {
+                            recordingSince = null
+                            recorder.stop()?.let { recording ->
+                                onAttachmentPicked(
+                                    AttachmentDraft.Voice(
+                                        path = recording.path,
+                                        durationSeconds = recording.durationSeconds,
+                                        waveform = recording.waveform
+                                    )
+                                )
+                                onSend()
+                            }
+                        },
+                        onRecordCancel = {
+                            recordingSince = null
+                            recorder.cancel()
+                        },
+                        onSampleAmplitude = recorder::sample,
+                        hasAttachment = state.pendingAttachment != null,
+                        focusRequester = composerFocus
                     )
                 }
             }
-
-            AnimatedVisibility(
-                visible = state.pendingAttachment != null,
-                enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut()
-            ) {
-                AttachmentChip(
-                    draft = state.pendingAttachment,
-                    onClear = onAttachmentCleared
-                )
             }
 
             state.pendingDelete?.let { target ->
@@ -647,91 +791,6 @@ fun ChatScreen(
                 )
             }
 
-            if (state.selection.isActive) {
-                // The toolbar takes the composer's place rather than floating
-                // over it. Nothing can be typed while a selection is up, so
-                // leaving the field there would be a control that does nothing.
-                if (state.forwardSheetOpen) {
-                    ForwardSheet(
-                        targets = state.forwardTargets,
-                        count = state.selection.count,
-                        onDismiss = onForwardDismissed,
-                        onPick = onForwardTo
-                    )
-                }
-
-                SelectionToolbar(
-                    count = state.selection.count,
-                    actions = state.availableActions,
-                    onCopy = {
-                        clipboard.setText(AnnotatedString(copyText(state.selectedMessages)))
-                        onSelectionCleared()
-                    },
-                    onForward = onForwardRequested,
-                    onDelete = onSelectionDeleteRequested,
-                    onClear = onSelectionCleared
-                )
-            } else {
-                if (state.attachmentSheetOpen) {
-                    AttachmentSheet(
-                        onDismiss = { onAttachmentSheetOpenChange(false) },
-                        onPickPhoto = { photoPicker.launch("image/*") },
-                        onPickFile = { filePicker.launch(arrayOf("*/*")) },
-                        onTakePhoto = {
-                            val uri = cameraUri(context, newCameraFile(context))
-                            cameraTarget = uri
-                            cameraLauncher.launch(uri)
-                        }
-                    )
-                }
-
-                ComposerBar(
-                    value = state.draft,
-                    onValueChange = onDraftChange,
-                    onAttach = { onAttachmentSheetOpenChange(true) },
-                    onCamera = {
-                        // The same launch the sheet's camera entry makes. Kept
-                        // as one expression rather than shared with it: this
-                        // is three lines, and a helper that exists to avoid
-                        // repeating three lines is the harder thing to read.
-                        val uri = cameraUri(context, newCameraFile(context))
-                        cameraTarget = uri
-                        cameraLauncher.launch(uri)
-                    },
-                    onSend = onSend,
-                    recordingSince = recordingSince,
-                    onRecordStart = {
-                        if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            ) != PackageManager.PERMISSION_GRANTED
-                        ) {
-                            microphone.launch(Manifest.permission.RECORD_AUDIO)
-                        } else if (recorder.start()) {
-                            recordingSince = System.currentTimeMillis()
-                        }
-                    },
-                    onRecordStop = {
-                        recordingSince = null
-                        recorder.stop()?.let { recording ->
-                            onAttachmentPicked(
-                                AttachmentDraft.Voice(
-                                    path = recording.path,
-                                    durationSeconds = recording.durationSeconds,
-                                    waveform = recording.waveform
-                                )
-                            )
-                            onSend()
-                        }
-                    },
-                    onRecordCancel = {
-                        recordingSince = null
-                        recorder.cancel()
-                    },
-                    onSampleAmplitude = recorder::sample,
-                    focusRequester = composerFocus
-                )
-            }
         }
     }
 }
@@ -1930,13 +1989,19 @@ private fun ComposerBanner(
     isEditing: Boolean,
     onCancel: () -> Unit
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    // Transparent, and no Surface under it. It used to be a filled
+    // surfaceContainerHigh strip across the full width, which read as a bar
+    // welded to the top of the composer — a second band where there should be
+    // one floating control. What is being replied to is a note about the
+    // message being written, so it belongs over the conversation with the
+    // capsule, not in a container of its own.
+    //
+    // The icon and the sender stay in primary, which is what keeps it legible
+    // now that there is no fill behind it.
+    Box(modifier = Modifier.fillMaxWidth()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
         ) {
             Icon(
                 if (isEditing) Icons.Rounded.Edit else Icons.AutoMirrored.Rounded.Reply,
@@ -2037,6 +2102,16 @@ private fun ComposerBar(
     onRecordStop: () -> Unit,
     onRecordCancel: () -> Unit,
     onSampleAmplitude: () -> Unit,
+    /**
+     * Whether something is already attached and waiting to go.
+     *
+     * The right-hand button used to be chosen from the text alone, so a
+     * photo picked with nothing typed left a microphone where send should
+     * have been — the attachment was on screen as a chip and there was no
+     * way to send it without also writing something. What decides that
+     * button is whether there is anything to send, and a photo is.
+     */
+    hasAttachment: Boolean,
     /** Held by the screen, so replying can put the caret in the field. */
     focusRequester: FocusRequester
 ) {
@@ -2211,7 +2286,7 @@ private fun ComposerBar(
                     )
                 }
 
-                if (value.isBlank()) {
+                if (value.isBlank() && !hasAttachment) {
                     FilledIconButton(
                         // onClick stays empty because this is a hold, not a tap:
                         // the gesture below owns press, release and cancel, and a
