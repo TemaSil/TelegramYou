@@ -43,7 +43,17 @@ class SmokeTest {
     fun launchFromCold() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.pressHome()
+        launchApp()
+    }
 
+    /**
+     * Brings the app up from the launcher, clearing whatever was on the stack.
+     *
+     * A method rather than only a `@Before` because the reply test leaves the
+     * app to type into the shade and has to come back afterwards: whether the
+     * message actually arrived is a question only the conversation can answer.
+     */
+    private fun launchApp() {
         val context = InstrumentationRegistry.getInstrumentation().context
         val packageName = InstrumentationRegistry.getInstrumentation()
             .targetContext.packageName
@@ -121,6 +131,82 @@ class SmokeTest {
         // exactly the condition wanted.
         device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
         screenshot("06-group-header")
+    }
+
+    /**
+     * Replying from the shade, watched rather than reasoned about.
+     *
+     * This is the oldest debt in ROADMAP.md. The reply path — a `RemoteInput`
+     * into a receiver that sends with `goAsync` and takes the notification
+     * down only once the message has gone — was written, compiled and ticked
+     * without anything ever typing into it. The emulator saw the notification
+     * arrive and stopped there.
+     *
+     * What makes this a real test rather than a screenshot is the last step:
+     * it comes back into the app and looks for the text in the conversation.
+     * A reply that opened a field, accepted characters and sent nothing would
+     * pass every earlier assertion here.
+     */
+    @Test
+    fun repliesFromTheNotificationShade() {
+        signIn()
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+
+        // Out of the app, so the chat that speaks on a timer is not on screen
+        // and its messages are not suppressed.
+        device.pressHome()
+        device.waitForIdle(IDLE_TIMEOUT)
+        waitForNotification()
+
+        openReplyField()
+        type(REPLY_TEXT)
+        screenshot("07-notification-reply")
+        // Enter is what the send arrow does; going through the arrow means
+        // finding a systemui resource id, which differs by version and is not
+        // this app's to depend on.
+        device.pressEnter()
+        device.waitForIdle(IDLE_TIMEOUT)
+
+        // The receiver cancels the notification only after the send has gone
+        // through, so its disappearance is the first evidence — and the first
+        // place this can fail with something specific to say.
+        assertTrue(
+            "the notification never went away, so the reply was never sent",
+            device.wait(Until.gone(By.textContains(NOTIFYING_CHAT)), STEP_TIMEOUT)
+        )
+
+        device.pressBack()
+        launchApp()
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+        tap(By.text(NOTIFYING_CHAT))
+        // The whole point. Everything above proves a field accepted
+        // characters; only this proves they became a message.
+        waitFor(By.textContains(REPLY_TEXT), "the reply in the conversation")
+        screenshot("08-reply-arrived")
+    }
+
+    /**
+     * Opens the notification's reply field, expanding it first if it is shut.
+     *
+     * A collapsed notification shows no actions at all, and whether it arrives
+     * collapsed depends on the version, the shade's state and how many others
+     * are up — so the expander is tried rather than assumed, and the action is
+     * matched case-insensitively for the reason [allowNotifications] gives
+     * about platform strings.
+     */
+    private fun openReplyField() {
+        val reply = By.text(Pattern.compile("reply", Pattern.CASE_INSENSITIVE))
+        if (!device.wait(Until.hasObject(reply), DIALOG_TIMEOUT)) {
+            device.findObject(By.res("android:id/expand_button"))?.click()
+                ?: device.findObject(By.textContains(NOTIFYING_CHAT))?.click()
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+        if (!device.wait(Until.hasObject(reply), STEP_TIMEOUT)) {
+            screenshot("failed-finding-the-reply-action")
+            fail("the notification had no Reply action")
+        }
+        device.findObject(reply)?.click()
+        device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /**
@@ -272,6 +358,9 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+
+        /** Distinctive enough that finding it cannot be a coincidence. */
+        const val REPLY_TEXT = "Replied from the shade"
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
