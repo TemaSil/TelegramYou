@@ -113,7 +113,7 @@ fun AvatarCluster(
 private fun materialShapeSet(): List<Shape> = listOf(
     CircleShape,
     starShape(points = 4, innerRatio = 0.75f, rounding = 0.50f),
-    polygonShape(vertices = 4, rounding = 0.16f),
+    polygonShape(vertices = 4, rounding = 0.30f),
     starShape(points = 6, innerRatio = 0.78f, rounding = 0.48f),
     polygonShape(vertices = 3, rounding = 0.24f),
     starShape(points = 8, innerRatio = 0.82f, rounding = 0.44f),
