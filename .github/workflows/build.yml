@@ -337,13 +337,27 @@ jobs:
       # The tag is moved rather than added to. One rolling "latest" is what
       # makes the download URL stable; every green main would otherwise leave
       # a release nobody asked for.
+      # One stable filename, whatever the version inside is called.
+      #
+      # The APK is named after its versionName, which now moves with every
+      # build — so uploading it as built would leave the `latest` release
+      # holding one asset per push, and the download link in the README would
+      # break on each one. The version is in the release's own name, in the
+      # body, and in the app's entry in Android settings.
+      - name: Name the APK for the release
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          cp app/build/outputs/apk/debug/*.apk TelegramYou-debug.apk
+          echo "VERSION=$(ls app/build/outputs/apk/debug/*.apk \
+            | sed -E 's#.*/TelegramYou-(.*)-debug\.apk#\1#')" >> "$GITHUB_ENV"
+
       - name: Publish the APK
         if: success() && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest build
-          files: app/build/outputs/apk/debug/*.apk
+          name: TelegramYou ${{ env.VERSION }}
+          files: TelegramYou-debug.apk
           # Not a prerelease: /releases/latest resolves only to a full one,
           # and that path is the entire point.
           prerelease: false
@@ -359,4 +373,9 @@ jobs:
             build; see the README.
 
             Debug-signed, so Android will ask you to allow installing from
-            this source. Built from ${{ github.sha }}.
+            this source. Version `${{ env.VERSION }}`, built from
+            ${{ github.sha }}.
+
+            The file name is the same every build so the link above keeps
+            working; which build it is shows in the release title and in the
+            app's own entry under Android settings.

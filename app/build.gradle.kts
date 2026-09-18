@@ -6,8 +6,29 @@ plugins {
     id("com.android.compose.screenshot")
 }
 
+/**
+ * The build number, and with it the version.
+ *
+ * Every APK CI publishes used to be 0.1.0 with versionCode 1, so nothing on a
+ * phone could tell two of them apart and the release page could not say which
+ * build it was offering.
+ *
+ * GITHUB_RUN_NUMBER is the source where there is one: it is monotonic, it
+ * needs no git history, and a shallow checkout — which is what actions/checkout
+ * does by default — makes counting commits return 1 on every run. Off CI it
+ * falls back to the commit count, and to 1 in a tree with no git at all, so a
+ * local build still has a number that moves.
+ */
+val buildNumber: Int =
+    System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+        ?: runCatching {
+            providers.exec {
+                commandLine("git", "rev-list", "--count", "HEAD")
+            }.standardOutput.asText.get().trim().toInt()
+        }.getOrDefault(1)
+
 /** Used for both versionName and the APK name, so the two cannot drift. */
-val appVersionName = "0.1.0"
+val appVersionName = "0.2.$buildNumber"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
@@ -26,7 +47,9 @@ android {
         applicationId = "com.telegramyou.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // Monotonic, so Android treats a newer APK as an upgrade rather than
+        // as the same build it already has.
+        versionCode = buildNumber
         versionName = appVersionName
 
         buildConfigField(

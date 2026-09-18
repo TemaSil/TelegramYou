@@ -10,7 +10,9 @@ That is the release page, rebuilt from `main` on every green push — the APK is
 the file attached at the bottom of it.
 
 If you would rather have the file itself:
-[TelegramYou-0.1.0-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-0.1.0-debug.apk).
+[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk).
+The file name stays the same on every build so this link keeps working; the
+release title says which build it is.
 
 > Clicked one of these before the first release existed and got **Page not
 > found**? The browser cached that 404. Reload the page ignoring the cache
@@ -95,7 +97,7 @@ TELEGRAM_API_HASH=your_api_hash_here
 
 ## Output
 
-APK: `app\build\outputs\apk\debug\TelegramYou-0.1.0-debug.apk`
+APK: `app\build\outputs\apk\debug\TelegramYou-0.2.<build>-debug.apk`
 
 ## Project map
 

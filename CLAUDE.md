@@ -140,7 +140,11 @@ Two things to hold on to while doing it:
 gradlew.bat :app:assembleDebug
 ```
 
-APK lands at `app\build\outputs\apk\debug\TelegramYou-0.1.0-debug.apk`.
+APK lands at `app\build\outputs\apk\debug\TelegramYou-0.2.<build>-debug.apk`.
+The version is `0.2.$GITHUB_RUN_NUMBER` on CI and `0.2.<commit count>` off it,
+so every build is a distinct `versionCode` and a phone treats a newer one as an
+upgrade. CI publishes it under the fixed name `TelegramYou-debug.apk`, so the
+link on the front page does not break every push.
 
 The pure module needs neither the SDK nor Google's Maven, so its tests run
 anywhere — including environments where `:app` cannot even be configured:
