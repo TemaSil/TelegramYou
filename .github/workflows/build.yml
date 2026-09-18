@@ -360,3 +360,24 @@ jobs:
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
+
+      # TEMPORARY. Delete once it is known whether Material groups list items.
+      #
+      # ROADMAP.md notes a ListItemShapes among the per-component shape sets,
+      # which would mean material3 already corners a list item by where it
+      # sits in a run — and that this project should use it rather than
+      # computing corners itself.
+      - name: Does Material shape a grouped list item
+        if: always()
+        continue-on-error: true
+        run: |
+          V=1.5.0-alpha28
+          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
+          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
+          unzip -o -q m3.aar classes.jar -d m3
+          for C in ListItemShapes ListItemDefaults ListItemKt; do
+            echo "--- $C ---"
+            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
+              2>/dev/null | head -25 || echo "(no such class)"
+          done
+

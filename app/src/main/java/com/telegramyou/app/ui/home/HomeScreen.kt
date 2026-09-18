@@ -46,8 +46,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -127,11 +125,17 @@ fun HomeScreen(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
-                // Transparent rather than one percent of surface, which was
-                // a way of saying transparent without admitting it — and
-                // still painted a hairline of the wrong colour.
+                // Darkest of the three levels on this screen. The bar is the
+                // container the screen hangs from, the background sits below
+                // it, and the chats are the lightest because they are the
+                // content — which is the order Material's fourth principle
+                // asks for: the important thing gets the brightest surface.
+                //
+                // Opaque, unlike the conversation's bar. There the gradient
+                // is meant to run behind it; here the bar is a level of its
+                // own and has to be seen to be one.
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -179,19 +183,16 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // Background before padding: a modifier chain paints where it
-                // stands, so insetting first leaves the system bars sitting
-                // over bare window colour rather than over this screen. Same
-                // ordering as the conversation.
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f)
-                        )
-                    )
-                )
+                // A flat container tone rather than the old gradient, which
+                // ran through `surface` — near enough to white that the chat
+                // groups sitting on it would have had nothing to stand out
+                // against. Containers need a background that is plainly not
+                // them.
+                //
+                // Before the padding, not after: a modifier chain paints
+                // where it stands, and insetting first would leave the
+                // system bars sitting over bare window colour.
+                .background(MaterialTheme.colorScheme.surfaceContainer)
                 .padding(padding)
         ) {
             PullToRefreshBox(
@@ -200,13 +201,17 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
-                    // Room for the floating button, which now shares the
-                    // bottom of the screen with a navigation bar. Ninety-six
-                    // was enough when the button was the only thing down
-                    // there; with the bar under it the last chat ended up
-                    // behind the pencil.
+                    // Room for the floating button, which shares the bottom
+                    // of the screen with a navigation bar. Ninety-six was
+                    // enough when the button was alone down there; with the
+                    // bar under it the last chat ended up behind the pencil.
                     contentPadding = PaddingValues(bottom = 112.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    // The hairline Material leaves between segmented list
+                    // items. Not zero — a segmented run is read as one
+                    // grouping because its corners meet, not because its rows
+                    // touch — and not more, which would turn every row back
+                    // into its own card.
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     item {
                         StoriesRail(
@@ -215,19 +220,37 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                     }
+                    // Grouped into containers rather than laid out as one
+                    // card per chat. Material's fourth expressive principle
+                    // is to contain content: a run of rows sharing a
+                    // container reads as one informative grouping, where the
+                    // same rows floating separately read as a pile of
+                    // unrelated things. Pinned chats get a container of their
+                    // own, because chosen and recent are different kinds of
+                    // thing and the separation then needs no heading.
+                    //
                     // No AnimatedVisibility here. It wrapped every row with
                     // visible = true, which never transitions, so the enter
                     // animation could not run — a composition layer that cost
                     // something and did nothing.
-                    itemsIndexed(state.chats, key = { _, chat -> chat.id }) { _, chat ->
-                        ChatListRow(
-                            chat = chat,
-                            onClick = { onOpenChat(chat.id) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp),
-                            onMutedChange = { muted -> onMutedChange(chat.id, muted) }
-                        )
+                    groupChats(state.chats) { it.isPinned }.forEach { group ->
+                        itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
+                            ChatListRow(
+                                chat = chat,
+                                index = index,
+                                count = group.size,
+                                onClick = { onOpenChat(chat.id) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp),
+                                onMutedChange = { muted -> onMutedChange(chat.id, muted) }
+                            )
+                        }
+                        // Between containers, not between rows: the gap is
+                        // what makes two groups read as two.
+                        item(key = "gap-${group.first().id}") {
+                            Spacer(Modifier.height(12.dp))
+                        }
                     }
                 }
             }
