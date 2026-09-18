@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
+import androidx.core.app.RemoteInput
 import com.telegramyou.app.MainActivity
 import com.telegramyou.app.R
 import com.telegramyou.app.TelegramYouApp
@@ -39,16 +40,6 @@ import kotlinx.coroutines.launch
 class TelegramForegroundService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    /**
-     * Messages already posted, per chat, so a shade entry can show a
-     * conversation rather than only its latest line.
-     *
-     * Held in memory deliberately: a notification does not outlive the
-     * process that posted it, so persisting this would restore entries for
-     * notifications Android has already dropped.
-     */
-    private val posted = mutableMapOf<Long, MutableList<NotifiableMessage>>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -87,9 +78,7 @@ class TelegramForegroundService : Service() {
                     NotificationContext(
                         openChatId = AppVisibility.openChatId,
                         isAppInForeground = AppVisibility.isInForeground,
-                        alreadyNotified = posted.values.flatten()
-                            .map { it.messageId }
-                            .toSet()
+                        alreadyNotified = PostedNotifications.shownMessageIds()
                     )
                 )
                 if (decision is NotificationDecision.Notify) post(decision.message)
@@ -98,15 +87,10 @@ class TelegramForegroundService : Service() {
     }
 
     private fun post(message: NotifiableMessage) {
-        val forChat = posted.getOrPut(message.chatId) { mutableListOf() }
-        forChat.add(message)
-        // Trimmed rather than unbounded: the shade shows a handful of lines
-        // and a chat left unread overnight would otherwise grow this forever.
-        while (forChat.size > MAX_LINES_PER_CHAT) forChat.removeAt(0)
-
-        val manager = NotificationManagerCompat.from(this)
+        val forChat = PostedNotifications.add(message, MAX_LINES_PER_CHAT)
         if (!canPost()) return
-        groupForShade(forChat.toList()).forEach { entry ->
+        val manager = NotificationManagerCompat.from(this)
+        groupForShade(forChat).forEach { entry ->
             manager.notify(entry.chatId.toInt(), conversationNotification(entry.messages))
         }
     }
@@ -139,6 +123,48 @@ class TelegramForegroundService : Service() {
             .setAutoCancel(true)
             .setContentIntent(openChatIntent(latest.chatId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .addAction(replyAction(latest.chatId))
+            .build()
+    }
+
+    /**
+     * Answering without opening the app, which is most of what a messenger's
+     * notification is for.
+     *
+     * `setAllowGeneratedReplies` lets the system offer its own suggestions
+     * beside the field — on a watch that is often the whole interaction, and
+     * it costs nothing to permit.
+     *
+     * `SEMANTIC_ACTION_REPLY` is not decoration: it is how a watch, a car and
+     * Android Auto know this action is the reply one rather than a button
+     * that happens to be first.
+     */
+    private fun replyAction(chatId: Long): NotificationCompat.Action {
+        val remoteInput = RemoteInput.Builder(NotificationReplyReceiver.KEY_REPLY)
+            .setLabel(getString(R.string.notification_reply_hint))
+            .build()
+        val intent = Intent(this, NotificationReplyReceiver::class.java)
+            .putExtra(NotificationReplyReceiver.EXTRA_CHAT_ID, chatId)
+        val pending = PendingIntent.getBroadcast(
+            this,
+            // Per chat, like the open intent: one shared request code would
+            // have every reply land in whichever chat was notified first.
+            chatId.toInt(),
+            intent,
+            // MUTABLE, and it has to be: the system writes the typed text
+            // into this intent before delivering it. An immutable one arrives
+            // with no text at all, which is the classic way this feature
+            // fails silently.
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return NotificationCompat.Action.Builder(
+            R.drawable.ic_launcher_foreground,
+            getString(R.string.notification_reply_label),
+            pending
+        )
+            .addRemoteInput(remoteInput)
+            .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+            .setAllowGeneratedReplies(true)
             .build()
     }
 
