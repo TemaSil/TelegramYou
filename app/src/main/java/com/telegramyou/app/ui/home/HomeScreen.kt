@@ -39,7 +39,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -116,8 +115,13 @@ fun HomeScreen(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
+                // Darkest of the three levels on this screen. The bar is the
+                // container the screen hangs from, the background sits below
+                // it, and the chats are the lightest because they are the
+                // content — which is the order Material's fourth principle
+                // asks for: the important thing gets the brightest surface.
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.01f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -137,15 +141,12 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.06f)
-                        )
-                    )
-                )
+                // A flat container tone rather than the old gradient, which
+                // ran through `surface` — near enough to white that the chat
+                // groups sitting on it would have had nothing to stand out
+                // against. Containers need a background that is plainly not
+                // them.
+                .background(MaterialTheme.colorScheme.surfaceContainer)
         ) {
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
