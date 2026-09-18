@@ -41,6 +41,18 @@ Three consequences, and they decide arguments:
   do. (The sibling Flutter project, TelegramAss, is deliberately the other
   way round — iOS-styled with Liquid Glass. Do not let the two bleed.)
 
+  **Blur has one narrow exception, and it is granted per place, by the
+  owner.** The rule above is about blur used *as a material* — a translucent
+  surface standing in for depth, everywhere, the way another design language
+  does it. Blur used once, on purpose, to take the conversation out of focus
+  while a reply is being composed is a different thing: it is not pretending
+  to be a surface, and Android itself blurs the same way behind its shade and
+  its recents. It stays a decision the owner makes case by case, never a
+  default and never a habit. So far: the reply banner (18 September 2026).
+  Material 3 Expressive ships no blurred material of its own — the effect is
+  the platform's, through `Modifier.blur` and `RenderEffect`, and it does
+  nothing below Android 12.
+
 `ROADMAP.md` records what Expressive actually contains and which of it our
 pinned alpha exposes. `ARCHITECTURE.md` records the layers.
 
