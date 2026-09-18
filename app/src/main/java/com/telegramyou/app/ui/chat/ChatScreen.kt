@@ -1989,16 +1989,31 @@ private fun ComposerBanner(
     isEditing: Boolean,
     onCancel: () -> Unit
 ) {
-    // Transparent, and no Surface under it. It used to be a filled
-    // surfaceContainerHigh strip across the full width, which read as a bar
-    // welded to the top of the composer — a second band where there should be
-    // one floating control. What is being replied to is a note about the
-    // message being written, so it belongs over the conversation with the
-    // capsule, not in a container of its own.
+    // The conversation's own colour, opaque — not transparent, and not a
+    // container tone.
     //
-    // The icon and the sender stay in primary, which is what keeps it legible
-    // now that there is no fill behind it.
-    Box(modifier = Modifier.fillMaxWidth()) {
+    // Two versions of this were wrong in opposite directions. A filled
+    // surfaceContainerHigh strip read as a bar welded to the top of the
+    // composer, a second band where there should be one floating control.
+    // Making it transparent fixed the band and broke something worse: the
+    // messages behind it showed through the text.
+    //
+    // So it paints what is behind it. Two layers rather than one, because the
+    // conversation's background is a gradient and this is the bottom of it:
+    // `surface` with primary at eight percent over it is exactly what that
+    // gradient ends on, so the banner disappears into it while still hiding
+    // whatever it covers.
+    //
+    // Not blur. Material 3 Expressive ships no blurred material — the effect
+    // exists in Compose as Modifier.blur, and it is the one thing CLAUDE.md
+    // rules out by name: glass belongs to another platform's design language
+    // and to the sibling project, not here.
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)

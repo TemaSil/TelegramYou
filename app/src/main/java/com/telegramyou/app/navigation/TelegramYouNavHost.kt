@@ -179,6 +179,8 @@ fun TelegramYouNavHost(
                 },
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
                 onMutedChange = homeViewModel::onMutedChange,
+                onPinnedChange = homeViewModel::onPinnedChange,
+                onMarkRead = homeViewModel::onMarkRead,
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,

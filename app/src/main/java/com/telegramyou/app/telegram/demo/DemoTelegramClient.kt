@@ -236,6 +236,27 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
+        delay(80)
+        _chats.update { list ->
+            val changed = list.map {
+                if (it.id == chatId) it.copy(isPinned = pinned) else it
+            }
+            // Pinned chats are drawn as their own group, and the group is taken
+            // from the list's own order — so a chat that has just been pinned
+            // has to move to where that group is, or it would appear to have
+            // done nothing.
+            changed.sortedByDescending { it.isPinned }
+        }
+    }
+
+    override suspend fun markChatRead(chatId: Long) {
+        delay(60)
+        _chats.update { list ->
+            list.map { if (it.id == chatId) it.copy(unreadCount = 0) else it }
+        }
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
         val chat = _chats.value.first { it.id == chatId }

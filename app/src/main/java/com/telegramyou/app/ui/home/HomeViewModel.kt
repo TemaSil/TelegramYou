@@ -283,6 +283,22 @@ class HomeViewModel(
         profileEditing.update { it.copy(errorMessage = null) }
     }
 
+    /**
+     * Pins a chat to the top of the list, or unpins it.
+     *
+     * Nothing is written here, for the reason [onMutedChange] gives: the list
+     * is a flow the client owns. Pinning also reorders it, so an optimistic
+     * copy would have to guess the new order as well as the new flag.
+     */
+    fun onPinnedChange(chatId: Long, pinned: Boolean) {
+        viewModelScope.launch { repository.setChatPinned(chatId, pinned) }
+    }
+
+    /** Clears a chat's unread badge without opening it. */
+    fun onMarkRead(chatId: Long) {
+        viewModelScope.launch { repository.markChatRead(chatId) }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             refreshing.value = true

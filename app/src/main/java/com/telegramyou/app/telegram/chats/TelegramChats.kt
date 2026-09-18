@@ -33,4 +33,21 @@ interface TelegramChats {
      * when two updates arrive close together.
      */
     suspend fun setChatMuted(chatId: Long, muted: Boolean)
+
+    /**
+     * Pins a chat to the top of the list, or unpins it.
+     *
+     * [pinned] rather than a toggle, for the reason [setChatMuted] gives: the
+     * caller sends what it drew.
+     */
+    suspend fun setChatPinned(chatId: Long, pinned: Boolean)
+
+    /**
+     * Marks everything in a chat as read.
+     *
+     * Its own method rather than a side effect of opening one, because the
+     * point of it is to clear a badge without going in — which is most of why
+     * anybody reaches for it.
+     */
+    suspend fun markChatRead(chatId: Long)
 }

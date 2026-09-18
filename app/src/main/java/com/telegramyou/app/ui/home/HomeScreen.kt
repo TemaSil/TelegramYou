@@ -81,6 +81,8 @@ fun HomeScreen(
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
     onMutedChange: (Long, Boolean) -> Unit,
+    onPinnedChange: (Long, Boolean) -> Unit,
+    onMarkRead: (Long) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
@@ -302,7 +304,11 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp),
-                                onMutedChange = { muted -> onMutedChange(chat.id, muted) }
+                                onMutedChange = { muted -> onMutedChange(chat.id, muted) },
+                                onPinnedChange = { pinned ->
+                                    onPinnedChange(chat.id, pinned)
+                                },
+                                onMarkRead = { onMarkRead(chat.id) }
                             )
                         }
                         // Between containers, not between rows: the gap is

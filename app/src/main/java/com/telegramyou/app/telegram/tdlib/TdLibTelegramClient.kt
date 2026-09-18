@@ -284,6 +284,46 @@ class TdLibTelegramClient(
         return out
     }
 
+    override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "toggleChatIsPinned")
+                // Which list it is pinned in. Main rather than Archive: this
+                // client has no archive screen yet, so pinning inside one
+                // would put the chat somewhere nothing can show it.
+                .put("chat_list", JSONObject().put("@type", "chatListMain"))
+                .put("chat_id", chatId)
+                .put("is_pinned", pinned)
+        )
+        refreshChats()
+    }
+
+    override suspend fun markChatRead(chatId: Long) {
+        awaitReady()
+        // TDLib has no "mark this chat read". The unread count comes down when
+        // its messages are viewed, and force_read is what makes that count
+        // while the chat is not open on screen — which is the whole point of
+        // clearing a badge from the list.
+        //
+        // Viewing the last message is enough: Telegram reads it as everything
+        // up to there. Without one there is nothing to view and nothing to do,
+        // which is the state of a chat that has never had a message.
+        val lastMessageId = chatsById[chatId]
+            ?.optJSONObject("last_message")
+            ?.optLong("id")
+            ?.takeIf { it != 0L }
+            ?: return
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "viewMessages")
+                .put("chat_id", chatId)
+                .put("message_ids", JSONArray().put(lastMessageId))
+                .put("force_read", true)
+        )
+        refreshChats()
+    }
+
     override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
         awaitReady()
         requireEngine().send(

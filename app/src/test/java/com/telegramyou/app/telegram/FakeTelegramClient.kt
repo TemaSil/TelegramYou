@@ -99,6 +99,17 @@ class FakeTelegramClient(
     override suspend fun submitCode(code: String) = Unit
     override suspend fun submitPassword(password: String) = Unit
     override suspend fun resendCode() = Unit
+    /** Chat actions, in order, kept apart from the profile's own calls. */
+    val chatCalls = mutableListOf<String>()
+
+    override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
+        chatCalls += "setChatPinned:$chatId:$pinned"
+    }
+
+    override suspend fun markChatRead(chatId: Long) {
+        chatCalls += "markChatRead:$chatId"
+    }
+
     override suspend fun logout() = Unit
 
     // ── profile ──────────────────────────────────────────────────────────
