@@ -522,9 +522,20 @@ class DemoTelegramClient : TelegramClient {
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
             demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park")
         )
+        // A group that behaves like one: several people, because the header
+        // draws a cluster of whoever is talking, and a "group" where one
+        // person says everything shows a single avatar — which is to say it
+        // shows nothing of what a group looks like. Demo mode exists to make
+        // the interface visible without an account, and that has to include
+        // the parts which only appear with more than one person in the room.
         chatMessages[3] = mutableListOf(
             demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
-            demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB")
+            demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB"),
+            demoMessage(22, 3, "Got them. The tonal palette is the part I want to steal.", false, now - day - 4 * 60 * 60, "Ivan"),
+            demoMessage(23, 3, "Shapes too — every avatar up there is a different one.", false, now - day - 3 * 60 * 60, "Noor", reactions = listOf(MessageReaction("🔥", count = 3))),
+            demoMessage(24, 3, "That is the shape library doing its job.", true, now - day - 2 * 60 * 60, isRead = true),
+            demoMessage(25, 3, "Figma dump is in #files now", false, today - 90 * 60, "Sasha"),
+            demoMessage(26, 3, "Reviewing tonight 👀", false, today - 40 * 60, "Ivan")
         )
     }
 

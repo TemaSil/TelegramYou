@@ -61,28 +61,7 @@ class SmokeTest {
 
     @Test
     fun signsInWithTheDemoCodeAndReachesTheChatList() {
-        waitFor(By.text("Your phone"), "the login screen")
-        screenshot("01-login")
-
-        // Into the field, not into its placeholder. Compose publishes a
-        // TextField as an EditText in the accessibility tree and the
-        // placeholder as a plain TextView beside it — typing into the latter
-        // does nothing, silently, which is how the first run of this test
-        // "failed to reach the code screen" while the app was working fine.
-        type("+10000000000")
-        tap(By.text("Continue"))
-
-        waitFor(By.text("Enter code"), "the code screen")
-        screenshot("02-code")
-
-        type("12345")
-        tap(By.text("Sign in"))
-
-        // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
-        // the system dialog covers the very chat this test waits for. Granting
-        // it rather than dismissing it, because a refusal would leave the
-        // notification service posting into nothing for the rest of the run.
-        allowNotifications()
+        signIn()
 
         // Anchored on a chat the demo backend seeds, not on the app's name.
         // "TelegramYou" is written across the login screen too, so waiting for
@@ -108,6 +87,62 @@ class SmokeTest {
         device.waitForIdle(IDLE_TIMEOUT)
         waitForNotification()
         screenshot("05-notification")
+    }
+
+    /**
+     * A group's header, which is the only place the avatar cluster appears.
+     *
+     * A second test rather than more of the first: that one ends on the home
+     * screen with the shade open, and getting from there to another
+     * conversation means starting over — which is what a fresh test method
+     * does for free.
+     *
+     * The chat it opens is the seeded group with several people talking in
+     * it. A cluster needs more than one member; with one it falls back to a
+     * single avatar, correctly and without showing anything.
+     */
+    @Test
+    fun aGroupHeaderShowsItsMembers() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
+        tap(By.text(GROUP_CHAT))
+        // Anchored on a message only this group has, so landing in the wrong
+        // conversation fails here rather than producing a confident
+        // screenshot of the wrong screen.
+        waitFor(By.textContains("Drop assets"), "the group")
+        screenshot("06-group-header")
+    }
+
+    /**
+     * The walk from a cold start to a signed-in chat list, shared by both
+     * tests, screenshots included — each test runs from a fresh start, so
+     * both pass through these screens and the second simply overwrites the
+     * first's pictures of them with identical ones.
+     */
+    private fun signIn() {
+        waitFor(By.text("Your phone"), "the login screen")
+        screenshot("01-login")
+
+        // Into the field, not into its placeholder. Compose publishes a
+        // TextField as an EditText in the accessibility tree and the
+        // placeholder as a plain TextView beside it — typing into the latter
+        // does nothing, silently, which is how the first run of this test
+        // "failed to reach the code screen" while the app was working fine.
+        type("+10000000000")
+        tap(By.text("Continue"))
+
+        waitFor(By.text("Enter code"), "the code screen")
+        screenshot("02-code")
+
+        type("12345")
+        tap(By.text("Sign in"))
+
+        // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
+        // the system dialog covers the very chat the tests wait for. Granting
+        // it rather than dismissing it, because a refusal would leave the
+        // notification service posting into nothing for the rest of the run.
+        allowNotifications()
     }
 
     /**
@@ -215,6 +250,9 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+
+        /** The seeded group with more than one person talking in it. */
+        const val GROUP_CHAT = "Design Circle"
 
         /**
          * Longer than twice the demo chat's twenty-five second interval,
