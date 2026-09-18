@@ -99,9 +99,15 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [x] `ButtonGroup` for the chat composer's attach and send/record buttons
+- [ ] `ButtonGroup` somewhere it belongs. It was tried in the chat composer
+      and taken out again: grouped beside the field it read as a split button
+      next to a text box — three things in a row rather than one control, and
+      the person who asked for it said so. The composer is a floating capsule
+      now, with plain icon buttons inside it. A segmented choice is what this
+      component is for; Settings is the obvious candidate
 - [~] Settings still uses `SingleChoiceSegmentedButtonRow` for the theme
-      choice; `ButtonGroup` is the Expressive alternative
+      choice; `ButtonGroup` is the Expressive alternative, and now the most
+      likely home for it
 - [ ] A bottom navigation bar on Home — `ShortNavigationBar`, not
       `ButtonGroup`: it is navigation, and Expressive has a component for
       exactly that
