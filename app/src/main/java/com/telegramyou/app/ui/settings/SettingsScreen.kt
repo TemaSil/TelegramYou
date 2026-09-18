@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.settings
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -66,10 +67,40 @@ fun SettingsScreen(
             )
         }
     ) { padding ->
+        SettingsContent(
+            settings = settings,
+            me = me,
+            onThemeChange = onThemeChange,
+            onDynamicColorChange = onDynamicColorChange,
+            onLogout = onLogout,
+            contentPadding = padding
+        )
+    }
+}
+
+/**
+ * The settings themselves, without a bar or a back arrow around them.
+ *
+ * Split out because this content has two homes: its own screen, reached from
+ * a route, and a tab inside Home. Nesting one Scaffold inside another would
+ * apply the window insets twice, which is the same mistake that once left a
+ * hole under the composer.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsContent(
+    settings: AppearanceSettings,
+    me: TelegramUser?,
+    onThemeChange: (ThemeChoice) -> Unit,
+    onDynamicColorChange: (Boolean) -> Unit,
+    onLogout: () -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier
+) {
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(contentPadding)
                 .verticalScroll(rememberScrollState())
         ) {
             if (me != null) {
@@ -155,7 +186,6 @@ fun SettingsScreen(
                 modifier = Modifier.clickable(onClick = onLogout)
             )
         }
-    }
 }
 
 @Composable

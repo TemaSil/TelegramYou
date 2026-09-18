@@ -22,6 +22,13 @@ import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.telegramyou.app.ui.settings.SettingsContent
+import com.telegramyou.app.ui.profile.ProfileContent
+import com.telegramyou.app.settings.ThemeChoice
+import com.telegramyou.app.settings.AppearanceSettings
+import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.ShortNavigationBar
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -61,13 +68,18 @@ import com.telegramyou.app.ui.components.StoriesRail
 @Composable
 fun HomeScreen(
     state: HomeUiState,
+    tab: HomeTab,
+    onTabSelected: (HomeTab) -> Unit,
+    settings: AppearanceSettings,
     onRefresh: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onOpenStory: (StoryItem) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
-    onOpenSettings: () -> Unit,
-    onMutedChange: (Long, Boolean) -> Unit
+    onMutedChange: (Long, Boolean) -> Unit,
+    onThemeChange: (ThemeChoice) -> Unit,
+    onDynamicColorChange: (Boolean) -> Unit,
+    onLogout: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -102,17 +114,15 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onSearchExpandedChange(true) }) {
-                        Icon(Icons.Rounded.Search, contentDescription = "Search")
-                    }
-                    // The avatar is the way into settings, the way it is in
-                    // every other app on the phone — a gear beside it would be
-                    // a second control for the same destination.
+                    // No magnifier and no avatar here any more: both are tabs
+                    // along the bottom now, and a second control for a
+                    // destination the bar already carries is one the eye has
+                    // to rule out every time.
                     AvatarBubble(
                         title = state.me?.displayName ?: "You",
                         seed = state.me?.avatarColor ?: 1,
                         size = 36.dp,
-                        onClick = onOpenSettings,
+                        onClick = { onTabSelected(HomeTab.Profile) },
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
@@ -122,7 +132,13 @@ fun HomeScreen(
                 modifier = Modifier.statusBarsPadding()
             )
         },
+        bottomBar = {
+            HomeNavigationBar(selected = tab, onSelected = onTabSelected)
+        },
         floatingActionButton = {
+            // Only where composing means anything. On Profile or Settings a
+            // pencil is a button with nowhere to go.
+            if (tab != HomeTab.Chats) return@Scaffold
             FloatingActionButton(
                 onClick = { state.chats.firstOrNull()?.let { onOpenChat(it.id) } },
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -133,6 +149,29 @@ fun HomeScreen(
             }
         }
     ) { padding ->
+        // Profile and Settings are their own content, not another list with
+        // a gradient behind it, so they take the padding and stop there.
+        when (tab) {
+            HomeTab.Profile -> {
+                ProfileContent(me = state.me, contentPadding = padding)
+                return@Scaffold
+            }
+            HomeTab.Settings -> {
+                SettingsContent(
+                    settings = settings,
+                    me = state.me,
+                    onThemeChange = onThemeChange,
+                    onDynamicColorChange = onDynamicColorChange,
+                    onLogout = onLogout,
+                    contentPadding = padding
+                )
+                return@Scaffold
+            }
+            // Chats and Search share the list below: searching narrows what
+            // is on screen rather than replacing it with somewhere else.
+            HomeTab.Chats, HomeTab.Search -> Unit
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -153,7 +192,12 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
-                    contentPadding = PaddingValues(bottom = 96.dp),
+                    // Room for the floating button, which now shares the
+                    // bottom of the screen with a navigation bar. Ninety-six
+                    // was enough when the button was the only thing down
+                    // there; with the bar under it the last chat ended up
+                    // behind the pencil.
+                    contentPadding = PaddingValues(bottom = 112.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     item {
@@ -321,4 +365,28 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
             )
         }
     )
+}
+
+/**
+ * Home's bottom bar.
+ *
+ * `ShortNavigationBar`, which is the Expressive one — and reachable, unlike
+ * `MaterialShapes`, which was checked before a line of this was written.
+ * Against the plain `NavigationBar` it is shorter, which matters on a screen
+ * whose whole job is a list, and its item animates the indicator rather than
+ * cross-fading it.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun HomeNavigationBar(selected: HomeTab, onSelected: (HomeTab) -> Unit) {
+    ShortNavigationBar {
+        HomeTab.entries.forEach { tab ->
+            ShortNavigationBarItem(
+                selected = selected == tab,
+                onClick = { onSelected(tab) },
+                icon = { Icon(tab.icon, contentDescription = tab.label) },
+                label = { Text(tab.label) }
+            )
+        }
+    }
 }
