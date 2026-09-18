@@ -210,6 +210,30 @@ had a stock counterpart after all — two of them. `LoadingIndicator`, the
 shape-morphing one, is in there now; if the overlay ever wants a wavy ring
 specifically, use `WavyProgressIndicator` rather than a Canvas.
 
+Note `SegmentedListItem` too, which the blog does not name but 1.5.0-alpha28
+ships, probed out of the AAR:
+
+```
+SegmentedListItem(onClick, shapes, modifier, enabled, overlineContent,
+                  supportingContent, leadingContent, trailingContent,
+                  verticalAlignment, onLongClick, onLongClickLabel, colors,
+                  elevation, contentPadding, interactionSource, headlineContent)
+
+ListItemDefaults.segmentedShapes(index, count, shapes = shapes())
+ListItemDefaults.segmentedColors(containerColor = …, …)
+```
+
+That is the grouped list — tactic 4 below — as a component rather than as
+something to build. `segmentedShapes` rounds the ends of a run and squares
+its middle from nothing but an index and a count, and `SegmentedListItem`
+takes `onLongClick` directly, so a row needing a context menu does not have
+to be wrapped in `combinedClickable`. The chat list went the long way round
+first, with an enum and four hand-cut corner radii, before this was probed;
+`ListItemShapes` in the shape table above was the clue that was missed.
+`ListItem` itself has the same new shape/elevation/contentPadding parameters
+in this alpha, so anywhere still passing `tonalElevation` is on the old
+overload.
+
 ### The seven tactics, against this client
 
 Material's guidance, and what it implies here. The last one is the one to be
@@ -222,8 +246,10 @@ careful with.
    bubbles is exactly this problem.
 3. **Guide attention with type.** Emphasized styles for unread counts,
    pinned-message bars, section headers — not for body text.
-4. **Group content in containers.** Message runs and day separators already
-   do this; folders and the archive row are the same job.
+4. **Group content in containers.** `SegmentedListItem` with
+   `ListItemDefaults.segmentedShapes(index, count)` — the chat list uses it,
+   pinned chats in one run and the rest in another. Message runs and day
+   separators already do this; folders and the archive row are the same job.
 5. **Natural motion.** Shape morph on press, and `MotionScheme` springs.
    Animation has to explain a change, not decorate one.
 6. **Flexible components.** `ShortNavigationBar` and `WideNavigationRail`
@@ -240,6 +266,7 @@ careful with.
 - Attachment button → `FloatingActionButtonMenu` is the stock pattern
 - Adaptive navigation → `ShortNavigationBar` / `WideNavigationRail`
 - Avatars and story rings → `MaterialShapes`
+- Grouped lists → `SegmentedListItem`, never hand-cut corner radii
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
