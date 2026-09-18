@@ -107,13 +107,20 @@ fun AvatarCluster(
  * nothing is an ordinary round avatar looks like a novelty, and a polygon
  * with enough vertices to pass for a circle is more work for the same
  * result.
+ *
+ * No two entries here may look alike, which is a stronger requirement than
+ * being different shapes. This list once held a four-sided polygon at 0.30
+ * rounding and another at 0.46 — different by every measure the code has,
+ * and the same squircle to look at, so a header drew two people in what
+ * read as one shape while every rule was being obeyed. Deduplicating the
+ * indices cannot fix that; the list itself has to be honest.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun materialShapeSet(): List<Shape> = listOf(
     CircleShape,
     starShape(points = 4, innerRatio = 0.75f, rounding = 0.50f),
-    polygonShape(vertices = 4, rounding = 0.16f),
+    polygonShape(vertices = 4, rounding = 0.30f),
     starShape(points = 6, innerRatio = 0.78f, rounding = 0.48f),
     polygonShape(vertices = 3, rounding = 0.24f),
     starShape(points = 8, innerRatio = 0.82f, rounding = 0.44f),
@@ -121,7 +128,7 @@ private fun materialShapeSet(): List<Shape> = listOf(
     starShape(points = 5, innerRatio = 0.70f, rounding = 0.40f),
     polygonShape(vertices = 6, rounding = 0.12f),
     starShape(points = 12, innerRatio = 0.88f, rounding = 0.40f),
-    polygonShape(vertices = 4, rounding = 0.46f),
+    starShape(points = 3, innerRatio = 0.62f, rounding = 0.44f),
     polygonShape(vertices = 8, rounding = 0.10f)
 )
 

@@ -53,11 +53,34 @@ class AvatarShapesTest {
     }
 
     @Test
-    fun `people who are not neighbours may share a shape`() {
-        // Only adjacency matters; forcing global uniqueness would take a
-        // person's shape away for no visual gain.
+    fun `people separated by somebody else still differ`() {
+        // Hexagon, circle, hexagon reads as a mistake rather than as a rule
+        // being followed, so the cluster is deduplicated as a whole.
         val indices = avatarShapeIndices(listOf(5L, 6L, 5L), 35)
-        assertEquals(indices[0], indices[2])
+        assertNotEquals(indices[0], indices[2])
+    }
+
+    @Test
+    fun `everyone in a cluster gets a different shape`() {
+        val indices = avatarShapeIndices(listOf(1L, 1L, 1L, 1L, 1L), 35)
+        assertEquals(indices.size, indices.toSet().size)
+    }
+
+    @Test
+    fun `more people than shapes stops rather than spinning`() {
+        // The bound matters: without it the search for a free shape circles
+        // the list forever once every one of them is taken.
+        val indices = avatarShapeIndices(listOf(1L, 2L, 3L, 4L, 5L), shapeCount = 3)
+        assertEquals(5, indices.size)
+        indices.forEach { assertTrue("index $it is outside 0..2", it in 0..2) }
+    }
+
+    @Test
+    fun `a cluster larger than the shape list still avoids neighbours`() {
+        val indices = avatarShapeIndices(listOf(1L, 2L, 3L, 4L, 5L, 6L), shapeCount = 3)
+        indices.zipWithNext().forEach { (left, right) ->
+            assertNotEquals("neighbours share a shape", left, right)
+        }
     }
 
     @Test
