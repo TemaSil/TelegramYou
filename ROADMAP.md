@@ -272,6 +272,34 @@ careful with.
 
 ## Where this was left, 18 September 2026
 
+Second pass of the day, after the APK was looked at on a phone. Everything
+below the first list landed after that, and most of it was reported rather
+than found here — which is the split working as intended: the emulator says
+whether a screen arrives, a person says whether it is right.
+
+- **The profile edits.** Name, bio and username. `TelegramProfile` is a fifth
+  interface on `TelegramClient`, with `setName`, `setBio`, `setUsername` and
+  `refreshMe`, because TDLib has them separately and they fail separately.
+- **The composer floats.** It was a row of a Column, so the strip under the
+  messages was bare chat background rather than something hovering. The list
+  and the composer share a Box now.
+- **Three tone bugs, all the same shape.** The capsule was five units from the
+  background it sat on; the chats had no panel distinct from the stories rail;
+  the reply banner was a filled strip welded to the composer. Measured off
+  screenshots rather than argued about.
+- **Two keyboards that had to be asked for twice**, on the sign-in steps and
+  on reply.
+- **Messages animate in**, through `Modifier.animateItem` with the theme's own
+  springs.
+- **Send appears when something is attached** — it was chosen from the text
+  alone, so a photo with no caption had a microphone where send belonged.
+- **Versions and one signing key.** Every published APK was 0.1.0 with
+  versionCode 1, signed by a key the runner generated fresh each time, so it
+  could not be installed over the last one. The version is the run number now
+  and the debug key is tracked; CLAUDE.md records why that exception exists.
+
+
+
 Everything the 17 September list asked for is done except one, and that one
 is a debt rather than a feature — see below. `main` carries the floating
 composer, the avatar cluster, the grouped chat list, the bottom navigation
@@ -300,18 +328,14 @@ Landed today:
 
 ### What the next session should pick up
 
-1. **Profile: view and edit name, bio, username.** The tab exists and shows
-   nothing but the account it is signed into. Material 3 covers this area
-   completely, so it is `ListItem`, `TextField` and a `Scaffold` — no
-   custom drawing is warranted anywhere in it.
-2. **Swipe actions on the chat list** — `SwipeToDismissBox` for mute, pin,
+1. **Swipe actions on the chat list** — `SwipeToDismissBox` for mute, pin,
    archive and delete. Mute already works from the long-press menu; pin and
    mark-read still need client methods on both backends.
 3. **Reply from the shade, watched working.** The code is written and the
    emulator sees the notification arrive, but the test does not type into
    the remote input, so that line is reasoned about rather than
    demonstrated. This is the oldest unpaid debt in the file.
-4. **A real member list.** The avatar cluster is built from whoever has
+3. **A real member list.** The avatar cluster is built from whoever has
    written in the loaded window, so it shows who is talking rather than who
    is present. Needs a TDLib call `TelegramClient` does not have yet.
 
@@ -629,8 +653,13 @@ them. Ticks are only worth something if somebody moves them.
 - [~] Appearance: theme and dynamic colour are done, through
       `SingleChoiceSegmentedButtonRow`; text size is not
 - [~] Sign out is there; the rest of privacy and active sessions is not
-- [~] Profile: a tab exists and shows the signed-in account read-only.
-      Editing name, bio and username is the next job in this area
+- [x] Profile: name, bio and username, edited in place — the fields are the
+      profile, with no pencil and no second screen behind one. What is valid
+      is `:core`'s `ProfileEditing` with 22 tests, because a username Telegram
+      refuses comes back as a generic error with no field attached and the
+      screen would have nothing to point at. Only the changed fields are sent,
+      the username last because it is the one that gets refused, and the
+      account is re-read afterwards so what is shown is what the server took
 - [ ] Notifications settings — the two channels now exist, so this is
       per-chat overrides rather than a global switch
 - [ ] Language — Russian and English
