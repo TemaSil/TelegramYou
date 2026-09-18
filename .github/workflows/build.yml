@@ -360,25 +360,3 @@ jobs:
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Built from ${{ github.sha }}.
-
-      # TEMPORARY. Delete once the navigation bar is written.
-      #
-      # ShortNavigationBar is an Expressive component, and Expressive
-      # components in this alpha have a habit of being internal —
-      # MaterialShapes was, in all thirty-five of its shapes. Asking first
-      # costs one build; guessing cost six. See ROADMAP.md.
-      - name: Is ShortNavigationBar reachable
-        if: always()
-        continue-on-error: true
-        run: |
-          V=1.5.0-alpha28
-          B=https://dl.google.com/dl/android/maven2/androidx/compose/material3
-          curl -fsSL "$B/material3-android/$V/material3-android-$V.aar" -o m3.aar
-          unzip -o -q m3.aar classes.jar -d m3
-          for C in ShortNavigationBarKt ShortNavigationBarItemKt \
-                   ShortNavigationBarDefaults NavigationBarKt; do
-            echo "--- $C ---"
-            javap -classpath m3/classes.jar -public "androidx.compose.material3.$C" \
-              2>/dev/null | head -12 || echo "(no such class)"
-          done
-

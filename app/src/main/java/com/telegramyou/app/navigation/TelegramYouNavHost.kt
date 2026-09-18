@@ -26,6 +26,10 @@ import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.components.RequestNotificationPermission
 import com.telegramyou.app.ui.home.HomeScreen
 import com.telegramyou.app.ui.home.HomeViewModel
+import com.telegramyou.app.ui.home.HomeTab
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
@@ -140,19 +144,44 @@ fun TelegramYouNavHost(
         composable(Route.Home.PATTERN) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+            val appearanceSettings by appearance.settings.collectAsStateWithLifecycle()
             // Here rather than at launch: by now there is a chat list on
             // screen, so "let us tell you when these people write" explains
             // itself. See the composable for why it is asked only once.
             RequestNotificationPermission()
+
+            // Saveable, so the tab survives a rotation. Held here rather than
+            // in the ViewModel because it is a fact about this composition,
+            // not about the account: nothing outside the screen asks which
+            // tab is showing.
+            var tab by rememberSaveable { mutableStateOf(HomeTab.Chats) }
+
             HomeScreen(
                 state = state,
+                tab = tab,
+                onTabSelected = { picked ->
+                    tab = picked
+                    // The Search tab is the search bar, so selecting it opens
+                    // it and leaving it closes it — otherwise the bar would
+                    // stay expanded over the Profile tab.
+                    homeViewModel.onSearchExpandedChange(picked == HomeTab.Search)
+                },
+                settings = appearanceSettings,
                 onRefresh = homeViewModel::refresh,
                 onOpenChat = { id -> navController.navigateTo(Route.Chat(id)) },
                 onOpenStory = { story -> navController.navigateTo(Route.Story(story.id)) },
-                onSearchExpandedChange = homeViewModel::onSearchExpandedChange,
+                onSearchExpandedChange = { expanded ->
+                    homeViewModel.onSearchExpandedChange(expanded)
+                    // Closing the search bar by its own X or back arrow has to
+                    // move the tab too, or the bar underneath would still be
+                    // lit while the list is no longer being searched.
+                    if (!expanded && tab == HomeTab.Search) tab = HomeTab.Chats
+                },
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
-                onOpenSettings = { navController.navigateTo(Route.Settings) },
-                onMutedChange = homeViewModel::onMutedChange
+                onMutedChange = homeViewModel::onMutedChange,
+                onThemeChange = appearance::setTheme,
+                onDynamicColorChange = appearance::setDynamicColor,
+                onLogout = homeViewModel::logout
             )
         }
         composable(Route.Settings.PATTERN) {
