@@ -15,6 +15,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.ui.avatars.avatarShapeIndices
+import kotlin.math.sin
+import kotlin.math.cos
+import kotlin.math.PI
 
 /**
  * One member of a group, as far as the cluster is concerned.
@@ -109,25 +112,30 @@ fun AvatarCluster(
 @Composable
 private fun materialShapeSet(): List<Shape> = listOf(
     CircleShape,
-    polygonShape(vertices = 4, rounding = 0.30f),
-    polygonShape(vertices = 6, rounding = 0.80f),
-    polygonShape(vertices = 5, rounding = 0.22f),
-    polygonShape(vertices = 3, rounding = 0.40f),
-    polygonShape(vertices = 8, rounding = 0.26f),
-    polygonShape(vertices = 12, rounding = 0.50f),
-    polygonShape(vertices = 4, rounding = 0.14f),
-    polygonShape(vertices = 7, rounding = 0.35f),
-    polygonShape(vertices = 6, rounding = 0.20f),
-    polygonShape(vertices = 9, rounding = 0.45f),
-    polygonShape(vertices = 5, rounding = 0.60f)
+    starShape(points = 4, innerRatio = 0.75f, rounding = 0.50f),
+    polygonShape(vertices = 4, rounding = 0.16f),
+    starShape(points = 6, innerRatio = 0.78f, rounding = 0.48f),
+    polygonShape(vertices = 3, rounding = 0.24f),
+    starShape(points = 8, innerRatio = 0.82f, rounding = 0.44f),
+    polygonShape(vertices = 5, rounding = 0.14f),
+    starShape(points = 5, innerRatio = 0.70f, rounding = 0.40f),
+    polygonShape(vertices = 6, rounding = 0.12f),
+    starShape(points = 12, innerRatio = 0.88f, rounding = 0.40f),
+    polygonShape(vertices = 4, rounding = 0.46f),
+    polygonShape(vertices = 8, rounding = 0.10f)
 )
 
 /**
- * One regular polygon, as a [Shape] an avatar can be clipped to.
+ * A regular polygon, as a [Shape] an avatar can be clipped to.
  *
- * [rounding] is a fraction of the distance to the neighbouring vertex, so 0
- * is a hard corner and values near 1 round the shape away towards a circle.
- * Smoothing is left at its maximum: an unsmoothed rounding meets the
+ * [rounding] is a fraction of the distance to the neighbouring vertex: 0 is a
+ * hard corner, and values approaching 1 round the shape away into a circle.
+ * Keep it low. The first version of this list used sixes, sevens and nines at
+ * 0.35 to 0.80, and at the size an avatar is drawn every one of them came out
+ * indistinguishable from a circle — the shapes were applied correctly and
+ * showed nothing, which is the worst way for this to fail.
+ *
+ * Smoothing stays at its maximum: unsmoothed, a rounded corner meets the
  * straight edge with a visible kink at this size.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -139,6 +147,37 @@ private fun polygonShape(vertices: Int, rounding: Float): Shape =
             radius = 1f,
             centerX = 0f,
             centerY = 0f,
+            rounding = CornerRounding(radius = rounding, smoothing = 1f)
+        ).normalized()
+    }.toShape()
+
+/**
+ * A star, which is what Material's cookies and flowers actually are.
+ *
+ * Built from explicit vertices because `graphics-shapes` publishes a
+ * constructor taking a polygon's points but no star factory this project can
+ * see — and a scalloped outline is most of what makes the shape library worth
+ * showing. Points alternate between the outer radius and [innerRatio] of it;
+ * a ratio near 1 gives the soft scallop of a cookie, lower gives the spikes
+ * of a flower or a burst.
+ *
+ * The rounding applies to every point, inner and outer alike, which is what
+ * keeps the scallops round rather than sharp.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun starShape(points: Int, innerRatio: Float, rounding: Float): Shape =
+    remember(points, innerRatio, rounding) {
+        val corners = points * 2
+        val vertices = FloatArray(corners * 2)
+        for (corner in 0 until corners) {
+            val radius = if (corner % 2 == 0) 1f else innerRatio
+            val angle = PI * corner / points
+            vertices[corner * 2] = radius * cos(angle).toFloat()
+            vertices[corner * 2 + 1] = radius * sin(angle).toFloat()
+        }
+        RoundedPolygon(
+            vertices = vertices,
             rounding = CornerRounding(radius = rounding, smoothing = 1f)
         ).normalized()
     }.toShape()
