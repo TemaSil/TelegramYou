@@ -378,8 +378,12 @@ fun ChatScreen(
                         )
                     }
                 },
+                // Transparent, so the conversation's own gradient runs the
+                // full height of the screen instead of starting below a grey
+                // band. The bar's contents still read: they sit over the top
+                // of that gradient, which is the lightest part of it.
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    containerColor = Color.Transparent
                 )
             )
         }
@@ -387,7 +391,13 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // Background before padding, and the order is the point. A
+                // modifier chain paints where it stands: with the inset
+                // applied first, the gradient stopped where the navigation
+                // bar began and left a band of bare window colour under it —
+                // which is exactly what a transparent system bar shows
+                // through. Painting first and insetting after puts the
+                // conversation under the bar and the content clear of it.
                 .background(
                     Brush.verticalGradient(
                         listOf(
@@ -397,6 +407,7 @@ fun ChatScreen(
                         )
                     )
                 )
+                .padding(padding)
                 .imePadding()
         ) {
             detail?.pinnedMessage?.let { pinned ->
@@ -2031,7 +2042,12 @@ private fun ComposerBar(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                // Eight rather than four, so the field inside has room to
+                // breathe instead of meeting the capsule's edge. The capsule
+                // grows with it, which is the intent: it is a container, and
+                // a container whose contents touch its sides looks like a
+                // mistake rather than like a frame.
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
                 // Bottom, so a field grown to several lines keeps the buttons
                 // beside its last line rather than floating them in the middle.
                 verticalAlignment = Alignment.Bottom

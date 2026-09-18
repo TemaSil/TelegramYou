@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -126,8 +127,11 @@ fun HomeScreen(
                         modifier = Modifier.padding(end = 12.dp)
                     )
                 },
+                // Transparent rather than one percent of surface, which was
+                // a way of saying transparent without admitting it — and
+                // still painted a hairline of the wrong colour.
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.01f)
+                    containerColor = Color.Transparent
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -175,7 +179,10 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // Background before padding: a modifier chain paints where it
+                // stands, so insetting first leaves the system bars sitting
+                // over bare window colour rather than over this screen. Same
+                // ordering as the conversation.
                 .background(
                     Brush.verticalGradient(
                         listOf(
@@ -185,6 +192,7 @@ fun HomeScreen(
                         )
                     )
                 )
+                .padding(padding)
         ) {
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
