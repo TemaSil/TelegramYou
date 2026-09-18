@@ -109,8 +109,17 @@ class SmokeTest {
         tap(By.text(GROUP_CHAT))
         // Anchored on a message only this group has, so landing in the wrong
         // conversation fails here rather than producing a confident
-        // screenshot of the wrong screen.
-        waitFor(By.textContains("Drop assets"), "the group")
+        // screenshot of the wrong screen. It has to be a recent one: the
+        // conversation opens at the bottom, and the group's oldest message —
+        // the first thing anchored on here — was scrolled off the top.
+        waitFor(By.textContains("Figma dump"), "the group")
+
+        // The demo chat speaks on a timer, and its heads-up notification
+        // lands across the top of the screen — over the very header this
+        // test exists to photograph. Waiting for it to go is cheap: it names
+        // the chat it came from, which is not this one, so its absence is
+        // exactly the condition wanted.
+        device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
         screenshot("06-group-header")
     }
 
@@ -266,6 +275,12 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+
+        /**
+         * Long enough for a heads-up notification to retreat into the status
+         * bar, which Android does after a few seconds by itself.
+         */
+        const val HEADS_UP_TIMEOUT = 10_000L
 
         /**
          * Longer than twice the demo chat's twenty-five second interval,
