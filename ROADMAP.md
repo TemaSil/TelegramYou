@@ -570,13 +570,20 @@ Without these it is not a messenger you can leave closed.
       `decideNotification` in :core, with tests, because these rules fail
       quietly and no screenshot shows it
 - [x] POST_NOTIFICATIONS asked for, from the chat list
-- [ ] Reply from the notification — `RemoteInput`
+- [x] Reply from the notification — `RemoteInput` into a receiver that sends
+      with `goAsync`, and takes the notification down only once the message
+      has gone
 
-Not yet verified on a device. The emulator test walks to a chat and stops
-there, so nothing has watched a notification arrive, and "it compiles" is all
-CI can say about this section. Widening the smoke test is the honest next
-step, and it is cheap: the demo backend now has a chat that speaks every
-twenty-five seconds precisely so that this can be watched without an account.
+The emulator watches a notification arrive: the demo backend has a chat that
+speaks every twenty-five seconds, and the smoke test leaves the app, opens
+the shade and finds it there — in the loud channel, with the connection
+notice under Silent, and without the message that was sent while the
+conversation was open.
+
+**The reply itself has not been watched working.** The test sees the
+notification but does not type into it, so that line is compiled and
+reasoned about rather than demonstrated. Typing into a remote input from
+UiAutomator is possible and is the next thing this section owes.
 
 The arrivals themselves were missing before this. `TelegramClient` had no way
 to say a message had come in — a conversation was loaded once by `openChat`
