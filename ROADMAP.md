@@ -270,6 +270,61 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
+## Where this was left, 18 September 2026
+
+Everything the 17 September list asked for is done except one, and that one
+is a debt rather than a feature — see below. `main` carries the floating
+composer, the avatar cluster, the grouped chat list, the bottom navigation
+bar and the rewritten sign-in screen.
+
+Landed today:
+
+- **The chat list is grouped**, pinned in one run and the rest in another,
+  on a light container with the bar and the stories rail on a darker tone
+  behind it. Through `SegmentedListItem` and
+  `ListItemDefaults.segmentedShapes(index, count)`, which material3 ships —
+  the first attempt computed the corner radii by hand from an enum, and that
+  enum is deleted. See the note under "The components" above.
+- **Bottom navigation** — `ShortNavigationBar` with Chats, Search, Profile
+  and Settings. Profile is a read-only stub; filling it is the next job.
+- **The composer is visible.** It had a 28.dp corner and a 12.dp inset that
+  nobody could see, because `surfaceContainer` landed five units from the
+  conversation's own gradient. Capsule and field now sit at opposite ends of
+  the container ladder, and the buttons lift 4dp so their centres meet the
+  field's — the difference between a 56dp text field and a 48dp icon button.
+- **The sign-in screen is rewritten.** It painted its mark with the
+  pre-Android-12 fallback constants, so the first screen of a client named
+  after Material You ignored the wallpaper. That, an emoji standing in for a
+  Material icon, a button nested inside a button, and guessed window insets
+  are all gone.
+
+### What the next session should pick up
+
+1. **Profile: view and edit name, bio, username.** The tab exists and shows
+   nothing but the account it is signed into. Material 3 covers this area
+   completely, so it is `ListItem`, `TextField` and a `Scaffold` — no
+   custom drawing is warranted anywhere in it.
+2. **Swipe actions on the chat list** — `SwipeToDismissBox` for mute, pin,
+   archive and delete. Mute already works from the long-press menu; pin and
+   mark-read still need client methods on both backends.
+3. **Reply from the shade, watched working.** The code is written and the
+   emulator sees the notification arrive, but the test does not type into
+   the remote input, so that line is reasoned about rather than
+   demonstrated. This is the oldest unpaid debt in the file.
+4. **A real member list.** The avatar cluster is built from whoever has
+   written in the loaded window, so it shows who is talking rather than who
+   is present. Needs a TDLib call `TelegramClient` does not have yet.
+
+### One thing learned today that cost two rounds
+
+**`javap` gives an alpha's parameter types and their order, never their
+names.** The chat list was written against `SegmentedListItem` from a probe
+of the AAR, and every guessed name was right except the last: the trailing
+slot is `content`, not `headlineContent`. Seven compile errors came out of
+that one word. When writing against a probed signature, expect the compiler
+to be the thing that names the parameters — it does, precisely, in the
+error.
+
 ## Where this was left, 17 September 2026
 
 **Two branches are green and unmerged.** Both build, both pass, neither has
@@ -552,6 +607,11 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [ ] Archive: entry row and its own screen
 - [x] Search — `SearchBar`, server-side across chats **and** message text,
       in two labelled sections
+- [x] Grouped into containers — `SegmentedListItem` with
+      `ListItemDefaults.segmentedShapes(index, count)`; pinned chats are one
+      run, everything else another
+- [x] Bottom navigation — `ShortNavigationBar` with Chats, Search, Profile
+      and Settings
 - [ ] Compose — `FloatingActionButton` into a contact picker
 - [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
       still need client methods
@@ -569,7 +629,8 @@ them. Ticks are only worth something if somebody moves them.
 - [~] Appearance: theme and dynamic colour are done, through
       `SingleChoiceSegmentedButtonRow`; text size is not
 - [~] Sign out is there; the rest of privacy and active sessions is not
-- [ ] Profile: view and edit name, bio, username
+- [~] Profile: a tab exists and shows the signed-in account read-only.
+      Editing name, bio and username is the next job in this area
 - [ ] Notifications settings — the two channels now exist, so this is
       per-chat overrides rather than a global switch
 - [ ] Language — Russian and English
