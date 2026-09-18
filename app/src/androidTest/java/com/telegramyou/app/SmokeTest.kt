@@ -115,13 +115,26 @@ class SmokeTest {
     }
 
     /**
-     * The walk from a cold start to a signed-in chat list, shared by both
-     * tests, screenshots included — each test runs from a fresh start, so
-     * both pass through these screens and the second simply overwrites the
-     * first's pictures of them with identical ones.
+     * Signs in, if signing in is what the app is asking for.
+     *
+     * The second test to run finds itself already signed in, and that is not
+     * a leak to be plugged: `FLAG_ACTIVITY_CLEAR_TASK` in `launchFromCold`
+     * clears the activity stack, not the process, and the demo client holds
+     * its authentication in `Application`, which outlives both tests. The
+     * first version of this waited for the login screen unconditionally and
+     * failed with "the login screen never appeared" — a true statement about
+     * a working app.
+     *
+     * So the login screen is looked for rather than expected. Whichever test
+     * runs first takes the screenshots of it; JUnit does not promise an
+     * order, and it does not matter which one does.
      */
     private fun signIn() {
-        waitFor(By.text("Your phone"), "the login screen")
+        val loginIsUp = device.wait(
+            Until.hasObject(By.text("Your phone")),
+            DIALOG_TIMEOUT
+        )
+        if (!loginIsUp) return
         screenshot("01-login")
 
         // Into the field, not into its placeholder. Compose publishes a
