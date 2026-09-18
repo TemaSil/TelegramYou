@@ -387,7 +387,13 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // Background before padding, and the order is the point. A
+                // modifier chain paints where it stands: with the inset
+                // applied first, the gradient stopped where the navigation
+                // bar began and left a band of bare window colour under it —
+                // which is exactly what a transparent system bar shows
+                // through. Painting first and insetting after puts the
+                // conversation under the bar and the content clear of it.
                 .background(
                     Brush.verticalGradient(
                         listOf(
@@ -397,6 +403,7 @@ fun ChatScreen(
                         )
                     )
                 )
+                .padding(padding)
                 .imePadding()
         ) {
             detail?.pinnedMessage?.let { pinned ->

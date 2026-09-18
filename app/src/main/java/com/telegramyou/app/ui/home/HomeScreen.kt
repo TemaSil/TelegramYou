@@ -136,7 +136,10 @@ fun HomeScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // Background before padding: a modifier chain paints where it
+                // stands, so insetting first leaves the system bars sitting
+                // over bare window colour rather than over this screen. Same
+                // ordering as the conversation.
                 .background(
                     Brush.verticalGradient(
                         listOf(
@@ -146,6 +149,7 @@ fun HomeScreen(
                         )
                     )
                 )
+                .padding(padding)
         ) {
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
