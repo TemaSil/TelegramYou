@@ -351,6 +351,38 @@ jobs:
           echo "VERSION=$(ls app/build/outputs/apk/debug/*.apk \
             | sed -E 's#.*/TelegramYou-(.*)-debug\.apk#\1#')" >> "$GITHUB_ENV"
 
+      # Everything in the release that is not the current APK.
+      #
+      # The asset used to be named after the version, so the versions
+      # published before this workflow settled on one fixed name are still
+      # sitting in the release — offering whoever opens the page a choice
+      # between the build of today and a build of whenever, with nothing to
+      # say which is which. There is only ever one APK worth having here.
+      - name: Remove stale release assets
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          api="https://api.github.com/repos/${{ github.repository }}"
+          # No release yet on the very first run, which is not a failure.
+          ids=$(curl -fsSL -H "Authorization: Bearer $GH_TOKEN" \
+            "$api/releases/tags/latest" \
+            | python3 -c "
+          import json, sys
+          try:
+              release = json.load(sys.stdin)
+          except Exception:
+              sys.exit(0)
+          for asset in release.get('assets', []):
+              if asset['name'] != 'TelegramYou-debug.apk':
+                  print(asset['id'])
+          " || true)
+          for id in $ids; do
+            echo "Deleting stale asset $id"
+            curl -fsSL -X DELETE -H "Authorization: Bearer $GH_TOKEN" \
+              "$api/releases/assets/$id" || true
+          done
+
       - name: Publish the APK
         if: success() && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
