@@ -5,6 +5,9 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.AuthUiState
+import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.ui.profile.profileDraftOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -167,4 +170,88 @@ class HomeViewModelTest {
         assertTrue(vm.uiState.value.search.isEmpty)
         assertFalse(vm.uiState.value.search.expanded)
     }
+
+    // ── profile ──────────────────────────────────────────────────────────
+
+    private fun signedIn(client: FakeTelegramClient) {
+        client.mutableAuthState.value = AuthUiState(
+            me = TelegramUser(
+                id = 1,
+                firstName = "You",
+                lastName = "Expressive",
+                username = "telegramyou",
+                bio = "Material You"
+            )
+        )
+    }
+
+    @Test
+    fun `only the fields that changed are sent, and the username goes last`() = runTest(dispatcher) {
+        val client = FakeTelegramClient()
+        signedIn(client)
+        val viewModel = HomeViewModel(TelegramRepository(client))
+        val collector = launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        val me = client.authState.value.me!!
+        viewModel.onProfileDraftChange(
+            profileDraftOf(me).copy(firstName = "Someone", username = "someone_else")
+        )
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.profile.canSave)
+
+        viewModel.saveProfile()
+        advanceUntilIdle()
+
+        // No setBio: the bio did not change, and a field sent back unchanged
+        // is a round trip that can fail for no reason. The username is last so
+        // that a refusal — the one this call actually gets — happens after the
+        // rest has landed and can still be explained.
+        assertEquals(
+            listOf("setName:Someone|Expressive", "setUsername:someone_else", "refreshMe"),
+            client.profileCalls
+        )
+        collector.cancel()
+    }
+
+    @Test
+    fun `a refusal keeps what was typed and says what the server said`() = runTest(dispatcher) {
+        val client = FakeTelegramClient()
+        signedIn(client)
+        client.profileError = "Username is already taken"
+        val viewModel = HomeViewModel(TelegramRepository(client))
+        val collector = launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        val me = client.authState.value.me!!
+        viewModel.onProfileDraftChange(profileDraftOf(me).copy(username = "taken_name"))
+        viewModel.saveProfile()
+        advanceUntilIdle()
+
+        val profile = viewModel.uiState.value.profile
+        assertEquals("Username is already taken", profile.errorMessage)
+        // The form still holds the attempt rather than snapping back, so the
+        // next try is an edit instead of retyping it all.
+        assertEquals("taken_name", profile.draft.username)
+        assertFalse(profile.isSaving)
+        collector.cancel()
+    }
+
+    @Test
+    fun `an untouched form cannot be saved`() = runTest(dispatcher) {
+        val client = FakeTelegramClient()
+        signedIn(client)
+        val viewModel = HomeViewModel(TelegramRepository(client))
+        val collector = launch { viewModel.uiState.collect {} }
+        advanceUntilIdle()
+
+        // The draft is the account until something is typed, so there is
+        // nothing to send and the button is off without any "editing" flag.
+        assertFalse(viewModel.uiState.value.profile.canSave)
+        viewModel.saveProfile()
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), client.profileCalls)
+        collector.cancel()
+    }
+
 }

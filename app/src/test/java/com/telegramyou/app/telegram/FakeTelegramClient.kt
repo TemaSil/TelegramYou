@@ -46,7 +46,11 @@ class FakeTelegramClient(
     var messageSearchCount = 0
         private set
 
-    override val authState: StateFlow<AuthUiState> = MutableStateFlow(AuthUiState())
+    // Kept as a MutableStateFlow rather than published straight as a
+    // StateFlow, so a test can hand the fake an account and so the profile
+    // calls below can change it the way a real backend would.
+    val mutableAuthState = MutableStateFlow(AuthUiState())
+    override val authState: StateFlow<AuthUiState> = mutableAuthState
     /** Settable, so a test can give the forward picker somewhere to point. */
     private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
     override val chats: StateFlow<List<ChatPreview>> = _chats
@@ -96,6 +100,43 @@ class FakeTelegramClient(
     override suspend fun submitPassword(password: String) = Unit
     override suspend fun resendCode() = Unit
     override suspend fun logout() = Unit
+
+    // ── profile ──────────────────────────────────────────────────────────
+
+    /** What was sent, in order, so a test can prove only the changes went. */
+    val profileCalls = mutableListOf<String>()
+
+    /** Set to make the next save fail the way a taken username does. */
+    var profileError: String? = null
+
+    override suspend fun setName(firstName: String, lastName: String) {
+        profileError?.let { throw IllegalStateException(it) }
+        profileCalls += "setName:$firstName|$lastName"
+        me = me?.copy(firstName = firstName, lastName = lastName)
+    }
+
+    override suspend fun setBio(bio: String) {
+        profileError?.let { throw IllegalStateException(it) }
+        profileCalls += "setBio:$bio"
+        me = me?.copy(bio = bio)
+    }
+
+    override suspend fun setUsername(username: String) {
+        profileError?.let { throw IllegalStateException(it) }
+        profileCalls += "setUsername:$username"
+        me = me?.copy(username = username.ifBlank { null })
+    }
+
+    override suspend fun refreshMe() {
+        profileCalls += "refreshMe"
+    }
+
+    /** The signed-in account, as the auth state carries it. */
+    private var me
+        get() = mutableAuthState.value.me
+        set(value) {
+            mutableAuthState.value = mutableAuthState.value.copy(me = value)
+        }
     override suspend fun refreshChats() = Unit
 
     override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
