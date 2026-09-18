@@ -271,9 +271,28 @@ class DemoTelegramClient : TelegramClient {
             },
             isTyping = chatId == 2L,
             // One chat has something pinned, so the bar is visible offline.
-            pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null
+            pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null,
+            members = if (chat.isGroup) demoMembers else emptyList()
         )
     }
+
+    /**
+     * Who is in the demo group.
+     *
+     * Deliberately longer than the cluster draws, and deliberately including
+     * people who never speak: the whole point of a member list is that it is
+     * not the list of who has been talking, and a demo where the two happen to
+     * match would hide the difference this was built to fix.
+     */
+    private val demoMembers = listOf(
+        TelegramUser(id = 11, firstName = "Lina", lastName = "Park"),
+        TelegramUser(id = 12, firstName = "Artem", lastName = "S"),
+        TelegramUser(id = 13, firstName = "Kotlin", lastName = "Night"),
+        TelegramUser(id = 14, firstName = "Nadia", lastName = "Orlova"),
+        TelegramUser(id = 15, firstName = "Pavel", lastName = "Gromov"),
+        TelegramUser(id = 16, firstName = "Sasha", lastName = "Vetrov"),
+        TelegramUser(id = 17, firstName = "Mira", lastName = "Solano")
+    )
 
     /**
      * Demo mode has no history behind what it seeds, so this always reports

@@ -202,7 +202,17 @@ data class ChatDetail(
      * is rarely in the loaded window, and a bar showing "pinned message" with
      * nothing in it would say less than no bar at all.
      */
-    val pinnedMessage: ChatMessage? = null
+    val pinnedMessage: ChatMessage? = null,
+    /**
+     * Who is in the group, as the server lists them.
+     *
+     * Empty for a chat with one other person, for a channel, and whenever the
+     * call to fetch them failed — the conversation opens either way, and the
+     * header falls back to whoever has written in the loaded window. That
+     * fallback is what this replaces: it showed who was talking rather than
+     * who was present, and anybody quiet was missing from it.
+     */
+    val members: List<TelegramUser> = emptyList()
 )
 
 /**

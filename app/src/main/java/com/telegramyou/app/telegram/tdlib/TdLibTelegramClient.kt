@@ -369,8 +369,87 @@ class TdLibTelegramClient(
             messages = mapped,
             memberCountLabel = statusLabel(chat),
             isTyping = false,
-            pinnedMessage = pinnedMessage(chatId, chat)
+            pinnedMessage = pinnedMessage(chatId, chat),
+            members = groupMembers(chat)
         )
+    }
+
+    /**
+     * Who is in a group, from the server rather than from who has spoken.
+     *
+     * TDLib splits this by chat type and there is no call that spans them. A
+     * basic group carries its members inside `basicGroupFullInfo`; a
+     * supergroup has too many to inline, so they are paged with
+     * `getSupergroupMembers`. A channel has subscribers rather than members
+     * and does not answer at all, which is correct — a header listing faces
+     * for a broadcast would be inventing a room that is not there.
+     *
+     * Capped at [MEMBER_LIMIT]. The cluster draws a handful and says how many
+     * more; fetching two hundred to draw five is a round trip spent on
+     * nothing.
+     *
+     * Every failure here is swallowed to an empty list on purpose. This is a
+     * decoration on a header: a group that will not say who is in it should
+     * still open.
+     */
+    private suspend fun groupMembers(chat: JSONObject?): List<TelegramUser> {
+        val type = chat?.optJSONObject("type") ?: return emptyList()
+        return try {
+            when (type.optString("@type")) {
+                "chatTypeBasicGroup" -> {
+                    val full = requireEngine().send(
+                        JSONObject()
+                            .put("@type", "getBasicGroupFullInfo")
+                            .put("basic_group_id", type.optLong("basic_group_id"))
+                    )
+                    membersFrom(full.optJSONArray("members"))
+                }
+                "chatTypeSupergroup" -> {
+                    // is_channel is the difference between a group and a
+                    // broadcast, and the same chat type carries both.
+                    if (type.optBoolean("is_channel")) return emptyList()
+                    val page = requireEngine().send(
+                        JSONObject()
+                            .put("@type", "getSupergroupMembers")
+                            .put("supergroup_id", type.optLong("supergroup_id"))
+                            .put("offset", 0)
+                            .put("limit", MEMBER_LIMIT)
+                    )
+                    membersFrom(page.optJSONArray("members"))
+                }
+                else -> emptyList()
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "groupMembers: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Turns `chatMember` entries into users.
+     *
+     * A member is a `MessageSender`, which is a user or a chat — a group can
+     * have another chat in it. Only the users are drawn, because a face is
+     * what the cluster is made of.
+     */
+    private suspend fun membersFrom(members: JSONArray?): List<TelegramUser> {
+        if (members == null) return emptyList()
+        val users = mutableListOf<TelegramUser>()
+        for (index in 0 until minOf(members.length(), MEMBER_LIMIT)) {
+            val sender = members.optJSONObject(index)?.optJSONObject("member_id") ?: continue
+            if (sender.optString("@type") != "messageSenderUser") continue
+            val userId = sender.optLong("user_id")
+            val cached = usersById[userId]
+            val raw = cached ?: try {
+                requireEngine()
+                    .send(JSONObject().put("@type", "getUser").put("user_id", userId))
+                    .also { usersById[userId] = it }
+            } catch (_: Throwable) {
+                continue
+            }
+            users += mapUser(raw)
+        }
+        return users
     }
 
     /**
@@ -1333,6 +1412,15 @@ class TdLibTelegramClient(
 
         /** Telegram's own "muted forever": about 100 years, in seconds. */
         private const val MUTE_FOREVER_SECONDS = 2_147_483_647
+
+        /**
+         * How many of a group's members to fetch for the header.
+         *
+         * The cluster draws a handful and counts the rest, so the number only
+         * has to be more than it draws. A supergroup can have two hundred
+         * thousand people in it, and each one not already cached costs a call.
+         */
+        private const val MEMBER_LIMIT = 12
 
         /**
          * What a chat offers when it does not restrict reactions.

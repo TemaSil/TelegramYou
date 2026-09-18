@@ -331,7 +331,15 @@ fun ChatScreen(
                                 // behind it keeps the single circle, because a
                                 // cluster of one is just an avatar drawn oddly.
                                 val members = if (chat.isGroup || chat.isChannel) {
-                                    clusterMembers(state.messages)
+                                    // The server's list when there is one,
+                                    // and whoever has spoken when there is
+                                    // not: a channel has no members, and a
+                                    // group that will not answer should still
+                                    // show a header.
+                                    detail?.members
+                                        ?.takeIf { it.isNotEmpty() }
+                                        ?.map { ClusterMember(name = it.displayName, seed = it.id) }
+                                        ?: clusterMembers(state.messages)
                                 } else {
                                     emptyList()
                                 }
@@ -2353,17 +2361,17 @@ private fun ComposerBar(
 /**
  * The people to draw in a group's header.
  *
- * Taken from who has written in the loaded window, not from a member list —
- * there is no member list. `TelegramClient` can open a chat and page its
- * history, and that is all; fetching participants is a TDLib call this
- * project has not made yet, and it is in ROADMAP.md under groups and
- * channels.
+ * The fallback, for when there is no member list to have: a channel has
+ * subscribers rather than members and does not answer, and a group that
+ * refuses the call should still show a header.
  *
- * So this is an honest approximation and not the real thing: it shows who is
- * talking rather than who is present, and a member who has said nothing
- * recently is missing from it. For a header whose job is "who is in here"
- * that is close enough to be worth having now, and the shape each person
- * gets is keyed on their id, so nobody's shape changes when the list does.
+ * It was the only source until `ChatDetail.members` existed, and the
+ * difference is worth stating: this shows who is *talking*, not who is
+ * *present*, so anybody quiet is missing from it. The real list is preferred
+ * wherever the server gives one.
+ *
+ * The shape each person gets is keyed on their id either way, so nobody's
+ * shape changes when the list does.
  *
  * Own messages are left out. The cluster answers "who else is here", and a
  * person already knows they are.
