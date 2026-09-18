@@ -2038,7 +2038,12 @@ private fun ComposerBar(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                // Eight rather than four, so the field inside has room to
+                // breathe instead of meeting the capsule's edge. The capsule
+                // grows with it, which is the intent: it is a container, and
+                // a container whose contents touch its sides looks like a
+                // mistake rather than like a frame.
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
                 // Bottom, so a field grown to several lines keeps the buttons
                 // beside its last line rather than floating them in the middle.
                 verticalAlignment = Alignment.Bottom
