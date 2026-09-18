@@ -1984,6 +1984,22 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
     }
 }
 
+/**
+ * How far the composer's icon buttons sit above the bottom of their row.
+ *
+ * Not a nudge by eye. A filled `TextField` is 56dp tall by the spec and an
+ * `IconButton` is 48dp, and the row aligns them at the bottom so that a field
+ * grown to several lines keeps its buttons beside the last one. Aligning the
+ * boxes at the bottom leaves their centres eight apart, so the icons draw four
+ * low — measured off an emulator screenshot as ten pixels at 2.75x, which is
+ * exactly this.
+ *
+ * Lifting the buttons rather than centring the row fixes every line count at
+ * once: the offset between the field's last line and the row's bottom does not
+ * change as the field grows.
+ */
+private val ComposerButtonLift = 4.dp
+
 @Composable
 private fun ComposerBar(
     value: String,
@@ -2019,7 +2035,14 @@ private fun ComposerBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            // Sixteen, the side gutter Material uses everywhere else in this
+            // app. It was twelve, and the gap was reported as missing
+            // entirely — correctly, but not for the reason it looked like.
+            // The inset was there; the capsule's edge was not visible, so
+            // there was nothing for the inset to hold clear of. See the
+            // colour below. Sixteen once the edge shows is simply the right
+            // number.
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         // No shadow, and that is the correction rather than an omission. The
         // first version of this carried shadowElevation = 6.dp, inherited
@@ -2036,9 +2059,30 @@ private fun ComposerBar(
         //
         // The capsule sits one step below the field inside it, which is why
         // it is not at the top of the ladder. See the field's colours below.
+        // The darkest container, and the field inside it the lightest —
+        // which is the reverse of what this used to be, on measurement
+        // rather than on taste. Read off a screenshot from the emulator:
+        //
+        //   conversation background         (239, 240, 246)
+        //   capsule, surfaceContainer       (239, 237, 241)   <- 5 apart
+        //   field, surfaceContainerHighest  (227, 226, 230)
+        //
+        // Five units is nothing. The capsule had a border, a 28.dp corner
+        // and a 12.dp inset, and none of the three could be seen, so the
+        // composer read as a full-width band with a pill floating in it.
+        // The cause is the conversation's own gradient: its bottom stop is
+        // primary at 8% alpha, which lands almost exactly on
+        // surfaceContainer — a decorative tint placed under the one control
+        // that has to stand away from the background.
+        //
+        // Moving the capsule to the top of the container ladder puts twelve
+        // units between it and the conversation, and the field then has to
+        // go the other way to stay visible inside it. In dark mode the two
+        // tones swap ends by construction, so the arrangement holds without
+        // a second branch.
         Surface(
             shape = ComposerShape,
-            color = MaterialTheme.colorScheme.surfaceContainer,
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
@@ -2050,6 +2094,9 @@ private fun ComposerBar(
                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
                 // Bottom, so a field grown to several lines keeps the buttons
                 // beside its last line rather than floating them in the middle.
+                // Centring instead would fix the single-line case and break
+                // every other one, which is why the buttons are lifted rather
+                // than the row re-aligned — see ComposerButtonLift.
                 verticalAlignment = Alignment.Bottom
             ) {
                 // Three, not one, and that reverses an earlier decision in
@@ -2062,13 +2109,15 @@ private fun ComposerBar(
                 // sheet still exists behind the plus for everything else.
                 IconButton(
                     onClick = onAttach,
-                    enabled = recordingSince == null
+                    enabled = recordingSince == null,
+                    modifier = Modifier.padding(bottom = ComposerButtonLift)
                 ) {
                     Icon(Icons.Rounded.Add, contentDescription = "Attach")
                 }
                 IconButton(
                     onClick = onCamera,
-                    enabled = recordingSince == null
+                    enabled = recordingSince == null,
+                    modifier = Modifier.padding(bottom = ComposerButtonLift)
                 ) {
                     Icon(Icons.Rounded.PhotoCamera, contentDescription = "Camera")
                 }
@@ -2107,8 +2156,9 @@ private fun ComposerBar(
                             .padding(vertical = 2.dp),
                         placeholder = { Text("Message") },
                         shape = ComposerShape,
-                        // The field carries its own fill, a step above the
-                        // capsule around it. An earlier version made every
+                        // The field carries its own fill, at the opposite
+                        // end of the container ladder from the capsule
+                        // around it. An earlier version made every
                         // container colour transparent on the argument that a
                         // filled field inside a filled surface draws a second
                         // shape nobody asked for — which is true about shapes
@@ -2121,11 +2171,11 @@ private fun ComposerBar(
                         // That is what the second shape is for.
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                                MaterialTheme.colorScheme.surfaceContainerLowest,
                             unfocusedContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                                MaterialTheme.colorScheme.surfaceContainerLowest,
                             disabledContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerHighest,
+                                MaterialTheme.colorScheme.surfaceContainerLowest,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent
@@ -2148,7 +2198,9 @@ private fun ComposerBar(
                                 MaterialTheme.colorScheme.secondaryContainer
                             }
                         ),
-                        modifier = Modifier.pointerInput(Unit) {
+                        modifier = Modifier
+                            .padding(bottom = ComposerButtonLift)
+                            .pointerInput(Unit) {
                             detectTapGestures(
                                 onPress = {
                                     onRecordStart()
@@ -2170,7 +2222,8 @@ private fun ComposerBar(
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                        ),
+                        modifier = Modifier.padding(bottom = ComposerButtonLift)
                     ) {
                         Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
                     }
