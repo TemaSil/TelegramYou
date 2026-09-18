@@ -151,7 +151,11 @@ fun ChatListRow(
                     }
                 }
             },
-            headlineContent = {
+            // `content`, not `headlineContent`: in this alpha the trailing
+            // slot of a SegmentedListItem is the headline and carries the
+            // plain name. Its siblings keep theirs — leadingContent,
+            // supportingContent, trailingContent all compile as written.
+            content = {
                 Text(
                     text = chat.title,
                     fontWeight = FontWeight.Bold,
