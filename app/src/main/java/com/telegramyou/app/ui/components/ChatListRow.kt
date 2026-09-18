@@ -39,12 +39,14 @@ import com.telegramyou.app.telegram.model.ChatPreview
  * A [SegmentedListItem], not a hand-built Row. The first version laid out its
  * own paddings, heights and text styles and then switched Material's press
  * feedback off with `indication = null` — so a row lit up nowhere on touch.
- * The second kept the ListItem but computed its own corner radii from an
- * enum, which was the same mistake one layer up: Material already ships the
- * grouped list. `ListItemDefaults.segmentedShapes(index, count)` rounds the
- * ends of a run and squares its middle, `segmentedColors()` gives the run its
- * container tone, and `SegmentedListItem` carries `onLongClick` itself — so
- * the menu no longer needs `combinedClickable` wrapped round the row either.
+ * The component brings the spec's metrics and the ripple back, `segmentedColors`
+ * gives the run its container tone, and `onLongClick` is carried by the
+ * component itself, so the mute menu needs no `combinedClickable` around it.
+ *
+ * `ListItemDefaults.segmentedShapes(index, count)` gives the run its corners —
+ * each row its own rounded container, with the panel behind showing through
+ * between them. That panel is drawn by the list, not by the row: see
+ * HomeScreen.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

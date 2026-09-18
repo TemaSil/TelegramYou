@@ -31,8 +31,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -229,6 +234,24 @@ private fun AuthFieldColumn(
     isPassword: Boolean = false,
     secondary: (@Composable () -> Unit)? = null
 ) {
+    // Each step takes the focus as it arrives, so the keyboard that was up for
+    // the phone number is still up for the code. It used to close when the
+    // step changed and the field had to be tapped to bring it back — which is
+    // a tap for something the app already knew was wanted, in the middle of
+    // copying a code out of another app.
+    //
+    // Keyed on the title because that is what distinguishes one step from the
+    // next: AnimatedContent composes a new AuthFieldColumn per step, and the
+    // key makes the intent explicit rather than relying on that.
+    val focusRequester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(title) {
+        focusRequester.requestFocus()
+        // Focus alone does not always raise the keyboard when the field
+        // arrives with its screen rather than by being touched.
+        keyboard?.show()
+    }
+
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             title,
@@ -246,7 +269,9 @@ private fun AuthFieldColumn(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester),
             singleLine = true,
             placeholder = { Text(placeholder) },
             isError = !error.isNullOrBlank(),

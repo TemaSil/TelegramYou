@@ -678,6 +678,42 @@ class TdLibTelegramClient(
         _stories.value = emptyList()
     }
 
+    // The profile calls. Three, because TDLib has three, and each is allowed
+    // to throw: `send` raises TdLibException carrying the server's own
+    // message, and the screen shows that rather than a sentence this client
+    // made up. A username refused for being taken is the common case and the
+    // only one nothing here can predict.
+
+    override suspend fun setName(firstName: String, lastName: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setName")
+                .put("first_name", firstName)
+                .put("last_name", lastName)
+        )
+    }
+
+    override suspend fun setBio(bio: String) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "setBio").put("bio", bio))
+    }
+
+    override suspend fun setUsername(username: String) {
+        awaitReady()
+        // An empty string is how TDLib is told to give the username up; there
+        // is no separate method for clearing it.
+        requireEngine().send(
+            JSONObject().put("@type", "setUsername").put("username", username)
+        )
+    }
+
+    override suspend fun refreshMe() {
+        awaitReady()
+        val me = fetchMe() ?: return
+        _authState.update { it.copy(me = me) }
+    }
+
     private suspend fun sendLocalFile(
         chatId: Long,
         path: String,
@@ -883,10 +919,30 @@ class TdLibTelegramClient(
         return try {
             val user = requireEngine().send(JSONObject().put("@type", "getMe"))
             usersById[user.optLong("id")] = user
-            mapUser(user)
+            mapUser(user).copy(bio = fetchBio(user.optLong("id")))
         } catch (_: Throwable) {
             null
         }
+    }
+
+    /**
+     * The "about" text, which `getMe` does not carry.
+     *
+     * TDLib splits a user across two objects: `user` has the name, the
+     * username and the phone number, and `userFullInfo` has the bio, which is
+     * a formatted text rather than a string. A failure here is not a failure
+     * to fetch the account — the profile screen should still open, with an
+     * empty bio, rather than showing nothing because one extra call did not
+     * answer.
+     */
+    private suspend fun fetchBio(userId: Long): String = try {
+        requireEngine()
+            .send(JSONObject().put("@type", "getUserFullInfo").put("user_id", userId))
+            .optJSONObject("bio")
+            ?.optString("text")
+            .orEmpty()
+    } catch (_: Throwable) {
+        ""
     }
 
     private suspend fun refreshStories() {

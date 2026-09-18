@@ -425,6 +425,44 @@ class DemoTelegramClient : TelegramClient {
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber)
     }
 
+    // The profile calls. Each one edits the account held in _authState, which
+    // is the only copy the demo backend has — there is no server behind it to
+    // disagree, so refreshMe has nothing to fetch and says so rather than
+    // pretending to do work.
+    //
+    // The delays are not decoration. They are what makes the save button's
+    // disabled-while-saving state and the progress it shows visible at all
+    // when the demo build is the one being looked at, which it usually is.
+
+    override suspend fun setName(firstName: String, lastName: String) {
+        delay(250)
+        updateMe { it.copy(firstName = firstName, lastName = lastName) }
+    }
+
+    override suspend fun setBio(bio: String) {
+        delay(200)
+        updateMe { it.copy(bio = bio) }
+    }
+
+    override suspend fun setUsername(username: String) {
+        delay(250)
+        // The one refusal worth having offline: a username has to be unique
+        // across Telegram, and a screen that has never once seen that error
+        // is a screen whose error path has never been looked at.
+        if (username.equals("telegram", ignoreCase = true)) {
+            throw IllegalStateException("Username is already taken")
+        }
+        updateMe { it.copy(username = username.ifBlank { null }) }
+    }
+
+    override suspend fun refreshMe() = Unit
+
+    private fun updateMe(edit: (TelegramUser) -> TelegramUser) {
+        _authState.update { state ->
+            state.me?.let { state.copy(me = edit(it)) } ?: state
+        }
+    }
+
     private fun appendOutgoing(
         chatId: Long,
         text: String,

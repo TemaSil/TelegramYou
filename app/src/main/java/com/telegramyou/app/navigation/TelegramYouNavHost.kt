@@ -181,6 +181,9 @@ fun TelegramYouNavHost(
                 onMutedChange = homeViewModel::onMutedChange,
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
+                onProfileDraftChange = homeViewModel::onProfileDraftChange,
+                onProfileSave = homeViewModel::saveProfile,
+                onProfileErrorShown = homeViewModel::onProfileErrorShown,
                 onLogout = homeViewModel::logout
             )
         }

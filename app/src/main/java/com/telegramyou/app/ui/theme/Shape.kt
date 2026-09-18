@@ -17,4 +17,8 @@ val TelegramYouShapes = Shapes(
 // MessageBubble builds its own RoundedCornerShape per message. A pair of
 // fixed shapes alongside that would be a second answer to the same question,
 // and the wrong one.
-val ComposerShape = RoundedCornerShape(28.dp)
+// A percentage, not a dp: fifty percent of the shorter side is a fully round
+// end at any height, so the capsule stays a capsule as the field inside it
+// grows to five lines. A fixed 28.dp was round only while the composer
+// happened to be 56dp tall, and flattened as soon as it was not.
+val ComposerShape = RoundedCornerShape(percent = 50)

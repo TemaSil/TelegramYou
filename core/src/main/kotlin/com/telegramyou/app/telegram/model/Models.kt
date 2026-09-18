@@ -7,7 +7,17 @@ data class TelegramUser(
     val username: String? = null,
     val phoneNumber: String? = null,
     val avatarColor: Long = id,
-    val isPremium: Boolean = false
+    val isPremium: Boolean = false,
+    /**
+     * The "about" text on an account.
+     *
+     * A String rather than a String? and empty rather than null, because
+     * nothing distinguishes an account with no bio from one whose bio was
+     * cleared, and a nullable field would have every reader deciding that
+     * again. It arrives from `getUserFullInfo`, not `getMe` — a separate call,
+     * which is why it is empty until that one answers.
+     */
+    val bio: String = ""
 ) {
     val displayName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")

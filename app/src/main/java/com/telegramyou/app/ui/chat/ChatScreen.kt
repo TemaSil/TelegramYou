@@ -52,7 +52,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Forward
 import androidx.compose.material.icons.automirrored.rounded.Reply
 import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AddReaction
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.CheckCircle
@@ -122,6 +121,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
@@ -211,6 +211,12 @@ fun ChatScreen(
     val context = LocalContext.current
     // Declared before the pickers, which launch work on it from their callbacks.
     val scope = rememberCoroutineScope()
+
+    // Owned here rather than inside the composer, because what puts the caret
+    // in the field is a reply or an edit starting — and those are the screen's
+    // state, not the composer's.
+    val composerFocus = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     // Held across the launch because TakePicture answers with a boolean, not
     // with the Uri: the destination is chosen here and has to survive until
     // the camera app comes back.
@@ -563,6 +569,23 @@ fun ChatScreen(
                 }
             }
 
+            // Replying is a request to type, so the field takes the caret and
+            // the keyboard comes up with the banner. Without this the banner
+            // appeared over a composer nobody had touched, and answering meant
+            // a tap the app had already been told about — the swipe that
+            // started the reply.
+            //
+            // Keyed on both, because editing is the same intent by another
+            // route, and on their ids rather than on the objects so that a
+            // list refresh delivering an equal-but-new message does not steal
+            // the focus back mid-sentence.
+            LaunchedEffect(state.replyTo?.id, state.editing?.id) {
+                if (state.replyTo != null || state.editing != null) {
+                    composerFocus.requestFocus()
+                    keyboardController?.show()
+                }
+            }
+
             AnimatedVisibility(
                 visible = state.replyTo != null || state.editing != null,
                 enter = fadeIn() + slideInVertically { it / 2 },
@@ -705,7 +728,8 @@ fun ChatScreen(
                         recordingSince = null
                         recorder.cancel()
                     },
-                    onSampleAmplitude = recorder::sample
+                    onSampleAmplitude = recorder::sample,
+                    focusRequester = composerFocus
                 )
             }
         }
@@ -2012,7 +2036,9 @@ private fun ComposerBar(
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
     onRecordCancel: () -> Unit,
-    onSampleAmplitude: () -> Unit
+    onSampleAmplitude: () -> Unit,
+    /** Held by the screen, so replying can put the caret in the field. */
+    focusRequester: FocusRequester
 ) {
     // Floating, not a bar. It used to be a full-width surface welded to the
     // bottom of the screen with the buttons outside the field; this is one
@@ -2112,7 +2138,7 @@ private fun ComposerBar(
                     enabled = recordingSince == null,
                     modifier = Modifier.padding(bottom = ComposerButtonLift)
                 ) {
-                    Icon(Icons.Rounded.Add, contentDescription = "Attach")
+                    Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
                 }
                 IconButton(
                     onClick = onCamera,
@@ -2153,7 +2179,8 @@ private fun ComposerBar(
                         onValueChange = onValueChange,
                         modifier = Modifier
                             .weight(1f)
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = 2.dp)
+                            .focusRequester(focusRequester),
                         placeholder = { Text("Message") },
                         shape = ComposerShape,
                         // The field carries its own fill, at the opposite
