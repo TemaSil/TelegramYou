@@ -378,8 +378,12 @@ fun ChatScreen(
                         )
                     }
                 },
+                // Transparent, so the conversation's own gradient runs the
+                // full height of the screen instead of starting below a grey
+                // band. The bar's contents still read: they sit over the top
+                // of that gradient, which is the lightest part of it.
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                    containerColor = Color.Transparent
                 )
             )
         }
