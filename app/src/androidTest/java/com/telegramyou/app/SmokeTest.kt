@@ -141,44 +141,47 @@ class SmokeTest {
     }
 
     /**
-     * The rail, which only exists where there is width for it.
+     * The rail, which only exists where the window is big enough for one.
      *
-     * Turning the phone is the whole test: `NavigationSuiteScaffold` picks
-     * its shape from the window, so nothing about it can be checked in
-     * portrait — the bar there is the same bar as before. What this asserts
-     * is where the destinations end up, because a rail that quietly stayed a
-     * bottom bar would still show every label and pass anything weaker.
+     * Not by turning the phone, which was the first version of this and
+     * failed for a reason worth keeping: Material leaves the bar along the
+     * bottom whenever the window is short, and a phone in landscape is
+     * short. That is its rule, not a bug, so a rail cannot appear there.
+     *
+     * So the window itself is resized to a tablet's — wide *and* tall — for
+     * the length of this test, and put back afterwards. What is asserted is
+     * where the destinations end up: down the left-hand side rather than
+     * across the bottom, which is the one thing a bar masquerading as a rail
+     * would fail.
      */
     @Test
-    fun aWideWindowGetsARail() {
-        signIn()
-        waitFor(By.text(GROUP_CHAT), "the chat list")
-
+    fun aTabletSizedWindowGetsARail() {
         try {
-            device.setOrientationLeft()
+            // A tablet, in the only terms the emulator takes: 2000x1400 at
+            // 240dpi is 1333x933dp, which is expanded in width and medium in
+            // height — the case Material answers with a rail.
+            device.executeShellCommand("wm size 2000x1400")
+            device.executeShellCommand("wm density 240")
             device.waitForIdle(IDLE_TIMEOUT)
-            waitFor(By.text(GROUP_CHAT), "the chat list in landscape")
+            launchApp()
 
+            signIn()
+            waitFor(By.text("Chats"), "the navigation")
             val chats = device.findObject(By.text("Chats"))
                 ?: run {
                     screenshot("failed-finding-the-rail")
-                    fail("the navigation had no Chats destination in landscape")
+                    fail("the navigation had no Chats destination")
                     return
                 }
             screenshot("13-rail")
-            // Down the side, not across the bottom. In a bottom bar this
-            // lands in the last tenth of the screen; in a rail it is level
-            // with the list beside it.
             assertTrue(
-                "the destinations should not be along the bottom in landscape",
-                chats.visibleBounds.centerY() < device.displayHeight * 3 / 4
+                "the destinations should be down the side, not across the bottom",
+                chats.visibleBounds.centerX() < device.displayWidth / 4
             )
         } finally {
-            // Whatever happened, the next test gets the phone the way it
-            // found it — UiAutomator leaves rotation frozen otherwise, and
-            // every screenshot after this one would be sideways.
-            device.setOrientationNatural()
-            device.unfreezeRotation()
+            // Whatever happened, the next test gets the phone it expects.
+            device.executeShellCommand("wm density reset")
+            device.executeShellCommand("wm size reset")
             device.waitForIdle(IDLE_TIMEOUT)
         }
     }

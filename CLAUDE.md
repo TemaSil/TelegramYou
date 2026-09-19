@@ -220,6 +220,12 @@ must never be committed.
 
 ## Working here
 
+- **Говорить в чате по-русски.** Владелец проекта пишет по-русски и ждёт
+  ответов по-русски — в каждом сообщении сессии, а не только в первом.
+  Записано здесь, потому что после сжатия контекста язык переписки теряется
+  первым, и ассистент молча переходит на английский. Код, комментарии,
+  сообщения коммитов, README и ROADMAP остаются английскими: их читает и
+  второй разработчик.
 - Develop on the branch the session assigns; do not push to `main`, and do
   not open a pull request unless asked.
 - The repository has a second developer as of September 2026, so a change
