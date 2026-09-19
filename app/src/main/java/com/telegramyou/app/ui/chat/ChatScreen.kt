@@ -113,7 +113,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -234,18 +233,6 @@ fun ChatScreen(
     // Owned here rather than inside the composer, because what puts the caret
     // in the field is a reply or an edit starting — and those are the screen's
     // state, not the composer's.
-    // Animated so the conversation slides out of focus rather than snapping,
-    // on the effects spring — this is a visual property, not a movement.
-    val conversationBlur by animateDpAsState(
-        targetValue = if (state.replyTo != null || state.editing != null) {
-            ComposingBlurRadius
-        } else {
-            0.dp
-        },
-        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-        label = "conversationBlur"
-    )
-
     val composerFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     // Held across the launch because TakePicture answers with a boolean, not
@@ -522,29 +509,12 @@ fun ChatScreen(
                 // The jump-to-latest button sits over the list rather than
                 // in a row of its own.
                 //
-                // Blurred while a reply or an edit is being composed, and only
-                // then. This is the one place in the app allowed to blur, and
-                // the exception is written down in CLAUDE.md with its
-                // reasoning: it is not a translucent material standing in for
-                // depth, it is the conversation stepping out of focus behind
-                // the thing being written — which is also how Android's own
-                // shade treats what is under it.
-                //
-                // On the list rather than under the banner, because
-                // Modifier.blur blurs a composable's own content and not what
-                // is behind it: there is no backdrop blur in Compose. So the
-                // thing to blur is the conversation, and the banner over it
-                // then reads as frosted without asking for an effect that does
-                // not exist.
-                //
-                // It does nothing below Android 12, where RenderEffect is not
-                // available. That is a quiet degradation rather than a broken
-                // screen: the banner is opaque enough to read on its own.
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(conversationBlur)
-                ) {
+                // The Box holds the two together — the list and the button
+                // over it. It blurred the conversation while a reply was
+                // being composed until 19 September, under the narrow
+                // exception CLAUDE.md granted for exactly that; the owner
+                // looked at it on a phone and withdrew it.
+                Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -2176,13 +2146,12 @@ private fun ComposerBanner(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // Translucent, which only works because the conversation behind it
-            // is blurred while this is up — see ComposingBlurRadius. Opaque
-            // would hide the frost that makes this read as sitting over the
-            // messages rather than on a band of its own, and fully transparent
-            // was the version where the text underneath showed through the
-            // text on top.
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.72f))
+            // The conversation's own background, opaque. Not a tone of its
+            // own: the banner is not a strip attached to the composer, it is
+            // the place the reply is being written. Translucency was tried
+            // with the conversation blurred behind it and the owner asked for
+            // both to go — see CLAUDE.md.
+            .background(MaterialTheme.colorScheme.surface)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -2273,15 +2242,6 @@ private fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
  * change as the field grows.
  */
 private val ComposerButtonLift = 4.dp
-
-/**
- * How far out of focus the conversation goes while a reply is composed.
- *
- * Enough to be unmistakable and not so much that the message being
- * answered stops being recognisable — the point is to say which thing is
- * live, not to hide the other one.
- */
-private val ComposingBlurRadius = 12.dp
 
 @Composable
 private fun ComposerBar(
