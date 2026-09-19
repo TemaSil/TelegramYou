@@ -141,6 +141,49 @@ class SmokeTest {
     }
 
     /**
+     * The rail, which only exists where there is width for it.
+     *
+     * Turning the phone is the whole test: `NavigationSuiteScaffold` picks
+     * its shape from the window, so nothing about it can be checked in
+     * portrait — the bar there is the same bar as before. What this asserts
+     * is where the destinations end up, because a rail that quietly stayed a
+     * bottom bar would still show every label and pass anything weaker.
+     */
+    @Test
+    fun aWideWindowGetsARail() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
+        try {
+            device.setOrientationLeft()
+            device.waitForIdle(IDLE_TIMEOUT)
+            waitFor(By.text(GROUP_CHAT), "the chat list in landscape")
+
+            val chats = device.findObject(By.text("Chats"))
+                ?: run {
+                    screenshot("failed-finding-the-rail")
+                    fail("the navigation had no Chats destination in landscape")
+                    return
+                }
+            screenshot("13-rail")
+            // Down the side, not across the bottom. In a bottom bar this
+            // lands in the last tenth of the screen; in a rail it is level
+            // with the list beside it.
+            assertTrue(
+                "the destinations should not be along the bottom in landscape",
+                chats.visibleBounds.centerY() < device.displayHeight * 3 / 4
+            )
+        } finally {
+            // Whatever happened, the next test gets the phone the way it
+            // found it — UiAutomator leaves rotation frozen otherwise, and
+            // every screenshot after this one would be sideways.
+            device.setOrientationNatural()
+            device.unfreezeRotation()
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+    }
+
+    /**
      * The info screen behind the conversation's header.
      *
      * Reached the way a person reaches it — by tapping the name at the top of
