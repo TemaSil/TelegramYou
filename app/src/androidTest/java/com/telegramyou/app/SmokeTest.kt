@@ -152,11 +152,16 @@ class SmokeTest {
     fun theChatHeaderOpensInfo() {
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
         waitFor(By.textContains("Figma dump"), "the group")
 
         // The header, which is the title inside the app bar rather than the
-        // row in the list behind it.
+        // row in the list behind it — and only once nothing is over it. A
+        // heads-up notification lands across the app bar, and a tap that
+        // reaches it opens the chat that sent it: this test failed by
+        // arriving in "Material Design" and photographing it.
+        awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
         waitFor(By.text("Members"), "the member list")
