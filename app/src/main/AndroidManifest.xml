@@ -5,6 +5,13 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Android 14's third answer: not the whole library, but the pictures
+         the user picked in the system dialog. Declared so that the request
+         for READ_MEDIA_IMAGES offers "Select photos" at all — without it the
+         dialog is all or nothing, on a platform that has stopped asking that
+         way. Only the attachment sheet's carousel reads any of this. -->
+    <uses-permission
+        android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"

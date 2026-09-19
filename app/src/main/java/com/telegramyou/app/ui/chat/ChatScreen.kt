@@ -772,6 +772,10 @@ fun ChatScreen(
                                 val uri = cameraUri(context, newCameraFile(context))
                                 cameraTarget = uri
                                 cameraLauncher.launch(uri)
+                            },
+                            onPickRecent = { uri ->
+                                onAttachmentPicked(AttachmentDraft.Photos(listOf(uri)))
+                                onAttachmentSheetOpenChange(false)
                             }
                         )
                     }
@@ -1697,12 +1701,21 @@ private fun AttachmentSheet(
     onDismiss: () -> Unit,
     onPickPhoto: () -> Unit,
     onPickFile: () -> Unit,
-    onTakePhoto: () -> Unit
+    onTakePhoto: () -> Unit,
+    onPickRecent: (String) -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState()
     ) {
+        // The pictures somebody is most likely to send are the ones they just
+        // took, and reaching them through a row called "Photo or video" is a
+        // screen and a scroll away from the sheet that was supposed to be the
+        // shortcut. Draws nothing without the permission for it.
+        RecentPhotoCarousel(
+            onPick = onPickRecent,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
         ListItem(
             headlineContent = { Text("Photo or video") },
             supportingContent = { Text("From the gallery") },
