@@ -8,6 +8,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -159,30 +160,63 @@ class SmokeTest {
         waitForNotification()
 
         openReplyField()
-        type(REPLY_TEXT)
+        typeReply(REPLY_TEXT)
         screenshot("07-notification-reply")
-        // Enter is what the send arrow does; going through the arrow means
-        // finding a systemui resource id, which differs by version and is not
-        // this app's to depend on.
-        device.pressEnter()
-        device.waitForIdle(IDLE_TIMEOUT)
-
-        // The receiver cancels the notification only after the send has gone
-        // through, so its disappearance is the first evidence — and the first
-        // place this can fail with something specific to say.
-        assertTrue(
-            "the notification never went away, so the reply was never sent",
-            device.wait(Until.gone(By.textContains(NOTIFYING_CHAT)), STEP_TIMEOUT)
-        )
+        sendReply()
 
         device.pressBack()
         launchApp()
         waitFor(By.text(NOTIFYING_CHAT), "the chat list")
         tap(By.text(NOTIFYING_CHAT))
-        // The whole point. Everything above proves a field accepted
-        // characters; only this proves they became a message.
+        // The whole point, and the only assertion that can prove it. The
+        // notification going away would not: the demo chat speaks every
+        // twenty-five seconds, so one from the same chat is along shortly
+        // whether or not anything was sent — which is what the first version
+        // of this test asserted, and why it failed on a working reply path.
         waitFor(By.textContains(REPLY_TEXT), "the reply in the conversation")
         screenshot("08-reply-arrived")
+    }
+
+    /**
+     * Puts [text] into the reply field, and proves it landed there.
+     *
+     * Not [type]: that takes the first `android.widget.EditText` on screen,
+     * and the shade has more than one — the first run of this typed into
+     * something else entirely and left the reply field showing its
+     * placeholder, which the screenshot showed and no assertion caught. The
+     * failure only surfaced two steps later as "the reply was never sent",
+     * which is true and unhelpful.
+     *
+     * So the field is found by what it is — systemui's own id, then whatever
+     * has focus, then an EditText — and then read back. A field that accepted
+     * nothing fails here, naming itself.
+     */
+    private fun typeReply(text: String) {
+        val field = device.findObject(By.res(SYSTEM_UI, "remote_input_text"))
+            ?: device.findObject(By.focused(true).clazz("android.widget.EditText"))
+            ?: device.findObject(By.clazz("android.widget.EditText"))
+            ?: run {
+                screenshot("failed-finding-the-reply-field")
+                fail("the notification's reply field was not on screen")
+                return
+            }
+        field.click()
+        field.text = text
+        device.waitForIdle(IDLE_TIMEOUT)
+        assertEquals("the reply field did not take the text", text, field.text)
+    }
+
+    /**
+     * Sends what was typed.
+     *
+     * The arrow by its id where systemui offers one, and Enter otherwise. Not
+     * Enter alone: whether the key sends or inserts a newline depends on the
+     * keyboard, and the arrow is what a person would press.
+     */
+    private fun sendReply() {
+        val send = device.findObject(By.res(SYSTEM_UI, "remote_input_send"))
+        if (send != null) send.click() else device.pressEnter()
+        device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /**
@@ -358,6 +392,9 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+
+        /** systemui, which owns the shade and the reply field in it. */
+        const val SYSTEM_UI = "com.android.systemui"
 
         /** Distinctive enough that finding it cannot be a coincidence. */
         const val REPLY_TEXT = "Replied from the shade"
