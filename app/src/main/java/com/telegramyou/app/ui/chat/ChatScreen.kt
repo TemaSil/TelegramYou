@@ -193,6 +193,7 @@ fun ChatScreen(
     onBack: () -> Unit,
     /** Opens every photo in this chat as a grid. */
     onOpenMedia: () -> Unit,
+    onOpenInfo: () -> Unit,
     onDraftChange: (String) -> Unit,
     onAttachmentPicked: (AttachmentDraft) -> Unit,
     onAttachmentCleared: () -> Unit,
@@ -354,7 +355,17 @@ fun ChatScreen(
                             onQueryChange = onSearchQueryChange
                         )
                     } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            // The header is the way in to the info screen —
+                            // the avatar and the name are what a thumb goes
+                            // for when it wants to know who is in here, and
+                            // every other client answers that tap.
+                            modifier = Modifier.clickable(
+                                enabled = chat != null,
+                                onClick = onOpenInfo
+                            )
+                        ) {
                             if (chat != null) {
                                 // A group shows who is in it, each member in
                                 // their own shape; anything with one person

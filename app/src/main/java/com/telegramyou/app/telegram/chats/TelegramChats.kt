@@ -75,6 +75,24 @@ interface TelegramChats {
     suspend fun setChatArchived(chatId: Long, archived: Boolean)
 
     /**
+     * The chat's primary invite link, or null when there is none to show.
+     *
+     * Null rather than an empty string, and null is the common answer: the
+     * server hands the link to members who may invite and to nobody else, so
+     * a screen that always drew a row for it would draw an empty one for
+     * most people in most groups.
+     */
+    suspend fun chatInviteLink(chatId: Long): String?
+
+    /**
+     * Leaves a group or channel.
+     *
+     * The chat leaves the list on its own, through the same update that any
+     * other client's change arrives by — nothing here removes it by hand.
+     */
+    suspend fun leaveChat(chatId: Long)
+
+    /**
      * The account's own contacts, for starting a conversation.
      *
      * Contacts rather than "everybody you have ever spoken to": the chat list

@@ -759,9 +759,16 @@ a live-updating chat as much as it was groundwork for notifications.
       whichever the chat type has; a channel has subscribers rather than
       members and is left alone. The header's cluster uses it instead of
       guessing from who has spoken
-- [ ] Join and leave
+- [~] Leaving is in, on a chat info screen behind the conversation's header:
+      `leaveChat`, with a confirmation and a pop back past the chat, because
+      the conversation left behind is one this account is no longer in.
+      Joining is not — nothing in the app opens an invite yet
 - [ ] Permissions and admins
-- [ ] Invite links
+- [~] Invite links — the primary link is shown and copied where the server
+      offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
+      and never created: a screen that minted a link because it wanted
+      something to show would be handing out an invitation nobody asked for.
+      Revoking and making new ones is not in
 - [ ] Create a group or channel
 
 ## Not planned

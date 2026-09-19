@@ -68,6 +68,22 @@ sealed interface Route {
         }
     }
 
+    /**
+     * Who is in a conversation, its invite link, and the way out of it.
+     *
+     * A route rather than a sheet over the chat: leaving is at the bottom of
+     * it, and a sheet would put the person back into a conversation they had
+     * just left.
+     */
+    data class ChatInfo(val chatId: Long) : Route {
+        override val path = "chat/$chatId/info"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/info"
+            val arguments = Chat.arguments
+        }
+    }
+
     data class Chat(val chatId: Long) : Route {
         override val path = "chat/$chatId"
 

@@ -20,6 +20,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.auth.AuthViewModel
+import com.telegramyou.app.ui.chat.ChatInfoScreen
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatMediaScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
@@ -252,6 +253,35 @@ fun TelegramYouNavHost(
         }
 
         composable(
+            route = Route.ChatInfo.PATTERN,
+            arguments = Route.ChatInfo.arguments
+        ) {
+            val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
+            val state by chatViewModel.uiState.collectAsStateWithLifecycle()
+            // On every visit: an invite link can be revoked, and a member can
+            // join, while this screen is closed.
+            LaunchedEffect(Unit) { chatViewModel.loadInviteLink() }
+            // Out of the conversation as well as out of this screen — the
+            // chat behind it is one this account is no longer in. Popping to
+            // the list rather than back one step, which would land there.
+            LaunchedEffect(state.hasLeft) {
+                if (state.hasLeft) {
+                    chatViewModel.onLeaveNavigated()
+                    navController.popBackStack(Route.Home.PATTERN, inclusive = false)
+                }
+            }
+            ChatInfoScreen(
+                detail = state.detail,
+                inviteLink = state.inviteLink,
+                confirmingLeave = state.confirmingLeave,
+                onBack = { navController.popBackStack() },
+                onLeaveRequested = chatViewModel::onLeaveRequested,
+                onLeaveDismissed = chatViewModel::onLeaveDismissed,
+                onLeaveConfirmed = chatViewModel::onLeaveConfirmed
+            )
+        }
+
+        composable(
             route = Route.Chat.PATTERN,
             arguments = Route.Chat.arguments
         ) {
@@ -276,6 +306,11 @@ fun TelegramYouNavHost(
                 onOpenMedia = {
                     state.detail?.chat?.id?.let {
                         navController.navigateTo(Route.ChatMedia(it))
+                    }
+                },
+                onOpenInfo = {
+                    state.detail?.chat?.id?.let {
+                        navController.navigateTo(Route.ChatInfo(it))
                     }
                 },
                 onDraftChange = chatViewModel::onDraftChange,

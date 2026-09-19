@@ -90,7 +90,23 @@ data class ChatUiState(
     /** True while the chat picker for forwarding a selection is up. */
     val forwardSheetOpen: Boolean = false,
     /** Somewhere to forward to; every chat but this one. */
-    val forwardTargets: List<ChatPreview> = emptyList()
+    val forwardTargets: List<ChatPreview> = emptyList(),
+    /**
+     * The chat's invite link, for the info screen. Null for a private chat
+     * and for a group this account may not invite to — see `chatInviteLink`.
+     */
+    val inviteLink: String? = null,
+    /** True while the "leave this group" confirmation is up. */
+    val confirmingLeave: Boolean = false,
+    /**
+     * Set once leaving has gone through, so the info screen can navigate out
+     * of a conversation that is no longer this account's.
+     *
+     * A flag the screen clears rather than a navigation from here: the view
+     * model has no navigator, and a screen that left on its own would have
+     * to guess when.
+     */
+    val hasLeft: Boolean = false
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -546,6 +562,40 @@ class ChatViewModel(
      * again on each visit, because photos are added while it is closed and a
      * grid that showed yesterday's set would be quietly wrong.
      */
+    /**
+     * Fetches the invite link for the info screen.
+     *
+     * On opening that screen rather than with the conversation: it is a
+     * round trip to the server for something no one sees until they go
+     * looking for it.
+     */
+    fun loadInviteLink() {
+        viewModelScope.launch {
+            val link = repository.chatInviteLink(chatId)
+            _uiState.update { it.copy(inviteLink = link) }
+        }
+    }
+
+    fun onLeaveRequested() {
+        _uiState.update { it.copy(confirmingLeave = true) }
+    }
+
+    fun onLeaveDismissed() {
+        _uiState.update { it.copy(confirmingLeave = false) }
+    }
+
+    fun onLeaveConfirmed() {
+        viewModelScope.launch {
+            repository.leaveChat(chatId)
+            _uiState.update { it.copy(confirmingLeave = false, hasLeft = true) }
+        }
+    }
+
+    /** Cleared by the screen once it has navigated, so a rotation cannot repeat it. */
+    fun onLeaveNavigated() {
+        _uiState.update { it.copy(hasLeft = false) }
+    }
+
     fun loadMedia() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMedia = true) }

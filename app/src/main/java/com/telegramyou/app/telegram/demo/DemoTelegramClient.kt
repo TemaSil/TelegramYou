@@ -706,6 +706,22 @@ class DemoTelegramClient : TelegramClient {
         )
     )
 
+    /**
+     * A link for the groups, nothing for a conversation with one person.
+     *
+     * The shape Telegram's own private links have, so the row it fills looks
+     * like what it will look like against a real account.
+     */
+    override suspend fun chatInviteLink(chatId: Long): String? {
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return null
+        if (!chat.isGroup && !chat.isChannel) return null
+        return "https://t.me/+TelegramYouDemo$chatId"
+    }
+
+    override suspend fun leaveChat(chatId: Long) {
+        _chats.update { list -> list.filterNot { it.id == chatId } }
+    }
+
     private fun seedFolders(): List<ChatFolder> = listOf(
         // Deliberately overlapping: Kotlin Night is in two of them, which is
         // what folders are — filters over one list, not boxes a chat is put

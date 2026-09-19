@@ -68,6 +68,17 @@ class FakeTelegramClient(
     fun setFolders(value: List<ChatFolder>) {
         _folders.value = value
     }
+
+    /** What [chatInviteLink] answers, and which chats were left. */
+    var inviteLink: String? = null
+    val leftChats = mutableListOf<Long>()
+
+    override suspend fun chatInviteLink(chatId: Long): String? = inviteLink
+
+    override suspend fun leaveChat(chatId: Long) {
+        leftChats += chatId
+        _chats.value = _chats.value.filterNot { it.id == chatId }
+    }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
 
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 16)

@@ -500,6 +500,51 @@ class TdLibTelegramClient(
     }
 
     /**
+     * The chat's primary invite link.
+     *
+     * Read from the same full-info objects the member list comes from, and
+     * null for everything else — a private chat has no link, and neither
+     * does a group that has not told this account about one. TDLib only
+     * fills `invite_link` in for members who may actually invite, so null is
+     * the ordinary answer rather than a failure.
+     *
+     * Not `createChatInviteLink`: that makes a new link, and a screen that
+     * silently mints one because it wanted something to show would be
+     * handing out an invitation nobody asked to create.
+     */
+    override suspend fun chatInviteLink(chatId: Long): String? {
+        awaitReady()
+        val type = chatsById[chatId]?.optJSONObject("type") ?: return null
+        return try {
+            val full = when (type.optString("@type")) {
+                "chatTypeBasicGroup" -> requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getBasicGroupFullInfo")
+                        .put("basic_group_id", type.optLong("basic_group_id"))
+                )
+                "chatTypeSupergroup" -> requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getSupergroupFullInfo")
+                        .put("supergroup_id", type.optLong("supergroup_id"))
+                )
+                else -> return null
+            }
+            full.optJSONObject("invite_link")?.optString("invite_link")?.ifBlank { null }
+        } catch (e: Throwable) {
+            Log.w(TAG, "chatInviteLink: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun leaveChat(chatId: Long) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "leaveChat").put("chat_id", chatId))
+        // Nothing is removed here. Leaving takes the chat out of the main
+        // list, and TDLib says so with a position update — the same one that
+        // would arrive if this happened on another device.
+    }
+
+    /**
      * Who is in a group, from the server rather than from who has spoken.
      *
      * TDLib splits this by chat type and there is no call that spans them. A

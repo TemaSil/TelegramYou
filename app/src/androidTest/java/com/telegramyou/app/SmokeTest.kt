@@ -141,6 +141,30 @@ class SmokeTest {
     }
 
     /**
+     * The info screen behind the conversation's header.
+     *
+     * Reached the way a person reaches it — by tapping the name at the top of
+     * a chat — because a route nothing navigates to is a screen nobody can
+     * open. What it proves is that the members the header already knows
+     * about arrive here as rows, and that the way out of the group is on it.
+     */
+    @Test
+    fun theChatHeaderOpensInfo() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+
+        // The header, which is the title inside the app bar rather than the
+        // row in the list behind it.
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the info screen")
+        waitFor(By.text("Members"), "the member list")
+        waitFor(By.textContains("Leave"), "the way out of the group")
+        screenshot("12-chat-info")
+    }
+
+    /**
      * Folder tabs, which are a filter and have to be seen to filter.
      *
      * The demo backend seeds three folders with overlapping membership, so
