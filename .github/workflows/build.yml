@@ -197,53 +197,6 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build-log.txt
 
-      # What the alpha's navigation suite declares.
-      #
-      # Temporary. NavigationSuiteScaffold's Expressive overloads — the ones
-      # that can draw a ShortNavigationBar rather than the classic one — are
-      # experimental in a library that is itself an alpha, so their
-      # parameters cannot be read from anywhere this code is written. javap
-      # gives the types and the order; it does not give parameter names.
-      #
-      # Delete once the navigation suite compiles.
-      - name: Probe the navigation suite API
-        if: always()
-        run: |
-          # Resolution first. A cached compile never downloads the artifact,
-          # which is how the first run of this printed an empty path and said
-          # nothing at all.
-          ./gradlew -q :app:dependencies \
-            --configuration debugCompileClasspath > /dev/null 2>&1 || true
-          home="${GRADLE_USER_HOME:-$HOME/.gradle}"
-          find "$home" -name '*navigation-suite*' | head -20
-          aar=$(find "$home" -name '*navigation-suite*.aar' | head -1)
-          echo "aar: $aar"
-          if [ -z "$aar" ]; then
-            echo "::warning title=Probe::no navigation-suite aar in $home"
-            exit 0
-          fi
-          work=$(mktemp -d)
-          unzip -o -q "$aar" classes.jar -d "$work"
-          # As annotations, not as log lines. The log tail is buried by the
-          # post-job steps and its middle cannot be fetched from every
-          # environment this project is written in — which is why the test
-          # count is a notice too.
-          # One annotation per class, with the lines folded into it: a check
-          # run keeps only the first fifty annotations, and one per method
-          # spent them all on the first class of four.
-          pkg=androidx.compose.material3.adaptive.navigationsuite
-          for class in \
-              $pkg.NavigationSuiteType \
-              $pkg.NavigationSuiteScaffoldDefaults \
-              $pkg.NavigationSuiteScope; do
-            short=${class##*.}
-            body=$(javap -classpath "$work/classes.jar" "$class" 2>&1 \
-              | head -30 \
-              | sed 's/androidx.compose.material3.adaptive.navigationsuite.//g' \
-              | python3 -c 'import sys; print("%0A".join(l.strip() for l in sys.stdin))')
-            echo "::notice title=$short::$body"
-          done
-
       # A BOM pins versions without naming them, and material3 is pinned past
       # the BOM on top of that, so "which Expressive is this" is otherwise a
       # dependency tree read by hand.

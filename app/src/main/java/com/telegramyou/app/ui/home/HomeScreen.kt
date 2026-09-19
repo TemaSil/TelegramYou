@@ -30,8 +30,6 @@ import com.telegramyou.app.ui.profile.ProfileContent
 import com.telegramyou.app.ui.profile.ProfileDraft
 import com.telegramyou.app.settings.ThemeChoice
 import com.telegramyou.app.settings.AppearanceSettings
-import androidx.compose.material3.ShortNavigationBarItem
-import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
@@ -46,6 +44,8 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -137,6 +137,26 @@ fun HomeScreen(
         }
     }
 
+    // The bar becomes a rail where there is width for one — in landscape on
+    // a phone, and on a tablet at any angle.
+    //
+    // `NavigationSuiteScaffold` rather than a breakpoint written here: it is
+    // Material's own answer to this, it picks the shape from the window
+    // itself, and the Expressive shapes are the ones it picks — a short bar
+    // in compact, which is exactly what this screen already had, and a wide
+    // rail when there is room. The items are declared once for both.
+    val navigationItems: NavigationSuiteScope.() -> Unit = {
+        HomeTab.entries.forEach { entry ->
+            item(
+                selected = tab == entry,
+                onClick = { onTabSelected(entry) },
+                icon = { Icon(entry.icon, contentDescription = entry.label) },
+                label = { Text(entry.label) }
+            )
+        }
+    }
+
+    NavigationSuiteScaffold(navigationItems) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -197,9 +217,6 @@ fun HomeScreen(
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
-        },
-        bottomBar = {
-            HomeNavigationBar(selected = tab, onSelected = onTabSelected)
         },
         floatingActionButton = {
             // Only where composing means anything. On Profile or Settings a
@@ -305,11 +322,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                        // Room for the floating button, which shares the bottom
-                        // of the screen with a navigation bar. Ninety-six was
-                        // enough when the button was alone down there; with the
-                        // bar under it the last chat ended up behind the pencil.
-                        contentPadding = PaddingValues(bottom = 112.dp),
+                        // Room for the floating button, and only for it: the
+                        // navigation bar is outside this Scaffold now, under
+                        // the suite rather than inside the content, so the
+                        // sixteen extra points that cleared it would be a gap
+                        // below the last chat.
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         // The hairline Material leaves between segmented list
                         // items, through which the panel behind them shows.
                         verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -386,6 +404,7 @@ fun HomeScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -583,30 +602,6 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
             )
         }
     )
-}
-
-/**
- * Home's bottom bar.
- *
- * `ShortNavigationBar`, which is the Expressive one — and reachable, unlike
- * `MaterialShapes`, which was checked before a line of this was written.
- * Against the plain `NavigationBar` it is shorter, which matters on a screen
- * whose whole job is a list, and its item animates the indicator rather than
- * cross-fading it.
- */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun HomeNavigationBar(selected: HomeTab, onSelected: (HomeTab) -> Unit) {
-    ShortNavigationBar {
-        HomeTab.entries.forEach { tab ->
-            ShortNavigationBarItem(
-                selected = selected == tab,
-                onClick = { onSelected(tab) },
-                icon = { Icon(tab.icon, contentDescription = tab.label) },
-                label = { Text(tab.label) }
-            )
-        }
-    }
 }
 
 /**
