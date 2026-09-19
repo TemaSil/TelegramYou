@@ -70,6 +70,14 @@ jobs:
           COORDINATES = (
               ("compose-bom", GOOGLE, "androidx/compose/compose-bom"),
               ("material3", GOOGLE, "androidx/compose/material3/material3"),
+              # Versioned with material3, not with the BOM, and pinned to the
+              # same alpha — so what that alpha offers has to be readable
+              # from here too.
+              (
+                  "navigation-suite",
+                  GOOGLE,
+                  "androidx/compose/material3/material3-adaptive-navigation-suite",
+              ),
               ("AGP", GOOGLE, "com/android/tools/build/gradle"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
               # The Compose preview screenshot plugin, by its Gradle plugin
@@ -188,6 +196,33 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build-log.txt
+
+      # What the alpha's navigation suite declares.
+      #
+      # Temporary. NavigationSuiteScaffold's Expressive overloads — the ones
+      # that can draw a ShortNavigationBar rather than the classic one — are
+      # experimental in a library that is itself an alpha, so their
+      # parameters cannot be read from anywhere this code is written. javap
+      # gives the types and the order; it does not give parameter names.
+      #
+      # Delete once the navigation suite compiles.
+      - name: Probe the navigation suite API
+        if: always()
+        run: |
+          aar=$(find ~/.gradle/caches \
+              -name 'material3-adaptive-navigation-suite-*.aar' | head -1)
+          echo "aar: $aar"
+          [ -z "$aar" ] && exit 0
+          work=$(mktemp -d)
+          unzip -o -q "$aar" classes.jar -d "$work"
+          for class in \
+              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldKt \
+              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType \
+              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults \
+              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope; do
+            echo "=== $class"
+            javap -classpath "$work/classes.jar" "$class" 2>&1 | head -40
+          done
 
       # A BOM pins versions without naming them, and material3 is pinned past
       # the BOM on top of that, so "which Expressive is this" is otherwise a

@@ -208,6 +208,11 @@ dependencies {
     // the theme every screen is built on, so it is worth knowing that is a
     // deliberate trade and not an oversight.
     implementation("androidx.compose.material3:material3:1.5.0-alpha28")
+    // The navigation suite, for a rail where there is width for one. Its
+    // version moves with material3 rather than with the BOM, so it is pinned
+    // to the same alpha — a mismatch here is two copies of the same internal
+    // API and a link error, not a warning.
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha28")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")
