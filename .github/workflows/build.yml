@@ -224,13 +224,23 @@ jobs:
           fi
           work=$(mktemp -d)
           unzip -o -q "$aar" classes.jar -d "$work"
+          # As annotations, not as log lines. The log tail is buried by the
+          # post-job steps and its middle cannot be fetched from every
+          # environment this project is written in — which is why the test
+          # count is a notice too.
+          pkg=androidx.compose.material3.adaptive.navigationsuite
           for class in \
-              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldKt \
-              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType \
-              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults \
-              androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope; do
-            echo "=== $class"
-            javap -classpath "$work/classes.jar" "$class" 2>&1 | head -40
+              $pkg.NavigationSuiteScaffoldKt \
+              $pkg.NavigationSuiteType \
+              $pkg.NavigationSuiteScaffoldDefaults \
+              $pkg.NavigationSuiteScope; do
+            short=${class##*.}
+            javap -classpath "$work/classes.jar" "$class" 2>&1 \
+              | grep -E 'NavigationSuite|public' \
+              | head -24 \
+              | while IFS= read -r line; do
+                  echo "::notice title=$short::$line"
+                done
           done
 
       # A BOM pins versions without naming them, and material3 is pinned past
