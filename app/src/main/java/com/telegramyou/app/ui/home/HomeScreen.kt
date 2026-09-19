@@ -524,7 +524,10 @@ private fun HomeNavigationBar(selected: HomeTab, onSelected: (HomeTab) -> Unit) 
  * Contacts, not everyone ever spoken to — the chat list already is the second,
  * and this button exists as the alternative to scrolling it.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+// Both opt-ins: ModalBottomSheet is ExperimentalMaterial3Api and
+// LoadingIndicator is Expressive, which are separate annotations and separate
+// mistakes to make.
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ContactPickerSheet(
     compose: ComposeState,
