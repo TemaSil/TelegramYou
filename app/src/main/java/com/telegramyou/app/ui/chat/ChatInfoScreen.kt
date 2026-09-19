@@ -161,6 +161,33 @@ fun ChatInfoScreen(
                 }
             }
 
+            // Above the members, not under them. A group with forty people
+            // in it puts its own list between the header and anything else,
+            // and the one action on this screen was three screens down —
+            // which the emulator found by not finding it. A private chat is
+            // not left but deleted, a different action with different
+            // consequences, so the row is absent there rather than renamed.
+            if (chat?.isGroup == true || chat?.isChannel == true) {
+                item(key = "leave") {
+                    ListItem(
+                        headlineContent = { Text("Leave ${if (chat.isChannel) "channel" else "group"}") },
+                        leadingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.Logout,
+                                contentDescription = null
+                            )
+                        },
+                        // Material's error tones, because this is the one row
+                        // here that takes something away.
+                        colors = ListItemDefaults.colors(
+                            headlineColor = MaterialTheme.colorScheme.error,
+                            leadingIconColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.clickable(onClick = onLeaveRequested)
+                    )
+                }
+            }
+
             val members = detail?.members.orEmpty()
             if (members.isNotEmpty()) {
                 item(key = "members-heading") {
@@ -188,30 +215,6 @@ fun ChatInfoScreen(
                 }
             }
 
-            // Only where there is something to leave. A private chat is not
-            // left, it is deleted — a different action with different
-            // consequences, and offering this one for it would be a lie.
-            if (chat?.isGroup == true || chat?.isChannel == true) {
-                item(key = "leave") {
-                    Spacer(Modifier.height(24.dp))
-                    ListItem(
-                        headlineContent = { Text("Leave ${if (chat.isChannel) "channel" else "group"}") },
-                        leadingContent = {
-                            Icon(
-                                Icons.AutoMirrored.Rounded.Logout,
-                                contentDescription = null
-                            )
-                        },
-                        // Material's error tones, because this is the one row
-                        // here that takes something away.
-                        colors = ListItemDefaults.colors(
-                            headlineColor = MaterialTheme.colorScheme.error,
-                            leadingIconColor = MaterialTheme.colorScheme.error
-                        ),
-                        modifier = Modifier.clickable(onClick = onLeaveRequested)
-                    )
-                }
-            }
         }
     }
 }
