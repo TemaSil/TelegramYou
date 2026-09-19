@@ -17,6 +17,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -111,6 +113,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -119,6 +122,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -128,12 +132,14 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -147,6 +153,11 @@ import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ClusterMember
+import com.telegramyou.app.ui.media.Zoom
+import com.telegramyou.app.ui.media.dismissProgress
+import com.telegramyou.app.ui.media.shouldDismiss
+import com.telegramyou.app.ui.media.zoomAfterGesture
+import com.telegramyou.app.ui.media.zoomToggled
 import com.telegramyou.app.ui.components.AvatarCluster
 import com.telegramyou.app.ui.components.TypingIndicator
 import com.telegramyou.app.ui.theme.ComposerShape
@@ -1224,6 +1235,20 @@ private fun PhotoViewer(
     caption: String,
     onDismiss: () -> Unit
 ) {
+    // Where the photo is and how big, and how far a drag has taken it towards
+    // being let go. Both are remembered per photo rather than hoisted: a
+    // viewer that reopened at yesterday's zoom would be answering a question
+    // nobody asked.
+    var zoom by remember { mutableStateOf(Zoom()) }
+    var dragY by remember { mutableFloatStateOf(0f) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+
+    val progress = dismissProgress(dragY, viewport.height.toFloat())
+    // The scrim thins and the photo shrinks together, so letting go halfway is
+    // visibly halfway rather than a state the gesture cannot show.
+    val scrim = 0.92f * (1f - progress)
+    val dismissScale = 1f - progress * 0.2f
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1231,17 +1256,66 @@ private fun PhotoViewer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .onSizeChanged { viewport = it }
                 // Its own scrim, because the photo is the content rather than
                 // something sitting on a surface.
-                .background(Color.Black.copy(alpha = 0.92f))
-                .clickable(onClick = onDismiss),
+                .background(Color.Black.copy(alpha = scrim)),
             contentAlignment = Alignment.Center
         ) {
             AsyncImage(
                 model = path,
                 contentDescription = caption.ifBlank { "Photo" },
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = zoom.scale * dismissScale
+                        scaleY = zoom.scale * dismissScale
+                        translationX = zoom.offsetX
+                        translationY = zoom.offsetY + dragY
+                    }
+                    // Pinch and drag, in one gesture detector because they are
+                    // one gesture: two fingers scale, one pans, and which is
+                    // happening changes mid-stroke.
+                    .pointerInput(path) {
+                        detectTransformGestures { _, pan, gestureZoom, _ ->
+                            zoom = zoomAfterGesture(
+                                current = zoom,
+                                scaleChange = gestureZoom,
+                                panX = pan.x,
+                                panY = pan.y,
+                                viewportWidth = size.width.toFloat(),
+                                viewportHeight = size.height.toFloat()
+                            )
+                        }
+                    }
+                    // Drag to dismiss, and only while zoomed out: once the
+                    // photo is larger than the frame a vertical drag means
+                    // "look further down", which is what the detector above
+                    // is for.
+                    .pointerInput(path, zoom.isZoomed) {
+                        if (zoom.isZoomed) return@pointerInput
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                if (shouldDismiss(dragY, size.height.toFloat())) {
+                                    onDismiss()
+                                } else {
+                                    dragY = 0f
+                                }
+                            },
+                            onDragCancel = { dragY = 0f }
+                        ) { _, delta -> dragY += delta }
+                    }
+                    .pointerInput(path) {
+                        detectTapGestures(
+                            // A tap on the photo closes it, as it always has.
+                            // A tap while zoomed does not: the photo is being
+                            // looked at, and a stray finger should not end
+                            // that.
+                            onTap = { if (!zoom.isZoomed) onDismiss() },
+                            onDoubleTap = { zoom = zoomToggled(zoom) }
+                        )
+                    }
             )
             if (caption.isNotBlank() && caption != "Photo") {
                 Text(
@@ -1252,6 +1326,9 @@ private fun PhotoViewer(
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
                         .padding(24.dp)
+                        // Out of the way of the photo itself once it is being
+                        // examined, and back when it is not.
+                        .alpha(if (zoom.isZoomed) 0f else 1f - progress)
                 )
             }
             IconButton(
@@ -1260,6 +1337,7 @@ private fun PhotoViewer(
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
                     .padding(8.dp)
+                    .alpha(1f - progress)
             ) {
                 Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
             }
