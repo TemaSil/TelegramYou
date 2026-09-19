@@ -189,34 +189,6 @@ jobs:
           set -o pipefail
           ./gradlew :app:assembleDebug --stacktrace 2>&1 | tee build-log.txt
 
-      # What the alpha's carousel actually declares.
-      #
-      # Temporary, and it answers one question: HorizontalMultiBrowseCarousel
-      # and CarouselItemScope are experimental in a library that is itself an
-      # alpha, so their package, their parameters and whether maskClip is
-      # still a member of the scope cannot be read anywhere from here — and
-      # each guess costs a round of CI. javap gives the types and the order;
-      # it does not give parameter names, which is the trap this project has
-      # already fallen into once.
-      #
-      # Delete once the carousel compiles.
-      - name: Probe the carousel API
-        if: always()
-        run: |
-          aar=$(find ~/.gradle/caches -name 'material3-1.5.0-alpha*.aar' | head -1)
-          echo "aar: $aar"
-          [ -z "$aar" ] && exit 0
-          work=$(mktemp -d)
-          unzip -o -q "$aar" classes.jar -d "$work"
-          for class in \
-              androidx.compose.material3.carousel.CarouselKt \
-              androidx.compose.material3.carousel.CarouselItemScope \
-              androidx.compose.material3.carousel.CarouselDefaults \
-              androidx.compose.material3.carousel.CarouselStateKt; do
-            echo "=== $class"
-            javap -classpath "$work/classes.jar" "$class" 2>&1 | head -40
-          done
-
       # A BOM pins versions without naming them, and material3 is pinned past
       # the BOM on top of that, so "which Expressive is this" is otherwise a
       # dependency tree read by hand.

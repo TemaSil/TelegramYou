@@ -135,6 +135,57 @@ class SmokeTest {
     }
 
     /**
+     * The attachment sheet, which now asks for something before it opens.
+     *
+     * The carousel of recent pictures reads the media library, and on this
+     * emulator — Android 14, no photos on it — the interesting part is not
+     * the strip, which has nothing to draw. It is the dialog: the sheet
+     * requests the permission as it appears, and a dialog that is answered
+     * and then leaves a broken sheet behind, or one that is never dismissed,
+     * would strand the one route to sending a photo.
+     *
+     * So this proves the rows are still reachable with the question answered,
+     * which is the failure a person would otherwise find on their own phone.
+     */
+    @Test
+    fun theAttachmentSheetOpens() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+
+        tap(By.desc("Attach"))
+        allowPhotos()
+        waitFor(By.text("Photo or video"), "the attachment sheet")
+        screenshot("09-attachments")
+    }
+
+    /**
+     * Answers the photo permission dialog, if one is up.
+     *
+     * Android 14 offers three buttons, and "Don't allow" contains the word
+     * the notification dialog is matched on — so this matches the whole
+     * label rather than a substring, and "Allow all" is the only thing that
+     * satisfies it. Granting rather than refusing: a refusal is the path
+     * where the carousel draws nothing, which is exactly what an emulator
+     * with an empty library shows anyway, so it would prove less.
+     *
+     * Short, and absence is not a failure: whether the dialog appears at all
+     * depends on the platform version and on what an earlier test already
+     * granted.
+     */
+    private fun allowPhotos() {
+        val allow = By.text(
+            Pattern.compile("allow all|allow", Pattern.CASE_INSENSITIVE)
+        )
+        if (device.wait(Until.hasObject(allow), DIALOG_TIMEOUT)) {
+            device.findObject(allow)?.click()
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+    }
+
+    /**
      * Replying from the shade, watched rather than reasoned about.
      *
      * This is the oldest debt in ROADMAP.md. The reply path — a `RemoteInput`
