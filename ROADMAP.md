@@ -328,16 +328,24 @@ Landed today:
 
 ### What the next session should pick up
 
-1. **Swipe actions on the chat list** — `SwipeToDismissBox` for mute, pin,
-   archive and delete. Mute already works from the long-press menu; pin and
-   mark-read still need client methods on both backends.
-3. **Reply from the shade, watched working.** The code is written and the
-   emulator sees the notification arrive, but the test does not type into
-   the remote input, so that line is reasoned about rather than
-   demonstrated. This is the oldest unpaid debt in the file.
-3. **A real member list.** The avatar cluster is built from whoever has
-   written in the loaded window, so it shows who is talking rather than who
-   is present. Needs a TDLib call `TelegramClient` does not have yet.
+Everything the 18 September list asked for is done. What is left, largest
+first:
+
+1. **Media.** The emptiest section: a shared-media grid, a full-screen
+   viewer with zoom and drag-to-dismiss, download and upload progress,
+   audio and video playback, stickers. Photos in bubbles already work, so
+   this is building out from something rather than from nothing.
+2. **Folders** — `PrimaryScrollableTabRow`, from the account's own folders.
+   The chat list is grouped and filtered already; folders are another
+   filter over the same rows.
+3. **Groups and channels** — join and leave, permissions, invite links,
+   creating one. The member list is in, which was the piece the others
+   depend on.
+4. **Adaptive navigation** — `NavigationSuiteScaffold`, so a tablet gets a
+   rail rather than a bar.
+5. **The link preview's image**, deliberately left out for now: TDLib sends
+   a photo as sizes whose files are not downloaded, and the card shows its
+   words at once rather than waiting for bytes.
 
 ### One thing learned today that cost two rounds
 
@@ -615,7 +623,10 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Pinned message bar — `Surface` under the `TopAppBar`, one line, tapping
       it scrolls to the message when it is in the loaded window
 - [x] Typing indicator (custom draw)
-- [ ] Link previews — `Card` under the text
+- [x] Link previews — Telegram's own card under the text, a `Surface` with
+      an accent bar rather than a `Card` inside a bubble. Nothing is
+      fetched here: a client that read the page itself would tell every
+      linked site who is looking. The image is still to come
 - [ ] In-chat search with jump to the hit — global message search is in, this
       is the same query narrowed to one conversation
 - [x] Load older messages on scroll — `loadOlderMessages`, guarded against
@@ -626,9 +637,17 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Rows — `ListItem`
 - [x] Stories rail
 - [x] Unread badge — `Badge`
-- [ ] Swipe actions: mute, pin, archive, delete — `SwipeToDismissBox`
+- [x] Swipe actions — `SwipeToDismissBox`, right to pin and left to mute,
+      with the row's own shape behind it. `confirmValueChange` does the
+      work and then refuses the change, which is the pattern for a swipe
+      that is an action rather than a deletion. Archive and mark-as-read
+      are in the long-press menu — two directions, both spoken for.
+      Delete is not offered yet
 - [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
-- [ ] Archive: entry row and its own screen
+- [x] Archive: an entry row above the chats, absent entirely when nothing
+      is in there, and its own screen behind it — the same rows on the
+      same panel. On TDLib the archive is a chat list rather than a flag,
+      so this is `addChatToList`, with membership read from positions
 - [x] Search — `SearchBar`, server-side across chats **and** message text,
       in two labelled sections
 - [x] Grouped into containers — `SegmentedListItem` with
@@ -636,7 +655,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       run, everything else another
 - [x] Bottom navigation — `ShortNavigationBar` with Chats, Search, Profile
       and Settings
-- [ ] Compose — `FloatingActionButton` into a contact picker
+- [x] Compose — the pencil opens a contact picker in a `ModalBottomSheet`.
+      It used to open `chats.firstOrNull()`, which looked like composing
+      and was not
 - [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
       still need client methods
 - [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets
@@ -697,10 +718,20 @@ the shade and finds it there — in the loud channel, with the connection
 notice under Silent, and without the message that was sent while the
 conversation was open.
 
-**The reply itself has not been watched working.** The test sees the
-notification but does not type into it, so that line is compiled and
-reasoned about rather than demonstrated. Typing into a remote input from
-UiAutomator is possible and is the next thing this section owes.
+**The reply is watched working**, which closes the oldest debt in this
+file. The test opens the shade, expands the notification, clicks Reply,
+types into systemui's own `remote_input_text`, presses the send arrow — then
+comes back into the app and finds the text in the conversation. That last
+step is the only one that proves anything, and the first version of the test
+did not have it: it asserted the notification went away, which a working
+reply path cannot satisfy here, because the demo chat speaks again
+twenty-five seconds later.
+
+It caught a real mistake on its first run, too. The helper that types takes
+the first `EditText` on screen and the shade has several, so the text went
+elsewhere and the reply field kept its placeholder — plain in the
+screenshot, caught by no assertion until two steps later. The field is read
+back now, so it fails where it breaks.
 
 The arrivals themselves were missing before this. `TelegramClient` had no way
 to say a message had come in — a conversation was loaded once by `openChat`
@@ -710,7 +741,10 @@ a live-updating chat as much as it was groundwork for notifications.
 
 ## 6. Groups and channels
 
-- [ ] Member list
+- [x] Member list — `basicGroupFullInfo` or `getSupergroupMembers`,
+      whichever the chat type has; a channel has subscribers rather than
+      members and is left alone. The header's cluster uses it instead of
+      guessing from who has spoken
 - [ ] Join and leave
 - [ ] Permissions and admins
 - [ ] Invite links
