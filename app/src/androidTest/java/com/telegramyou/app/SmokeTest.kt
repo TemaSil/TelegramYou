@@ -156,6 +156,15 @@ class SmokeTest {
      */
     @Test
     fun aTabletSizedWindowGetsARail() {
+        // Signed in first, at the size the login screen was laid out for.
+        // Resizing recreates the activity, and doing it before logging in
+        // left this test tapping for a Continue button that had gone: the
+        // demo client keeps its authentication in Application, so the app
+        // comes back up at tablet size on the chat list rather than the
+        // login screen.
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
         try {
             // A tablet, in the only terms the emulator takes: 2000x1400 at
             // 240dpi is 1333x933dp, which is expanded in width and medium in
@@ -163,9 +172,7 @@ class SmokeTest {
             device.executeShellCommand("wm size 2000x1400")
             device.executeShellCommand("wm density 240")
             device.waitForIdle(IDLE_TIMEOUT)
-            launchApp()
 
-            signIn()
             waitFor(By.text("Chats"), "the navigation")
             val chats = device.findObject(By.text("Chats"))
                 ?: run {

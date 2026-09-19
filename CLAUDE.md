@@ -48,7 +48,11 @@ Three consequences, and they decide arguments:
   while a reply is being composed is a different thing: it is not pretending
   to be a surface, and Android itself blurs the same way behind its shade and
   its recents. It stays a decision the owner makes case by case, never a
-  default and never a habit. So far: the reply banner (18 September 2026).
+  default and never a habit. Granted once, for the reply banner, on
+  18 September 2026 — and **withdrawn on 19 September**, the day after, when
+  the owner saw it on a phone. The code is out, so the list of places blur is
+  used is empty again, and the exception now stands only as permission to ask
+  again with a mockup in hand.
   Material 3 Expressive ships no blurred material of its own — the effect is
   the platform's, through `Modifier.blur` and `RenderEffect`, and it does
   nothing below Android 12.
