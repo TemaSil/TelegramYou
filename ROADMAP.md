@@ -331,10 +331,10 @@ Landed today:
 Everything the 18 September list asked for is done. What is left, largest
 first:
 
-1. **Media.** The emptiest section: a shared-media grid, a full-screen
-   viewer with zoom and drag-to-dismiss, download and upload progress,
-   audio and video playback, stickers. Photos in bubbles already work, so
-   this is building out from something rather than from nothing.
+1. **Media.** The grid, the viewer and the attachment carousel are in as of
+   19 September; what is left is download and upload progress, audio and
+   video playback, and stickers. Video is the largest of those, and the
+   thumbnail is most of video.
 2. **Folders** — `PrimaryScrollableTabRow`, from the account's own folders.
    The chat list is grouped and filtered already; folders are another
    filter over the same rows.
@@ -470,8 +470,8 @@ four domain interfaces without touching either backend.
 
 ### What to do next
 
-1. **Pinch to zoom in the photo viewer** — a photo opens whole now, and that
-   is as far as it goes.
+1. ~~**Pinch to zoom in the photo viewer**~~ — done, 19 September, along
+   with pan, double-tap and drag-to-dismiss.
 2. **Video in bubbles** — still a caption and an emoji. Needs a thumbnail and
    a player, and the thumbnail is most of it.
 
@@ -609,11 +609,16 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Copy, forward and select — long-press to select, then the toolbar's own
       copy, forward and delete; forwarding picks a chat in a `ModalBottomSheet`
 - [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
-      camera and file. Everything travels as a `content://` Uri; the TDLib
-      backend resolves it into the upload cache, which is where that belongs
+      camera and file, above them a `HorizontalMultiBrowseCarousel` of the
+      most recent pictures. Everything travels as a `content://` Uri; the
+      TDLib backend resolves it into the upload cache, which is where that
+      belongs. The carousel needs `READ_MEDIA_IMAGES`, asked for when the
+      sheet opens and answerable with Android 14's "Select photos"; refused,
+      the sheet is exactly the three rows it was
 - [~] Photos in bubbles — `AsyncImage`, space reserved from the photo's own
       aspect before the bytes arrive; tapping one opens it full-screen as a
-      `Dialog`. Pinch to zoom and video are still missing
+      `Dialog`, with pinch, pan, double-tap and drag-to-dismiss. Video is
+      still missing
 - [x] Voice messages: hold to record, release to send, tap to play, with the
       waveform drawn behind it — amplitudes measured while recording, and
       Telegram's own packed 5-bit waveform decoded for everyone else's. The
@@ -689,8 +694,12 @@ them. Ticks are only worth something if somebody moves them.
 ## 4. Media
 
 - [x] Image loading — Coil `AsyncImage`, used by the chat's photo messages
-- [ ] Shared media grid — `LazyVerticalGrid`
-- [ ] Full-screen viewer with zoom and drag-to-dismiss
+- [x] Shared media grid — `LazyVerticalGrid` with `GridCells.Adaptive`, from
+      `searchChatMessages` filtered to photos and video; reached from the
+      chat's overflow menu, and tapping a tile opens the viewer
+- [x] Full-screen viewer with zoom and drag-to-dismiss — pinch, pan,
+      double-tap and a drag that fades the backdrop as it goes; the maths is
+      in `:core` as `ZoomPan` with tests
 - [ ] Download and upload progress — `LinearProgressIndicator`
 - [ ] Audio and video playback — `Slider` for position
 - [ ] Stickers, animated stickers, custom emoji
