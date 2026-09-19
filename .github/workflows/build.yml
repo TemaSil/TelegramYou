@@ -209,10 +209,19 @@ jobs:
       - name: Probe the navigation suite API
         if: always()
         run: |
-          aar=$(find ~/.gradle/caches \
-              -name 'material3-adaptive-navigation-suite-*.aar' | head -1)
+          # Resolution first. A cached compile never downloads the artifact,
+          # which is how the first run of this printed an empty path and said
+          # nothing at all.
+          ./gradlew -q :app:dependencies \
+            --configuration debugCompileClasspath > /dev/null 2>&1 || true
+          home="${GRADLE_USER_HOME:-$HOME/.gradle}"
+          find "$home" -name '*navigation-suite*' | head -20
+          aar=$(find "$home" -name '*navigation-suite*.aar' | head -1)
           echo "aar: $aar"
-          [ -z "$aar" ] && exit 0
+          if [ -z "$aar" ]; then
+            echo "::warning title=Probe::no navigation-suite aar in $home"
+            exit 0
+          fi
           work=$(mktemp -d)
           unzip -o -q "$aar" classes.jar -d "$work"
           for class in \
