@@ -190,6 +190,10 @@ class HomeViewModel(
             chats = chatsInFolder(home.chats, selected) { it.folderIds },
             folderTabs = tabs,
             selectedFolderId = selected,
+            // Gone under a folder. The archive is a different list, not a
+            // chat that could be in "People" — and a row offering it above
+            // three filtered chats says the filter stopped halfway.
+            archiveSummary = if (selected == null) home.archiveSummary else null,
             folderUnread = tabs.map { tab ->
                 folderUnreadChats(home.chats, tab.id, { it.folderIds }, { it.unreadCount })
             }

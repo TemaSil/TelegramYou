@@ -132,6 +132,24 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `the archive row belongs to All, not to a folder`() = runTest {
+        val (vm, client) = viewModel()
+        client.setFolders(listOf(ChatFolder(1, "Work")))
+        client.setChats(
+            listOf(
+                chat(1, "Ivan").copy(folderIds = setOf(1)),
+                chat(2, "Parcels").copy(isArchived = true)
+            )
+        )
+        advanceUntilIdle()
+        assertEquals("1 chat", vm.uiState.value.archiveSummary)
+
+        vm.onFolderSelected(1)
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.archiveSummary)
+    }
+
+    @Test
     fun `the badge counts chats with something unread, per tab`() = runTest {
         val (vm, client) = viewModel()
         client.setFolders(listOf(ChatFolder(1, "Work"), ChatFolder(2, "People")))
