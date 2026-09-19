@@ -124,6 +124,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
@@ -141,6 +142,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
@@ -1049,6 +1051,10 @@ private fun MessageBubble(
                         color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurface
                     )
+                }
+                message.linkPreview?.let { preview ->
+                    Spacer(Modifier.height(8.dp))
+                    LinkPreviewCard(preview = preview, outgoing = outgoing)
                 }
                 if (message.reactions.isNotEmpty()) {
                     Spacer(Modifier.height(6.dp))
@@ -2438,3 +2444,87 @@ private fun clusterMembers(messages: List<ChatMessage>): List<ClusterMember> =
         }
         .distinctBy { it.seed }
         .toList()
+
+/**
+ * Telegram's card for a link, under the message that carried it.
+ *
+ * The accent bar down the leading edge is the same device the pinned-message
+ * bar uses, and it is doing the same job: saying "this is about something
+ * else" without a heading. It is a `Surface` rather than a `Card` because a
+ * Card inside a bubble is a container inside a container with its own
+ * elevation, and the bubble has already said where this belongs.
+ *
+ * Tapping it opens the link. Nothing here fetches the page: what is drawn is
+ * what the server sent with the message, so every person in the conversation
+ * sees the same card and no site learns who is reading it.
+ */
+@Composable
+private fun LinkPreviewCard(preview: LinkPreview, outgoing: Boolean) {
+    val uriHandler = LocalUriHandler.current
+    // Against the bubble it sits in, not against the screen: an outgoing
+    // bubble is primary, so the same tone would vanish into one of them.
+    val container = if (outgoing) {
+        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val accent = if (outgoing) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    val body = if (outgoing) {
+        MaterialTheme.colorScheme.onPrimary
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+
+    Surface(
+        color = container,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { uriHandler.openUri(preview.url) }
+    ) {
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .fillMaxHeight()
+                    .background(accent)
+            )
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                if (preview.siteName.isNotBlank()) {
+                    Text(
+                        preview.siteName,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = accent
+                    )
+                }
+                if (preview.title.isNotBlank()) {
+                    Text(
+                        preview.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = body,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (preview.description.isNotBlank()) {
+                    Text(
+                        preview.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        // Three lines: enough to say what the page is, few
+                        // enough that a card cannot grow taller than the
+                        // message it belongs to.
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        color = body.copy(alpha = 0.8f)
+                    )
+                }
+            }
+        }
+    }
+}

@@ -86,6 +86,30 @@ enum class MessageContentType {
     Sticker
 }
 
+/**
+ * What Telegram made of a link somebody sent.
+ *
+ * The server does the fetching and the parsing — a client that went to the
+ * page itself would leak who is reading what to every site anyone links, and
+ * would show a different card to each person in the conversation.
+ *
+ * Every field but [url] can be missing, and usually some are: a link to a
+ * bare file has a site name and nothing else. A card with only a URL in it is
+ * worth less than the link already in the text, so [hasContent] is what
+ * decides whether to draw one.
+ */
+data class LinkPreview(
+    val url: String,
+    val siteName: String = "",
+    val title: String = "",
+    val description: String = "",
+    /** The preview image, once it is on this device. */
+    val photoPath: String? = null
+) {
+    val hasContent: Boolean
+        get() = siteName.isNotBlank() || title.isNotBlank() || description.isNotBlank()
+}
+
 data class ChatMessage(
     val id: Long,
     val chatId: Long,
@@ -135,6 +159,13 @@ data class ChatMessage(
      * nothing where there is nothing to show.
      */
     val reactions: List<MessageReaction> = emptyList(),
+    /**
+     * The card for a link in [text], when Telegram has one.
+     *
+     * Null for every message without a link and for most with one: the server
+     * only builds a preview for pages it can read.
+     */
+    val linkPreview: LinkPreview? = null,
     /**
      * Where a voice note's audio is, once it is on this device.
      *

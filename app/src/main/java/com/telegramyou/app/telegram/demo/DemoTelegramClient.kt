@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -640,6 +641,23 @@ class DemoTelegramClient : TelegramClient {
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
             demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true))),
             demoMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, today + 120, "Material Design"),
+            // One message with a card, so the link preview is visible offline.
+            // Its text still holds the URL: the card is an addition to the
+            // message, not a replacement for it, and that is what a person
+            // copying the link expects to find.
+            demoMessage(
+                5, 1,
+                "The whole argument for this update: m3.material.io/blog/building-with-m3-expressive",
+                false, today + 180, "Material Design",
+                linkPreview = LinkPreview(
+                    url = "https://m3.material.io/blog/building-with-m3-expressive",
+                    siteName = "Material Design",
+                    title = "Building with M3 Expressive",
+                    description = "Motion physics, emphasized type, a shape " +
+                        "library and more vivid colour — what the update " +
+                        "actually contains."
+                )
+            ),
             demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true, reactions = listOf(MessageReaction("❤️", count = 1)))
         )
         chatMessages[2] = mutableListOf(
@@ -675,7 +693,8 @@ class DemoTelegramClient : TelegramClient {
         contentType: MessageContentType = MessageContentType.Text,
         fileName: String? = null,
         fileSizeLabel: String? = null,
-        reactions: List<MessageReaction> = emptyList()
+        reactions: List<MessageReaction> = emptyList(),
+        linkPreview: LinkPreview? = null
     ) = ChatMessage(
         id = id,
         chatId = chatId,
@@ -692,7 +711,8 @@ class DemoTelegramClient : TelegramClient {
         contentType = contentType,
         fileName = fileName,
         fileSizeLabel = fileSizeLabel,
-        reactions = reactions
+        reactions = reactions,
+        linkPreview = linkPreview
     )
 
     /** Telegram's default reaction set, in its order. */

@@ -17,6 +17,7 @@ import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.packWaveform
 import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -1224,6 +1225,31 @@ class TdLibTelegramClient(
         }
     }
 
+    /**
+     * Telegram's own card for a link in a message.
+     *
+     * Only on a text message: a photo with a link in its caption gets no
+     * `web_page` from the server, and inventing one here would mean fetching
+     * the page from the phone.
+     *
+     * The image is deliberately left alone. `photo` arrives as a set of sizes
+     * whose files are not downloaded yet, and a card that waits for bytes
+     * before drawing is worse than one that shows the words immediately —
+     * the text is the part that says whether the link is worth opening.
+     */
+    private fun linkPreview(content: JSONObject?): LinkPreview? {
+        val page = content?.optJSONObject("web_page") ?: return null
+        val preview = LinkPreview(
+            url = page.optString("url"),
+            siteName = page.optString("site_name"),
+            title = page.optString("title"),
+            description = page.optJSONObject("description")?.optString("text").orEmpty()
+        )
+        // A card holding nothing but the URL says less than the link already
+        // in the message text.
+        return preview.takeIf { it.hasContent }
+    }
+
     private fun parseMessages(chatId: Long, array: JSONArray?): List<ChatMessage> {
         if (array == null) return emptyList()
         val out = ArrayList<ChatMessage>(array.length())
@@ -1310,6 +1336,7 @@ class TdLibTelegramClient(
                 else -> null
             },
             reactions = parseReactions(message),
+            linkPreview = linkPreview(content),
             // Only a voice note carries these, and only once TDLib has the
             // bytes: the id arrives with the message, the path with the file.
             voiceFileId = content?.optJSONObject("voice_note")
