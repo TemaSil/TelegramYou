@@ -119,6 +119,10 @@ class FakeTelegramClient(
         return userId
     }
 
+    override suspend fun setChatArchived(chatId: Long, archived: Boolean) {
+        chatCalls += "setChatArchived:$chatId:$archived"
+    }
+
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
         chatCalls += "setChatPinned:$chatId:$pinned"
     }

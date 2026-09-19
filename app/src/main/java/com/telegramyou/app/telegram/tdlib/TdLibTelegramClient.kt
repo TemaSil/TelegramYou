@@ -69,6 +69,9 @@ class TdLibTelegramClient(
         File(context.cacheDir, "tdlib-upload").also { it.mkdirs() }
 
     private val chatsById = ConcurrentHashMap<Long, JSONObject>()
+
+    /** Chat ids currently holding a position in `chatListArchive`. */
+    private val archivedChats = ConcurrentHashMap.newKeySet<Long>()
     private val usersById = ConcurrentHashMap<Long, JSONObject>()
     private val chatOrder = ConcurrentHashMap<Long, Long>()
     private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
@@ -186,6 +189,20 @@ class TdLibTelegramClient(
                     .put("chat_list", JSONObject().put("@type", "chatListMain"))
                     .put("limit", 50)
             )
+            // The archive as well, and its failure is not this call's failure:
+            // an account with an empty archive answers 404 Not Found, which is
+            // the normal case and not a reason to leave the main list
+            // unpublished.
+            try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "loadChats")
+                        .put("chat_list", JSONObject().put("@type", "chatListArchive"))
+                        .put("limit", 50)
+                )
+            } catch (e: TdLibException) {
+                Log.d(TAG, "loadChats(archive): ${e.message}")
+            }
             publishChats()
             refreshStories()
         } catch (e: TdLibException) {
@@ -328,6 +345,25 @@ class TdLibTelegramClient(
         chatsById[chatId] = chat
         refreshChats()
         return chatId
+    }
+
+    override suspend fun setChatArchived(chatId: Long, archived: Boolean) {
+        awaitReady()
+        // addChatToList, not a flag: the archive is a chat list like the main
+        // one, and moving between them is the only operation there is.
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "addChatToList")
+                .put("chat_id", chatId)
+                .put(
+                    "chat_list",
+                    JSONObject().put(
+                        "@type",
+                        if (archived) "chatListArchive" else "chatListMain"
+                    )
+                )
+        )
+        refreshChats()
     }
 
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
@@ -1172,8 +1208,19 @@ class TdLibTelegramClient(
 
     private fun applyPosition(chatId: Long, position: JSONObject) {
         val listType = position.optJSONObject("list")?.optString("@type")
-        if (listType != null && listType != "chatListMain") return
         val order = position.optLong("order")
+
+        // A chat is in the archive when it has a position in that list with a
+        // non-zero order, and leaves it when that order goes to zero — which
+        // is how TDLib says "removed from this list" rather than sending a
+        // deletion. Tracked here because `chat` objects carry no "archived"
+        // flag of their own: membership of a list *is* having a position in
+        // it.
+        if (listType == "chatListArchive") {
+            if (order == 0L) archivedChats.remove(chatId) else archivedChats.add(chatId)
+            return
+        }
+        if (listType != null && listType != "chatListMain") return
         if (order == 0L) {
             chatOrder.remove(chatId)
         } else {
@@ -1198,7 +1245,8 @@ class TdLibTelegramClient(
             isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
             isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
             avatarColor = id,
-            hasUnreadMention = chat.optInt("unread_mention_count") > 0
+            hasUnreadMention = chat.optInt("unread_mention_count") > 0,
+            isArchived = id in archivedChats
         )
     }
 

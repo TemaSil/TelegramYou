@@ -64,7 +64,16 @@ data class ChatPreview(
     val isChannel: Boolean = false,
     val isGroup: Boolean = false,
     val avatarColor: Long = id,
-    val hasUnreadMention: Boolean = false
+    val hasUnreadMention: Boolean = false,
+    /**
+     * In the archive rather than the main list.
+     *
+     * A flag on the chat rather than a second list, because every screen that
+     * draws a chat draws the same row and only the filter differs — and
+     * because a chat moves between the two, so two lists would mean keeping
+     * them in step.
+     */
+    val isArchived: Boolean = false
 )
 
 data class StoryItem(

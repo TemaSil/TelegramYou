@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.MarkChatRead
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Unarchive
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -75,8 +77,18 @@ fun ChatListRow(
     onMutedChange: ((Boolean) -> Unit)? = null,
     /** Pin or unpin. Null where the row is not the chat list's own. */
     onPinnedChange: ((Boolean) -> Unit)? = null,
+    /**
+     * Renames the right-swipe, which the archive uses to say Unarchive.
+     *
+     * A label rather than a second callback: the gesture and its wiring
+     * are the same, only what it means to that screen differs, and two
+     * callbacks would let a caller set one without the other.
+     */
+    swipeStartLabel: String? = null,
     /** Clear the unread badge without opening the chat. */
-    onMarkRead: (() -> Unit)? = null
+    onMarkRead: (() -> Unit)? = null,
+    /** Move into the archive, or back out. */
+    onArchivedChange: ((Boolean) -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val shapes = ListItemDefaults.segmentedShapes(index = index, count = count)
@@ -111,6 +123,7 @@ fun ChatListRow(
                     direction = swipe.dismissDirection,
                     isPinned = chat.isPinned,
                     isMuted = chat.isMuted,
+                    startLabel = swipeStartLabel,
                     shape = shapes.shape
                 )
             }
@@ -234,6 +247,24 @@ fun ChatListRow(
                         menuOpen = false
                     }
                 )
+                if (onArchivedChange != null) {
+                    // In the menu, not on a third swipe direction: there are
+                    // two, and both are already spoken for.
+                    DropdownMenuItem(
+                        text = { Text(if (chat.isArchived) "Unarchive" else "Archive") },
+                        leadingIcon = {
+                            Icon(
+                                if (chat.isArchived) Icons.Rounded.Unarchive
+                                else Icons.Rounded.Archive,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            onArchivedChange(!chat.isArchived)
+                            menuOpen = false
+                        }
+                    )
+                }
                 if (onMarkRead != null && chat.unreadCount > 0) {
                     // In the menu rather than on a third swipe direction, which
                     // there is no room for, and hidden when there is nothing to
@@ -267,6 +298,7 @@ private fun SwipeAction(
     direction: SwipeToDismissBoxValue,
     isPinned: Boolean,
     isMuted: Boolean,
+    startLabel: String?,
     shape: Shape
 ) {
     val settled = direction == SwipeToDismissBoxValue.Settled
@@ -303,8 +335,10 @@ private fun SwipeAction(
         val icon: ImageVector
         val label: String
         if (direction == SwipeToDismissBoxValue.StartToEnd) {
-            icon = Icons.Outlined.PushPin
-            label = if (isPinned) "Unpin" else "Pin"
+            // The archive renames this one, and renaming it changes the icon
+            // too: a pin over "Unarchive" would say the opposite of the word.
+            icon = if (startLabel == null) Icons.Outlined.PushPin else Icons.Rounded.Unarchive
+            label = startLabel ?: if (isPinned) "Unpin" else "Pin"
         } else {
             icon = if (isMuted) Icons.Rounded.NotificationsActive
             else Icons.Rounded.NotificationsOff

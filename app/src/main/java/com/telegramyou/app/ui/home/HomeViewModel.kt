@@ -32,7 +32,16 @@ import kotlinx.coroutines.launch
  */
 data class HomeUiState(
     val me: TelegramUser? = null,
+    /** The main list: everything not in the archive. */
     val chats: List<ChatPreview> = emptyList(),
+    val archivedChats: List<ChatPreview> = emptyList(),
+    /**
+     * What the archive entry row says, or null when there is no row.
+     *
+     * Computed in :core with tests rather than in the screen, so a caller
+     * cannot draw an entry for an empty archive by forgetting to check.
+     */
+    val archiveSummary: String? = null,
     val stories: List<StoryItem> = emptyList(),
     val isRefreshing: Boolean = false,
     val search: SearchState = SearchState(),
@@ -135,7 +144,13 @@ class HomeViewModel(
     ) { auth, chats, stories, isRefreshing, searchState ->
         HomeUiState(
             me = auth.me,
-            chats = chats,
+            chats = chats.filterNot { it.isArchived },
+            archivedChats = chats.filter { it.isArchived },
+            archiveSummary = archiveSummary(
+                chats,
+                isArchived = { it.isArchived },
+                unreadCount = { it.unreadCount }
+            ),
             stories = stories,
             isRefreshing = isRefreshing,
             search = searchState
@@ -357,6 +372,17 @@ class HomeViewModel(
     /** Called once the screen has navigated, so a rotation does not repeat it. */
     fun onComposeNavigated() {
         compose.value = ComposeState()
+    }
+
+    /**
+     * Moves a chat into the archive, or back out of it.
+     *
+     * Nothing is written here for the reason the other two give: the list is
+     * a flow the client owns, and archiving changes which list a chat is in
+     * rather than a field on it.
+     */
+    fun onArchivedChange(chatId: Long, archived: Boolean) {
+        viewModelScope.launch { repository.setChatArchived(chatId, archived) }
     }
 
     fun refresh() {

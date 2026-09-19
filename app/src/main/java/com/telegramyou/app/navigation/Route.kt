@@ -34,6 +34,19 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /**
+     * The archive: the same chat rows, filtered to what has been put away.
+     *
+     * A route rather than a fifth tab. The archive is somewhere you go back
+     * out of, which is what a back arrow says and what a tab does not — and
+     * it is usually empty, so a permanent seat in the bar would cost one of
+     * four places to say "nothing here".
+     */
+    data object Archive : Route {
+        const val PATTERN = "archive"
+        override val path = PATTERN
+    }
+
     data object Settings : Route {
         const val PATTERN = "settings"
         override val path = PATTERN

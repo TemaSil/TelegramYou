@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Close
@@ -40,6 +41,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SearchBar
@@ -86,6 +88,8 @@ fun HomeScreen(
     onMutedChange: (Long, Boolean) -> Unit,
     onPinnedChange: (Long, Boolean) -> Unit,
     onMarkRead: (Long) -> Unit,
+    onArchivedChange: (Long, Boolean) -> Unit,
+    onOpenArchive: () -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
@@ -321,6 +325,19 @@ fun HomeScreen(
                     // visible = true, which never transitions, so the enter
                     // animation could not run — a composition layer that cost
                     // something and did nothing.
+                    // Above the chats and below the stories, which is where
+                    // Telegram puts it — and absent entirely when the archive
+                    // is empty, which the summary being null already says.
+                    state.archiveSummary?.let { summary ->
+                        item(key = "archive-entry") {
+                            ArchiveEntryRow(
+                                summary = summary,
+                                onClick = onOpenArchive,
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
                     groupChats(state.chats) { it.isPinned }.forEach { group ->
                         itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
                             ChatListRow(
@@ -335,7 +352,10 @@ fun HomeScreen(
                                 onPinnedChange = { pinned ->
                                     onPinnedChange(chat.id, pinned)
                                 },
-                                onMarkRead = { onMarkRead(chat.id) }
+                                onMarkRead = { onMarkRead(chat.id) },
+                                onArchivedChange = { archived ->
+                                    onArchivedChange(chat.id, archived)
+                                }
                             )
                         }
                         // Between containers, not between rows: the gap is
@@ -583,4 +603,38 @@ private fun ContactPickerSheet(
         }
         Spacer(Modifier.height(16.dp))
     }
+}
+
+/**
+ * The way into the archive.
+ *
+ * A `ListItem` on the same container as a chat row, because it is one more
+ * thing in the same list and dressing it differently would make it look like
+ * a setting. Its own shape rather than a segmented one: it is a run of a
+ * single row, and it belongs to no group.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ArchiveEntryRow(
+    summary: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+        modifier = modifier,
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+        ),
+        leadingContent = {
+            Icon(
+                Icons.Rounded.Archive,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        supportingContent = { Text(summary) },
+        content = { Text("Archived", fontWeight = FontWeight.Bold) }
+    )
 }

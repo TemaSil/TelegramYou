@@ -284,6 +284,22 @@ class DemoTelegramClient : TelegramClient {
         TelegramUser(id = 14, firstName = "Nadia", lastName = "Orlova")
     ).sortedBy { it.displayName.lowercase() }
 
+    override suspend fun setChatArchived(chatId: Long, archived: Boolean) {
+        delay(120)
+        _chats.update { list ->
+            list.map {
+                if (it.id == chatId) {
+                    // Archiving unpins: a pinned chat in the archive would
+                    // still draw its own group at the top of a screen nobody
+                    // is looking at, and Telegram drops the pin too.
+                    it.copy(isArchived = archived, isPinned = it.isPinned && !archived)
+                } else {
+                    it
+                }
+            }
+        }
+    }
+
     override suspend fun setChatPinned(chatId: Long, pinned: Boolean) {
         delay(80)
         _chats.update { list ->
@@ -615,7 +631,18 @@ class DemoTelegramClient : TelegramClient {
         ChatPreview(5, "Artem", "Send me the apk?", "Sun", avatarColor = 55),
         ChatPreview(6, "Saved Messages", "Color tokens & springs", "Sat", isPinned = true, avatarColor = 66),
         ChatPreview(7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true, avatarColor = 77),
-        ChatPreview(8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2, avatarColor = 88)
+        ChatPreview(8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2, avatarColor = 88),
+        // Two in the archive from the start, one of them unread, so the entry
+        // row has both halves of its summary to show offline — and so the
+        // main list can be seen not to include them.
+        ChatPreview(
+            9, "Delivery updates", "Your parcel is on its way", "Wed",
+            isArchived = true, avatarColor = 99
+        ),
+        ChatPreview(
+            10, "Old project", "Archived last spring", "Mar",
+            isArchived = true, unreadCount = 4, avatarColor = 111
+        )
     )
 
     private fun seedStories(): List<StoryItem> = listOf(

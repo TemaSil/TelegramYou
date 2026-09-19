@@ -24,3 +24,31 @@ fun <T> groupChats(chats: List<T>, isPinned: (T) -> Boolean): List<List<T>> {
     // it is a rounded rectangle with no purpose.
     return listOf(pinned, rest).filter { it.isNotEmpty() }
 }
+
+/**
+ * What the archive row should say, or null when there is no archive row.
+ *
+ * Null rather than a blank string, so the caller cannot draw an entry for an
+ * empty archive by forgetting to check — which is the mistake this exists to
+ * make impossible. Telegram hides the row entirely when nothing is in there,
+ * and so does this.
+ *
+ * The count is of chats with something unread, not of chats: the archive is
+ * where things go to stop asking for attention, so the number that matters is
+ * how many are asking anyway.
+ */
+fun <T> archiveSummary(
+    chats: List<T>,
+    isArchived: (T) -> Boolean,
+    unreadCount: (T) -> Int
+): String? {
+    val archived = chats.filter(isArchived)
+    if (archived.isEmpty()) return null
+    val unread = archived.count { unreadCount(it) > 0 }
+    return when {
+        unread == 0 -> "${archived.size} chat${plural(archived.size)}"
+        else -> "${archived.size} chat${plural(archived.size)}, $unread unread"
+    }
+}
+
+private fun plural(count: Int) = if (count == 1) "" else "s"

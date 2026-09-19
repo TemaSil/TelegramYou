@@ -25,6 +25,7 @@ import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.components.RequestNotificationPermission
 import com.telegramyou.app.ui.home.HomeScreen
+import com.telegramyou.app.ui.home.ArchiveScreen
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.home.HomeTab
 import androidx.compose.runtime.setValue
@@ -181,6 +182,8 @@ fun TelegramYouNavHost(
                 onMutedChange = homeViewModel::onMutedChange,
                 onPinnedChange = homeViewModel::onPinnedChange,
                 onMarkRead = homeViewModel::onMarkRead,
+                onArchivedChange = homeViewModel::onArchivedChange,
+                onOpenArchive = { navController.navigateTo(Route.Archive) },
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,
@@ -193,6 +196,19 @@ fun TelegramYouNavHost(
                 onLogout = homeViewModel::logout
             )
         }
+        composable(Route.Archive.PATTERN) {
+            val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
+            val state by homeViewModel.uiState.collectAsStateWithLifecycle()
+            ArchiveScreen(
+                chats = state.archivedChats,
+                onBack = { navController.popBackStack() },
+                onOpenChat = { id -> navController.navigateTo(Route.Chat(id)) },
+                onMutedChange = homeViewModel::onMutedChange,
+                onUnarchive = { id -> homeViewModel.onArchivedChange(id, archived = false) },
+                onMarkRead = homeViewModel::onMarkRead
+            )
+        }
+
         composable(Route.Settings.PATTERN) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val home by homeViewModel.uiState.collectAsStateWithLifecycle()

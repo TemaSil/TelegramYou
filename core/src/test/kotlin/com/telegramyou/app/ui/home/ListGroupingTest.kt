@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.home
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ListGroupingTest {
@@ -37,4 +38,48 @@ class ListGroupingTest {
     fun `no chats means no groups`() {
         assertEquals(emptyList<List<String>>(), groupChats(emptyList<String>()) { false })
     }
+
+    // ── the archive row ──────────────────────────────────────────────────
+
+    private data class Chat(val archived: Boolean, val unread: Int = 0)
+
+    private fun summary(vararg chats: Chat) =
+        archiveSummary(chats.toList(), { it.archived }, { it.unread })
+
+    @Test
+    fun `an empty archive has no row at all`() {
+        // Null rather than an empty string, so a caller that forgets to check
+        // cannot draw an entry for nothing.
+        assertNull(summary(Chat(archived = false)))
+        assertNull(summary())
+    }
+
+    @Test
+    fun `one archived chat is not pluralised`() {
+        assertEquals("1 chat", summary(Chat(archived = true)))
+    }
+
+    @Test
+    fun `several archived chats are counted`() {
+        assertEquals(
+            "3 chats",
+            summary(Chat(true), Chat(true), Chat(true), Chat(false))
+        )
+    }
+
+    @Test
+    fun `unread archived chats are counted separately`() {
+        // Chats with something unread, not messages: the archive is where
+        // things go to stop asking, so what matters is how many ask anyway.
+        assertEquals(
+            "3 chats, 2 unread",
+            summary(Chat(true, unread = 5), Chat(true, unread = 1), Chat(true))
+        )
+    }
+
+    @Test
+    fun `unread chats outside the archive do not count`() {
+        assertEquals("1 chat", summary(Chat(true), Chat(false, unread = 9)))
+    }
+
 }

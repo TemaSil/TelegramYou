@@ -53,6 +53,14 @@ interface TelegramChats {
     suspend fun markChatRead(chatId: Long)
 
     /**
+     * Moves a chat into the archive, or back out of it.
+     *
+     * The archive is a chat list of its own rather than a flag on the chat,
+     * which is why this is a move: a chat is in exactly one of the two.
+     */
+    suspend fun setChatArchived(chatId: Long, archived: Boolean)
+
+    /**
      * The account's own contacts, for starting a conversation.
      *
      * Contacts rather than "everybody you have ever spoken to": the chat list
