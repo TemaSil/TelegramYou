@@ -47,6 +47,24 @@ class DemoTelegramClient : TelegramClient {
     )
     override val authState: StateFlow<AuthUiState> = _authState.asStateFlow()
 
+    /**
+     * The seeded folders' ids.
+     *
+     * Numbers rather than an enum because that is what the server sends —
+     * TDLib identifies a folder by an int — and a demo backend that used
+     * something nicer would be modelling a Telegram that does not exist.
+     *
+     * Declared here, above the properties that read them, and that is not a
+     * matter of taste. Kotlin initialises properties in declaration order, so
+     * the same three lines at the foot of the class are still zero while
+     * `seedChats()` and `seedFolders()` run — every folder came out with id 0,
+     * every chat joined it, and all four tabs showed the same count. The
+     * compiler says nothing about it; the emulator did.
+     */
+    private val FOLDER_WORK = 1
+    private val FOLDER_PEOPLE = 2
+    private val FOLDER_NEWS = 3
+
     private val _chats = MutableStateFlow(seedChats())
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
 
@@ -835,16 +853,6 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  */
 private val DEMO_CHATTER_INTERVAL_MS = 25_000L
 
-/**
- * The seeded folders' ids.
- *
- * Numbers rather than an enum because that is what the server sends — TDLib
- * identifies a folder by an int — and a demo backend that used something
- * nicer would be modelling a Telegram that does not exist.
- */
-private val FOLDER_WORK = 1
-private val FOLDER_PEOPLE = 2
-private val FOLDER_NEWS = 3
 
 private val DEMO_CHATTER_LINES = listOf(
     "Did the ButtonGroup land?",

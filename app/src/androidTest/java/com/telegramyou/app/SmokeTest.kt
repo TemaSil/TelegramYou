@@ -153,6 +153,7 @@ class SmokeTest {
     fun folderTabsFilterTheChatList() {
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
         screenshot("10-folders")
 
         tap(By.text("People"))
@@ -164,6 +165,7 @@ class SmokeTest {
         screenshot("11-folder-people")
 
         // And back, because a filter you cannot undo is a trap.
+        awaitNoHeadsUp()
         tap(By.text("All"))
         waitFor(By.text(GROUP_CHAT), "the whole list again")
     }
@@ -240,6 +242,28 @@ class SmokeTest {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
         }
+    }
+
+    /**
+     * Waits for a heads-up notification to retreat into the status bar.
+     *
+     * The demo chat speaks every twenty-five seconds, and its heads-up lands
+     * across the top of the screen — over the folder tabs. UiAutomator still
+     * finds a tab underneath it and still clicks where it is, so the tap goes
+     * to the notification and the list never changes: the first run of this
+     * test failed on exactly that, with a screenshot of an unfiltered list
+     * and a notification across the top of it.
+     *
+     * Anchored on the Reply action rather than on the chat's name, which the
+     * list behind it also carries — waiting for that to go would wait for the
+     * whole twenty seconds and then carry on anyway.
+     */
+    private fun awaitNoHeadsUp() {
+        device.wait(
+            Until.gone(By.text(Pattern.compile("reply", Pattern.CASE_INSENSITIVE))),
+            HEADS_UP_TIMEOUT
+        )
+        device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /**
