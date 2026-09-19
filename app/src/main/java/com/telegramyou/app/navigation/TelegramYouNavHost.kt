@@ -21,6 +21,7 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
+import com.telegramyou.app.ui.chat.ChatMediaScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.components.RequestNotificationPermission
@@ -230,6 +231,26 @@ fun TelegramYouNavHost(
             )
         }
         composable(
+            route = Route.ChatMedia.PATTERN,
+            arguments = Route.ChatMedia.arguments
+        ) {
+            val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
+            val state by chatViewModel.uiState.collectAsStateWithLifecycle()
+            // On every visit, not once: photos arrive while this screen is
+            // closed, and a grid showing yesterday's set is quietly wrong.
+            LaunchedEffect(Unit) { chatViewModel.loadMedia() }
+            ChatMediaScreen(
+                title = state.detail?.chat?.title ?: "Media",
+                media = state.media,
+                isLoading = state.isLoadingMedia,
+                onBack = { navController.popBackStack() },
+                onOpen = chatViewModel::onPhotoOpened,
+                viewingPhoto = state.viewingPhoto,
+                onPhotoClosed = chatViewModel::onPhotoClosed
+            )
+        }
+
+        composable(
             route = Route.Chat.PATTERN,
             arguments = Route.Chat.arguments
         ) {
@@ -251,6 +272,11 @@ fun TelegramYouNavHost(
             ChatScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
+                onOpenMedia = {
+                    state.detail?.chat?.id?.let {
+                        navController.navigateTo(Route.ChatMedia(it))
+                    }
+                },
                 onDraftChange = chatViewModel::onDraftChange,
                 onAttachmentPicked = chatViewModel::onAttachmentPicked,
                 onAttachmentCleared = chatViewModel::onAttachmentCleared,

@@ -71,6 +71,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -190,6 +191,8 @@ private const val RECORDING_TICK_MS = 250L
 fun ChatScreen(
     state: ChatUiState,
     onBack: () -> Unit,
+    /** Opens every photo in this chat as a grid. */
+    onOpenMedia: () -> Unit,
     onDraftChange: (String) -> Unit,
     onAttachmentPicked: (AttachmentDraft) -> Unit,
     onAttachmentCleared: () -> Unit,
@@ -408,6 +411,15 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Beside search rather than behind an overflow: both are
+                    // ways of finding something in a long conversation, and a
+                    // bar with two actions has room for two.
+                    IconButton(onClick = onOpenMedia) {
+                        Icon(
+                            Icons.Rounded.PhotoLibrary,
+                            contentDescription = "Photos in this chat"
+                        )
+                    }
                     IconButton(onClick = { onSearchOpenChange(!state.search.isOpen) }) {
                         Icon(
                             if (state.search.isOpen) Icons.Rounded.Close else Icons.Rounded.Search,
@@ -1230,7 +1242,7 @@ private fun cameraUri(context: Context, file: File): Uri =
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PhotoViewer(
+fun PhotoViewer(
     path: String,
     caption: String,
     onDismiss: () -> Unit

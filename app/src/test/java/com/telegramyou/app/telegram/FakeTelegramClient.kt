@@ -119,6 +119,14 @@ class FakeTelegramClient(
         return userId
     }
 
+    /** What chatMedia answers with; empty unless a test says otherwise. */
+    var media: List<ChatMessage> = emptyList()
+
+    override suspend fun chatMedia(chatId: Long, limit: Int): List<ChatMessage> {
+        chatCalls += "chatMedia:$chatId"
+        return media
+    }
+
     override suspend fun setChatArchived(chatId: Long, archived: Boolean) {
         chatCalls += "setChatArchived:$chatId:$archived"
     }

@@ -268,6 +268,34 @@ class TdLibTelegramClient(
         return parseMessages(chatId, found.optJSONArray("messages"))
     }
 
+    override suspend fun chatMedia(chatId: Long, limit: Int): List<ChatMessage> {
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMessages")
+                    .put("chat_id", chatId)
+                    // Empty, which searchChatMessages allows and which is how
+                    // "everything of this kind" is asked for. The filter does
+                    // the selecting.
+                    .put("query", "")
+                    .put(
+                        "filter",
+                        JSONObject().put("@type", "searchMessagesFilterPhotoAndVideo")
+                    )
+                    .put("limit", limit)
+                    .put("from_message_id", 0)
+                    .put("offset", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "chatMedia: ${e.message}")
+            return emptyList()
+        }
+        // Newest first, which is the order a grid of media is read in — and
+        // the opposite of the conversation, where the newest is at the bottom.
+        return parseMessages(chatId, found.optJSONArray("messages")).asReversed()
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         awaitReady()

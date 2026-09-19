@@ -64,6 +64,15 @@ data class ChatUiState(
     val availableReactions: List<String> = emptyList(),
     /** Empty until someone chooses Select; non-empty puts the toolbar up. */
     val selection: MessageSelection = MessageSelection(),
+    /**
+     * Every photo in this chat, for the media grid — newest first.
+     *
+     * Fetched when that screen opens rather than with the conversation: it is
+     * a separate request to the server and most conversations are never
+     * browsed that way.
+     */
+    val media: List<ChatMessage> = emptyList(),
+    val isLoadingMedia: Boolean = false,
     /** True while the confirmation for deleting the selection is on screen. */
     val confirmingSelectionDelete: Boolean = false,
     /** Search inside this conversation; see ChatSearchState. */
@@ -529,6 +538,22 @@ class ChatViewModel(
      * frame, and without the guard that is a request per frame — and then a
      * request per frame forever once the history runs out.
      */
+    /**
+     * Fetches every photo in this chat, for the media grid.
+     *
+     * Called when that screen opens rather than with the conversation: it is
+     * a separate request and most chats are never browsed this way. Called
+     * again on each visit, because photos are added while it is closed and a
+     * grid that showed yesterday's set would be quietly wrong.
+     */
+    fun loadMedia() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingMedia = true) }
+            val found = repository.chatMedia(chatId)
+            _uiState.update { it.copy(media = found, isLoadingMedia = false) }
+        }
+    }
+
     fun onLoadOlder() {
         val state = _uiState.value
         if (state.isLoadingOlder || !state.hasMoreOlder) return

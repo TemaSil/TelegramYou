@@ -52,6 +52,22 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /**
+     * Every photo in one conversation.
+     *
+     * Its own route rather than a sheet over the chat, because it is a place
+     * to browse rather than a step in something — and because opening a photo
+     * from it has to come back here rather than to the conversation.
+     */
+    data class ChatMedia(val chatId: Long) : Route {
+        override val path = "chat/$chatId/media"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/media"
+            val arguments = Chat.arguments
+        }
+    }
+
     data class Chat(val chatId: Long) : Route {
         override val path = "chat/$chatId"
 

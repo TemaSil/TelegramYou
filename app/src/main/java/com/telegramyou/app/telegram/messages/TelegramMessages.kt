@@ -112,4 +112,14 @@ interface TelegramMessages {
      * does: an empty field is not a request for the whole history.
      */
     suspend fun searchMessages(query: String, limit: Int = 30): List<MessageHit>
+
+    /**
+     * The photos and videos in a chat, newest first.
+     *
+     * A search with an empty query and a content filter rather than a listing
+     * of its own, because that is what TDLib offers — and it is the same call
+     * the conversation's own search makes, which is why an empty query is
+     * allowed here and refused there.
+     */
+    suspend fun chatMedia(chatId: Long, limit: Int = 60): List<ChatMessage>
 }

@@ -284,6 +284,15 @@ class DemoTelegramClient : TelegramClient {
         TelegramUser(id = 14, firstName = "Nadia", lastName = "Orlova")
     ).sortedBy { it.displayName.lowercase() }
 
+    override suspend fun chatMedia(chatId: Long, limit: Int): List<ChatMessage> {
+        delay(200)
+        return chatMessages[chatId]
+            .orEmpty()
+            .filter { it.contentType == MessageContentType.Photo }
+            .asReversed()
+            .take(limit)
+    }
+
     override suspend fun setChatArchived(chatId: Long, archived: Boolean) {
         delay(120)
         _chats.update { list ->
@@ -687,6 +696,32 @@ class DemoTelegramClient : TelegramClient {
             ),
             demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true, reactions = listOf(MessageReaction("❤️", count = 1)))
         )
+        // Photos with no file behind them, which is not a shortcut: this is
+        // exactly what a real chat looks like between a message arriving and
+        // its bytes doing so, and it is the state the grid has to draw well.
+        // Without these the shared-media screen would be empty offline and
+        // therefore unverifiable on the emulator.
+        chatMessages[1]?.addAll(
+            listOf(
+                demoMessage(
+                    6, 1, "Palette exploration", false, today + 200, "Material Design",
+                    contentType = MessageContentType.Photo
+                ),
+                demoMessage(
+                    7, 1, "Shape library sheet", false, today + 240, "Material Design",
+                    contentType = MessageContentType.Photo
+                ),
+                demoMessage(
+                    8, 1, "Motion spec", true, today + 280,
+                    isRead = true, contentType = MessageContentType.Photo
+                ),
+                demoMessage(
+                    9, 1, "Composer study", false, today + 320, "Material Design",
+                    contentType = MessageContentType.Photo
+                )
+            )
+        )
+
         chatMessages[2] = mutableListOf(
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
