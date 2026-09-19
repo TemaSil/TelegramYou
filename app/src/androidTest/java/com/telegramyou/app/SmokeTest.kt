@@ -1,6 +1,11 @@
 package com.telegramyou.app
 
+import android.content.ContentValues
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.provider.MediaStore
 import androidx.test.core.graphics.writeToTestStorage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -149,6 +154,10 @@ class SmokeTest {
      */
     @Test
     fun theAttachmentSheetOpens() {
+        // Before anything is signed in, so the pictures are already in the
+        // library by the time the sheet reads it.
+        seedGallery()
+
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
 
@@ -158,7 +167,50 @@ class SmokeTest {
         tap(By.desc("Attach"))
         allowPhotos()
         waitFor(By.text("Photo or video"), "the attachment sheet")
+        // The carousel, not just the sheet around it. Without this the test
+        // would pass on a build where the strip never drew — which is what
+        // it looked like before the gallery was seeded, and is
+        // indistinguishable from a device that simply has no photos.
+        waitFor(By.desc("Recent photo"), "the recent-photo carousel")
         screenshot("09-attachments")
+    }
+
+    /**
+     * Puts a few pictures into the device's library.
+     *
+     * A fresh emulator has an empty gallery, so the carousel correctly draws
+     * nothing and the interesting half of this feature goes unwatched.
+     * Inserting through MediaStore needs no permission — an app may always
+     * write its own media — and these are owned by the app under test, which
+     * is also the one that reads them back.
+     *
+     * Flat colours rather than anything photographic: what is being proved is
+     * that the strip is populated and masked, and a screenshot of three
+     * plain squares says that more legibly than a picture would.
+     */
+    private fun seedGallery(count: Int = 4) {
+        val resolver = InstrumentationRegistry.getInstrumentation()
+            .targetContext.contentResolver
+        val colours = intArrayOf(
+            Color.rgb(0xE9, 0x6D, 0x3F),
+            Color.rgb(0x4E, 0x8C, 0xD6),
+            Color.rgb(0x6C, 0xC2, 0x77),
+            Color.rgb(0xB3, 0x6B, 0xD1)
+        )
+        repeat(count) { index ->
+            val bitmap = Bitmap.createBitmap(720, 960, Bitmap.Config.ARGB_8888)
+            Canvas(bitmap).drawColor(colours[index % colours.size])
+            val values = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, "smoke-$index.png")
+                put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            }
+            val uri = resolver.insert(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+            ) ?: return
+            resolver.openOutputStream(uri)?.use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+        }
     }
 
     /**
