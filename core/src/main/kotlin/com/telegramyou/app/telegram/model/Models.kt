@@ -73,7 +73,36 @@ data class ChatPreview(
      * because a chat moves between the two, so two lists would mean keeping
      * them in step.
      */
-    val isArchived: Boolean = false
+    val isArchived: Boolean = false,
+    /**
+     * The folders this chat is in, by folder id.
+     *
+     * A set rather than one id: Telegram's folders are filters, and a chat
+     * can be in several of them at once — or, most commonly, in none, which
+     * is why this is empty by default and why an account with no folders
+     * needs nothing here.
+     */
+    val folderIds: Set<Int> = emptySet()
+)
+
+/**
+ * One of the account's chat folders.
+ *
+ * Only what a tab needs. TDLib's folder carries the rules that decide its
+ * membership — include these chat types, exclude those — and none of that
+ * belongs on this side: the server applies them and says which chats are in,
+ * which is what a client would have to trust anyway.
+ */
+data class ChatFolder(
+    val id: Int,
+    val title: String,
+    /**
+     * TDLib's own icon name, such as "Work" or "Cat", or blank.
+     *
+     * Kept verbatim rather than mapped to a Material icon here: the mapping
+     * is a UI decision, and this is the model both backends fill in.
+     */
+    val iconName: String = ""
 )
 
 data class StoryItem(

@@ -185,6 +185,7 @@ fun TelegramYouNavHost(
                 onMarkRead = homeViewModel::onMarkRead,
                 onArchivedChange = homeViewModel::onArchivedChange,
                 onOpenArchive = { navController.navigateTo(Route.Archive) },
+                onFolderSelected = homeViewModel::onFolderSelected,
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,

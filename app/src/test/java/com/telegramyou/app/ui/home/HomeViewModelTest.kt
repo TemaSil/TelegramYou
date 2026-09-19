@@ -2,6 +2,7 @@ package com.telegramyou.app.ui.home
 
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -70,6 +72,80 @@ class HomeViewModelTest {
             vm.uiState.collect {}
         }
         return vm to client
+    }
+
+    @Test
+    fun `no folders means no tabs and every chat`() = runTest {
+        val (vm, client) = viewModel()
+        client.setChats(listOf(chat(1, "Ivan"), chat(2, "Noor")))
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.folderTabs.isEmpty())
+        assertEquals(2, vm.uiState.value.chats.size)
+    }
+
+    @Test
+    fun `choosing a folder filters the list and All puts it back`() = runTest {
+        val (vm, client) = viewModel()
+        client.setFolders(listOf(ChatFolder(1, "Work"), ChatFolder(2, "People")))
+        client.setChats(
+            listOf(
+                chat(1, "Ivan").copy(folderIds = setOf(1)),
+                chat(2, "Noor").copy(folderIds = setOf(1, 2)),
+                chat(3, "Nobody")
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf("All", "Work", "People"),
+            vm.uiState.value.folderTabs.map { it.title }
+        )
+
+        vm.onFolderSelected(2)
+        advanceUntilIdle()
+        assertEquals(listOf("Noor"), vm.uiState.value.chats.map { it.title })
+
+        vm.onFolderSelected(null)
+        advanceUntilIdle()
+        assertEquals(3, vm.uiState.value.chats.size)
+    }
+
+    @Test
+    fun `a folder that disappears falls back to All rather than an empty list`() = runTest {
+        val (vm, client) = viewModel()
+        client.setFolders(listOf(ChatFolder(1, "Work")))
+        client.setChats(listOf(chat(1, "Ivan").copy(folderIds = setOf(1))))
+        vm.onFolderSelected(1)
+        advanceUntilIdle()
+        assertEquals(listOf("Ivan"), vm.uiState.value.chats.map { it.title })
+
+        // Deleted on another device, which is the case that would otherwise
+        // leave a tab selected that no longer exists and a list that cannot
+        // be got back.
+        client.setFolders(emptyList())
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.selectedFolderId)
+        assertTrue(vm.uiState.value.folderTabs.isEmpty())
+        assertEquals(listOf("Ivan"), vm.uiState.value.chats.map { it.title })
+    }
+
+    @Test
+    fun `the badge counts chats with something unread, per tab`() = runTest {
+        val (vm, client) = viewModel()
+        client.setFolders(listOf(ChatFolder(1, "Work"), ChatFolder(2, "People")))
+        client.setChats(
+            listOf(
+                chat(1, "Ivan").copy(folderIds = setOf(1), unreadCount = 4),
+                chat(2, "Noor").copy(folderIds = setOf(1)),
+                chat(3, "Mum").copy(folderIds = setOf(2), unreadCount = 1)
+            )
+        )
+        advanceUntilIdle()
+
+        // All, Work, People — and All counts both, not the sum of the folders.
+        assertEquals(listOf(2, 1, 1), vm.uiState.value.folderUnread)
     }
 
     @Test

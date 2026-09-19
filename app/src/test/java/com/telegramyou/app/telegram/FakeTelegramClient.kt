@@ -4,6 +4,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
@@ -58,6 +59,14 @@ class FakeTelegramClient(
 
     fun setChats(value: List<ChatPreview>) {
         _chats.value = value
+    }
+
+    /** Settable for the same reason: a test decides which tabs exist. */
+    private val _folders = MutableStateFlow<List<ChatFolder>>(emptyList())
+    override val folders: StateFlow<List<ChatFolder>> = _folders
+
+    fun setFolders(value: List<ChatFolder>) {
+        _folders.value = value
     }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
 

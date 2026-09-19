@@ -335,9 +335,8 @@ first:
    19 September; what is left is download and upload progress, audio and
    video playback, and stickers. Video is the largest of those, and the
    thumbnail is most of video.
-2. **Folders** — `PrimaryScrollableTabRow`, from the account's own folders.
-   The chat list is grouped and filtered already; folders are another
-   filter over the same rows.
+2. ~~**Folders**~~ — done, 19 September: tabs over the same rows, with the
+   selection and the filtering in the view model and `:core`.
 3. **Groups and channels** — join and leave, permissions, invite links,
    creating one. The member list is in, which was the piece the others
    depend on.
@@ -648,7 +647,13 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       that is an action rather than a deletion. Archive and mark-as-read
       are in the long-press menu — two directions, both spoken for.
       Delete is not offered yet
-- [ ] Folders — `PrimaryScrollableTabRow`, from the account's own folders
+- [x] Folders — `PrimaryScrollableTabRow` over the one chat list, from the
+      account's own folders, with Material's `Badge` carrying each tab's
+      unread count. Pinned above the list rather than scrolling with it; the
+      strip is absent entirely for an account with no folders. Membership is
+      a set on the chat, because a chat can be in several at once — TDLib
+      reports it as a position in `chatListFolder`, the same way the archive
+      works, so each folder has to be loaded for its chats to arrive
 - [x] Archive: an entry row above the chats, absent entirely when nothing
       is in there, and its own screen behind it — the same rows on the
       same panel. On TDLib the archive is a chat list rather than a flag,

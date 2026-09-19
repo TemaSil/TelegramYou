@@ -1,6 +1,7 @@
 package com.telegramyou.app.telegram.chats
 
 import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.flow.StateFlow
@@ -8,6 +9,19 @@ import kotlinx.coroutines.flow.StateFlow
 /** The list of conversations, and opening one. */
 interface TelegramChats {
     val chats: StateFlow<List<ChatPreview>>
+
+    /**
+     * The account's chat folders, in the order the account put them.
+     *
+     * Empty for most accounts, and empty is the normal case rather than a
+     * failure: folders are made by hand, and a client that assumes at least
+     * one draws a tab strip that filters nothing.
+     *
+     * Which chats are in a folder is not here. It is on the chat, as
+     * [ChatPreview.folderIds], because a chat can be in several and the list
+     * is one list either way — folders filter it rather than replace it.
+     */
+    val folders: StateFlow<List<ChatFolder>>
 
     suspend fun refreshChats()
 

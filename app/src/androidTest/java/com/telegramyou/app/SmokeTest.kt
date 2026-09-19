@@ -14,6 +14,7 @@ import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -137,6 +138,34 @@ class SmokeTest {
         // exactly the condition wanted.
         device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
         screenshot("06-group-header")
+    }
+
+    /**
+     * Folder tabs, which are a filter and have to be seen to filter.
+     *
+     * The demo backend seeds three folders with overlapping membership, so
+     * this can be checked with no account: tapping "People" should leave the
+     * group behind and keep the private chats. A tab strip that switched the
+     * indicator and showed the same list would pass every weaker assertion
+     * than this one.
+     */
+    @Test
+    fun folderTabsFilterTheChatList() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        screenshot("10-folders")
+
+        tap(By.text("People"))
+        waitFor(By.text("Mom"), "a chat in the People folder")
+        assertNull(
+            "the group is not in People and should have gone",
+            device.findObject(By.text(GROUP_CHAT))
+        )
+        screenshot("11-folder-people")
+
+        // And back, because a filter you cannot undo is a trap.
+        tap(By.text("All"))
+        waitFor(By.text(GROUP_CHAT), "the whole list again")
     }
 
     /**

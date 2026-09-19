@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -40,6 +42,9 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Badge
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHost
@@ -90,6 +95,7 @@ fun HomeScreen(
     onMarkRead: (Long) -> Unit,
     onArchivedChange: (Long, Boolean) -> Unit,
     onOpenArchive: () -> Unit,
+    onFolderSelected: (Int?) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
@@ -262,110 +268,179 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .padding(padding)
         ) {
-            PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = onRefresh,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                LazyColumn(
-                    // The lighter panel the chats sit on, and the second half
-                    // of Material's "contain content for emphasis": the rows
-                    // are the lightest tone, the panel under them is a step
-                    // darker, and the bar and the stories rail above are
-                    // darker still. Three steps, so the chats read as their
-                    // own zone rather than as pills floating on the same grey
-                    // as everything else — which is what they did when this
-                    // background and the one behind the stories were the same
-                    // colour.
-                    //
-                    // On the list rather than around it because the stories
-                    // rail is the list's own first item and has to stay out of
-                    // this panel; it paints itself back to the darker tone
-                    // below. Wrapping the chats in a panel of their own would
-                    // mean one `item` holding every row, and a chat list is
-                    // exactly the thing that must stay lazy.
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                    // Room for the floating button, which shares the bottom
-                    // of the screen with a navigation bar. Ninety-six was
-                    // enough when the button was alone down there; with the
-                    // bar under it the last chat ended up behind the pencil.
-                    contentPadding = PaddingValues(bottom = 112.dp),
-                    // The hairline Material leaves between segmented list
-                    // items, through which the panel behind them shows.
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+            // A column, so the tabs sit above the list rather than over
+            // it. Pinned here rather than scrolling as the list's first item:
+            // a filter you have to scroll back to the top to change is one
+            // you cannot reach while looking at what it filtered — which is
+            // also why Telegram pins its own folder tabs.
+            Column(modifier = Modifier.fillMaxSize()) {
+                FolderTabs(
+                    tabs = state.folderTabs,
+                    unread = state.folderUnread,
+                    selectedId = state.selectedFolderId,
+                    onSelected = onFolderSelected
+                )
+                PullToRefreshBox(
+                    isRefreshing = state.isRefreshing,
+                    onRefresh = onRefresh,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    item {
-                        // Painted back to the bar's tone, because the list it
-                        // lives in carries the chats' lighter panel. Stories
-                        // belong with the header, not with the chats.
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                        ) {
-                            StoriesRail(
-                                stories = state.stories,
-                                onStoryClick = onOpenStory
-                            )
-                            Spacer(Modifier.height(12.dp))
-                        }
-                    }
-                    // Grouped into containers rather than laid out as one
-                    // card per chat. Material's fourth expressive principle
-                    // is to contain content: a run of rows sharing a
-                    // container reads as one informative grouping, where the
-                    // same rows floating separately read as a pile of
-                    // unrelated things. Pinned chats get a container of their
-                    // own, because chosen and recent are different kinds of
-                    // thing and the separation then needs no heading.
-                    //
-                    // No AnimatedVisibility here. It wrapped every row with
-                    // visible = true, which never transitions, so the enter
-                    // animation could not run — a composition layer that cost
-                    // something and did nothing.
-                    // Above the chats and below the stories, which is where
-                    // Telegram puts it — and absent entirely when the archive
-                    // is empty, which the summary being null already says.
-                    state.archiveSummary?.let { summary ->
-                        item(key = "archive-entry") {
-                            ArchiveEntryRow(
-                                summary = summary,
-                                onClick = onOpenArchive,
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            Spacer(Modifier.height(12.dp))
-                        }
-                    }
-                    groupChats(state.chats) { it.isPinned }.forEach { group ->
-                        itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
-                            ChatListRow(
-                                chat = chat,
-                                index = index,
-                                count = group.size,
-                                onClick = { onOpenChat(chat.id) },
+                    LazyColumn(
+                        // The lighter panel the chats sit on, and the second half
+                        // of Material's "contain content for emphasis": the rows
+                        // are the lightest tone, the panel under them is a step
+                        // darker, and the bar and the stories rail above are
+                        // darker still. Three steps, so the chats read as their
+                        // own zone rather than as pills floating on the same grey
+                        // as everything else — which is what they did when this
+                        // background and the one behind the stories were the same
+                        // colour.
+                        //
+                        // On the list rather than around it because the stories
+                        // rail is the list's own first item and has to stay out of
+                        // this panel; it paints itself back to the darker tone
+                        // below. Wrapping the chats in a panel of their own would
+                        // mean one `item` holding every row, and a chat list is
+                        // exactly the thing that must stay lazy.
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+                        // Room for the floating button, which shares the bottom
+                        // of the screen with a navigation bar. Ninety-six was
+                        // enough when the button was alone down there; with the
+                        // bar under it the last chat ended up behind the pencil.
+                        contentPadding = PaddingValues(bottom = 112.dp),
+                        // The hairline Material leaves between segmented list
+                        // items, through which the panel behind them shows.
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        item {
+                            // Painted back to the bar's tone, because the list it
+                            // lives in carries the chats' lighter panel. Stories
+                            // belong with the header, not with the chats.
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp),
-                                onMutedChange = { muted -> onMutedChange(chat.id, muted) },
-                                onPinnedChange = { pinned ->
-                                    onPinnedChange(chat.id, pinned)
-                                },
-                                onMarkRead = { onMarkRead(chat.id) },
-                                onArchivedChange = { archived ->
-                                    onArchivedChange(chat.id, archived)
-                                }
-                            )
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            ) {
+                                StoriesRail(
+                                    stories = state.stories,
+                                    onStoryClick = onOpenStory
+                                )
+                                Spacer(Modifier.height(12.dp))
+                            }
                         }
-                        // Between containers, not between rows: the gap is
-                        // what makes two groups read as two.
-                        item(key = "gap-${group.first().id}") {
-                            Spacer(Modifier.height(12.dp))
+                        // Grouped into containers rather than laid out as one
+                        // card per chat. Material's fourth expressive principle
+                        // is to contain content: a run of rows sharing a
+                        // container reads as one informative grouping, where the
+                        // same rows floating separately read as a pile of
+                        // unrelated things. Pinned chats get a container of their
+                        // own, because chosen and recent are different kinds of
+                        // thing and the separation then needs no heading.
+                        //
+                        // No AnimatedVisibility here. It wrapped every row with
+                        // visible = true, which never transitions, so the enter
+                        // animation could not run — a composition layer that cost
+                        // something and did nothing.
+                        // Above the chats and below the stories, which is where
+                        // Telegram puts it — and absent entirely when the archive
+                        // is empty, which the summary being null already says.
+                        state.archiveSummary?.let { summary ->
+                            item(key = "archive-entry") {
+                                ArchiveEntryRow(
+                                    summary = summary,
+                                    onClick = onOpenArchive,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                                Spacer(Modifier.height(12.dp))
+                            }
+                        }
+                        groupChats(state.chats) { it.isPinned }.forEach { group ->
+                            itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
+                                ChatListRow(
+                                    chat = chat,
+                                    index = index,
+                                    count = group.size,
+                                    onClick = { onOpenChat(chat.id) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp),
+                                    onMutedChange = { muted -> onMutedChange(chat.id, muted) },
+                                    onPinnedChange = { pinned ->
+                                        onPinnedChange(chat.id, pinned)
+                                    },
+                                    onMarkRead = { onMarkRead(chat.id) },
+                                    onArchivedChange = { archived ->
+                                        onArchivedChange(chat.id, archived)
+                                    }
+                                )
+                            }
+                            // Between containers, not between rows: the gap is
+                            // what makes two groups read as two.
+                            item(key = "gap-${group.first().id}") {
+                                Spacer(Modifier.height(12.dp))
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * The account's folders, as a tab strip over the one chat list.
+ *
+ * `PrimaryScrollableTabRow` because that is what Material ships for exactly
+ * this — a row of tabs that may be wider than the screen — and because
+ * primary tabs are the ones that belong directly under an app bar. Nothing
+ * is drawn by hand here, indicator included.
+ *
+ * Absent entirely when the account has no folders: [tabs] is empty then, and
+ * a strip with a single "All" tab in it would be chrome that filters nothing.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FolderTabs(
+    tabs: List<FolderTab>,
+    unread: List<Int>,
+    selectedId: Int?,
+    onSelected: (Int?) -> Unit
+) {
+    if (tabs.isEmpty()) return
+    // Falls back to the first tab, which is All. A selected folder that is no
+    // longer in the list is already turned into null upstream, so this only
+    // catches the moment between the two.
+    val selectedIndex = tabs.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+
+    PrimaryScrollableTabRow(
+        selectedTabIndex = selectedIndex,
+        // The header's tone, because that is what this is part of: the
+        // lighter panel starts below, where the chats do.
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // No divider. The step down in tone at the top of the list already
+        // separates the two, and a line as well would be saying it twice.
+        divider = {}
+    ) {
+        tabs.forEachIndexed { index, folder ->
+            val count = unread.getOrElse(index) { 0 }
+            Tab(
+                selected = index == selectedIndex,
+                onClick = { onSelected(folder.id) },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(folder.title)
+                        if (count > 0) {
+                            Spacer(Modifier.width(6.dp))
+                            // Material's own badge rather than a number in
+                            // brackets: this is the same thing the navigation
+                            // bar puts on an icon, and it should look like it.
+                            Badge { Text(count.toString()) }
+                        }
+                    }
+                }
+            )
         }
     }
 }

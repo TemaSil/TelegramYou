@@ -32,8 +32,24 @@ import kotlinx.coroutines.launch
  */
 data class HomeUiState(
     val me: TelegramUser? = null,
-    /** The main list: everything not in the archive. */
+    /**
+     * The main list: everything not in the archive, under the chosen folder.
+     *
+     * Filtered here rather than in the screen so that there is one answer to
+     * "which chats are on screen" — the row-drawing code never learns that
+     * folders exist.
+     */
     val chats: List<ChatPreview> = emptyList(),
+    /**
+     * The tabs above the list, empty for an account with no folders.
+     *
+     * Empty means no strip at all rather than a lone "All": see `folderTabs`.
+     */
+    val folderTabs: List<FolderTab> = emptyList(),
+    /** Which tab is chosen; null is All. */
+    val selectedFolderId: Int? = null,
+    /** How many chats have something unread, per tab, in the tabs' order. */
+    val folderUnread: List<Int> = emptyList(),
     val archivedChats: List<ChatPreview> = emptyList(),
     /**
      * What the archive entry row says, or null when there is no row.
@@ -132,6 +148,15 @@ class HomeViewModel(
 
     private val compose = MutableStateFlow(ComposeState())
 
+    /**
+     * The chosen folder, null for All.
+     *
+     * Held here rather than in the screen so that switching tabs survives a
+     * rotation, and because the filtering happens here too — the screen sends
+     * the tap and draws what comes back.
+     */
+    private val folderSelection = MutableStateFlow<Int?>(null)
+
     // Two combines rather than one of six flows: the six-argument overload
     // hands back an Array<Any?> and every field would be read out of it by
     // index and cast. Chaining keeps both halves typed.
@@ -155,6 +180,20 @@ class HomeViewModel(
             isRefreshing = isRefreshing,
             search = searchState
         )
+    }.combine(
+        combine(repository.observeFolders(), folderSelection) { folders, requested ->
+            folders to selectedFolder(folders, { it.id }, requested)
+        }
+    ) { home, (folders, selected) ->
+        val tabs = folderTabs(folders, { it.id }, { it.title })
+        home.copy(
+            chats = chatsInFolder(home.chats, selected) { it.folderIds },
+            folderTabs = tabs,
+            selectedFolderId = selected,
+            folderUnread = tabs.map { tab ->
+                folderUnreadChats(home.chats, tab.id, { it.folderIds }, { it.unreadCount })
+            }
+        )
     }.combine(profileEditing) { home, editing ->
         home.copy(profile = profileState(home.me, editing))
     }.combine(compose) { home, composeState ->
@@ -166,6 +205,17 @@ class HomeViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HomeUiState()
     )
+
+    /**
+     * Switches tabs.
+     *
+     * Nothing is cleared: the search field, the archive row and everything
+     * else on the screen mean the same under any folder, and a tap that reset
+     * them would be a tap that undid work.
+     */
+    fun onFolderSelected(folderId: Int?) {
+        folderSelection.value = folderId
+    }
 
     // ── search ───────────────────────────────────────────────────────────
 

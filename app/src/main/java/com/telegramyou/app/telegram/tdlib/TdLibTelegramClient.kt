@@ -11,6 +11,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
@@ -72,6 +73,16 @@ class TdLibTelegramClient(
 
     /** Chat ids currently holding a position in `chatListArchive`. */
     private val archivedChats = ConcurrentHashMap.newKeySet<Long>()
+
+    /**
+     * Which folders each chat is in, by chat id.
+     *
+     * Kept the same way the archive is, and for the same reason: a chat
+     * object carries no list of its folders. Membership is having a position
+     * in `chatListFolder`, and TDLib announces that as a position with a
+     * non-zero order — so this is filled from the same updates.
+     */
+    private val chatFolders = ConcurrentHashMap<Long, MutableSet<Int>>()
     private val usersById = ConcurrentHashMap<Long, JSONObject>()
     private val chatOrder = ConcurrentHashMap<Long, Long>()
     private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
@@ -83,6 +94,9 @@ class TdLibTelegramClient(
 
     private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
+
+    private val _folders = MutableStateFlow<List<ChatFolder>>(emptyList())
+    override val folders: StateFlow<List<ChatFolder>> = _folders.asStateFlow()
 
     // extraBufferCapacity so emitting never suspends: this is written from
     // the TDLib update callback, which must return promptly — blocking it
@@ -203,6 +217,7 @@ class TdLibTelegramClient(
             } catch (e: TdLibException) {
                 Log.d(TAG, "loadChats(archive): ${e.message}")
             }
+            loadFolderChats()
             publishChats()
             refreshStories()
         } catch (e: TdLibException) {
@@ -1018,6 +1033,18 @@ class TdLibTelegramClient(
                 }
                 scope.launch { publishChats() }
             }
+            "updateChatFolders" -> {
+                // The account's folders, whole, on every change: TDLib sends
+                // the list rather than a diff, so this replaces rather than
+                // merges. Their chats arrive separately, as positions, and
+                // only for the lists that have been loaded — which is why
+                // refreshChats loads each folder as well as the main list.
+                _folders.value = parseFolders(update.optJSONArray("chat_folders"))
+                scope.launch {
+                    loadFolderChats()
+                    publishChats()
+                }
+            }
             "updateChatPosition" -> {
                 val chatId = update.optLong("chat_id")
                 val position = update.optJSONObject("position") ?: return
@@ -1228,6 +1255,64 @@ class TdLibTelegramClient(
         _chats.value = list
     }
 
+    /**
+     * Reads `chatFolderInfo` objects into the model.
+     *
+     * The title is read two ways on purpose. TDLib changed it from a plain
+     * string to a `formattedText` — the one that can carry custom emoji — and
+     * which of those arrives depends on the version of the library the `.so`
+     * was built from, not on anything this code can see. Reading both is
+     * three lines; guessing wrong is a client whose folder tabs are all
+     * blank.
+     */
+    private fun parseFolders(array: JSONArray?): List<ChatFolder> {
+        if (array == null) return emptyList()
+        val folders = ArrayList<ChatFolder>(array.length())
+        for (i in 0 until array.length()) {
+            val info = array.optJSONObject(i) ?: continue
+            val title = info.optJSONObject("title")?.optString("text")
+                ?: info.optString("title")
+            folders += ChatFolder(
+                id = info.optInt("id"),
+                title = title.ifBlank { "Folder" },
+                iconName = info.optJSONObject("icon")?.optString("name").orEmpty()
+            )
+        }
+        return folders
+    }
+
+    /**
+     * Asks TDLib for each folder's chats.
+     *
+     * Without this a folder has no members at all: TDLib only sends
+     * positions for chat lists a client has actually loaded, so a folder
+     * nobody asked about is a tab over an empty list. A failure is per
+     * folder and not fatal — an empty folder answers 404, which is a normal
+     * thing for a folder to be.
+     */
+    private suspend fun loadFolderChats() {
+        // The field, not requireEngine(): this also runs from an update
+        // callback, which can arrive while the client is being torn down.
+        val engine = this.engine ?: return
+        for (folder in _folders.value) {
+            try {
+                engine.send(
+                    JSONObject()
+                        .put("@type", "loadChats")
+                        .put(
+                            "chat_list",
+                            JSONObject()
+                                .put("@type", "chatListFolder")
+                                .put("chat_folder_id", folder.id)
+                        )
+                        .put("limit", 50)
+                )
+            } catch (e: TdLibException) {
+                Log.d(TAG, "loadChats(folder ${folder.id}): ${e.message}")
+            }
+        }
+    }
+
     private fun applyPositions(chatId: Long, positions: JSONArray) {
         for (i in 0 until positions.length()) {
             applyPosition(chatId, positions.optJSONObject(i) ?: continue)
@@ -1246,6 +1331,13 @@ class TdLibTelegramClient(
         // it.
         if (listType == "chatListArchive") {
             if (order == 0L) archivedChats.remove(chatId) else archivedChats.add(chatId)
+            return
+        }
+        if (listType == "chatListFolder") {
+            val folderId = position.optJSONObject("list")?.optInt("chat_folder_id")
+                ?: return
+            val ids = chatFolders.getOrPut(chatId) { ConcurrentHashMap.newKeySet() }
+            if (order == 0L) ids.remove(folderId) else ids.add(folderId)
             return
         }
         if (listType != null && listType != "chatListMain") return
@@ -1267,6 +1359,7 @@ class TdLibTelegramClient(
             lastMessage = previewText(last),
             timestampLabel = formatTime(last?.optInt("date") ?: 0),
             unreadCount = chat.optInt("unread_count"),
+            folderIds = chatFolders[id]?.toSet().orEmpty(),
             isPinned = (chatOrder[id] ?: 0L) >= PINNED_ORDER_THRESHOLD,
             isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
             isOnline = false,

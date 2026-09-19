@@ -5,6 +5,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
@@ -48,6 +49,14 @@ class DemoTelegramClient : TelegramClient {
 
     private val _chats = MutableStateFlow(seedChats())
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
+
+    // Seeded rather than empty, which is the interesting half: an account
+    // with no folders draws no tab strip at all, and that case is already
+    // visible every time the strip is absent. Three, because two tabs and
+    // "All" fit across a phone and a fourth is what makes the strip scroll —
+    // which is the layout worth looking at.
+    private val _folders = MutableStateFlow(seedFolders())
+    override val folders: StateFlow<List<ChatFolder>> = _folders.asStateFlow()
 
     private val _stories = MutableStateFlow(seedStories())
     override val stories: StateFlow<List<StoryItem>> = _stories.asStateFlow()
@@ -633,14 +642,39 @@ class DemoTelegramClient : TelegramClient {
     }
 
     private fun seedChats(): List<ChatPreview> = listOf(
-        ChatPreview(1, "Material Design", "Expressive motion is live ✨", "12:41", unreadCount = 3, isPinned = true, isOnline = true),
-        ChatPreview(2, "Lina Park", "typing… wait, almost", "11:02", unreadCount = 1, isOnline = true, avatarColor = 22),
-        ChatPreview(3, "Design Circle", "New Figma dump in #files", "Yesterday", isGroup = true, unreadCount = 18, avatarColor = 33),
-        ChatPreview(4, "TelegramYou News", "M3 Expressive build notes", "Mon", isChannel = true, isMuted = true, avatarColor = 44),
-        ChatPreview(5, "Artem", "Send me the apk?", "Sun", avatarColor = 55),
+        ChatPreview(
+            1, "Material Design", "Expressive motion is live ✨", "12:41",
+            unreadCount = 3, isPinned = true, isOnline = true,
+            folderIds = setOf(FOLDER_WORK)
+        ),
+        ChatPreview(
+            2, "Lina Park", "typing… wait, almost", "11:02", unreadCount = 1,
+            isOnline = true, avatarColor = 22,
+            folderIds = setOf(FOLDER_PEOPLE)
+        ),
+        ChatPreview(
+            3, "Design Circle", "New Figma dump in #files", "Yesterday",
+            isGroup = true, unreadCount = 18, avatarColor = 33,
+            folderIds = setOf(FOLDER_WORK)
+        ),
+        ChatPreview(
+            4, "TelegramYou News", "M3 Expressive build notes", "Mon",
+            isChannel = true, isMuted = true, avatarColor = 44,
+            folderIds = setOf(FOLDER_NEWS)
+        ),
+        ChatPreview(
+            5, "Artem", "Send me the apk?", "Sun", avatarColor = 55,
+            folderIds = setOf(FOLDER_PEOPLE)
+        ),
         ChatPreview(6, "Saved Messages", "Color tokens & springs", "Sat", isPinned = true, avatarColor = 66),
-        ChatPreview(7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true, avatarColor = 77),
-        ChatPreview(8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2, avatarColor = 88),
+        ChatPreview(
+            7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true,
+            avatarColor = 77, folderIds = setOf(FOLDER_WORK, FOLDER_NEWS)
+        ),
+        ChatPreview(
+            8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2,
+            avatarColor = 88, folderIds = setOf(FOLDER_PEOPLE)
+        ),
         // Two in the archive from the start, one of them unread, so the entry
         // row has both halves of its summary to show offline — and so the
         // main list can be seen not to include them.
@@ -652,6 +686,15 @@ class DemoTelegramClient : TelegramClient {
             10, "Old project", "Archived last spring", "Mar",
             isArchived = true, unreadCount = 4, avatarColor = 111
         )
+    )
+
+    private fun seedFolders(): List<ChatFolder> = listOf(
+        // Deliberately overlapping: Kotlin Night is in two of them, which is
+        // what folders are — filters over one list, not boxes a chat is put
+        // into.
+        ChatFolder(FOLDER_WORK, "Work", iconName = "Work"),
+        ChatFolder(FOLDER_PEOPLE, "People", iconName = "Private"),
+        ChatFolder(FOLDER_NEWS, "News", iconName = "Channel")
     )
 
     private fun seedStories(): List<StoryItem> = listOf(
@@ -791,6 +834,17 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  * only allowed at the top level or in an object.
  */
 private val DEMO_CHATTER_INTERVAL_MS = 25_000L
+
+/**
+ * The seeded folders' ids.
+ *
+ * Numbers rather than an enum because that is what the server sends — TDLib
+ * identifies a folder by an int — and a demo backend that used something
+ * nicer would be modelling a Telegram that does not exist.
+ */
+private val FOLDER_WORK = 1
+private val FOLDER_PEOPLE = 2
+private val FOLDER_NEWS = 3
 
 private val DEMO_CHATTER_LINES = listOf(
     "Did the ButtonGroup land?",
