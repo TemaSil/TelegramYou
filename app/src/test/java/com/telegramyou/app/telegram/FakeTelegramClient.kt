@@ -7,6 +7,7 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
+import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
