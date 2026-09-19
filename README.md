@@ -33,6 +33,30 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 - Java binding: `org.drinkless.tdlib.JsonClient` (from [tdlib/td](https://github.com/tdlib/td))
 - Native: `libtdjsonjava.so` (Android ABIs under `app/src/main/jniLibs/`)
 
+## What is in it
+
+The demo build is the whole interface, so everything here can be seen without
+an account:
+
+- **Chat list** — grouped into containers, swipe to pin or mute, search across
+  chats and message text, an archive behind its own row, and **folders as
+  tabs** with an unread badge on each.
+- **Conversation** — replies, edits, forwarding, selection, reactions, voice
+  messages with a waveform, a pinned-message bar, an unread divider, and a
+  search inside the chat.
+- **Media** — photos in bubbles, a full-screen viewer with pinch, pan,
+  double-tap and drag-to-dismiss, a grid of every photo in a chat, and a
+  carousel of recent photos at the top of the attachment sheet.
+- **Chat info** — members, the invite link, and leaving a group.
+- **Profile and settings** — name, bio and username edited in place; theme and
+  dynamic colour.
+- **Notifications** — a foreground service, and replying from the shade.
+- **Adaptive** — the navigation becomes a rail where the window is wide and
+  tall enough for one.
+
+`ROADMAP.md` says what is not in it yet, and which Material component each
+part should use when it arrives.
+
 ## Modes
 
 | Mode | When | Behavior |

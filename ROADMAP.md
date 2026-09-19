@@ -270,6 +270,44 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
+## Where this was left, 19 September 2026
+
+A day of finishing sections rather than starting them. Everything here is on
+`main`, built green, and all but the last item was watched arriving on the
+emulator.
+
+- **Media is no longer the emptiest section.** The shared-media grid, the
+  full-screen viewer with pinch, pan, double-tap and drag-to-dismiss, and a
+  carousel of recent photos at the top of the attachment sheet. The carousel
+  is `HorizontalMultiBrowseCarousel` and it needs `READ_MEDIA_IMAGES`, asked
+  for when the sheet opens and answerable with Android 14's "Select photos";
+  refused, the sheet is exactly the three rows it was.
+- **Folders, as tabs over the one chat list.** `PrimaryScrollableTabRow` with
+  a `Badge` per tab. Which chat is in which folder, what the badge counts and
+  what happens when a folder is deleted elsewhere all live in `:core`.
+- **A chat info screen** behind the conversation's header: members, the
+  invite link where the server offers one, and leaving the group.
+- **A rail where the window is big enough**, through
+  `NavigationSuiteScaffold`.
+- **The blur came out of the reply.** It was allowed under the narrow
+  exception CLAUDE.md grants, and the owner withdrew that after seeing it on
+  a phone. A mockup is coming; nothing blurs in the meantime.
+
+Three things the emulator caught that no unit test could, worth repeating
+because they are the argument for that workflow existing:
+
+- Every folder tab showed the same badge, because the demo backend's folder
+  ids sat below the properties that read them and Kotlin initialises in
+  declaration order. All three folders were folder 0.
+- "Leave group" was under forty members and three screens down.
+- A heads-up notification lands over the app bar, and UiAutomator will
+  happily tap a header underneath one — which opened the wrong chat and
+  photographed it.
+
+What is left, largest first: video in bubbles (a thumbnail and a player,
+and the thumbnail is most of it), upload and download progress, permissions
+and admins, creating a group, and per-chat notification settings.
+
 ## Where this was left, 18 September 2026
 
 Second pass of the day, after the APK was looked at on a phone. Everything
@@ -670,7 +708,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       and was not
 - [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
       still need client methods
-- [ ] Adaptive navigation — `NavigationSuiteScaffold` for tablets
+- [x] Adaptive navigation — `NavigationSuiteScaffold`, which picks its shape
+      from the window: the same short navigation bar in compact, a wide rail
+      where the window is big enough for one. Note that a phone in landscape
+      is *not* one of those — Material keeps the bar whenever the window is
+      short, which is why the emulator test resizes the window to a tablet's
+      rather than turning the phone
 
 ## 3. Settings and profile
 
