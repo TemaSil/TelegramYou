@@ -203,9 +203,19 @@ class SmokeTest {
                 chats.visibleBounds.centerX() < device.displayWidth / 4
             )
         } finally {
-            // Whatever happened, the next test gets the phone it expects.
+            // Whatever happened, the next test gets the phone it expects —
+            // and gets it settled. Resetting the size tears every window
+            // down and builds it again, and the test that ran next found
+            // nothing on screen and failed in its own @Before: waiting for
+            // idle is not enough, so this waits for the launcher to come
+            // back the way launchApp waits for the app.
             device.executeShellCommand("wm density reset")
             device.executeShellCommand("wm size reset")
+            device.pressHome()
+            device.wait(
+                Until.hasObject(By.pkg(device.launcherPackageName).depth(0)),
+                LAUNCH_TIMEOUT
+            )
             device.waitForIdle(IDLE_TIMEOUT)
         }
     }
@@ -631,7 +641,10 @@ class SmokeTest {
     }
 
     private companion object {
-        const val LAUNCH_TIMEOUT = 20_000L
+        // Thirty rather than twenty: a cold start on a CI emulator that has
+        // just rebuilt every window is slower than one on an idle device,
+        // and the difference was a failure rather than a wait.
+        const val LAUNCH_TIMEOUT = 30_000L
         const val STEP_TIMEOUT = 20_000L
         const val IDLE_TIMEOUT = 5_000L
 
