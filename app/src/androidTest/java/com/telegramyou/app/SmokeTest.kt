@@ -17,6 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import java.util.regex.Pattern
@@ -49,8 +50,24 @@ class SmokeTest {
     @Before
     fun launchFromCold() {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        // Heads-up notifications off for the run, and this is the fix rather
+        // than a convenience. The demo chat speaks every twenty-five seconds
+        // and its heads-up lands across the app bar; UiAutomator finds the
+        // control underneath it, clicks where it is, and the tap goes to the
+        // notification instead — which opened the wrong chat in three
+        // different tests on three different days, each time fixed locally by
+        // waiting the notification out, and each time it came back somewhere
+        // else. Nothing is lost: the reply test opens the shade itself, and
+        // what it looks for is in there either way.
+        device.executeShellCommand("settings put global heads_up_notifications_enabled 0")
         device.pressHome()
         launchApp()
+    }
+
+    /** Left as it was found, for whatever runs on this emulator next. */
+    @After
+    fun restoreHeadsUpNotifications() {
+        device.executeShellCommand("settings put global heads_up_notifications_enabled 1")
     }
 
     /**
