@@ -302,7 +302,10 @@ because they are the argument for that workflow existing:
 - "Leave group" was under forty members and three screens down.
 - A heads-up notification lands over the app bar, and UiAutomator will
   happily tap a header underneath one — which opened the wrong chat and
-  photographed it.
+  photographed it. Waiting the notification out at each call site fixed it
+  three times and it came back three times; heads-up notifications are now
+  off for the run, which is the fix. The reply test is unaffected: it opens
+  the shade itself.
 
 What is left, largest first: video in bubbles (a thumbnail and a player,
 and the thumbnail is most of it), upload and download progress, permissions
