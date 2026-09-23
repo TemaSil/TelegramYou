@@ -318,7 +318,13 @@ class DemoTelegramClient : TelegramClient {
         delay(200)
         return chatMessages[chatId]
             .orEmpty()
-            .filter { it.contentType == MessageContentType.Photo }
+            // Video as well as photos: the server's own filter for this
+            // screen is photo-and-video, so a demo that showed only photos
+            // would be modelling a grid Telegram does not have.
+            .filter {
+                it.contentType == MessageContentType.Photo ||
+                    it.contentType == MessageContentType.Video
+            }
             .asReversed()
             .take(limit)
     }

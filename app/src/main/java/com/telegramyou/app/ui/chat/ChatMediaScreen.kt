@@ -30,6 +30,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.size
+import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.ChatMessage
 
 /**
@@ -52,7 +59,10 @@ fun ChatMediaScreen(
     onOpen: (ChatMessage) -> Unit,
     /** Non-null while one of these is open full screen. */
     viewingPhoto: ChatMessage? = null,
-    onPhotoClosed: () -> Unit = {}
+    onPhotoClosed: () -> Unit = {},
+    /** Non-null while a video from the grid is playing. */
+    viewingVideo: ChatMessage? = null,
+    onVideoClosed: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -119,6 +129,51 @@ fun ChatMediaScreen(
                 onDismiss = onPhotoClosed
             )
         }
+
+        // And the conversation's player, for the same reason.
+        viewingVideo?.video?.let { video ->
+            VideoPlayerScreen(
+                video = video,
+                title = viewingVideo.text,
+                onClose = onVideoClosed
+            )
+        }
+    }
+}
+
+/** A video's square in the grid: its poster, with a play badge over it. */
+@Composable
+private fun VideoTile(video: VideoContent, caption: String) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (caption.isBlank()) "Video" else "Video, $caption"
+            }
+    ) {
+        video.thumbPath?.let { poster ->
+            AsyncImage(
+                model = poster,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Surface(
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            contentColor = Color.White,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+        }
     }
 }
 
@@ -138,6 +193,14 @@ private fun MediaTile(message: ChatMessage, onClick: () -> Unit) {
             .aspectRatio(1f)
             .clickable(onClick = onClick)
     ) {
+        // A video tile is the poster with a play badge on it. Without the
+        // badge the grid would claim a still photo and then start playing
+        // when it was tapped, which is the kind of surprise a list of
+        // thumbnails should never contain.
+        message.video?.let { video ->
+            VideoTile(video = video, caption = message.text)
+            return@Surface
+        }
         val path = message.photoPath
         if (path.isNullOrBlank()) {
             Box(contentAlignment = Alignment.Center) {

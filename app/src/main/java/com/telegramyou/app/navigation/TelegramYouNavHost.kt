@@ -246,9 +246,20 @@ fun TelegramYouNavHost(
                 media = state.media,
                 isLoading = state.isLoadingMedia,
                 onBack = { navController.popBackStack() },
-                onOpen = chatViewModel::onPhotoOpened,
+                // One entry point, two kinds of thing behind it: the grid
+                // holds photos and videos alike, and which viewer opens is
+                // the message's business rather than the tile's.
+                onOpen = { message ->
+                    if (message.video != null) {
+                        chatViewModel.onVideoOpened(message)
+                    } else {
+                        chatViewModel.onPhotoOpened(message)
+                    }
+                },
                 viewingPhoto = state.viewingPhoto,
-                onPhotoClosed = chatViewModel::onPhotoClosed
+                onPhotoClosed = chatViewModel::onPhotoClosed,
+                viewingVideo = state.viewingVideo,
+                onVideoClosed = chatViewModel::onVideoClosed
             )
         }
 

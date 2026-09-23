@@ -235,42 +235,33 @@ class SmokeTest {
     fun aVideoMessagePlays() {
         signIn()
         waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+        awaitNoHeadsUp()
         tap(By.text(NOTIFYING_CHAT))
         waitFor(By.textContains("ButtonGroup"), "the conversation")
 
-        // Back up the list to reach it. A conversation opens at the bottom
-        // and the demo chat keeps talking, so the video is a few messages
-        // above whatever arrived last.
-        //
-        // By its caption, which is what the poster is published as and is
-        // unique here — both videos carry a play button, so "Play" would
-        // find whichever came first.
-        // The bubble's own description, which covers the poster, the play
-        // button and the duration — see VideoMessage. Contains rather than
-        // equals, because the description leads with "Video,".
+        // Through the media grid rather than up the conversation, and that is
+        // not a shortcut around a flaky scroll: the demo chat speaks every
+        // twenty-five seconds and the list jumps to each new message, so
+        // anything reached by scrolling back is snatched away mid-tap. The
+        // grid holds still, and reaching a video from it is a path a person
+        // takes too.
+        tap(By.desc("Photos in this chat"))
         val poster = By.descContains(VIDEO_CAPTION)
-        scrollBackTo(poster, "the video message")
+        waitFor(poster, "the video in the media grid")
         tap(poster)
 
-        // Pause, not Play: the button shows what it will do next, so a
-        // pause icon is the player telling us it is running. A still first
-        // frame would satisfy anything weaker than this.
+        // Pause, not Play: the button shows what it will do next, so a pause
+        // icon is the player saying it is running.
         waitFor(By.desc("Pause"), "the player, playing")
 
-        // And prove it is running rather than merely open. The time under
-        // the scrubber is the player's own, so a clip that never started
-        // leaves it at zero — which is exactly what a black surface and a
-        // pause icon would otherwise look like.
-        // One text condition, not two: a BySelector takes a single text
-        // matcher and rejects the second outright.
+        // And the clock proves it, since a pause icon over a black rectangle
+        // would satisfy everything above. Polled, because the label is in
+        // seconds and legitimately reads 0:00 for the whole first one.
         val clock = By.textContains(" / ")
         assertTrue(
             "the player never showed a time",
             device.wait(Until.hasObject(clock), STEP_TIMEOUT)
         )
-        // Polled rather than read once. The label is in seconds, so it
-        // legitimately says 0:00 for the whole first one, and reading it
-        // straight away failed a player that was working perfectly well.
         var label: String? = null
         val deadline = System.currentTimeMillis() + PLAYBACK_TIMEOUT
         while (System.currentTimeMillis() < deadline) {
