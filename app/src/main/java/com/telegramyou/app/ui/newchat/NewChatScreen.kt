@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -100,6 +101,13 @@ fun NewChatScreen(
             if (state.canCreate || state.isWorking) {
                 ExtendedFloatingActionButton(
                     onClick = onCreate,
+                    // Above the keyboard, which is up from the moment this
+                    // screen opens because the name field takes focus. The
+                    // Scaffold places its button against the bottom of the
+                    // window, which with the keyboard showing is behind the
+                    // keyboard — the emulator could not find the button, and
+                    // neither would a thumb.
+                    modifier = Modifier.imePadding(),
                     icon = {
                         if (state.isWorking) {
                             LoadingIndicator(modifier = Modifier.size(24.dp))

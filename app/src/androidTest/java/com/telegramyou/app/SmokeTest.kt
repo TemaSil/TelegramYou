@@ -748,7 +748,10 @@ class SmokeTest {
             }
             device.waitForIdle(IDLE_TIMEOUT)
         }
-        screenshot("failed-tapping-$selector")
+        // The selector's own text is full of quotes, backslashes and brackets,
+        // which TestStorage refuses as a file name — the first time this
+        // fired it threw over the name and hid the failure it was reporting.
+        screenshot("failed-tapping-" + selector.toString().filter { it.isLetterOrDigit() })
         error("nothing to tap: $selector")
     }
 
