@@ -303,7 +303,19 @@ class SmokeTest {
         type(NEW_GROUP_NAME)
         tap(By.text("Lina Park"))
         screenshot("16-new-group")
-        tap(By.text("Create"))
+        // By text or by description, whichever the button publishes. An
+        // extended floating button merges its label into the clickable node,
+        // and which of the two that node carries has differed between
+        // versions — the first run of this found neither by text alone, on a
+        // screenshot where the button was plainly there.
+        val create = listOf(By.text("Create"), By.desc("Create"), By.textContains("Create"))
+            .firstNotNullOfOrNull { device.wait(Until.findObject(it), DIALOG_TIMEOUT) }
+            ?: run {
+                screenshot("failed-finding-create")
+                fail("the create button was not on screen")
+                return
+            }
+        create.click()
         waitFor(By.text("You created the group"), "the new group's first line")
 
         device.pressBack()
