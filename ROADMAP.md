@@ -512,8 +512,9 @@ four domain interfaces without touching either backend.
 
 1. ~~**Pinch to zoom in the photo viewer**~~ — done, 19 September, along
    with pan, double-tap and drag-to-dismiss.
-2. **Video in bubbles** — still a caption and an emoji. Needs a thumbnail and
-   a player, and the thumbnail is most of it.
+2. ~~**Video in bubbles**~~ — done, 23 September: poster, duration and a
+   play button in the bubble, Media3 behind a full-screen player with
+   Material's own controls.
 
 ### Screenshot rendering: groundwork laid, not working yet
 
@@ -655,10 +656,14 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       belongs. The carousel needs `READ_MEDIA_IMAGES`, asked for when the
       sheet opens and answerable with Android 14's "Select photos"; refused,
       the sheet is exactly the three rows it was
-- [~] Photos in bubbles — `AsyncImage`, space reserved from the photo's own
+- [x] Photos in bubbles — `AsyncImage`, space reserved from the photo's own
       aspect before the bytes arrive; tapping one opens it full-screen as a
-      `Dialog`, with pinch, pan, double-tap and drag-to-dismiss. Video is
-      still missing
+      `Dialog`, with pinch, pan, double-tap and drag-to-dismiss
+- [x] Video in bubbles — the poster, the duration and a play button over
+      both, built like the photo bubble so a video reads as a picture you
+      can start. The poster is fetched on sight and the video itself only
+      when somebody asks for it: scrolling past a chat should not pull down
+      everything anyone ever sent
 - [x] Voice messages: hold to record, release to send, tap to play, with the
       waveform drawn behind it — amplitudes measured while recording, and
       Telegram's own packed 5-bit waveform decoded for everyone else's. The
@@ -747,12 +752,21 @@ them. Ticks are only worth something if somebody moves them.
 - [x] Image loading — Coil `AsyncImage`, used by the chat's photo messages
 - [x] Shared media grid — `LazyVerticalGrid` with `GridCells.Adaptive`, from
       `searchChatMessages` filtered to photos and video; reached from the
-      chat's overflow menu, and tapping a tile opens the viewer
+      chat's overflow menu, and tapping a tile opens the viewer — or the
+      player, for a video, whose tile carries a play badge so the grid does
+      not claim a still and then start moving
 - [x] Full-screen viewer with zoom and drag-to-dismiss — pinch, pan,
       double-tap and a drag that fades the backdrop as it goes; the maths is
       in `:core` as `ZoomPan` with tests
 - [ ] Download and upload progress — `LinearProgressIndicator`
-- [ ] Audio and video playback — `Slider` for position
+- [~] Video playback — Media3's engine with Material's controls over a
+      `TextureView`: a filled play and pause, a `Slider` for position and the
+      time beside it. Media3's own player view is a View with its own look,
+      so only the engine is taken. The arithmetic — progress, seek target and
+      the label — is in `:core` with tests, because a duration the player has
+      not worked out yet is -1 rather than 0 and dividing by it gives a bar
+      that never reaches the end. Audio files are still not playable; voice
+      notes have their own player
 - [ ] Stickers, animated stickers, custom emoji
 
 ## 5. Notifications
