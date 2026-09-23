@@ -248,9 +248,7 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onOpen = chatViewModel::onPhotoOpened,
                 viewingPhoto = state.viewingPhoto,
-                onPhotoClosed = chatViewModel::onPhotoClosed,
-                onVideoOpened = chatViewModel::onVideoOpened,
-                onVideoClosed = chatViewModel::onVideoClosed
+                onPhotoClosed = chatViewModel::onPhotoClosed
             )
         }
 
@@ -344,7 +342,9 @@ fun TelegramYouNavHost(
                 onVoiceSeek = chatViewModel::onVoiceSeek,
                 onPhotoVisible = chatViewModel::onPhotoVisible,
                 onPhotoOpened = chatViewModel::onPhotoOpened,
-                onPhotoClosed = chatViewModel::onPhotoClosed
+                onPhotoClosed = chatViewModel::onPhotoClosed,
+                onVideoOpened = chatViewModel::onVideoOpened,
+                onVideoClosed = chatViewModel::onVideoClosed
             )
         }
         composable(
