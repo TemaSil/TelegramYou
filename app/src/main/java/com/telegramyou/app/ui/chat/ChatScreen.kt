@@ -90,6 +90,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
@@ -843,6 +844,7 @@ fun ChatScreen(
                 VideoPlayerScreen(
                     video = video,
                     title = state.viewingVideo.text,
+                    transfer = video.fileId?.let { state.transfers[it] },
                     onClose = onVideoClosed
                 )
             }
@@ -1877,6 +1879,11 @@ private fun ForwardSheet(
                                 size = 40.dp
                             )
                         },
+                        // The sheet's tone, not the row's default — see the
+                        // attachment sheet for what the mismatch looks like.
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Transparent
+                        ),
                         modifier = Modifier.clickable { onPick(target) }
                     )
                 }
@@ -1917,22 +1924,31 @@ private fun AttachmentSheet(
             onPick = onPickRecent,
             modifier = Modifier.padding(bottom = 8.dp)
         )
+        // Transparent containers, all three. A ListItem paints itself
+        // `surface` by default, and a ModalBottomSheet is
+        // `surfaceContainerLow` — so the rows sat as three pale slabs on a
+        // slightly darker sheet, with seams between them. Inside a container
+        // that has already chosen a tone, the rows take it.
+        val sheetRow = ListItemDefaults.colors(containerColor = Color.Transparent)
         ListItem(
             headlineContent = { Text("Photo or video") },
             supportingContent = { Text("From the gallery") },
             leadingContent = { Icon(Icons.Rounded.Image, contentDescription = null) },
+            colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickPhoto)
         )
         ListItem(
             headlineContent = { Text("Camera") },
             supportingContent = { Text("Take a photo now") },
             leadingContent = { Icon(Icons.Rounded.PhotoCamera, contentDescription = null) },
+            colors = sheetRow,
             modifier = Modifier.clickable(onClick = onTakePhoto)
         )
         ListItem(
             headlineContent = { Text("File") },
             supportingContent = { Text("Anything else") },
             leadingContent = { Icon(Icons.Rounded.AttachFile, contentDescription = null) },
+            colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickFile)
         )
         Spacer(Modifier.height(24.dp))

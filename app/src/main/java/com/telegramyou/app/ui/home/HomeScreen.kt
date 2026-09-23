@@ -39,6 +39,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Badge
 import androidx.compose.material3.PrimaryScrollableTabRow
@@ -625,6 +626,10 @@ private fun ContactPickerSheet(
     onPick: (Long) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
+        // Rows take the sheet's tone rather than painting their own: a
+        // ListItem defaults to `surface`, a sheet is `surfaceContainerLow`,
+        // and the difference reads as pale slabs with seams between them.
+        val sheetRow = ListItemDefaults.colors(containerColor = Color.Transparent)
         Text(
             "New message",
             style = MaterialTheme.typography.titleLarge,
@@ -648,13 +653,15 @@ private fun ContactPickerSheet(
                     headlineContent = { Text("No contacts") },
                     supportingContent = {
                         Text("Nobody in this account's contact list to write to yet")
-                    }
+                    },
+                    colors = sheetRow
                 )
             }
             else -> {
                 LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(compose.contacts, key = { it.id }) { person ->
                         ListItem(
+                            colors = sheetRow,
                             headlineContent = { Text(person.displayName) },
                             supportingContent = person.username?.let { name ->
                                 { Text("@$name") }

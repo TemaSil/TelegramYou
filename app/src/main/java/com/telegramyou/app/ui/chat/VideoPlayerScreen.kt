@@ -44,6 +44,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.telegramyou.app.telegram.model.VideoContent
+import androidx.compose.material3.LinearProgressIndicator
+import com.telegramyou.app.ui.media.FileTransfer
+import com.telegramyou.app.ui.media.transferLabel
+import com.telegramyou.app.ui.media.transferProgress
 import com.telegramyou.app.ui.media.DURATION_UNKNOWN
 import com.telegramyou.app.ui.media.playbackLabel
 import com.telegramyou.app.ui.media.playbackProgress
@@ -69,6 +73,8 @@ private const val PROGRESS_TICK_MS = 250L
 fun VideoPlayerScreen(
     video: VideoContent,
     title: String,
+    /** The file's transfer, while it is still coming. */
+    transfer: FileTransfer? = null,
     onClose: () -> Unit
 ) {
     val path = video.path
@@ -133,8 +139,39 @@ fun VideoPlayerScreen(
             if (player == null) {
                 // The file is still arriving. The dialog opens anyway rather
                 // than waiting: a tap that appears to do nothing for ten
-                // seconds reads as a broken button.
-                CircularProgressIndicator(color = Color.White)
+                // seconds reads as a broken button — and now it says how far
+                // along it is, which is the difference between waiting and
+                // wondering.
+                if (transfer == null) {
+                    CircularProgressIndicator(color = Color.White)
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(horizontal = 48.dp)
+                    ) {
+                        Text(
+                            transferLabel(transfer),
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        val progress = transferProgress(transfer)
+                        if (progress == null) {
+                            LinearProgressIndicator(
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        } else {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
             } else {
                 // TextureView rather than SurfaceView, and the reason is
                 // visible in every screenshot: a SurfaceView gets a window of

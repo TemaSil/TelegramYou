@@ -274,6 +274,15 @@ class SmokeTest {
             "the clip did not advance: $label",
             label != null && !label.startsWith("0:00")
         )
+
+        // And the other video, whose file has not arrived: opening it starts
+        // a download, and what the player shows while that runs is the bar
+        // this test is really here for.
+        device.pressBack()
+        waitFor(By.descContains("Composer, one take"), "the second video")
+        tap(By.descContains("Composer, one take"))
+        waitFor(By.textStartsWith("Downloading"), "the download's own progress")
+        screenshot("15-downloading")
     }
 
     /**

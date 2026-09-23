@@ -259,7 +259,8 @@ fun TelegramYouNavHost(
                 viewingPhoto = state.viewingPhoto,
                 onPhotoClosed = chatViewModel::onPhotoClosed,
                 viewingVideo = state.viewingVideo,
-                onVideoClosed = chatViewModel::onVideoClosed
+                onVideoClosed = chatViewModel::onVideoClosed,
+                transfers = state.transfers
             )
         }
 

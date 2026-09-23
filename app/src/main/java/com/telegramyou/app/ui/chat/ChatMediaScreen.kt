@@ -37,6 +37,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.size
 import com.telegramyou.app.telegram.model.VideoContent
+import androidx.compose.material3.LinearProgressIndicator
+import com.telegramyou.app.ui.media.FileTransfer
+import com.telegramyou.app.ui.media.transferProgress
 import com.telegramyou.app.telegram.model.ChatMessage
 
 /**
@@ -62,7 +65,9 @@ fun ChatMediaScreen(
     onPhotoClosed: () -> Unit = {},
     /** Non-null while a video from the grid is playing. */
     viewingVideo: ChatMessage? = null,
-    onVideoClosed: () -> Unit = {}
+    onVideoClosed: () -> Unit = {},
+    /** Files in flight, by id, so a tile can show what it is waiting for. */
+    transfers: Map<Int, FileTransfer> = emptyMap()
 ) {
     Scaffold(
         topBar = {
@@ -113,7 +118,11 @@ fun ChatMediaScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     items(media, key = { it.id }) { message ->
-                        MediaTile(message = message, onClick = { onOpen(message) })
+                        MediaTile(
+                            message = message,
+                            transfer = message.transferId()?.let { transfers[it] },
+                            onClick = { onOpen(message) }
+                        )
                     }
                 }
             }
@@ -135,6 +144,7 @@ fun ChatMediaScreen(
             VideoPlayerScreen(
                 video = video,
                 title = viewingVideo.text,
+                transfer = video.fileId?.let { transfers[it] },
                 onClose = onVideoClosed
             )
         }
@@ -143,7 +153,11 @@ fun ChatMediaScreen(
 
 /** A video's square in the grid: its poster, with a play badge over it. */
 @Composable
-private fun VideoTile(video: VideoContent, caption: String) {
+private fun VideoTile(
+    video: VideoContent,
+    caption: String,
+    transfer: FileTransfer?
+) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -160,22 +174,52 @@ private fun VideoTile(video: VideoContent, caption: String) {
                 modifier = Modifier.fillMaxSize()
             )
         }
-        Surface(
-            shape = CircleShape,
-            color = Color.Black.copy(alpha = 0.45f),
-            contentColor = Color.White,
-            modifier = Modifier.size(36.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
+        if (transfer == null) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        } else {
+            // A bar in the play button's place while the file is coming: the
+            // tile is small, and both at once is two things fighting for the
+            // same forty points.
+            val progress = transferProgress(transfer)
+            if (progress == null) {
+                LinearProgressIndicator(
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
+                )
+            } else {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()
                 )
             }
         }
     }
 }
+
+/**
+ * Which file a tile is waiting for, if any.
+ *
+ * A photo has one; a video has two and the one that matters is whichever is
+ * moving — the poster arrives on sight, the video only when asked for.
+ */
+private fun ChatMessage.transferId(): Int? =
+    video?.fileId ?: video?.thumbFileId ?: photoFileId
 
 /**
  * One square.
@@ -186,7 +230,11 @@ private fun VideoTile(video: VideoContent, caption: String) {
  * while being read.
  */
 @Composable
-private fun MediaTile(message: ChatMessage, onClick: () -> Unit) {
+private fun MediaTile(
+    message: ChatMessage,
+    transfer: FileTransfer?,
+    onClick: () -> Unit
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = Modifier
@@ -198,7 +246,7 @@ private fun MediaTile(message: ChatMessage, onClick: () -> Unit) {
         // when it was tapped, which is the kind of surprise a list of
         // thumbnails should never contain.
         message.video?.let { video ->
-            VideoTile(video = video, caption = message.text)
+            VideoTile(video = video, caption = message.text, transfer = transfer)
             return@Surface
         }
         val path = message.photoPath
