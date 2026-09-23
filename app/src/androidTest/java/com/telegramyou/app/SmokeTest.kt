@@ -1,6 +1,7 @@
 package com.telegramyou.app
 
 import android.content.ContentValues
+import android.os.SystemClock
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -267,9 +268,17 @@ class SmokeTest {
             "the player never showed a time",
             device.wait(Until.hasObject(clock), STEP_TIMEOUT)
         )
-        device.waitForIdle(IDLE_TIMEOUT)
+        // Polled rather than read once. The label is in seconds, so it
+        // legitimately says 0:00 for the whole first one, and reading it
+        // straight away failed a player that was working perfectly well.
+        var label: String? = null
+        val deadline = System.currentTimeMillis() + PLAYBACK_TIMEOUT
+        while (System.currentTimeMillis() < deadline) {
+            label = device.findObject(clock)?.text
+            if (label != null && !label.startsWith("0:00")) break
+            SystemClock.sleep(300)
+        }
         screenshot("14-video")
-        val label = device.findObject(clock)?.text
         assertTrue(
             "the clip did not advance: $label",
             label != null && !label.startsWith("0:00")
@@ -741,6 +750,12 @@ class SmokeTest {
 
         /** Distinctive enough that finding it cannot be a coincidence. */
         const val REPLY_TEXT = "Replied from the shade"
+
+        /**
+         * Long enough for a four-second clip to leave its first second
+         * behind, short enough that a stalled player is still a quick answer.
+         */
+        const val PLAYBACK_TIMEOUT = 6_000L
 
         /**
          * The caption on the demo video that has a file behind it, which is
