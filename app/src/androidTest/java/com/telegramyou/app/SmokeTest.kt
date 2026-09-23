@@ -406,9 +406,13 @@ class SmokeTest {
         screenshot("19-folder-swiped")
         swipeListLeft()
         waitFor(By.text("Mom"), "Mom, in People")
-        assertNull(
+        // Waited for rather than looked up once. Mom arrives with the first
+        // pixels of People, while Work is still sliding out beside her — a
+        // lookup at that moment finds the group, and the node is gone by the
+        // time the failure message asks it what it was.
+        assertTrue(
             "the second swipe should have left Work and its group behind",
-            device.findObject(By.text(GROUP_CHAT))
+            device.wait(Until.gone(By.text(GROUP_CHAT)), STEP_TIMEOUT)
         )
     }
 
