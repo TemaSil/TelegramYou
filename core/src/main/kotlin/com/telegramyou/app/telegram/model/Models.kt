@@ -148,6 +148,34 @@ data class LinkPreview(
         get() = siteName.isNotBlank() || title.isNotBlank() || description.isNotBlank()
 }
 
+/**
+ * A video message, with everything the bubble needs before the bytes arrive.
+ *
+ * Its own type rather than six more fields on [ChatMessage]: a photo needs a
+ * path and a shape, a video needs those plus a poster, a duration and a
+ * second file behind the first, and flattening all of that into the message
+ * would leave the reader working out which fields belong together.
+ *
+ * Both files can be absent, and usually are at first. Telegram sends the
+ * dimensions and the duration with the message and the pixels later, which is
+ * exactly why the poster is separate from the video: the poster is small
+ * enough to fetch on sight, the video is not.
+ */
+data class VideoContent(
+    /** How long it runs, in seconds; 0 when the server did not say. */
+    val durationSeconds: Int = 0,
+    /** Width over height, so the bubble can reserve the right space. */
+    val aspect: Float = 16f / 9f,
+    /** The poster frame on this device, once it is here. */
+    val thumbPath: String? = null,
+    /** TDLib's id for the poster, which a download is asked for by. */
+    val thumbFileId: Int? = null,
+    /** The video itself on this device, once it is here. */
+    val path: String? = null,
+    /** TDLib's id for the video file. */
+    val fileId: Int? = null
+)
+
 data class ChatMessage(
     val id: Long,
     val chatId: Long,
@@ -243,7 +271,14 @@ data class ChatMessage(
      * bytes arrive. Without it every photo would open as a square and then
      * jump, which in a list means everything below it jumps too.
      */
-    val photoAspect: Float = 1f
+    val photoAspect: Float = 1f,
+    /**
+     * The video, when this message is one.
+     *
+     * Null for everything else, which is almost every message — see
+     * [VideoContent] for why it is a type of its own.
+     */
+    val video: VideoContent? = null
 )
 
 /**

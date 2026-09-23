@@ -392,6 +392,22 @@ class ChatViewModel(
      * every time it scrolls back into view.
      */
     fun onPhotoVisible(message: ChatMessage) {
+        // A video's poster, when this is one: the same fetch with a different
+        // file behind it, and the same guard against asking twice. The video
+        // itself is not fetched here — see onVideoOpened.
+        message.video?.let { video ->
+            val thumbId = video.thumbFileId ?: return
+            if (video.thumbPath != null || !requestedPhotos.add(thumbId)) return
+            viewModelScope.launch {
+                val path = repository.downloadFile(thumbId) ?: return@launch
+                _uiState.update { state ->
+                    state.mapMessage(message.id) {
+                        it.copy(video = it.video?.copy(thumbPath = path))
+                    }
+                }
+            }
+            return
+        }
         val fileId = message.photoFileId ?: return
         if (message.photoPath != null || !requestedPhotos.add(fileId)) return
         viewModelScope.launch {

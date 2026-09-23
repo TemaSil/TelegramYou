@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.VideoContent
 // Aliased: this class has a toggleReaction of its own, with a different job.
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import kotlinx.coroutines.CompletableDeferred
@@ -1576,9 +1577,55 @@ class TdLibTelegramClient(
                 val width = size.optInt("width")
                 val height = size.optInt("height")
                 if (width > 0 && height > 0) width.toFloat() / height else 1f
-            } ?: 1f
+            } ?: 1f,
+            video = videoContent(content)
         )
     }
+
+    /**
+     * Reads `messageVideo` into the model, or answers null for anything else.
+     *
+     * Two files, and they arrive on different schedules. The poster is a
+     * thumbnail a few kilobytes wide and is fetched as soon as the bubble is
+     * on screen; the video behind it is not fetched until somebody asks for
+     * it, because a chat scrolled past should not pull down a hundred
+     * megabytes of things nobody watched.
+     *
+     * The duration and the dimensions come with the message itself, so the
+     * bubble knows its shape and its length before either file exists —
+     * which is what lets it reserve the space rather than jump when the
+     * poster lands.
+     */
+    private fun videoContent(content: JSONObject?): VideoContent? {
+        val video = content
+            ?.takeIf { it.optString("@type") == "messageVideo" }
+            ?.optJSONObject("video")
+            ?: return null
+        val width = video.optInt("width")
+        val height = video.optInt("height")
+        val thumbnail = video.optJSONObject("thumbnail")?.optJSONObject("file")
+        val file = video.optJSONObject("video")
+        return VideoContent(
+            durationSeconds = video.optInt("duration"),
+            aspect = if (width > 0 && height > 0) width.toFloat() / height else 16f / 9f,
+            thumbFileId = thumbnail?.optInt("id")?.takeIf { it != 0 },
+            thumbPath = thumbnail?.localPathIfDownloaded(),
+            fileId = file?.optInt("id")?.takeIf { it != 0 },
+            path = file?.localPathIfDownloaded()
+        )
+    }
+
+    /**
+     * The path of a TDLib `file`, but only once all of it is here.
+     *
+     * A partially downloaded file has a path too, and it points at bytes that
+     * are still arriving — handing that to a player is how you get a video
+     * that plays for two seconds and stops.
+     */
+    private fun JSONObject.localPathIfDownloaded(): String? = optJSONObject("local")
+        ?.takeIf { it.optBoolean("is_downloading_completed") }
+        ?.optString("path")
+        ?.takeIf { it.isNotBlank() }
 
     /**
      * Reactions hang off interaction_info, alongside view and forward counts,

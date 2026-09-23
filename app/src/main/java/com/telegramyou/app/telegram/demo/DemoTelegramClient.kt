@@ -14,6 +14,7 @@ import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import com.telegramyou.app.ui.chat.formatDuration
 import java.text.SimpleDateFormat
@@ -795,6 +796,24 @@ class DemoTelegramClient : TelegramClient {
                 demoMessage(
                     9, 1, "Composer study", false, today + 320, "Material Design",
                     contentType = MessageContentType.Photo
+                ),
+                // A video with neither file behind it, for the same reason
+                // the photos above have none: that is what a chat looks like
+                // between a message arriving and its bytes doing so, and it
+                // is the state the bubble has to draw well. The duration and
+                // the shape come with the message on a real account too, so
+                // the poster's space is reserved either way.
+                demoMessage(
+                    15, 1, "Expressive motion, slowed down", false, today + 360,
+                    "Material Design",
+                    contentType = MessageContentType.Video,
+                    video = VideoContent(durationSeconds = 47, aspect = 16f / 9f)
+                ),
+                demoMessage(
+                    16, 1, "Composer, one take", true, today + 400,
+                    isRead = true,
+                    contentType = MessageContentType.Video,
+                    video = VideoContent(durationSeconds = 8, aspect = 9f / 16f)
                 )
             )
         )
@@ -833,7 +852,8 @@ class DemoTelegramClient : TelegramClient {
         fileName: String? = null,
         fileSizeLabel: String? = null,
         reactions: List<MessageReaction> = emptyList(),
-        linkPreview: LinkPreview? = null
+        linkPreview: LinkPreview? = null,
+        video: VideoContent? = null
     ) = ChatMessage(
         id = id,
         chatId = chatId,
@@ -851,7 +871,8 @@ class DemoTelegramClient : TelegramClient {
         fileName = fileName,
         fileSizeLabel = fileSizeLabel,
         reactions = reactions,
-        linkPreview = linkPreview
+        linkPreview = linkPreview,
+        video = video
     )
 
     /** Telegram's default reaction set, in its order. */

@@ -79,6 +79,10 @@ jobs:
                   "androidx/compose/material3/material3-adaptive-navigation-suite",
               ),
               ("AGP", GOOGLE, "com/android/tools/build/gradle"),
+              # The player. Versioned on its own line entirely — neither the
+              # BOM nor material3 says anything about it — so what it offers
+              # has to be read rather than remembered.
+              ("media3", GOOGLE, "androidx/media3/media3-exoplayer"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
               # The Compose preview screenshot plugin, by its Gradle plugin
               # marker. Versioned independently of AGP, so which one pairs

@@ -150,6 +150,7 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ClusterMember
@@ -1043,6 +1044,27 @@ private fun MessageBubble(
                             onOpen = onPhotoOpened
                         )
                     }
+                    MessageContentType.Video -> {
+                        val video = message.video
+                        if (video == null) {
+                            // A video message the backend could not read.
+                            // Rather than an empty bubble, the caption — which
+                            // is what the rest of the app would show anyway.
+                            Text(
+                                message.text.ifBlank { "Video" },
+                                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            VideoMessage(
+                                video = video,
+                                caption = message.text,
+                                outgoing = outgoing,
+                                onPosterVisible = onPhotoVisible,
+                                onOpen = onPhotoOpened
+                            )
+                        }
+                    }
                     MessageContentType.Voice -> {
                         VoiceMessage(
                             label = message.text.ifBlank { "Voice message" },
@@ -1396,6 +1418,98 @@ private fun PhotoMessage(
         // "Photo" is what a message with no caption is called, not something
         // the sender wrote, so it is not repeated under the picture.
         if (caption.isNotBlank() && caption != "Photo") {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                caption,
+                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+/**
+ * A video message: its poster, its length, and the one control it needs.
+ *
+ * Built like [PhotoMessage] on purpose — same clamped aspect, same rounded
+ * container, same reserved space before anything arrives — because a video in
+ * a chat is a picture you can start, and making it a different shape would
+ * say it was a different kind of thing.
+ *
+ * Two things sit over the poster: a play button in the middle, and the
+ * duration in the corner. Both are drawn on scrims rather than straight onto
+ * the frame, because a poster can be any colour and white on a white sky is
+ * not a control.
+ *
+ * The poster is fetched on sight and the video is not. Scrolling past a
+ * conversation should not pull down everything anyone ever sent.
+ */
+@Composable
+private fun VideoMessage(
+    video: VideoContent,
+    caption: String,
+    outgoing: Boolean,
+    onPosterVisible: () -> Unit,
+    onOpen: () -> Unit
+) {
+    LaunchedEffect(video.thumbPath) {
+        if (video.thumbPath == null) onPosterVisible()
+    }
+    Column {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .clickable(onClick = onOpen),
+            contentAlignment = Alignment.Center
+        ) {
+            video.thumbPath?.let { poster ->
+                AsyncImage(
+                    model = poster,
+                    contentDescription = caption.ifBlank { "Video" },
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            // The button is there whether or not the poster is. A video with
+            // no frame yet is still a video, and a bubble showing only a
+            // spinner would look like a photo that failed.
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = "Play",
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+            }
+            if (video.durationSeconds > 0) {
+                Surface(
+                    shape = MaterialTheme.shapes.small,
+                    color = Color.Black.copy(alpha = 0.45f),
+                    contentColor = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        formatDuration(video.durationSeconds.toLong()),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+        // As with a photo: "Video" is what an untitled one is called, not
+        // something the sender wrote.
+        if (caption.isNotBlank() && caption != "Video") {
             Spacer(Modifier.height(6.dp))
             Text(
                 caption,
