@@ -189,6 +189,7 @@ fun TelegramYouNavHost(
                 onFolderSelected = homeViewModel::onFolderSelected,
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
+                onShapedAvatarsChange = appearance::setShapedAvatars,
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,
                 onProfileSave = homeViewModel::saveProfile,
                 onProfileErrorShown = homeViewModel::onProfileErrorShown,
@@ -224,6 +225,7 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onThemeChange = appearance::setTheme,
                 onDynamicColorChange = appearance::setDynamicColor,
+                onShapedAvatarsChange = appearance::setShapedAvatars,
                 onLogout = {
                     // The auth redirect above takes it from here: logging out
                     // moves the client's state, and the graph follows state

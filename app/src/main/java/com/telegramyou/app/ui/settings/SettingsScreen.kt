@@ -32,6 +32,9 @@ import com.telegramyou.app.settings.AppearanceSettings
 import com.telegramyou.app.settings.ThemeChoice
 import com.telegramyou.app.settings.dynamicColorAvailable
 import com.telegramyou.app.telegram.model.TelegramUser
+import androidx.compose.foundation.shape.CircleShape
+import com.telegramyou.app.ui.avatars.avatarShapeIndex
+import com.telegramyou.app.ui.components.materialShapeSet
 import com.telegramyou.app.ui.components.AvatarBubble
 
 /**
@@ -50,6 +53,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
+    onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit
 ) {
     Scaffold(
@@ -72,6 +76,7 @@ fun SettingsScreen(
             me = me,
             onThemeChange = onThemeChange,
             onDynamicColorChange = onDynamicColorChange,
+            onShapedAvatarsChange = onShapedAvatarsChange,
             onLogout = onLogout,
             contentPadding = padding
         )
@@ -93,6 +98,7 @@ fun SettingsContent(
     me: TelegramUser?,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
+    onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier
@@ -143,6 +149,44 @@ fun SettingsContent(
                         onCheckedChange = onDynamicColorChange,
                         enabled = available
                     )
+                }
+            )
+
+            // The other half of what an avatar carries. A person's shape is
+            // derived from the same seed as their colour, so they keep it
+            // wherever they appear — which is the argument Material makes for
+            // the shape library, and the reason this is on by default.
+            ListItem(
+                headlineContent = { Text("Shaped avatars") },
+                supportingContent = {
+                    Text(
+                        "Give each person one of Material's shapes as well as " +
+                            "a colour, so they are recognisable before their " +
+                            "name is read. Off, avatars are circles."
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked = settings.shapedAvatars,
+                        onCheckedChange = onShapedAvatarsChange
+                    )
+                },
+                // The setting is about avatars, so it shows one: the same
+                // account's own, changing shape as the switch moves.
+                leadingContent = me?.let { account ->
+                    {
+                        AvatarBubble(
+                            title = account.displayName,
+                            seed = account.avatarColor,
+                            size = 40.dp,
+                            shape = if (settings.shapedAvatars) {
+                                val shapes = materialShapeSet()
+                                shapes[avatarShapeIndex(account.avatarColor, shapes.size)]
+                            } else {
+                                CircleShape
+                            }
+                        )
+                    }
                 }
             )
 

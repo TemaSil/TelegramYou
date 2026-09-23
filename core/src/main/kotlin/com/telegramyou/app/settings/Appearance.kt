@@ -23,7 +23,18 @@ enum class ThemeChoice {
  */
 data class AppearanceSettings(
     val theme: ThemeChoice = ThemeChoice.System,
-    val dynamicColor: Boolean = true
+    val dynamicColor: Boolean = true,
+    /**
+     * Whether an avatar takes a shape from Material's library as well as a
+     * colour.
+     *
+     * On by default, because it is the same argument the client is built on:
+     * the shape belongs to the person, so somebody is a clover wherever they
+     * appear and is recognised before their name is read. It is a switch
+     * rather than a rule because a list of circles is what every other
+     * messenger looks like, and somebody may want that.
+     */
+    val shapedAvatars: Boolean = true
 )
 
 /**

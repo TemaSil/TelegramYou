@@ -44,6 +44,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.shape.CircleShape
+import com.telegramyou.app.ui.avatars.avatarShapeIndex
 import com.telegramyou.app.telegram.model.ChatPreview
 
 /**
@@ -74,6 +76,15 @@ fun ChatListRow(
      */
     index: Int = 0,
     count: Int = 1,
+    /**
+     * Whether the avatar takes a shape from Material's library.
+     *
+     * The same seed as its colour, so a person is the same shape in every
+     * list they appear in — which is the argument for the shape library in
+     * the first place. Off, they are all circles, which is what every other
+     * messenger looks like and is somebody's preference.
+     */
+    shapedAvatar: Boolean = true,
     onMutedChange: ((Boolean) -> Unit)? = null,
     /** Pin or unpin. Null where the row is not the chat list's own. */
     onPinnedChange: ((Boolean) -> Unit)? = null,
@@ -149,6 +160,12 @@ fun ChatListRow(
                     AvatarBubble(
                         title = chat.title,
                         seed = chat.avatarColor,
+                        shape = if (shapedAvatar) {
+                            val shapes = materialShapeSet()
+                            shapes[avatarShapeIndex(chat.avatarColor, shapes.size)]
+                        } else {
+                            CircleShape
+                        },
                         showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup
                     )
                 },

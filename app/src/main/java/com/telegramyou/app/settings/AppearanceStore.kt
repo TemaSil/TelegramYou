@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.update
 /**
  * Where the appearance choice is kept between launches.
  *
- * SharedPreferences rather than DataStore: two values, read once at startup
+ * SharedPreferences rather than DataStore: a handful of values, read once at startup
  * and written when a switch is flipped. DataStore would be a dependency and a
  * coroutine boundary for something the platform already does synchronously in
  * memory after the first read.
@@ -36,13 +36,19 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_DYNAMIC, enabled).apply()
     }
 
+    fun setShapedAvatars(enabled: Boolean) {
+        _settings.update { it.copy(shapedAvatars = enabled) }
+        preferences.edit().putBoolean(KEY_SHAPED_AVATARS, enabled).apply()
+    }
+
     private fun read(): AppearanceSettings {
         val stored = preferences.getString(KEY_THEME, null)
         return AppearanceSettings(
             // An unrecognised value means a downgrade or a corrupt file, and
             // the default is a better answer than a crash on startup.
             theme = ThemeChoice.entries.firstOrNull { it.name == stored } ?: ThemeChoice.System,
-            dynamicColor = preferences.getBoolean(KEY_DYNAMIC, true)
+            dynamicColor = preferences.getBoolean(KEY_DYNAMIC, true),
+            shapedAvatars = preferences.getBoolean(KEY_SHAPED_AVATARS, true)
         )
     }
 
@@ -50,5 +56,6 @@ class AppearanceStore(context: Context) {
         const val NAME = "appearance"
         const val KEY_THEME = "theme"
         const val KEY_DYNAMIC = "dynamic_color"
+        const val KEY_SHAPED_AVATARS = "shaped_avatars"
     }
 }

@@ -117,7 +117,7 @@ fun AvatarCluster(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun materialShapeSet(): List<Shape> = listOf(
+internal fun materialShapeSet(): List<Shape> = listOf(
     CircleShape,
     starShape(points = 4, innerRatio = 0.75f, rounding = 0.50f),
     polygonShape(vertices = 4, rounding = 0.30f),

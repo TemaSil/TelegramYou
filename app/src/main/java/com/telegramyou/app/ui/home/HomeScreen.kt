@@ -99,6 +99,7 @@ fun HomeScreen(
     onFolderSelected: (Int?) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
+    onShapedAvatarsChange: (Boolean) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
     onProfileSave: () -> Unit,
     onProfileErrorShown: () -> Unit,
@@ -263,6 +264,7 @@ fun HomeScreen(
                     me = state.me,
                     onThemeChange = onThemeChange,
                     onDynamicColorChange = onDynamicColorChange,
+                    onShapedAvatarsChange = onShapedAvatarsChange,
                     onLogout = onLogout,
                     contentPadding = padding
                 )
@@ -381,6 +383,7 @@ fun HomeScreen(
                                     chat = chat,
                                     index = index,
                                     count = group.size,
+                                    shapedAvatar = settings.shapedAvatars,
                                     onClick = { onOpenChat(chat.id) },
                                     modifier = Modifier
                                         .fillMaxWidth()
