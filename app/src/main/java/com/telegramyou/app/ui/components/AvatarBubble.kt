@@ -7,7 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -65,72 +64,77 @@ fun AvatarBubble(
         .joinToString("") { it.first().uppercase() }
         .ifBlank { "?" }
 
+    // Two boxes, and the outer one deliberately does not clip. The avatar's
+    // own outline belongs to the shape below; the online dot sits beside it
+    // rather than inside it, because a `clip(shape)` cuts everything in the
+    // box to that silhouette — which trimmed the dot to a crescent on a
+    // circle and swallowed it whole the day the chat list started drawing
+    // clovers.
     Box(
-        modifier = modifier
-            .scale(scale)
-            .size(size)
-            .then(
-                if (ring) {
-                    Modifier.border(
-                        width = 2.5.dp,
-                        brush = if (ringSeen) {
-                            Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                                )
-                            )
-                        } else {
-                            Brush.sweepGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.secondary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                    MaterialTheme.colorScheme.primary
-                                )
-                            )
-                        },
-                        shape = shape
-                    )
-                } else Modifier
-            )
-            .clip(shape)
-            .background(
-                Brush.linearGradient(listOf(base, base.copy(alpha = 0.75f)))
-            )
-            .then(
-                if (onClick != null) {
-                    // No `indication = null`. The scale below is extra, not a
-                    // replacement: switching Material's own press feedback off
-                    // leaves a tap with no state layer at all.
-                    Modifier.clickable(
-                        interactionSource = interaction,
-                        indication = ripple(bounded = false),
-                        onClick = onClick
-                    )
-                } else Modifier
-            ),
+        modifier = modifier.scale(scale).size(size),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = initials,
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = (size.value / 3.2f).sp
-        )
+        Box(
+            modifier = Modifier
+                .size(size)
+                .then(
+                    if (ring) {
+                        Modifier.border(
+                            width = 2.5.dp,
+                            brush = if (ringSeen) {
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                                    )
+                                )
+                            } else {
+                                Brush.sweepGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.secondary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                        MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            },
+                            shape = shape
+                        )
+                    } else Modifier
+                )
+                .clip(shape)
+                .background(
+                    Brush.linearGradient(listOf(base, base.copy(alpha = 0.75f)))
+                )
+                .then(
+                    if (onClick != null) {
+                        // No `indication = null`. The scale below is extra, not a
+                        // replacement: switching Material's own press feedback off
+                        // leaves a tap with no state layer at all.
+                        Modifier.clickable(
+                            interactionSource = interaction,
+                            indication = ripple(bounded = false),
+                            onClick = onClick
+                        )
+                    } else Modifier
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = initials,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = (size.value / 3.2f).sp
+            )
+        }
+
         if (showOnline) {
-            // Nudged out of the corner, and that is about the shapes. A
-            // circle fills its box, so a dot in the bottom-right corner sits
-            // on the avatar. A clover or a pentagon does not: the corner is
-            // empty and the edge cuts diagonally across it, which left the
-            // dot half-buried under the outline. Offsetting it outwards puts
-            // it clear of every shape in the set, and the ring of background
-            // colour around it keeps it legible against whichever one it
-            // ends up beside.
+            // In the corner of the box rather than of the shape, with a ring
+            // of background around it: wherever the outline happens to run
+            // underneath, the dot stays a whole dot and stays legible.
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .offset(x = size * 0.06f, y = size * 0.06f)
                     .size(size * 0.28f)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)
