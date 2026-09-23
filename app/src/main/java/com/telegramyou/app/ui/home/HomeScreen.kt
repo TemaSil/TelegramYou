@@ -64,6 +64,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
@@ -179,30 +181,24 @@ fun HomeScreen(
             }
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            "TelegramYou",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            state.me?.displayName ?: "Material You",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    // No magnifier and no avatar here any more: both are tabs
-                    // along the bottom now, and a second control for a
-                    // destination the bar already carries is one the eye has
-                    // to rule out every time.
-                    AvatarBubble(
-                        title = state.me?.displayName ?: "You",
-                        seed = state.me?.avatarColor ?: 1,
-                        size = 36.dp,
-                        onClick = { onTabSelected(HomeTab.Profile) },
-                        modifier = Modifier.padding(end = 12.dp)
+                    // One line, and it is the app's name. Expressive's
+                    // argument for type is contrast — a display size set
+                    // tight, against body text that stays quiet — so the
+                    // name is `displayMedium` with its tracking pulled in
+                    // rather than a headline shouted in Black.
+                    //
+                    // What used to sit under it — "You Expressive" — said
+                    // nothing the screen does not already show, and the
+                    // avatar that sat beside it repeated the Profile tab two
+                    // inches below.
+                    Text(
+                        "TelegramYou",
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            fontSize = 30.sp,
+                            lineHeight = 34.sp,
+                            letterSpacing = (-1.2).sp
+                        ),
+                        maxLines = 1
                     )
                 },
                 // Darkest of the three levels on this screen. The bar is the
@@ -300,6 +296,7 @@ fun HomeScreen(
                     selectedId = state.selectedFolderId,
                     onSelected = onFolderSelected
                 )
+                Spacer(Modifier.height(12.dp))
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
                     onRefresh = onRefresh,
@@ -324,6 +321,14 @@ fun HomeScreen(
                         // exactly the thing that must stay lazy.
                         modifier = Modifier
                             .fillMaxSize()
+                            // Rounded where it meets the header, so the chats
+                            // read as sitting in a panel rather than as the
+                            // screen carrying on in another colour. Clipped
+                            // before the background, or the corners would be
+                            // painted over by it.
+                            .clip(
+                                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                            )
                             .background(MaterialTheme.colorScheme.surfaceContainerLow),
                         // Room for the floating button, and only for it: the
                         // navigation bar is outside this Scaffold now, under
@@ -439,6 +444,12 @@ private fun FolderTabs(
 
     PrimaryScrollableTabRow(
         selectedTabIndex = selectedIndex,
+        // Flush with everything else on the screen. The default edge padding
+        // for a scrollable tab row is 52dp, which is Material's allowance for
+        // a row that starts under a navigation icon — this one starts under
+        // the app's name, and the gap read as the strip having slipped
+        // sideways.
+        edgePadding = 16.dp,
         // The header's tone, because that is what this is part of: the
         // lighter panel starts below, where the chats do.
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,

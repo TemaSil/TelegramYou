@@ -30,13 +30,9 @@ fun StoriesRail(
     onStoryClick: (StoryItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // No heading. A row of faces with rings around them is a thing everyone
+    // has seen, and a word above it labelled the obvious.
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Stories",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
