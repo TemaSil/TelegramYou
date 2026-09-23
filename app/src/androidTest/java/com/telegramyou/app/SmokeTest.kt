@@ -312,6 +312,12 @@ class SmokeTest {
         TestStorage().openOutputFile("hierarchy-new-group.xml").use { out ->
             device.dumpWindowHierarchy(out)
         }
+        // The button has to be something TalkBack can name. The alpha's
+        // extended button published an empty node, which this would catch.
+        assertTrue(
+            "the create button has no accessible name",
+            device.wait(Until.hasObject(By.desc("Create")), DIALOG_TIMEOUT)
+        )
         // Done on the keyboard creates a group, which is the path this takes.
         device.pressEnter()
         waitFor(By.text("You created the group"), "the new group's first line")

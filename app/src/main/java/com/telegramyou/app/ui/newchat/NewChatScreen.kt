@@ -46,6 +46,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -119,9 +121,16 @@ fun NewChatScreen(
                     // measured from the bottom of the screen, so the bar is
                     // in both. Counting it twice left the button floating a
                     // bar's height above the keys.
-                    modifier = Modifier.windowInsetsPadding(
-                        WindowInsets.ime.exclude(WindowInsets.navigationBars)
-                    ),
+                    modifier = Modifier
+                        .windowInsetsPadding(
+                            WindowInsets.ime.exclude(WindowInsets.navigationBars)
+                        )
+                        // Said explicitly, because the alpha's extended
+                        // button does not publish its own label: the
+                        // accessibility tree the emulator dumped had this as
+                        // an empty Button, which TalkBack reads as "button"
+                        // and UiAutomator could not find at all.
+                        .semantics { contentDescription = "Create" },
                     icon = {
                         if (state.isWorking) {
                             LoadingIndicator(modifier = Modifier.size(24.dp))
