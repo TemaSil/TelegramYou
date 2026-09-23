@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -107,7 +111,16 @@ fun NewChatScreen(
                     // window, which with the keyboard showing is behind the
                     // keyboard — the emulator could not find the button, and
                     // neither would a thumb.
-                    modifier = Modifier.imePadding(),
+                    //
+                    // The keyboard's inset minus the navigation bar's, not
+                    // all of it: the Scaffold already lifts the button clear
+                    // of the navigation bar, and the keyboard's height is
+                    // measured from the bottom of the screen, so the bar is
+                    // in both. Counting it twice left the button floating a
+                    // bar's height above the keys.
+                    modifier = Modifier.windowInsetsPadding(
+                        WindowInsets.ime.exclude(WindowInsets.navigationBars)
+                    ),
                     icon = {
                         if (state.isWorking) {
                             LoadingIndicator(modifier = Modifier.size(24.dp))
