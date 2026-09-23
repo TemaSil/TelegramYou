@@ -830,17 +830,23 @@ a live-updating chat as much as it was groundwork for notifications.
       whichever the chat type has; a channel has subscribers rather than
       members and is left alone. The header's cluster uses it instead of
       guessing from who has spoken
-- [~] Leaving is in, on a chat info screen behind the conversation's header:
-      `leaveChat`, with a confirmation and a pop back past the chat, because
-      the conversation left behind is one this account is no longer in.
-      Joining is not — nothing in the app opens an invite yet
+- [x] Join and leave — leaving from the chat info screen, with a
+      confirmation and a pop back past the conversation; joining through an
+      invite link from the pencil's sheet. The link is checked before
+      anything is joined and its destination shown — name, member count, and
+      Open instead of Join when this account is already in. Every spelling
+      of a link (t.me/+, t.me/joinchat/, telegram.me, tg://join) is
+      canonicalised in `:core` first
 - [ ] Permissions and admins
 - [~] Invite links — the primary link is shown and copied where the server
       offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
       and never created: a screen that minted a link because it wanted
       something to show would be handing out an invitation nobody asked for.
       Revoking and making new ones is not in
-- [ ] Create a group or channel
+- [x] Create a group or channel — one screen, the name focused and the
+      people under it with a checkbox each; the create button appears once
+      there is something to create, and Done on the keyboard creates it too.
+      A group may start with nobody else in it, which TDLib allows
 
 ## Not planned
 
