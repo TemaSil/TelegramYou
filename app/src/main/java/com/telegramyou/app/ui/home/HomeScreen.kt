@@ -95,6 +95,7 @@ import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
+import com.telegramyou.app.ui.theme.AppTitleFontFamily
 
 /**
  * The chat list.
@@ -607,9 +608,17 @@ private fun HomeTitleBar(
             Text(
                 "TelegramYou",
                 style = MaterialTheme.typography.displayMedium.copy(
+                    // Google Sans Flex, the face Google's own apps set
+                    // their names in — see AppTitleFontFamily. Only the
+                    // name: the rest of the screen stays on the system
+                    // face, which is what makes this read as a title.
+                    fontFamily = AppTitleFontFamily,
                     fontSize = 30.sp,
                     lineHeight = 34.sp,
-                    letterSpacing = (-1.2).sp,
+                    // Looser than the -1.2 the system face needed. This
+                    // one's display cut is already drawn tight, and
+                    // pulling it in as far again ran the letters together.
+                    letterSpacing = (-0.5).sp,
                     // Medium, not the scale's ExtraBold. At display
                     // size the weight does not have to carry the
                     // emphasis — the size already does, and the
