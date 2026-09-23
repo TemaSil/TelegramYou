@@ -33,14 +33,32 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 - Java binding: `org.drinkless.tdlib.JsonClient` (from [tdlib/td](https://github.com/tdlib/td))
 - Native: `libtdjsonjava.so` (Android ABIs under `app/src/main/jniLibs/`)
 
+## Screenshots
+
+| Chat list | Conversation | Group | Attachments |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="180" alt="Chat list"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="180" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="180" alt="Group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> |
+
+| Video | Chat info | New group | Tablet |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/14-video.jpg" width="180" alt="Video"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/16-new-group.jpg" width="180" alt="New group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
+
+Not drawn for this page: they are taken by the **UI** workflow, which drives
+the demo client on an emulator after every push to `main`, and they change
+the moment a screen does. The same screens from **every** build, newest
+first, are in the [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme)
+— which is where to look to see what a release changed.
+
 ## What is in it
 
 The demo build is the whole interface, so everything here can be seen without
 an account:
 
-- **Chat list** — grouped into containers, swipe to pin or mute, search across
-  chats and message text, an archive behind its own row, and **folders as
-  tabs** with an unread badge on each.
+- **Chat list** — grouped into containers, search across chats and message
+  text, an archive behind its own row, and **folders** as tabs with an unread
+  badge on each and as pages you swipe between. The header — name, folders,
+  stories — scrolls away with the chats and comes back on the way up. Rows
+  swipe to pin or mute where there are no folders to swipe between.
 - **Conversation** — replies, edits, forwarding, selection, reactions, voice
   messages with a waveform, a pinned-message bar, an unread divider, and a
   search inside the chat.

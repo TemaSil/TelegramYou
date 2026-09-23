@@ -305,6 +305,15 @@ test, `evidence/results/` — the instrumentation report, which names the test,
 the assertion and the stack trace, and `evidence/crash.txt` — the app's own
 fatal exceptions when there were any.
 
+A second branch, **`gallery`**, is the one that is never rewritten. After a
+green run on `main` the same workflow files eight of those screens into it
+under `builds/<version>/`, the version being the one the Build workflow gave
+the same commit, and refreshes `latest/` — which is what the Screenshots
+section of `README.md` shows. It is the record of how the app looked release
+by release; `.github/scripts/gallery.py` chooses the screens, shrinks them and
+writes its index. Renaming a screenshot in `SmokeTest` drops it from there
+until the list in that script is updated to match.
+
 A branch rather than a workflow artifact, and that is not a preference: an
 artifact needs a GitHub session to fetch and the environment this project is
 written in cannot reach the storage it redirects to. A branch clones.
