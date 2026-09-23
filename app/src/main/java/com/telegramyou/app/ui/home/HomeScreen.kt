@@ -33,6 +33,10 @@ import com.telegramyou.app.settings.AppearanceSettings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -106,6 +110,9 @@ fun HomeScreen(
     onProfileSave: () -> Unit,
     onProfileErrorShown: () -> Unit,
     onComposeOpen: () -> Unit,
+    onNewGroup: () -> Unit,
+    onNewChannel: () -> Unit,
+    onJoinLink: () -> Unit,
     onComposeDismiss: () -> Unit,
     onContactPicked: (Long) -> Unit,
     onComposeNavigated: () -> Unit,
@@ -242,7 +249,19 @@ fun HomeScreen(
             ContactPickerSheet(
                 compose = state.compose,
                 onDismiss = onComposeDismiss,
-                onPick = onContactPicked
+                onPick = onContactPicked,
+                onNewGroup = {
+                    onComposeDismiss()
+                    onNewGroup()
+                },
+                onNewChannel = {
+                    onComposeDismiss()
+                    onNewChannel()
+                },
+                onJoinLink = {
+                    onComposeDismiss()
+                    onJoinLink()
+                }
             )
         }
 
@@ -638,7 +657,10 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
 private fun ContactPickerSheet(
     compose: ComposeState,
     onDismiss: () -> Unit,
-    onPick: (Long) -> Unit
+    onPick: (Long) -> Unit,
+    onNewGroup: () -> Unit,
+    onNewChannel: () -> Unit,
+    onJoinLink: () -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         // Rows take the sheet's tone rather than painting their own: a
@@ -650,6 +672,28 @@ private fun ContactPickerSheet(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
         )
+        // The three ways to a chat that is not a person, above the people.
+        // Where Telegram puts them too, and for its reason: the pencil means
+        // "start something", and a group is something to start.
+        ListItem(
+            headlineContent = { Text("New group") },
+            leadingContent = { Icon(Icons.Rounded.Group, contentDescription = null) },
+            colors = sheetRow,
+            modifier = Modifier.clickable(onClick = onNewGroup)
+        )
+        ListItem(
+            headlineContent = { Text("New channel") },
+            leadingContent = { Icon(Icons.Rounded.Campaign, contentDescription = null) },
+            colors = sheetRow,
+            modifier = Modifier.clickable(onClick = onNewChannel)
+        )
+        ListItem(
+            headlineContent = { Text("Join with a link") },
+            leadingContent = { Icon(Icons.Rounded.Link, contentDescription = null) },
+            colors = sheetRow,
+            modifier = Modifier.clickable(onClick = onJoinLink)
+        )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         when {
             compose.isLoading && compose.contacts.isEmpty() -> {
                 // The stock Expressive indicator rather than a spinner drawn

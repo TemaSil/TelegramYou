@@ -27,6 +27,10 @@ import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.components.RequestNotificationPermission
 import com.telegramyou.app.ui.home.HomeScreen
+import com.telegramyou.app.ui.newchat.JoinLinkScreen
+import com.telegramyou.app.ui.newchat.NewChatKind
+import com.telegramyou.app.ui.newchat.NewChatScreen
+import com.telegramyou.app.ui.newchat.NewChatViewModel
 import com.telegramyou.app.ui.home.ArchiveScreen
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.home.HomeTab
@@ -194,10 +198,63 @@ fun TelegramYouNavHost(
                 onProfileSave = homeViewModel::saveProfile,
                 onProfileErrorShown = homeViewModel::onProfileErrorShown,
                 onComposeOpen = homeViewModel::onComposeOpen,
+                onNewGroup = { navController.navigateTo(Route.NewGroup) },
+                onNewChannel = { navController.navigateTo(Route.NewChannel) },
+                onJoinLink = { navController.navigateTo(Route.JoinLink) },
                 onComposeDismiss = homeViewModel::onComposeDismiss,
                 onContactPicked = homeViewModel::onContactPicked,
                 onComposeNavigated = homeViewModel::onComposeNavigated,
                 onLogout = homeViewModel::logout
+            )
+        }
+        // Group and channel share a screen and a state holder; only what the
+        // form asks for differs. Each gets its own back-stack entry, so its
+        // own holder — a name typed into one does not appear in the other.
+        listOf(
+            Route.NewGroup.PATTERN to NewChatKind.Group,
+            Route.NewChannel.PATTERN to NewChatKind.Channel
+        ).forEach { (pattern, kind) ->
+            composable(pattern) {
+                val newChatViewModel: NewChatViewModel = viewModel(factory = viewModelFactory)
+                val state by newChatViewModel.uiState.collectAsStateWithLifecycle()
+                // Into the new chat, replacing this form on the back stack:
+                // Back from the conversation should land on the list, not on
+                // a form for a group that already exists.
+                LaunchedEffect(state.openChatId) {
+                    state.openChatId?.let { id ->
+                        newChatViewModel.onNavigated()
+                        navController.popBackStack()
+                        navController.navigateTo(Route.Chat(id))
+                    }
+                }
+                NewChatScreen(
+                    kind = kind,
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onTitleChange = newChatViewModel::onTitleChange,
+                    onDescriptionChange = newChatViewModel::onDescriptionChange,
+                    onMemberToggled = newChatViewModel::onMemberToggled,
+                    onCreate = { newChatViewModel.create(kind) },
+                    onErrorShown = newChatViewModel::onErrorShown
+                )
+            }
+        }
+        composable(Route.JoinLink.PATTERN) {
+            val newChatViewModel: NewChatViewModel = viewModel(factory = viewModelFactory)
+            val state by newChatViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(state.openChatId) {
+                state.openChatId?.let { id ->
+                    newChatViewModel.onNavigated()
+                    navController.popBackStack()
+                    navController.navigateTo(Route.Chat(id))
+                }
+            }
+            JoinLinkScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onLinkChange = newChatViewModel::onLinkChange,
+                onJoin = newChatViewModel::join,
+                onErrorShown = newChatViewModel::onErrorShown
             )
         }
         composable(Route.Archive.PATTERN) {

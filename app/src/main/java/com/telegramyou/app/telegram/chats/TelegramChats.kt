@@ -3,6 +3,7 @@ package com.telegramyou.app.telegram.chats
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.flow.StateFlow
 
@@ -91,6 +92,29 @@ interface TelegramChats {
      * other client's change arrives by — nothing here removes it by hand.
      */
     suspend fun leaveChat(chatId: Long)
+
+    /**
+     * Makes a group with [memberIds] in it and answers with its chat id.
+     *
+     * The id rather than the chat, because the caller's next move is to open
+     * it — and the chat list learns about it the same way it learns about
+     * everything else, through the backend's own updates.
+     */
+    suspend fun createGroup(title: String, memberIds: List<Long>): Long
+
+    /** Makes a channel and answers with its chat id. */
+    suspend fun createChannel(title: String, description: String): Long
+
+    /**
+     * What an invite link leads to, or null when it leads nowhere.
+     *
+     * Null covers expired, revoked and never-existed alike: the server does
+     * not distinguish them usefully, and neither does anybody holding one.
+     */
+    suspend fun checkInviteLink(link: String): InviteLinkPreview?
+
+    /** Joins through an invite link and answers with the chat's id. */
+    suspend fun joinByInviteLink(link: String): Long
 
     /**
      * The account's own contacts, for starting a conversation.

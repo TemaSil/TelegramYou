@@ -53,6 +53,27 @@ sealed interface Route {
     }
 
     /**
+     * Making a group or a channel. Routes rather than sheets: each is a form
+     * with a keyboard up and a list under it, and a sheet would be fighting
+     * the keyboard for the same half of the screen.
+     */
+    data object NewGroup : Route {
+        const val PATTERN = "new/group"
+        override val path = PATTERN
+    }
+
+    data object NewChannel : Route {
+        const val PATTERN = "new/channel"
+        override val path = PATTERN
+    }
+
+    /** Getting into somebody else's chat through its invite link. */
+    data object JoinLink : Route {
+        const val PATTERN = "join"
+        override val path = PATTERN
+    }
+
+    /**
      * Every photo in one conversation.
      *
      * Its own route rather than a sheet over the chat, because it is a place

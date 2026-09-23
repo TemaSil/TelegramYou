@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.ui.media.FileTransfer
 // Aliased: this class has a toggleReaction of its own, with a different job.
@@ -540,6 +541,80 @@ class TdLibTelegramClient(
             Log.w(TAG, "chatInviteLink: ${e.message}")
             null
         }
+    }
+
+    /**
+     * `createNewBasicGroupChat`, whose answer changed shape between TDLib
+     * versions: newer builds return `createdBasicGroupChat` with a `chat_id`
+     * (and the members it could not add), older ones return the `chat`
+     * itself. Which one arrives depends on the `.so`, not on anything here.
+     */
+    override suspend fun createGroup(title: String, memberIds: List<Long>): Long {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "createNewBasicGroupChat")
+                .put("user_ids", JSONArray(memberIds))
+                .put("title", title.trim())
+                .put("message_auto_delete_time", 0)
+        )
+        return answer.optLong("chat_id").takeIf { it != 0L } ?: answer.optLong("id")
+    }
+
+    /**
+     * A channel is a supergroup with `is_channel` set; TDLib has no separate
+     * call. Fields this does not send — forum, location, auto-delete — keep
+     * the server's defaults, which are what a new channel should start with.
+     */
+    override suspend fun createChannel(title: String, description: String): Long {
+        awaitReady()
+        val chat = requireEngine().send(
+            JSONObject()
+                .put("@type", "createNewSupergroupChat")
+                .put("title", title.trim())
+                .put("is_channel", true)
+                .put("description", description.trim())
+        )
+        return chat.optLong("id")
+    }
+
+    /**
+     * `checkChatInviteLink`, read two ways for the same reason as folder
+     * titles: newer TDLib says what the chat is through a `type` object,
+     * older through an `is_channel` flag.
+     */
+    override suspend fun checkInviteLink(link: String): InviteLinkPreview? {
+        awaitReady()
+        return try {
+            val info = requireEngine().send(
+                JSONObject()
+                    .put("@type", "checkChatInviteLink")
+                    .put("invite_link", link)
+            )
+            val type = info.optJSONObject("type")?.optString("@type").orEmpty()
+            InviteLinkPreview(
+                link = link,
+                title = info.optString("title").ifBlank { "Chat" },
+                memberCount = info.optInt("member_count"),
+                isChannel = type == "inviteLinkChatTypeChannel" ||
+                    info.optBoolean("is_channel"),
+                // Zero when this account is not in it, which is the usual case.
+                joinedChatId = info.optLong("chat_id").takeIf { it != 0L }
+            )
+        } catch (e: TdLibException) {
+            Log.d(TAG, "checkChatInviteLink: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun joinByInviteLink(link: String): Long {
+        awaitReady()
+        val chat = requireEngine().send(
+            JSONObject()
+                .put("@type", "joinChatByInviteLink")
+                .put("invite_link", link)
+        )
+        return chat.optLong("id")
     }
 
     override suspend fun leaveChat(chatId: Long) {

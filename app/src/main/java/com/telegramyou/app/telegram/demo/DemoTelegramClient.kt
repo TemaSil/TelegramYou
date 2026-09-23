@@ -16,6 +16,7 @@ import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
@@ -783,6 +784,84 @@ class DemoTelegramClient : TelegramClient {
         return "https://t.me/+TelegramYouDemo$chatId"
     }
 
+    override suspend fun createGroup(title: String, memberIds: List<Long>): Long {
+        delay(300)
+        return addDemoChat(title.trim(), isGroup = true, firstLine = "You created the group")
+    }
+
+    override suspend fun createChannel(title: String, description: String): Long {
+        delay(300)
+        return addDemoChat(
+            title.trim(),
+            isChannel = true,
+            firstLine = description.trim().ifBlank { "You created the channel" }
+        )
+    }
+
+    /**
+     * Two kinds of link answer here: a group's own link, which leads back to a
+     * chat this account is already in, and [DEMO_JOIN_LINK], which leads to one
+     * it is not — so both buttons on the join screen, Open and Join, can be
+     * seen offline. Anything else is a link to nowhere, which is the third
+     * thing that screen has to handle.
+     */
+    override suspend fun checkInviteLink(link: String): InviteLinkPreview? {
+        delay(250)
+        if (link == DEMO_JOIN_LINK) {
+            val joined = _chats.value.firstOrNull { it.title == DEMO_JOIN_TITLE }
+            return InviteLinkPreview(
+                link = link,
+                title = DEMO_JOIN_TITLE,
+                memberCount = 1284,
+                joinedChatId = joined?.id
+            )
+        }
+        val own = link.removePrefix("https://t.me/+TelegramYouDemo").toLongOrNull()
+        val chat = own?.let { id -> _chats.value.firstOrNull { it.id == id } } ?: return null
+        return InviteLinkPreview(
+            link = link,
+            title = chat.title,
+            memberCount = 42,
+            isChannel = chat.isChannel,
+            joinedChatId = chat.id,
+            avatarColor = chat.avatarColor
+        )
+    }
+
+    override suspend fun joinByInviteLink(link: String): Long {
+        delay(300)
+        _chats.value.firstOrNull { it.title == DEMO_JOIN_TITLE }?.let { return it.id }
+        return addDemoChat(DEMO_JOIN_TITLE, isGroup = true, firstLine = "You joined the group")
+    }
+
+    /** A chat that did not exist a moment ago, at the top of the list. */
+    private fun addDemoChat(
+        title: String,
+        isGroup: Boolean = false,
+        isChannel: Boolean = false,
+        firstLine: String
+    ): Long {
+        val id = (_chats.value.maxOfOrNull { it.id } ?: 0L) + 1
+        val now = System.currentTimeMillis() / 1000
+        chatMessages[id] = mutableListOf(
+            demoMessage(messageId.incrementAndGet(), id, firstLine, true, now, isRead = true)
+        )
+        _chats.update { list ->
+            listOf(
+                ChatPreview(
+                    id = id,
+                    title = title,
+                    lastMessage = firstLine,
+                    timestampLabel = "now",
+                    isGroup = isGroup,
+                    isChannel = isChannel,
+                    avatarColor = title.hashCode().toLong()
+                )
+            ) + list
+        }
+        return id
+    }
+
     override suspend fun leaveChat(chatId: Long) {
         _chats.update { list -> list.filterNot { it.id == chatId } }
     }
@@ -972,6 +1051,13 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  * A number, because that is what TDLib identifies a file by and what the
  * bubble hands back when somebody taps it.
  */
+/**
+ * An invite to a group this account is not in, for the join screen's main case.
+ * The hash is shaped like a real one so it passes the same parsing.
+ */
+private val DEMO_JOIN_LINK = "https://t.me/+ExpressiveDesignClub"
+private val DEMO_JOIN_TITLE = "Expressive Design Club"
+
 private val DEMO_VIDEO_FILE_ID = 1601
 
 /** Ids for the files a demo send pretends to upload, and their pretend size. */

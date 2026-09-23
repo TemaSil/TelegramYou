@@ -105,6 +105,25 @@ data class ChatFolder(
     val iconName: String = ""
 )
 
+/**
+ * What an invite link leads to, read before joining.
+ *
+ * Telegram shows this rather than joining on the tap, and so does this client:
+ * a link is a stranger's word about where it goes, and the name and the size
+ * of the room are what a person needs to decide whether to walk in.
+ *
+ * [joinedChatId] is set when this account is already a member — the button
+ * then opens the chat rather than asking to join something already joined.
+ */
+data class InviteLinkPreview(
+    val link: String,
+    val title: String,
+    val memberCount: Int,
+    val isChannel: Boolean = false,
+    val joinedChatId: Long? = null,
+    val avatarColor: Long = title.hashCode().toLong()
+)
+
 data class StoryItem(
     val id: Long,
     val authorName: String,

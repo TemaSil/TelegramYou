@@ -6,6 +6,7 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -79,6 +80,29 @@ class FakeTelegramClient(
     val leftChats = mutableListOf<Long>()
 
     override suspend fun chatInviteLink(chatId: Long): String? = inviteLink
+
+    /** What was asked for, so a test can see it arrived intact. */
+    val createdGroups = mutableListOf<Pair<String, List<Long>>>()
+    val createdChannels = mutableListOf<Pair<String, String>>()
+    var invitePreview: InviteLinkPreview? = null
+    val joinedLinks = mutableListOf<String>()
+
+    override suspend fun createGroup(title: String, memberIds: List<Long>): Long {
+        createdGroups += title to memberIds
+        return 900L + createdGroups.size
+    }
+
+    override suspend fun createChannel(title: String, description: String): Long {
+        createdChannels += title to description
+        return 950L + createdChannels.size
+    }
+
+    override suspend fun checkInviteLink(link: String): InviteLinkPreview? = invitePreview
+
+    override suspend fun joinByInviteLink(link: String): Long {
+        joinedLinks += link
+        return 990L
+    }
 
     override suspend fun leaveChat(chatId: Long) {
         leftChats += chatId

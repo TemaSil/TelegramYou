@@ -286,6 +286,39 @@ class SmokeTest {
     }
 
     /**
+     * A group made from the pencil, and a chat joined through a link.
+     *
+     * Both end in a conversation that did not exist when the test started,
+     * which is the only assertion that proves either worked: a form that
+     * accepted a name and went nowhere would pass anything weaker.
+     */
+    @Test
+    fun aGroupIsMadeAndALinkIsJoined() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+
+        tap(By.desc("Compose"))
+        tap(By.text("New group"))
+        waitFor(By.text("Group name"), "the new group form")
+        type(NEW_GROUP_NAME)
+        tap(By.text("Lina Park"))
+        screenshot("16-new-group")
+        tap(By.text("Create"))
+        waitFor(By.text("You created the group"), "the new group's first line")
+
+        device.pressBack()
+        waitFor(By.text(NEW_GROUP_NAME), "the new group in the chat list")
+
+        tap(By.desc("Compose"))
+        tap(By.text("Join with a link"))
+        type("t.me/joinchat/ExpressiveDesignClub")
+        waitFor(By.text("Expressive Design Club"), "the link's preview")
+        screenshot("17-join-link")
+        tap(By.text("Join group"))
+        waitFor(By.text("You joined the group"), "the joined group")
+    }
+
+    /**
      * The info screen behind the conversation's header.
      *
      * Reached the way a person reaches it — by tapping the name at the top of
@@ -787,6 +820,9 @@ class SmokeTest {
          * also what its poster is published as.
          */
         const val VIDEO_CAPTION = "Expressive motion, slowed down"
+
+        /** Distinctive enough that finding it in the list cannot be luck. */
+        const val NEW_GROUP_NAME = "Smoke test crit"
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
