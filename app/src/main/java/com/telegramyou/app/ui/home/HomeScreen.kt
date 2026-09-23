@@ -196,7 +196,12 @@ fun HomeScreen(
                         style = MaterialTheme.typography.displayMedium.copy(
                             fontSize = 30.sp,
                             lineHeight = 34.sp,
-                            letterSpacing = (-1.2).sp
+                            letterSpacing = (-1.2).sp,
+                            // Medium, not the scale's ExtraBold. At display
+                            // size the weight does not have to carry the
+                            // emphasis — the size already does, and the
+                            // heavier cut read as shouting.
+                            fontWeight = FontWeight.Medium
                         ),
                         maxLines = 1
                     )
@@ -344,7 +349,10 @@ fun HomeScreen(
                         // the suite rather than inside the content, so the
                         // sixteen extra points that cleared it would be a gap
                         // below the last chat.
-                        contentPadding = PaddingValues(bottom = 96.dp),
+                        // Twenty above, so the first row sits inside the
+                        // panel rather than wedged into its rounded corner,
+                        // and room for the floating button below.
+                        contentPadding = PaddingValues(top = 20.dp, bottom = 96.dp),
                         // The hairline Material leaves between segmented list
                         // items, through which the panel behind them shows.
                         verticalArrangement = Arrangement.spacedBy(2.dp)
