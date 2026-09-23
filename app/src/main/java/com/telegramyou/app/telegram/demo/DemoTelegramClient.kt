@@ -123,7 +123,15 @@ class DemoTelegramClient : TelegramClient {
             var index = 0
             while (isActive) {
                 delay(DEMO_CHATTER_INTERVAL_MS)
-                val chat = _chats.value.firstOrNull { !it.isMuted } ?: continue
+                // The seeded chat that talks, while it is unmuted — not
+                // whichever chat happens to be first. A group created or
+                // joined in the demo goes to the top of the list, and taking
+                // "first unmuted" meant the newest group started chattering,
+                // which is not what a new group does and broke every test
+                // that listens for Material Design's notification.
+                val chat = _chats.value.firstOrNull { it.id == CHATTY_CHAT_ID && !it.isMuted }
+                    ?: _chats.value.firstOrNull { !it.isMuted }
+                    ?: continue
                 val line = DEMO_CHATTER_LINES[index % DEMO_CHATTER_LINES.size]
                 index++
                 appendIncoming(chat.id, chat.title, line)
@@ -1056,6 +1064,9 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  * The hash is shaped like a real one so it passes the same parsing.
  */
 private val DEMO_JOIN_LINK = "https://t.me/+ExpressiveDesignClub"
+
+/** The seeded chat the demo's timer speaks in — Material Design. */
+private val CHATTY_CHAT_ID = 1L
 private val DEMO_JOIN_TITLE = "Expressive Design Club"
 
 private val DEMO_VIDEO_FILE_ID = 1601

@@ -95,6 +95,11 @@ jobs:
           # device name in it, so it is found rather than spelled out.
           find app/build/outputs -name '*.png' -exec cp {} evidence/screenshots/ \; \
             2>/dev/null || true
+          # Accessibility trees a test chose to keep, next to the pictures of
+          # the same moment: what UiAutomator — and so TalkBack — could see.
+          mkdir -p evidence/hierarchy
+          find app/build/outputs -name 'hierarchy-*.xml' \
+            -exec cp {} evidence/hierarchy/ \; 2>/dev/null || true
           # A fatal exception and the forty lines under it, which is the trace.
           if [ -f logcat-full.txt ]; then
             grep -A 40 "FATAL EXCEPTION" logcat-full.txt > evidence/crash.txt 2>/dev/null || true
