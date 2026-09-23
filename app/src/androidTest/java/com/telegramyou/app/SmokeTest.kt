@@ -10,6 +10,7 @@ import android.provider.MediaStore
 import androidx.test.core.graphics.writeToTestStorage
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.services.storage.TestStorage
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
@@ -303,19 +304,16 @@ class SmokeTest {
         type(NEW_GROUP_NAME)
         tap(By.text("Lina Park"))
         screenshot("16-new-group")
-        // By text or by description, whichever the button publishes. An
-        // extended floating button merges its label into the clickable node,
-        // and which of the two that node carries has differed between
-        // versions — the first run of this found neither by text alone, on a
-        // screenshot where the button was plainly there.
-        val create = listOf(By.text("Create"), By.desc("Create"), By.textContains("Create"))
-            .firstNotNullOfOrNull { device.wait(Until.findObject(it), DIALOG_TIMEOUT) }
-            ?: run {
-                screenshot("failed-finding-create")
-                fail("the create button was not on screen")
-                return
-            }
-        create.click()
+        // The accessibility tree as UiAutomator sees it, kept with the
+        // screenshots. The create button is plainly on screen and yet was
+        // found neither by its text nor by a description — and whatever hides
+        // it from UiAutomator hides it from TalkBack too, which is worth
+        // knowing rather than routing around.
+        TestStorage().openOutputFile("hierarchy-new-group.xml").use { out ->
+            device.dumpWindowHierarchy(out)
+        }
+        // Done on the keyboard creates a group, which is the path this takes.
+        device.pressEnter()
         waitFor(By.text("You created the group"), "the new group's first line")
 
         device.pressBack()

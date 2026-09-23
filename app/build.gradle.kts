@@ -198,6 +198,10 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    // TestStorage itself, for files other than screenshots — the accessibility
+    // tree dump. Declared rather than leaned on: core-ktx pulls it in, but a
+    // class this code names directly belongs in the build file.
+    androidTestImplementation("androidx.test.services:storage:1.5.0")
     // The service behind useTestStorageService above. androidTestUtil, not
     // androidTestImplementation: it is an APK installed alongside the tests
     // rather than a library they link against.
