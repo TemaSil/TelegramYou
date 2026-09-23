@@ -17,6 +17,7 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.VideoContent
+import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import com.telegramyou.app.ui.chat.formatDuration
 import java.text.SimpleDateFormat
@@ -76,6 +77,10 @@ class DemoTelegramClient : TelegramClient {
     // visible every time the strip is absent. Three, because two tabs and
     // "All" fit across a phone and a fourth is what makes the strip scroll —
     // which is the layout worth looking at.
+    private val _fileTransfers = MutableStateFlow<Map<Int, FileTransfer>>(emptyMap())
+    override val fileTransfers: StateFlow<Map<Int, FileTransfer>> =
+        _fileTransfers.asStateFlow()
+
     private val _folders = MutableStateFlow(seedFolders())
     override val folders: StateFlow<List<ChatFolder>> = _folders.asStateFlow()
 
@@ -486,7 +491,13 @@ class DemoTelegramClient : TelegramClient {
                         // The Uri the picker returned. Coil opens a content://
                         // as readily as a file, so a photo picked in demo mode
                         // is actually drawn rather than described.
-                        photoPath = uri
+                        photoPath = uri,
+                        // An id to hang a progress bar on. The bytes are on
+                        // this device already, so nothing is really sent —
+                        // but a send with no bar would be a send nobody can
+                        // look at, and this is the build people look at.
+                        photoFileId = uploadFileId.incrementAndGet()
+                            .also { fakeUpload(it, DEMO_UPLOAD_BYTES) }
                     )
                 }
             }
@@ -561,7 +572,50 @@ class DemoTelegramClient : TelegramClient {
      * the message itself — which is why playing back your own voice message
      * works offline, and why nothing else does.
      */
-    override suspend fun downloadFile(fileId: Int): String? = null
+    /**
+     * Pretends to fetch a file, slowly enough to be watched.
+     *
+     * Only the seeded video has an id here, and it answers with the clip the
+     * app ships. The point is not the bytes — they are already on the device
+     * — but the bar: a progress indicator nobody can make appear is a
+     * progress indicator nobody can check, and the demo build is the only
+     * one CI can make.
+     */
+    override suspend fun downloadFile(fileId: Int): String? {
+        if (fileId != DEMO_VIDEO_FILE_ID) return null
+        val total = DEMO_VIDEO_BYTES
+        var done = 0L
+        while (done < total) {
+            done = (done + total / DEMO_TRANSFER_STEPS).coerceAtMost(total)
+            _fileTransfers.update {
+                it + (fileId to FileTransfer(fileId, done, total))
+            }
+            delay(DEMO_TRANSFER_STEP_MS)
+        }
+        _fileTransfers.update { it - fileId }
+        return DEMO_VIDEO
+    }
+
+    /**
+     * The other direction, for a photo just picked.
+     *
+     * Runs alongside the message rather than before it, which is what a real
+     * send does: the bubble appears immediately with a bar over it, and the
+     * bar goes when the bytes are through.
+     */
+    private fun fakeUpload(fileId: Int, total: Long) {
+        scope.launch {
+            var done = 0L
+            while (done < total) {
+                done = (done + total / DEMO_TRANSFER_STEPS).coerceAtMost(total)
+                _fileTransfers.update {
+                    it + (fileId to FileTransfer(fileId, done, total, isUpload = true))
+                }
+                delay(DEMO_TRANSFER_STEP_MS)
+            }
+            _fileTransfers.update { it - fileId }
+        }
+    }
 
     override suspend fun markStorySeen(storyId: Long) {
         _stories.update { list ->
@@ -622,7 +676,8 @@ class DemoTelegramClient : TelegramClient {
         replyToId: Long? = null,
         voicePath: String? = null,
         waveform: List<Int> = emptyList(),
-        photoPath: String? = null
+        photoPath: String? = null,
+        photoFileId: Int? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -647,7 +702,8 @@ class DemoTelegramClient : TelegramClient {
             canBeDeletedForEveryone = true,
             voicePath = voicePath,
             waveform = waveform,
-            photoPath = photoPath
+            photoPath = photoPath,
+            photoFileId = photoFileId
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -831,7 +887,11 @@ class DemoTelegramClient : TelegramClient {
                     16, 1, "Composer, one take", true, today + 400,
                     isRead = true,
                     contentType = MessageContentType.Video,
-                    video = VideoContent(durationSeconds = 8, aspect = 9f / 16f)
+                    video = VideoContent(
+                        durationSeconds = 8,
+                        aspect = 9f / 16f,
+                        fileId = DEMO_VIDEO_FILE_ID
+                    )
                 )
             )
         )
@@ -906,6 +966,23 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  * String rather than a File: it already carries `content://` Uris from the
  * pickers.
  */
+/**
+ * The id the seeded video's file answers to, and how big it pretends to be.
+ *
+ * A number, because that is what TDLib identifies a file by and what the
+ * bubble hands back when somebody taps it.
+ */
+private val DEMO_VIDEO_FILE_ID = 1601
+
+/** Ids for the files a demo send pretends to upload, and their pretend size. */
+private val uploadFileId = java.util.concurrent.atomic.AtomicInteger(9_000)
+private val DEMO_UPLOAD_BYTES = 2_600_000L
+private val DEMO_VIDEO_BYTES = 8_400_000L
+
+/** Two seconds of bar, in ten steps: long enough to watch, short enough to wait. */
+private val DEMO_TRANSFER_STEPS = 10
+private val DEMO_TRANSFER_STEP_MS = 200L
+
 private val DEMO_VIDEO =
     "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video}"
 private val DEMO_VIDEO_POSTER =

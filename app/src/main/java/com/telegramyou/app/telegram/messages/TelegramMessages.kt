@@ -3,7 +3,9 @@ package com.telegramyou.app.telegram.messages
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /** What can be done to a message once a conversation is open. */
 interface TelegramMessages {
@@ -71,6 +73,20 @@ interface TelegramMessages {
      * will not arrive is stay where it is.
      */
     suspend fun downloadFile(fileId: Int): String?
+
+    /**
+     * Files currently moving, by file id — downloads and uploads alike.
+     *
+     * A map rather than a flow per file: several can be in flight at once,
+     * every bubble wants the one that belongs to it, and a screen that
+     * collected one flow per message would hold as many subscriptions as
+     * there are photos on it.
+     *
+     * Entries appear when a transfer starts and are dropped when it ends, so
+     * an empty map is the normal state and a bubble asking for a file id
+     * that is not in it has nothing to draw.
+     */
+    val fileTransfers: StateFlow<Map<Int, FileTransfer>>
 
     /**
      * Adds or withdraws our reaction on a message.

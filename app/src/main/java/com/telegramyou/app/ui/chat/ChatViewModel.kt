@@ -8,6 +8,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.toggleReaction
 import kotlinx.coroutines.Job
@@ -58,6 +59,15 @@ data class ChatUiState(
      * only way it says a conversation has no more history.
      */
     val hasMoreOlder: Boolean = true,
+    /**
+     * Files moving right now, by file id — see `TelegramMessages`.
+     *
+     * Handed to the bubbles whole rather than matched to messages here: a
+     * bubble knows its own file id, and threading the lookup through the
+     * state would mean rebuilding the message list on every tick of every
+     * bar.
+     */
+    val transfers: Map<Int, FileTransfer> = emptyMap(),
     /** Non-null while the reaction picker is open, naming what it reacts to. */
     val reactingTo: ChatMessage? = null,
     /** What this chat permits, fetched once — see TelegramMessages. */
@@ -167,6 +177,15 @@ class ChatViewModel(
             repository.incomingMessages
                 .filter { it.chatId == chatId }
                 .collect { message -> appendArrival(message) }
+        }
+        viewModelScope.launch {
+            // Every file in flight, for every bubble that has one. The map is
+            // usually empty; when it is not, it ticks several times a second
+            // and each tick is a new state — which is why nothing else is
+            // recomputed from it.
+            repository.observeTransfers().collect { transfers ->
+                _uiState.update { it.copy(transfers = transfers) }
+            }
         }
     }
 

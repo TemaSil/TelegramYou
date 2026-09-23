@@ -23,6 +23,7 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.VideoContent
+import com.telegramyou.app.ui.media.FileTransfer
 // Aliased: this class has a toggleReaction of its own, with a different job.
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import kotlinx.coroutines.CompletableDeferred
@@ -95,6 +96,10 @@ class TdLibTelegramClient(
 
     private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
+
+    private val _fileTransfers = MutableStateFlow<Map<Int, FileTransfer>>(emptyMap())
+    override val fileTransfers: StateFlow<Map<Int, FileTransfer>> =
+        _fileTransfers.asStateFlow()
 
     private val _folders = MutableStateFlow<List<ChatFolder>>(emptyList())
     override val folders: StateFlow<List<ChatFolder>> = _folders.asStateFlow()
@@ -1052,6 +1057,43 @@ class TdLibTelegramClient(
             "updateUser" -> {
                 val user = update.optJSONObject("user") ?: return
                 usersById[user.optLong("id")] = user
+            }
+            "updateFile" -> {
+                // The only place progress comes from. TDLib does not answer
+                // a download with a stream of percentages; it announces the
+                // file, repeatedly, as more of it arrives — the same update
+                // for a file being sent, with the bytes on the other side of
+                // the object.
+                val file = update.optJSONObject("file") ?: return
+                val id = file.optInt("id")
+                val local = file.optJSONObject("local")
+                val remote = file.optJSONObject("remote")
+                val downloading = local?.optBoolean("is_downloading_active") == true
+                val uploading = remote?.optBoolean("is_uploading_active") == true
+                if (!downloading && !uploading) {
+                    // Finished, failed or never started: either way there is
+                    // no bar to draw, and leaving the entry behind would
+                    // leave one on screen forever.
+                    if (_fileTransfers.value.containsKey(id)) {
+                        _fileTransfers.update { it - id }
+                    }
+                    return
+                }
+                val transfer = FileTransfer(
+                    fileId = id,
+                    doneBytes = if (uploading) {
+                        remote.optLong("uploaded_size")
+                    } else {
+                        local?.optLong("downloaded_size") ?: 0L
+                    },
+                    // expected_size, not size: the second is zero until the
+                    // whole file is known, which is exactly while a bar is
+                    // wanted.
+                    totalBytes = file.optLong("expected_size")
+                        .takeIf { it > 0 } ?: file.optLong("size"),
+                    isUpload = uploading
+                )
+                _fileTransfers.update { it + (id to transfer) }
             }
             "updateNewChat" -> {
                 val chat = update.optJSONObject("chat") ?: return

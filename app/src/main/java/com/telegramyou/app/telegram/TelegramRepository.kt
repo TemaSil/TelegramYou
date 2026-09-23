@@ -6,6 +6,7 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.StoryItem
+import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.StateFlow
 
 class TelegramRepository(
@@ -16,6 +17,7 @@ class TelegramRepository(
     fun observeChats(): StateFlow<List<ChatPreview>> = chats
     fun observeStories(): StateFlow<List<StoryItem>> = stories
     fun observeFolders(): StateFlow<List<ChatFolder>> = folders
+    fun observeTransfers(): StateFlow<Map<Int, FileTransfer>> = fileTransfers
 
     // deleteMessage and editMessage arrive through the `by client` delegation
     // above; redeclaring them here only shadowed the interface.

@@ -88,6 +88,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -156,6 +157,9 @@ import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ClusterMember
+import com.telegramyou.app.ui.media.FileTransfer
+import com.telegramyou.app.ui.media.transferLabel
+import com.telegramyou.app.ui.media.transferProgress
 import com.telegramyou.app.ui.media.Zoom
 import com.telegramyou.app.ui.media.dismissProgress
 import com.telegramyou.app.ui.media.shouldDismiss
@@ -629,7 +633,8 @@ fun ChatScreen(
                             onVoiceSeek = { at -> onVoiceSeek(message, at) },
                             onPhotoVisible = { onPhotoVisible(message) },
                             onPhotoOpened = { onPhotoOpened(message) },
-                            onVideoOpened = { onVideoOpened(message) }
+                            onVideoOpened = { onVideoOpened(message) },
+                            transfers = state.transfers
                         )
                         }
                     }
@@ -909,7 +914,9 @@ private fun MessageBubble(
     onVoiceSeek: (Float) -> Unit,
     onPhotoVisible: () -> Unit,
     onPhotoOpened: () -> Unit,
-    onVideoOpened: () -> Unit
+    onVideoOpened: () -> Unit,
+    /** Files in flight, by id — usually empty. See ChatUiState.transfers. */
+    transfers: Map<Int, FileTransfer>
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -1050,6 +1057,7 @@ private fun MessageBubble(
                     }
                     MessageContentType.Photo -> {
                         PhotoMessage(
+                            transfer = message.photoFileId?.let { transfers[it] },
                             path = message.photoPath,
                             aspect = message.photoAspect,
                             caption = message.text,
@@ -1074,6 +1082,10 @@ private fun MessageBubble(
                                 video = video,
                                 caption = message.text,
                                 outgoing = outgoing,
+                                // Either file can be the one moving: the
+                                // poster on sight, the video when asked for.
+                                transfer = video.fileId?.let { transfers[it] }
+                                    ?: video.thumbFileId?.let { transfers[it] },
                                 onPosterVisible = onPhotoVisible,
                                 onOpen = onVideoOpened
                             )
@@ -1397,6 +1409,7 @@ private fun PhotoMessage(
     aspect: Float,
     caption: String,
     outgoing: Boolean,
+    transfer: FileTransfer?,
     onVisible: () -> Unit,
     onOpen: () -> Unit
 ) {
@@ -1416,16 +1429,29 @@ private fun PhotoMessage(
             contentAlignment = Alignment.Center
         ) {
             if (path == null) {
-                CircularProgressIndicator(
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(24.dp)
-                )
+                // Only where nothing is known about the file. Once bytes are
+                // moving the bar below says it better, and two spinners for
+                // one wait is one too many.
+                if (transfer == null) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             } else {
                 AsyncImage(
                     model = path,
                     contentDescription = caption.ifBlank { "Photo" },
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
+                )
+            }
+            transfer?.let {
+                TransferOverlay(
+                    transfer = it,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
                 )
             }
         }
@@ -1437,6 +1463,48 @@ private fun PhotoMessage(
                 caption,
                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+/**
+ * The bar over a file that is moving, and the line that says which way.
+ *
+ * `LinearProgressIndicator` in both of its forms: determinate once the size
+ * is known, indeterminate before that — because a determinate bar at zero
+ * claims a length the server has not given yet, and a bar that sits still is
+ * indistinguishable from one that has stalled.
+ *
+ * On a scrim, because it is drawn over whatever the file will become: a
+ * poster, a photo, the first frame of a video.
+ */
+@Composable
+private fun TransferOverlay(transfer: FileTransfer, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.45f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            transferLabel(transfer),
+            color = Color.White,
+            style = MaterialTheme.typography.labelMedium
+        )
+        val progress = transferProgress(transfer)
+        if (progress == null) {
+            LinearProgressIndicator(
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.fillMaxWidth()
+            )
+        } else {
+            LinearProgressIndicator(
+                progress = { progress },
+                color = Color.White,
+                trackColor = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
@@ -1463,6 +1531,7 @@ private fun VideoMessage(
     video: VideoContent,
     caption: String,
     outgoing: Boolean,
+    transfer: FileTransfer?,
     onPosterVisible: () -> Unit,
     onOpen: () -> Unit
 ) {
@@ -1517,7 +1586,17 @@ private fun VideoMessage(
                     )
                 }
             }
-            if (video.durationSeconds > 0) {
+            transfer?.let {
+                TransferOverlay(
+                    transfer = it,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                )
+            }
+            // The duration moves out of the way while a bar is there: they
+            // want the same corner, and the bar is the one worth reading.
+            if (video.durationSeconds > 0 && transfer == null) {
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = Color.Black.copy(alpha = 0.45f),

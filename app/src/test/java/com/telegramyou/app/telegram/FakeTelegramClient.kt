@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -53,6 +54,10 @@ class FakeTelegramClient(
     // calls below can change it the way a real backend would.
     val mutableAuthState = MutableStateFlow(AuthUiState())
     override val authState: StateFlow<AuthUiState> = mutableAuthState
+    /** Nothing moves in a fake unless a test says so. */
+    val mutableTransfers = MutableStateFlow<Map<Int, FileTransfer>>(emptyMap())
+    override val fileTransfers: StateFlow<Map<Int, FileTransfer>> = mutableTransfers
+
     /** Settable, so a test can give the forward picker somewhere to point. */
     private val _chats = MutableStateFlow<List<ChatPreview>>(emptyList())
     override val chats: StateFlow<List<ChatPreview>> = _chats
