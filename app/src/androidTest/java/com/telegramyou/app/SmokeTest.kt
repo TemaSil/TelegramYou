@@ -221,6 +221,27 @@ class SmokeTest {
     }
 
     /**
+     * A video message, opened and played.
+     *
+     * The demo build ships a four-second clip precisely so this can be
+     * checked with no account: the bubble draws its poster, tapping it opens
+     * the player, and the player's own scrubber proves the thing is running
+     * rather than merely on screen — a still first frame would satisfy every
+     * weaker assertion.
+     */
+    @Test
+    fun aVideoMessagePlays() {
+        signIn()
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+        tap(By.text(NOTIFYING_CHAT))
+        waitFor(By.textContains("Expressive motion"), "the video message")
+
+        tap(By.desc("Video").hasParent(By.clazz("android.view.View")))
+        waitFor(By.desc("Pause"), "the player, playing")
+        screenshot("14-video")
+    }
+
+    /**
      * The info screen behind the conversation's header.
      *
      * Reached the way a person reaches it — by tapping the name at the top of

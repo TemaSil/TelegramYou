@@ -223,7 +223,9 @@ fun ChatScreen(
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     onPhotoVisible: (ChatMessage) -> Unit,
     onPhotoOpened: (ChatMessage) -> Unit,
-    onPhotoClosed: () -> Unit
+    onPhotoClosed: () -> Unit,
+    onVideoOpened: (ChatMessage) -> Unit,
+    onVideoClosed: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -624,7 +626,8 @@ fun ChatScreen(
                             },
                             onVoiceSeek = { at -> onVoiceSeek(message, at) },
                             onPhotoVisible = { onPhotoVisible(message) },
-                            onPhotoOpened = { onPhotoOpened(message) }
+                            onPhotoOpened = { onPhotoOpened(message) },
+                            onVideoOpened = { onVideoOpened(message) }
                         )
                         }
                     }
@@ -829,6 +832,14 @@ fun ChatScreen(
                 )
             }
 
+            state.viewingVideo?.video?.let { video ->
+                VideoPlayerScreen(
+                    video = video,
+                    title = state.viewingVideo.text,
+                    onClose = onVideoClosed
+                )
+            }
+
             state.reactingTo?.let { target ->
                 ReactionPicker(
                     available = state.availableReactions,
@@ -895,7 +906,8 @@ private fun MessageBubble(
     voiceProgress: Float,
     onVoiceSeek: (Float) -> Unit,
     onPhotoVisible: () -> Unit,
-    onPhotoOpened: () -> Unit
+    onPhotoOpened: () -> Unit,
+    onVideoOpened: () -> Unit
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -1061,7 +1073,7 @@ private fun MessageBubble(
                                 caption = message.text,
                                 outgoing = outgoing,
                                 onPosterVisible = onPhotoVisible,
-                                onOpen = onPhotoOpened
+                                onOpen = onVideoOpened
                             )
                         }
                     }

@@ -213,6 +213,14 @@ dependencies {
     // to the same alpha — a mismatch here is two copies of the same internal
     // API and a link error, not a warning.
     implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha28")
+    // The player behind video messages. Media3 is androidx's own — there is
+    // no Material component for playback, and the alternative was MediaPlayer
+    // with a SurfaceView and every format quirk handled by hand.
+    //
+    // Only the engine. The controls are Material's, drawn over the surface,
+    // because media3-ui's own player view is a View with its own look that
+    // belongs to no design system this app uses.
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")

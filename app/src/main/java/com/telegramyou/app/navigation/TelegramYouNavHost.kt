@@ -248,7 +248,9 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onOpen = chatViewModel::onPhotoOpened,
                 viewingPhoto = state.viewingPhoto,
-                onPhotoClosed = chatViewModel::onPhotoClosed
+                onPhotoClosed = chatViewModel::onPhotoClosed,
+                onVideoOpened = chatViewModel::onVideoOpened,
+                onVideoClosed = chatViewModel::onVideoClosed
             )
         }
 

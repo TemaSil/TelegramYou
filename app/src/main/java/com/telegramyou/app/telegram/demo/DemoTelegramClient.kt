@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.BuildConfig
+import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
@@ -807,8 +809,18 @@ class DemoTelegramClient : TelegramClient {
                     15, 1, "Expressive motion, slowed down", false, today + 360,
                     "Material Design",
                     contentType = MessageContentType.Video,
-                    video = VideoContent(durationSeconds = 47, aspect = 16f / 9f)
+                    video = VideoContent(
+                        durationSeconds = 4,
+                        aspect = 360f / 202f,
+                        thumbPath = DEMO_VIDEO_POSTER,
+                        path = DEMO_VIDEO
+                    )
                 ),
+                // The same clip with no files behind it, which is the other
+                // half of what this has to draw: a video message between
+                // arriving and its bytes doing so. Tapping it downloads
+                // nothing in demo mode, so the player opens on its spinner —
+                // which is exactly the state a slow connection produces.
                 demoMessage(
                     16, 1, "Composer, one take", true, today + 400,
                     isRead = true,
@@ -877,6 +889,21 @@ class DemoTelegramClient : TelegramClient {
 
     /** Telegram's default reaction set, in its order. */
 private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
+
+/**
+ * A real four-second clip, shipped with the app, and its poster frame.
+ *
+ * Generated rather than borrowed, and tiny — sixty-four kilobytes of test
+ * pattern — because the demo build is the only one CI can make, and a video
+ * feature nobody can play is a feature nobody can check. `android.resource://`
+ * is a Uri both Coil and Media3 read, which is why the model's path is a
+ * String rather than a File: it already carries `content://` Uris from the
+ * pickers.
+ */
+private val DEMO_VIDEO =
+    "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video}"
+private val DEMO_VIDEO_POSTER =
+    "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video_poster}"
 
 /**
  * How often the demo chat says something.

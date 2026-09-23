@@ -85,6 +85,14 @@ data class ChatUiState(
     val voiceProgress: Float = 0f,
     /** The photo open full-screen, if one is. */
     val viewingPhoto: ChatMessage? = null,
+    /**
+     * The video open full-screen, if one is.
+     *
+     * The message rather than the file, because the player wants the caption
+     * and the shape as well — and because the file may still be arriving
+     * while the dialog is already up.
+     */
+    val viewingVideo: ChatMessage? = null,
     /** True while the "what would you like to attach" sheet is up. */
     val attachmentSheetOpen: Boolean = false,
     /** True while the chat picker for forwarding a selection is up. */
@@ -434,6 +442,46 @@ class ChatViewModel(
     }
 
     fun onPhotoClosed() = _uiState.update { it.copy(viewingPhoto = null) }
+
+    /**
+     * Opens a video full-screen, fetching it if it is not here yet.
+     *
+     * Unlike a photo, this opens before the file has arrived. A video is tens
+     * of megabytes and is deliberately not downloaded on sight, so the tap is
+     * the first moment anyone asked for it — and a button that sat dead for
+     * the length of a download would read as broken. The dialog shows a
+     * spinner and starts playing when the bytes land.
+     */
+    fun onVideoOpened(message: ChatMessage) {
+        val video = message.video ?: return
+        _uiState.update { it.copy(viewingVideo = message) }
+        val fileId = video.fileId ?: return
+        if (video.path != null || !requestedVideos.add(fileId)) return
+        viewModelScope.launch {
+            val path = repository.downloadFile(fileId) ?: return@launch
+            _uiState.update { state ->
+                val updated = state.mapMessage(message.id) {
+                    it.copy(video = it.video?.copy(path = path))
+                }
+                // The open dialog is holding a copy of the message from
+                // before the file arrived; without this it would keep its
+                // spinner until it was closed and opened again.
+                if (updated.viewingVideo?.id == message.id) {
+                    updated.copy(
+                        viewingVideo = updated.messages.firstOrNull { it.id == message.id }
+                            ?: updated.viewingVideo
+                    )
+                } else {
+                    updated
+                }
+            }
+        }
+    }
+
+    fun onVideoClosed() = _uiState.update { it.copy(viewingVideo = null) }
+
+    /** Video file ids already asked for, so reopening does not re-request. */
+    private val requestedVideos = mutableSetOf<Int>()
 
     // ── searching ────────────────────────────────────────────────────────
 
