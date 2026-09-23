@@ -296,6 +296,15 @@ fun HomeScreen(
                     selectedId = state.selectedFolderId,
                     onSelected = onFolderSelected
                 )
+                // In the header rather than as the list's first item, and
+                // that is what makes the panel below look like a panel: as
+                // a row inside the list it painted itself back to the
+                // header's tone across the full width, which squared off the
+                // rounded corners it was sitting on.
+                StoriesRail(
+                    stories = state.stories,
+                    onStoryClick = onOpenStory
+                )
                 Spacer(Modifier.height(12.dp))
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
@@ -340,22 +349,6 @@ fun HomeScreen(
                         // items, through which the panel behind them shows.
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        item {
-                            // Painted back to the bar's tone, because the list it
-                            // lives in carries the chats' lighter panel. Stories
-                            // belong with the header, not with the chats.
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            ) {
-                                StoriesRail(
-                                    stories = state.stories,
-                                    onStoryClick = onOpenStory
-                                )
-                                Spacer(Modifier.height(12.dp))
-                            }
-                        }
                         // Grouped into containers rather than laid out as one
                         // card per chat. Material's fourth expressive principle
                         // is to contain content: a run of rows sharing a
