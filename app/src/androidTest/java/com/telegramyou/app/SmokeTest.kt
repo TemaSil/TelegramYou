@@ -260,14 +260,16 @@ class SmokeTest {
         // the scrubber is the player's own, so a clip that never started
         // leaves it at zero — which is exactly what a black surface and a
         // pause icon would otherwise look like.
-        val started = device.wait(
-            Until.hasObject(By.textStartsWith("0:0").textContains("/")),
-            STEP_TIMEOUT
+        // One text condition, not two: a BySelector takes a single text
+        // matcher and rejects the second outright.
+        val clock = By.textContains(" / ")
+        assertTrue(
+            "the player never showed a time",
+            device.wait(Until.hasObject(clock), STEP_TIMEOUT)
         )
-        assertTrue("the player never showed a time", started)
         device.waitForIdle(IDLE_TIMEOUT)
         screenshot("14-video")
-        val label = device.findObject(By.textContains("/"))?.text
+        val label = device.findObject(clock)?.text
         assertTrue(
             "the clip did not advance: $label",
             label != null && !label.startsWith("0:00")
