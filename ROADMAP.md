@@ -711,6 +711,10 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       run, everything else another
 - [x] Bottom navigation — `ShortNavigationBar` with Chats, Search, Profile
       and Settings
+- [x] Shaped avatars — each person gets one of Material's shapes from the
+      same seed as their colour, so they are the same clover in the list, in
+      a group header and on their own row. Switchable in Appearance, because
+      a list of circles is what every other messenger looks like
 - [x] Compose — the pencil opens a contact picker in a `ModalBottomSheet`.
       It used to open `chats.firstOrNull()`, which looked like composing
       and was not
@@ -732,8 +736,9 @@ against the code showed `SettingsScreen.kt` had already been carrying half of
 them. Ticks are only worth something if somebody moves them.
 
 - [x] Settings list — `Scaffold`, `ListItem`, `Switch`
-- [~] Appearance: theme and dynamic colour are done, through
-      `SingleChoiceSegmentedButtonRow`; text size is not
+- [~] Appearance: theme, dynamic colour and shaped avatars are done —
+      the first through `SingleChoiceSegmentedButtonRow`, the others as
+      `Switch` rows; text size is not
 - [~] Sign out is there; the rest of privacy and active sessions is not
 - [x] Profile: name, bio and username, edited in place — the fields are the
       profile, with no pencil and no second screen behind one. What is valid
@@ -758,7 +763,13 @@ them. Ticks are only worth something if somebody moves them.
 - [x] Full-screen viewer with zoom and drag-to-dismiss — pinch, pan,
       double-tap and a drag that fades the backdrop as it goes; the maths is
       in `:core` as `ZoomPan` with tests
-- [ ] Download and upload progress — `LinearProgressIndicator`
+- [x] Download and upload progress — `LinearProgressIndicator`, determinate
+      once the size is known and indeterminate before that, with a line
+      saying which direction the bytes are going. It reads `updateFile`,
+      which the client had been ignoring: TDLib announces a file repeatedly
+      as it moves rather than sending percentages. The bar is drawn over the
+      poster in a bubble, in the player while a video is being fetched, and
+      in the grid tile in the play button's place
 - [~] Video playback — Media3's engine with Material's controls over a
       `TextureView`: a filled play and pause, a `Slider` for position and the
       time beside it. Media3's own player view is a View with its own look,
