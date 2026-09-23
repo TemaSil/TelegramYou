@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
@@ -234,9 +235,22 @@ class SmokeTest {
         signIn()
         waitFor(By.text(NOTIFYING_CHAT), "the chat list")
         tap(By.text(NOTIFYING_CHAT))
-        waitFor(By.textContains("Expressive motion"), "the video message")
+        waitFor(By.textContains("ButtonGroup"), "the conversation")
 
-        tap(By.desc("Video").hasParent(By.clazz("android.view.View")))
+        // Back up the list to reach it. A conversation opens at the bottom
+        // and the demo chat keeps talking, so the video is a few messages
+        // above whatever arrived last.
+        //
+        // By its caption, which is what the poster is published as and is
+        // unique here — both videos carry a play button, so "Play" would
+        // find whichever came first.
+        val poster = By.desc(VIDEO_CAPTION)
+        scrollBackTo(poster, "the video message")
+        tap(poster)
+
+        // Pause, not Play: the button shows what it will do next, so a
+        // pause icon is the player telling us it is running. A still first
+        // frame would satisfy anything weaker than this.
         waitFor(By.desc("Pause"), "the player, playing")
         screenshot("14-video")
     }
@@ -615,6 +629,25 @@ class SmokeTest {
         }
     }
 
+    /**
+     * Scrolls back up the conversation until [selector] is on screen.
+     *
+     * A chat opens at its newest message, and anything seeded earlier is
+     * above the fold — more so here, because the demo chat adds a line every
+     * twenty-five seconds while the test is running.
+     */
+    private fun scrollBackTo(selector: BySelector, what: String) {
+        if (device.hasObject(selector)) return
+        val list = device.findObject(By.scrollable(true))
+        repeat(6) {
+            list?.scroll(Direction.UP, 0.8f)
+            device.waitForIdle(IDLE_TIMEOUT)
+            if (device.hasObject(selector)) return
+        }
+        screenshot("failed-scrolling-to-${what.replace(' ', '-')}")
+        fail("$what never came into view")
+    }
+
     private fun waitFor(selector: BySelector, what: String) {
         val found = device.wait(Until.hasObject(selector), STEP_TIMEOUT)
         if (!found) {
@@ -687,6 +720,12 @@ class SmokeTest {
 
         /** Distinctive enough that finding it cannot be a coincidence. */
         const val REPLY_TEXT = "Replied from the shade"
+
+        /**
+         * The caption on the demo video that has a file behind it, which is
+         * also what its poster is published as.
+         */
+        const val VIDEO_CAPTION = "Expressive motion, slowed down"
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
