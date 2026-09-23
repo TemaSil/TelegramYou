@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -118,9 +119,18 @@ fun AvatarBubble(
             fontSize = (size.value / 3.2f).sp
         )
         if (showOnline) {
+            // Nudged out of the corner, and that is about the shapes. A
+            // circle fills its box, so a dot in the bottom-right corner sits
+            // on the avatar. A clover or a pentagon does not: the corner is
+            // empty and the edge cuts diagonally across it, which left the
+            // dot half-buried under the outline. Offsetting it outwards puts
+            // it clear of every shape in the set, and the ring of background
+            // colour around it keeps it legible against whichever one it
+            // ends up beside.
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
+                    .offset(x = size * 0.06f, y = size * 0.06f)
                     .size(size * 0.28f)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surface)

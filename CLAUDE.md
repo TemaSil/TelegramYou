@@ -230,8 +230,13 @@ must never be committed.
   первым, и ассистент молча переходит на английский. Код, комментарии,
   сообщения коммитов, README и ROADMAP остаются английскими: их читает и
   второй разработчик.
-- Develop on the branch the session assigns; do not push to `main`, and do
-  not open a pull request unless asked.
+- **Name the branch after the work**, not after whatever the session was
+  handed: `feat/transfer-progress`, `fix/avatar-online-dot`. A session often
+  starts on a generated name like `claude/awesome-davinci-s5ha6b`; rename it
+  before the first push. The owner reads the branch list to see what is in
+  flight, and a name that says nothing makes that list useless — this has
+  been asked for twice.
+- Do not push to `main`, and do not open a pull request unless asked.
 - The repository has a second developer as of September 2026, so a change
   that only makes sense to somebody who watched it being made needs a comment
   or a README line.
