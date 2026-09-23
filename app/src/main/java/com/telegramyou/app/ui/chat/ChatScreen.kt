@@ -136,6 +136,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -1468,19 +1470,30 @@ private fun VideoMessage(
         if (video.thumbPath == null) onPosterVisible()
     }
     Column {
+        val label = if (caption.isBlank() || caption == "Video") {
+            "Video, ${formatDuration(video.durationSeconds.toLong())}"
+        } else {
+            "Video, $caption"
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
                 .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .clickable(onClick = onOpen),
+                .clickable(onClick = onOpen)
+                // One description for the whole thing, on the part that is
+                // tappable. The poster, the play button and the duration are
+                // three nodes describing one object, and a screen reader
+                // announcing all three in a row is how a photo of a cat
+                // becomes "cat, play, nought colon eight".
+                .semantics(mergeDescendants = true) { contentDescription = label },
             contentAlignment = Alignment.Center
         ) {
             video.thumbPath?.let { poster ->
                 AsyncImage(
                     model = poster,
-                    contentDescription = caption.ifBlank { "Video" },
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -1497,7 +1510,9 @@ private fun VideoMessage(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Rounded.PlayArrow,
-                        contentDescription = "Play",
+                        // Described by the container above, which is what a
+                        // reader announces and what a finger taps.
+                        contentDescription = null,
                         modifier = Modifier.size(30.dp)
                     )
                 }

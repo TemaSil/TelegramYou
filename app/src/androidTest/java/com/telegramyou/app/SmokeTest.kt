@@ -244,7 +244,10 @@ class SmokeTest {
         // By its caption, which is what the poster is published as and is
         // unique here — both videos carry a play button, so "Play" would
         // find whichever came first.
-        val poster = By.desc(VIDEO_CAPTION)
+        // The bubble's own description, which covers the poster, the play
+        // button and the duration — see VideoMessage. Contains rather than
+        // equals, because the description leads with "Video,".
+        val poster = By.descContains(VIDEO_CAPTION)
         scrollBackTo(poster, "the video message")
         tap(poster)
 
