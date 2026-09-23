@@ -692,11 +692,16 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       work and then refuses the change, which is the pattern for a swipe
       that is an action rather than a deletion. Archive and mark-as-read
       are in the long-press menu — two directions, both spoken for.
-      Delete is not offered yet
+      Delete is not offered yet. **Off where the account has folders**:
+      there the sideways drag changes folder, and pin joins mute, archive
+      and mark-as-read in the long-press menu, so nothing is lost but the
+      shortcut. Telegram's own answer to the same collision is a setting
+      that picks one; ours could grow the same if both are wanted
 - [x] Folders — `PrimaryScrollableTabRow` over the one chat list, from the
       account's own folders, with Material's `Badge` carrying each tab's
-      unread count. Pinned above the list rather than scrolling with it; the
-      strip is absent entirely for an account with no folders. Membership is
+      unread count. The strip is absent entirely for an account with no
+      folders. The folders are also pages of a `HorizontalPager`, one list
+      per folder, so a sideways swipe on the chats moves between them Membership is
       a set on the chat, because a chat can be in several at once — TDLib
       reports it as a position in `chatListFolder`, the same way the archive
       works, so each folder has to be loaded for its chats to arrive
@@ -709,6 +714,13 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Grouped into containers — `SegmentedListItem` with
       `ListItemDefaults.segmentedShapes(index, count)`; pinned chats are one
       run, everything else another
+- [x] Header that scrolls away — the name, the folder tabs and the stories
+      leave as the chats scroll down and come back as soon as they scroll
+      up. The state is `TopAppBarState` under
+      `TopAppBarDefaults.enterAlwaysScrollBehavior`, settled on the motion
+      scheme's spatial spring, with one `SegmentTick` as it finishes going.
+      The header measures itself to tell that state how far it can go,
+      because its height is whatever the folders and the stories add up to
 - [x] Bottom navigation — `ShortNavigationBar` with Chats, Search, Profile
       and Settings
 - [x] Shaped avatars — each person gets one of Material's shapes from the

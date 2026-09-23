@@ -391,6 +391,50 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text("All"))
         waitFor(By.text(GROUP_CHAT), "the whole list again")
+
+        // Sideways on the list itself, because the folders are pages as well
+        // as tabs. All, Work, People: one swipe leaves Mom behind, who is
+        // only in People, and a second one finds her again and leaves the
+        // group, which is only in Work. A pager that moved and showed the
+        // same list twice would fail one of the two.
+        swipeListLeft()
+        assertTrue(
+            "one swipe should have reached Work, where Mom is not",
+            device.wait(Until.gone(By.text("Mom")), STEP_TIMEOUT)
+        )
+        waitFor(By.text(GROUP_CHAT), "the group, in Work")
+        screenshot("19-folder-swiped")
+        swipeListLeft()
+        waitFor(By.text("Mom"), "Mom, in People")
+        assertNull(
+            "the second swipe should have left Work and its group behind",
+            device.findObject(By.text(GROUP_CHAT))
+        )
+    }
+
+    /**
+     * The header — name, folders, stories — goes as the chats scroll down
+     * and comes back as soon as they scroll up.
+     *
+     * Asserted through the name, which leaves the accessibility tree once the
+     * header has shrunk to nothing and faded out. The tick that goes with it
+     * is felt, not seen, and nothing here can check it.
+     */
+    @Test
+    fun theHeaderScrollsAwayAndBack() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+
+        dragList(fromY = 0.75, toY = 0.35)
+        assertTrue(
+            "scrolling the chats down should take the header away",
+            device.wait(Until.gone(By.text(APP_TITLE)), STEP_TIMEOUT)
+        )
+        screenshot("18-header-hidden")
+
+        dragList(fromY = 0.45, toY = 0.8)
+        waitFor(By.text(APP_TITLE), "the header, back after scrolling up")
     }
 
     /**
@@ -732,6 +776,28 @@ class SmokeTest {
         fail("$what never came into view")
     }
 
+    /** A vertical drag through the middle of the screen, which is the list. */
+    private fun dragList(fromY: Double, toY: Double) {
+        val x = device.displayWidth / 2
+        val h = device.displayHeight
+        device.swipe(x, (h * fromY).toInt(), x, (h * toY).toInt(), 25)
+        device.waitForIdle(IDLE_TIMEOUT)
+    }
+
+    /**
+     * Right to left across the lower half, over the chats rather than the
+     * tabs — the swipe being tested is the one on the list.
+     */
+    private fun swipeListLeft() {
+        val y = (device.displayHeight * 0.65).toInt()
+        device.swipe(
+            (device.displayWidth * 0.85).toInt(), y,
+            (device.displayWidth * 0.15).toInt(), y,
+            15
+        )
+        device.waitForIdle(IDLE_TIMEOUT)
+    }
+
     private fun waitFor(selector: BySelector, what: String) {
         val found = device.wait(Until.hasObject(selector), STEP_TIMEOUT)
         if (!found) {
@@ -845,6 +911,7 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+        const val APP_TITLE = "TelegramYou"
 
         /**
          * Long enough for a heads-up notification to retreat into the status

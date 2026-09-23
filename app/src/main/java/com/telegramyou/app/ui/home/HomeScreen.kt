@@ -1,6 +1,25 @@
 package com.telegramyou.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.TopAppBarState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.unit.Constraints
+import com.telegramyou.app.telegram.model.ChatPreview
+import kotlin.math.roundToInt
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -85,7 +104,7 @@ import com.telegramyou.app.ui.components.StoriesRail
  * itself arrives in [state]; everything it wants to happen leaves through a
  * callback.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     state: HomeUiState,
@@ -186,47 +205,11 @@ fun HomeScreen(
                 )
                 return@Scaffold
             }
-            TopAppBar(
-                title = {
-                    // One line, and it is the app's name. Expressive's
-                    // argument for type is contrast — a display size set
-                    // tight, against body text that stays quiet — so the
-                    // name is `displayMedium` with its tracking pulled in
-                    // rather than a headline shouted in Black.
-                    //
-                    // What used to sit under it — "You Expressive" — said
-                    // nothing the screen does not already show, and the
-                    // avatar that sat beside it repeated the Profile tab two
-                    // inches below.
-                    Text(
-                        "TelegramYou",
-                        style = MaterialTheme.typography.displayMedium.copy(
-                            fontSize = 30.sp,
-                            lineHeight = 34.sp,
-                            letterSpacing = (-1.2).sp,
-                            // Medium, not the scale's ExtraBold. At display
-                            // size the weight does not have to carry the
-                            // emphasis — the size already does, and the
-                            // heavier cut read as shouting.
-                            fontWeight = FontWeight.Medium
-                        ),
-                        maxLines = 1
-                    )
-                },
-                // Darkest of the three levels on this screen. The bar is the
-                // container the screen hangs from, the background sits below
-                // it, and the chats are the lightest because they are the
-                // content — which is the order Material's fourth principle
-                // asks for: the important thing gets the brightest surface.
-                //
-                // Opaque, unlike the conversation's bar. There the gradient
-                // is meant to run behind it; here the bar is a level of its
-                // own and has to be seen to be one.
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                ),
-                modifier = Modifier.statusBarsPadding()
-            )
+            // On the chat list the bar is the top of a header that scrolls
+            // away with the chats, so it is drawn with them, below. The other
+            // tabs have nothing to scroll it away and keep it fixed here.
+            if (tab == HomeTab.Chats || tab == HomeTab.Search) return@Scaffold
+            HomeTitleBar(modifier = Modifier.statusBarsPadding())
         },
         floatingActionButton = {
             // Only where composing means anything. On Profile or Settings a
@@ -295,12 +278,63 @@ fun HomeScreen(
             HomeTab.Chats, HomeTab.Search -> Unit
         }
 
+        // Expanded or hidden, the header's position is Material's own state:
+        // the one a TopAppBar keeps, driven by the enterAlways behaviour. It
+        // goes as the chats scroll down and comes back the moment they scroll
+        // up, from anywhere in the list rather than only at its top, and when
+        // the finger lifts halfway it settles to one end or the other on the
+        // motion scheme's spatial spring — the bounce Expressive gives
+        // anything that moves — so it never stops half-hidden.
+        //
+        // The whole header goes, folders included. Those were pinned while
+        // the header was only the bar, on the argument that a filter should
+        // stay in reach; they still are — one flick up, or a swipe sideways
+        // on the list itself, which is what the pager below is for.
+        val header = TopAppBarDefaults.enterAlwaysScrollBehavior(
+            snapAnimationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+        )
+        val haptics = LocalHapticFeedback.current
+        // One light tick as the header finishes going, and none as it comes
+        // back. The tick marks the screen being handed to the list — a detent,
+        // which is what the segment tick is for — and a second one on the way
+        // back would make every scroll up and down buzz twice.
+        LaunchedEffect(header.state) {
+            snapshotFlow { header.state.collapsedFraction >= 1f }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { hidden ->
+                    if (hidden) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                }
+        }
+
+        // The folders are pages. The view model still owns which one is
+        // chosen — it survives a rotation there, and it filters — so the
+        // pager starts on that page and reports each page it settles on.
+        val tabs = state.folderTabs
+        val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
+            .coerceAtLeast(0)
+        val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
+        val scope = rememberCoroutineScope()
+        LaunchedEffect(pager, tabs) {
+            snapshotFlow { pager.settledPage }.collect { page ->
+                tabs.getOrNull(page)?.let { onFolderSelected(it.id) }
+            }
+        }
+        // And the other way, for a selection that moved without the pager:
+        // a folder deleted on another device, which the view model answers
+        // by falling back to All.
+        LaunchedEffect(selectedIndex) {
+            if (!pager.isScrollInProgress && pager.settledPage != selectedIndex) {
+                pager.scrollToPage(selectedIndex)
+            }
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 // The darker of the two tones on this screen: what sits
-                // behind the bar and the stories rail, and what shows if the
-                // list is overscrolled past its top.
+                // behind the header, and what shows if the list is
+                // overscrolled past its top.
                 //
                 // Before the padding, not after: a modifier chain paints
                 // where it stands, and insetting first would leave the
@@ -308,126 +342,78 @@ fun HomeScreen(
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .padding(padding)
         ) {
-            // A column, so the tabs sit above the list rather than over
-            // it. Pinned here rather than scrolling as the list's first item:
-            // a filter you have to scroll back to the top to change is one
-            // you cannot reach while looking at what it filtered — which is
-            // also why Telegram pins its own folder tabs.
-            Column(modifier = Modifier.fillMaxSize()) {
-                FolderTabs(
-                    tabs = state.folderTabs,
-                    unread = state.folderUnread,
-                    selectedId = state.selectedFolderId,
-                    onSelected = onFolderSelected
-                )
-                // In the header rather than as the list's first item, and
-                // that is what makes the panel below look like a panel: as
-                // a row inside the list it painted itself back to the
-                // header's tone across the full width, which squared off the
-                // rounded corners it was sitting on.
-                StoriesRail(
-                    stories = state.stories,
-                    onStoryClick = onOpenStory
-                )
-                Spacer(Modifier.height(12.dp))
+            // On the column, so the scroll of whichever page is showing
+            // reaches the header on its way up. Only the vertical half is
+            // taken: a sideways drag passes through to the pager untouched.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .nestedScroll(header.nestedScrollConnection)
+            ) {
+                CollapsingHeader(header.state) {
+                    HomeTitleBar(windowInsets = WindowInsets(0))
+                    FolderTabs(
+                        tabs = tabs,
+                        unread = state.folderUnread,
+                        // The page being swiped towards, not the one last
+                        // settled on: the indicator moves with the finger.
+                        selectedIndex = pager.targetPage,
+                        onSelected = { index ->
+                            scope.launch { pager.animateScrollToPage(index) }
+                        }
+                    )
+                    // In the header rather than as the list's first item, and
+                    // that is what makes the panel below look like a panel:
+                    // as a row inside the list it painted itself back to the
+                    // header's tone across the full width, which squared off
+                    // the rounded corners it was sitting on.
+                    StoriesRail(
+                        stories = state.stories,
+                        onStoryClick = onOpenStory
+                    )
+                    Spacer(Modifier.height(12.dp))
+                }
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    LazyColumn(
-                        // The lighter panel the chats sit on, and the second half
-                        // of Material's "contain content for emphasis": the rows
-                        // are the lightest tone, the panel under them is a step
-                        // darker, and the bar and the stories rail above are
-                        // darker still. Three steps, so the chats read as their
-                        // own zone rather than as pills floating on the same grey
-                        // as everything else — which is what they did when this
-                        // background and the one behind the stories were the same
-                        // colour.
-                        //
-                        // On the list rather than around it because the stories
-                        // rail is the list's own first item and has to stay out of
-                        // this panel; it paints itself back to the darker tone
-                        // below. Wrapping the chats in a panel of their own would
-                        // mean one `item` holding every row, and a chat list is
-                        // exactly the thing that must stay lazy.
-                        modifier = Modifier
-                            .fillMaxSize()
-                            // Rounded where it meets the header, so the chats
-                            // read as sitting in a panel rather than as the
-                            // screen carrying on in another colour. Clipped
-                            // before the background, or the corners would be
-                            // painted over by it.
-                            .clip(
-                                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                    val page: @Composable (List<ChatPreview>, Boolean, Boolean) -> Unit =
+                        { chats, isAll, inPager ->
+                            ChatListPage(
+                                chats = chats,
+                                archiveSummary = if (isAll) state.archiveSummary else null,
+                                shapedAvatars = settings.shapedAvatars,
+                                // A sideways drag is the pager's where there
+                                // is one; see ChatListRow.
+                                swipeActions = !inPager,
+                                onOpenArchive = onOpenArchive,
+                                onOpenChat = onOpenChat,
+                                onMutedChange = onMutedChange,
+                                onPinnedChange = onPinnedChange,
+                                onMarkRead = onMarkRead,
+                                onArchivedChange = onArchivedChange
                             )
-                            .background(MaterialTheme.colorScheme.surfaceContainerLow),
-                        // Room for the floating button, and only for it: the
-                        // navigation bar is outside this Scaffold now, under
-                        // the suite rather than inside the content, so the
-                        // sixteen extra points that cleared it would be a gap
-                        // below the last chat.
-                        // Twenty above, so the first row sits inside the
-                        // panel rather than wedged into its rounded corner,
-                        // and room for the floating button below.
-                        contentPadding = PaddingValues(top = 20.dp, bottom = 96.dp),
-                        // The hairline Material leaves between segmented list
-                        // items, through which the panel behind them shows.
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        // Grouped into containers rather than laid out as one
-                        // card per chat. Material's fourth expressive principle
-                        // is to contain content: a run of rows sharing a
-                        // container reads as one informative grouping, where the
-                        // same rows floating separately read as a pile of
-                        // unrelated things. Pinned chats get a container of their
-                        // own, because chosen and recent are different kinds of
-                        // thing and the separation then needs no heading.
-                        //
-                        // No AnimatedVisibility here. It wrapped every row with
-                        // visible = true, which never transitions, so the enter
-                        // animation could not run — a composition layer that cost
-                        // something and did nothing.
-                        // Above the chats and below the stories, which is where
-                        // Telegram puts it — and absent entirely when the archive
-                        // is empty, which the summary being null already says.
-                        state.archiveSummary?.let { summary ->
-                            item(key = "archive-entry") {
-                                ArchiveEntryRow(
-                                    summary = summary,
-                                    onClick = onOpenArchive,
-                                    modifier = Modifier.padding(horizontal = 12.dp)
-                                )
-                                Spacer(Modifier.height(12.dp))
-                            }
                         }
-                        groupChats(state.chats) { it.isPinned }.forEach { group ->
-                            itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
-                                ChatListRow(
-                                    chat = chat,
-                                    index = index,
-                                    count = group.size,
-                                    shapedAvatar = settings.shapedAvatars,
-                                    onClick = { onOpenChat(chat.id) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp),
-                                    onMutedChange = { muted -> onMutedChange(chat.id, muted) },
-                                    onPinnedChange = { pinned ->
-                                        onPinnedChange(chat.id, pinned)
-                                    },
-                                    onMarkRead = { onMarkRead(chat.id) },
-                                    onArchivedChange = { archived ->
-                                        onArchivedChange(chat.id, archived)
-                                    }
-                                )
-                            }
-                            // Between containers, not between rows: the gap is
-                            // what makes two groups read as two.
-                            item(key = "gap-${group.first().id}") {
-                                Spacer(Modifier.height(12.dp))
-                            }
+                    if (tabs.isEmpty()) {
+                        // No folders, nothing to page between: one list, and
+                        // the rows keep their own swipes.
+                        page(state.chats, /* isAll = */ true, /* inPager = */ false)
+                    } else {
+                        HorizontalPager(
+                            state = pager,
+                            modifier = Modifier.fillMaxSize(),
+                            // Each page is its own list with its own scroll
+                            // position, so they are told apart by folder
+                            // rather than by where they happen to sit.
+                            key = { index -> tabs.getOrNull(index)?.id ?: -1 },
+                            verticalAlignment = Alignment.Top
+                        ) { index ->
+                            page(
+                                state.folderChats.getOrElse(index) { emptyList() },
+                                /* isAll = */ tabs.getOrNull(index)?.id == null,
+                                /* inPager = */ true
+                            )
                         }
                     }
                 }
@@ -435,6 +421,219 @@ fun HomeScreen(
         }
     }
     }
+}
+
+/**
+ * The header over the chat list — bar, folders, stories — shrinking as
+ * [state] says.
+ *
+ * Measured at its full height and then laid out shorter, with its content
+ * slid up by the same amount and clipped, so what goes first is the top of
+ * it and the list below grows into the room as it is made. Reading the offset
+ * in the layout pass rather than in composition keeps a scroll to a relayout:
+ * nothing here is recomposed for each pixel the finger moves.
+ *
+ * It also tells [state] how far it can go, which a TopAppBar would normally
+ * do for itself — here the height is whatever the folders and the stories
+ * add up to, so only the measurement knows it.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CollapsingHeader(
+    state: TopAppBarState,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clipToBounds()
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(
+                    constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity)
+                )
+                val full = placeable.height
+                if (state.heightOffsetLimit != -full.toFloat()) {
+                    state.heightOffsetLimit = -full.toFloat()
+                }
+                val offset = state.heightOffset.roundToInt().coerceIn(-full, 0)
+                layout(placeable.width, full + offset) {
+                    placeable.place(0, offset)
+                }
+            }
+            // Fading as it goes, the way a large app bar's title does, so the
+            // last few points under the status bar leave as a dissolve rather
+            // than as a hard edge sliding out of sight.
+            .graphicsLayer { alpha = 1f - state.collapsedFraction },
+        content = content
+    )
+}
+
+/**
+ * One folder's chats, or all of them, on the lighter panel.
+ */
+@Composable
+private fun ChatListPage(
+    chats: List<ChatPreview>,
+    archiveSummary: String?,
+    shapedAvatars: Boolean,
+    swipeActions: Boolean,
+    onOpenArchive: () -> Unit,
+    onOpenChat: (Long) -> Unit,
+    onMutedChange: (Long, Boolean) -> Unit,
+    onPinnedChange: (Long, Boolean) -> Unit,
+    onMarkRead: (Long) -> Unit,
+    onArchivedChange: (Long, Boolean) -> Unit
+) {
+    LazyColumn(
+        // The lighter panel the chats sit on, and the second half
+        // of Material's "contain content for emphasis": the rows
+        // are the lightest tone, the panel under them is a step
+        // darker, and the bar and the stories rail above are
+        // darker still. Three steps, so the chats read as their
+        // own zone rather than as pills floating on the same grey
+        // as everything else — which is what they did when this
+        // background and the one behind the stories were the same
+        // colour.
+        //
+        // On the list rather than around it: wrapping the chats in a
+        // panel of their own would mean one `item` holding every row,
+        // and a chat list is exactly the thing that must stay lazy.
+        modifier = Modifier
+            .fillMaxSize()
+            // Rounded where it meets the header, so the chats
+            // read as sitting in a panel rather than as the
+            // screen carrying on in another colour. Clipped
+            // before the background, or the corners would be
+            // painted over by it.
+            .clip(
+                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            )
+            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+        // Twenty above, so the first row sits inside the panel
+        // rather than wedged into its rounded corner. Below, room for
+        // the floating button and only for it: the navigation bar is
+        // outside this Scaffold, under the suite, so clearing it too
+        // would leave a gap below the last chat.
+        contentPadding = PaddingValues(top = 20.dp, bottom = 96.dp),
+        // The hairline Material leaves between segmented list
+        // items, through which the panel behind them shows.
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        // Grouped into containers rather than laid out as one
+        // card per chat. Material's fourth expressive principle
+        // is to contain content: a run of rows sharing a
+        // container reads as one informative grouping, where the
+        // same rows floating separately read as a pile of
+        // unrelated things. Pinned chats get a container of their
+        // own, because chosen and recent are different kinds of
+        // thing and the separation then needs no heading.
+        //
+        // No AnimatedVisibility here. It wrapped every row with
+        // visible = true, which never transitions, so the enter
+        // animation could not run — a composition layer that cost
+        // something and did nothing.
+        //
+        // Above the chats and below the stories, which is where
+        // Telegram puts it — and absent entirely when the archive
+        // is empty, which the summary being null already says.
+        archiveSummary?.let { summary ->
+            item(key = "archive-entry") {
+                ArchiveEntryRow(
+                    summary = summary,
+                    onClick = onOpenArchive,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+        groupChats(chats) { it.isPinned }.forEach { group ->
+            itemsIndexed(group, key = { _, chat -> chat.id }) { index, chat ->
+                ChatListRow(
+                    chat = chat,
+                    index = index,
+                    count = group.size,
+                    shapedAvatar = shapedAvatars,
+                    swipeActions = swipeActions,
+                    onClick = { onOpenChat(chat.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp),
+                    onMutedChange = { muted -> onMutedChange(chat.id, muted) },
+                    onPinnedChange = { pinned ->
+                        onPinnedChange(chat.id, pinned)
+                    },
+                    onMarkRead = { onMarkRead(chat.id) },
+                    onArchivedChange = { archived ->
+                        onArchivedChange(chat.id, archived)
+                    }
+                )
+            }
+            // Between containers, not between rows: the gap is
+            // what makes two groups read as two.
+            item(key = "gap-${group.first().id}") {
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+    }
+}
+
+/**
+ * The app's name, as the bar the home screen hangs from.
+ *
+ * Its own function because it stands in two places: fixed at the top of
+ * Profile and Settings, and at the top of the chat list's header, where it
+ * scrolls away with the folders and the stories. [windowInsets] is empty
+ * there — the screen has already stepped below the status bar, and the bar
+ * padding itself for it a second time would open a gap the height of one.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeTitleBar(
+    modifier: Modifier = Modifier,
+    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets
+) {
+    TopAppBar(
+        title = {
+            // One line, and it is the app's name. Expressive's
+            // argument for type is contrast — a display size set
+            // tight, against body text that stays quiet — so the
+            // name is `displayMedium` with its tracking pulled in
+            // rather than a headline shouted in Black.
+            //
+            // What used to sit under it — "You Expressive" — said
+            // nothing the screen does not already show, and the
+            // avatar that sat beside it repeated the Profile tab two
+            // inches below.
+            Text(
+                "TelegramYou",
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontSize = 30.sp,
+                    lineHeight = 34.sp,
+                    letterSpacing = (-1.2).sp,
+                    // Medium, not the scale's ExtraBold. At display
+                    // size the weight does not have to carry the
+                    // emphasis — the size already does, and the
+                    // heavier cut read as shouting.
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = 1
+            )
+        },
+        // Darkest of the three levels on this screen. The bar is the
+        // container the screen hangs from, the background sits below
+        // it, and the chats are the lightest because they are the
+        // content — which is the order Material's fourth principle
+        // asks for: the important thing gets the brightest surface.
+        //
+        // Opaque, unlike the conversation's bar. There the gradient
+        // is meant to run behind it; here the bar is a level of its
+        // own and has to be seen to be one.
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        windowInsets = windowInsets,
+        modifier = modifier
+    )
 }
 
 /**
@@ -453,17 +652,13 @@ fun HomeScreen(
 private fun FolderTabs(
     tabs: List<FolderTab>,
     unread: List<Int>,
-    selectedId: Int?,
-    onSelected: (Int?) -> Unit
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit
 ) {
     if (tabs.isEmpty()) return
-    // Falls back to the first tab, which is All. A selected folder that is no
-    // longer in the list is already turned into null upstream, so this only
-    // catches the moment between the two.
-    val selectedIndex = tabs.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
 
     PrimaryScrollableTabRow(
-        selectedTabIndex = selectedIndex,
+        selectedTabIndex = selectedIndex.coerceIn(0, tabs.lastIndex),
         // Flush with everything else on the screen. The default edge padding
         // for a scrollable tab row is 52dp, which is Material's allowance for
         // a row that starts under a navigation icon — this one starts under
@@ -481,7 +676,7 @@ private fun FolderTabs(
             val count = unread.getOrElse(index) { 0 }
             Tab(
                 selected = index == selectedIndex,
-                onClick = { onSelected(folder.id) },
+                onClick = { onSelected(index) },
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(folder.title)

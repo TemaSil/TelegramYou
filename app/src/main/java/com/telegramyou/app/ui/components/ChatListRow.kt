@@ -99,7 +99,17 @@ fun ChatListRow(
     /** Clear the unread badge without opening the chat. */
     onMarkRead: (() -> Unit)? = null,
     /** Move into the archive, or back out. */
-    onArchivedChange: ((Boolean) -> Unit)? = null
+    onArchivedChange: ((Boolean) -> Unit)? = null,
+    /**
+     * Whether a sideways drag on the row is the row's own.
+     *
+     * Off where the list sits in a pager — the chat list with folders — and
+     * the same drag means "next folder". Not both: one gesture with two
+     * meanings is decided by which way the finger happens to wobble first.
+     * Everything the swipes did is in the long-press menu as well, so turning
+     * them off takes a shortcut away and nothing else.
+     */
+    swipeActions: Boolean = true
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val shapes = ListItemDefaults.segmentedShapes(index = index, count = count)
@@ -120,133 +130,157 @@ fun ChatListRow(
         }
     )
 
-    Box {
-        SwipeToDismissBox(
-            state = swipe,
-            modifier = modifier,
-            // Only where there is something to do. A row that swipes open on
-            // an action it cannot perform is a row that lies, and the search
-            // results reuse this one.
-            enableDismissFromStartToEnd = onPinnedChange != null,
-            enableDismissFromEndToStart = onMutedChange != null,
-            backgroundContent = {
-                SwipeAction(
-                    direction = swipe.dismissDirection,
-                    isPinned = chat.isPinned,
-                    isMuted = chat.isMuted,
-                    startLabel = swipeStartLabel,
-                    shape = shapes.shape
+    val row: @Composable () -> Unit = {
+        SegmentedListItem(
+            onClick = onClick,
+            shapes = shapes,
+            // Long press only where there is something to offer, so a row
+            // without actions does not grow a menu with nothing in it.
+            onLongClick = if (onMutedChange != null) {
+                { menuOpen = true }
+            } else {
+                null
+            },
+            // One colour for every row, pinned or not. The pinned ones used
+            // to be tinted, which was a second way of saying what their own
+            // container already says — and it made the group look striped
+            // rather than whole.
+            colors = ListItemDefaults.segmentedColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            ),
+            leadingContent = {
+                AvatarBubble(
+                    title = chat.title,
+                    seed = chat.avatarColor,
+                    shape = if (shapedAvatar) {
+                        val shapes = materialShapeSet()
+                        shapes[avatarShapeIndex(chat.avatarColor, shapes.size)]
+                    } else {
+                        CircleShape
+                    },
+                    showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup
                 )
-            }
-        ) {
-            SegmentedListItem(
-                onClick = onClick,
-                shapes = shapes,
-                // Long press only where there is something to offer, so a row
-                // without actions does not grow a menu with nothing in it.
-                onLongClick = if (onMutedChange != null) {
-                    { menuOpen = true }
-                } else {
-                    null
-                },
-                // One colour for every row, pinned or not. The pinned ones used
-                // to be tinted, which was a second way of saying what their own
-                // container already says — and it made the group look striped
-                // rather than whole.
-                colors = ListItemDefaults.segmentedColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-                ),
-                leadingContent = {
-                    AvatarBubble(
-                        title = chat.title,
-                        seed = chat.avatarColor,
-                        shape = if (shapedAvatar) {
-                            val shapes = materialShapeSet()
-                            shapes[avatarShapeIndex(chat.avatarColor, shapes.size)]
-                        } else {
-                            CircleShape
-                        },
-                        showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup
-                    )
-                },
-                supportingContent = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Pinned and muted are states of the chat, so they sit
-                        // with the preview text rather than competing with the
-                        // title.
-                        if (chat.isPinned) {
-                            Icon(
-                                Icons.Outlined.PushPin,
-                                contentDescription = "Pinned",
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        if (chat.isMuted) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.VolumeOff,
-                                contentDescription = "Muted",
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.width(4.dp))
-                        }
-                        Text(
-                            text = chat.lastMessage,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+            },
+            supportingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Pinned and muted are states of the chat, so they sit
+                    // with the preview text rather than competing with the
+                    // title.
+                    if (chat.isPinned) {
+                        Icon(
+                            Icons.Outlined.PushPin,
+                            contentDescription = "Pinned",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        Spacer(Modifier.width(4.dp))
                     }
-                },
-                trailingContent = {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = chat.timestampLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = if (chat.unreadCount > 0) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            }
+                    if (chat.isMuted) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.VolumeOff,
+                            contentDescription = "Muted",
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (chat.unreadCount > 0) {
-                            // A muted chat still counts, but must not shout:
-                            // the badge drops to a surface colour rather than
-                            // primary.
-                            Badge(
-                                containerColor = if (chat.isMuted) {
-                                    MaterialTheme.colorScheme.surfaceContainerHighest
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                },
-                                contentColor = if (chat.isMuted) {
-                                    MaterialTheme.colorScheme.onSurface
-                                } else {
-                                    MaterialTheme.colorScheme.onPrimary
-                                }
-                            ) {
-                                Text(chat.unreadCount.toString())
-                            }
-                        }
+                        Spacer(Modifier.width(4.dp))
                     }
-                },
-                content = {
                     Text(
-                        text = chat.title,
-                        fontWeight = FontWeight.Bold,
+                        text = chat.lastMessage,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
-            )
+            },
+            trailingContent = {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = chat.timestampLabel,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (chat.unreadCount > 0) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                    if (chat.unreadCount > 0) {
+                        // A muted chat still counts, but must not shout:
+                        // the badge drops to a surface colour rather than
+                        // primary.
+                        Badge(
+                            containerColor = if (chat.isMuted) {
+                                MaterialTheme.colorScheme.surfaceContainerHighest
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                            contentColor = if (chat.isMuted) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
+                            }
+                        ) {
+                            Text(chat.unreadCount.toString())
+                        }
+                    }
+                }
+            },
+            content = {
+                Text(
+                    text = chat.title,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        )
+    }
+
+    Box {
+        if (swipeActions) {
+            SwipeToDismissBox(
+                state = swipe,
+                modifier = modifier,
+                // Only where there is something to do. A row that swipes open on
+                // an action it cannot perform is a row that lies, and the search
+                // results reuse this one.
+                enableDismissFromStartToEnd = onPinnedChange != null,
+                enableDismissFromEndToStart = onMutedChange != null,
+                backgroundContent = {
+                    SwipeAction(
+                        direction = swipe.dismissDirection,
+                        isPinned = chat.isPinned,
+                        isMuted = chat.isMuted,
+                        startLabel = swipeStartLabel,
+                        shape = shapes.shape
+                    )
+                }
+            ) {
+                row()
+            }
+        } else {
+            Box(modifier) { row() }
         }
 
         if (onMutedChange != null) {
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                // Pinning was the right swipe's alone, which left it out of
+                // reach wherever the swipe is off. The archive reuses that
+                // callback to mean Unarchive and has its own words for it,
+                // so the entry is the main list's only.
+                if (onPinnedChange != null && swipeStartLabel == null) {
+                    DropdownMenuItem(
+                        text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.PushPin, contentDescription = null)
+                        },
+                        onClick = {
+                            onPinnedChange(!chat.isPinned)
+                            menuOpen = false
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(if (chat.isMuted) "Unmute" else "Mute") },
                     leadingIcon = {

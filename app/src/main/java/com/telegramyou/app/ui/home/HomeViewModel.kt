@@ -50,12 +50,26 @@ data class HomeUiState(
     val selectedFolderId: Int? = null,
     /** How many chats have something unread, per tab, in the tabs' order. */
     val folderUnread: List<Int> = emptyList(),
+    /**
+     * Every tab's list, in the tabs' order — [chats] is one of them.
+     *
+     * All of them rather than only the chosen one, because the folders are
+     * pages you swipe between: the neighbour is on screen for the length of
+     * the swipe, and a page that only filled in once it had settled would
+     * slide in blank.
+     */
+    val folderChats: List<List<ChatPreview>> = emptyList(),
     val archivedChats: List<ChatPreview> = emptyList(),
     /**
      * What the archive entry row says, or null when there is no row.
      *
      * Computed in :core with tests rather than in the screen, so a caller
      * cannot draw an entry for an empty archive by forgetting to check.
+     *
+     * Kept whichever folder is chosen, and drawn on the All page only. The
+     * archive is a different list, not a chat that could be in "People" —
+     * but All is still a page beside the chosen one, visible for the length
+     * of a swipe, and it has to arrive with its row already in place.
      */
     val archiveSummary: String? = null,
     val stories: List<StoryItem> = emptyList(),
@@ -190,13 +204,10 @@ class HomeViewModel(
             chats = chatsInFolder(home.chats, selected) { it.folderIds },
             folderTabs = tabs,
             selectedFolderId = selected,
-            // Gone under a folder. The archive is a different list, not a
-            // chat that could be in "People" — and a row offering it above
-            // three filtered chats says the filter stopped halfway.
-            archiveSummary = if (selected == null) home.archiveSummary else null,
             folderUnread = tabs.map { tab ->
                 folderUnreadChats(home.chats, tab.id, { it.folderIds }, { it.unreadCount })
-            }
+            },
+            folderChats = tabs.map { tab -> chatsInFolder(home.chats, tab.id) { it.folderIds } }
         )
     }.combine(profileEditing) { home, editing ->
         home.copy(profile = profileState(home.me, editing))

@@ -132,7 +132,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `the archive row belongs to All, not to a folder`() = runTest {
+    fun `the archive row outlives choosing a folder`() = runTest {
         val (vm, client) = viewModel()
         client.setFolders(listOf(ChatFolder(1, "Work")))
         client.setChats(
@@ -144,9 +144,13 @@ class HomeViewModelTest {
         advanceUntilIdle()
         assertEquals("1 chat", vm.uiState.value.archiveSummary)
 
+        // The All page sits beside Work in the pager and is on screen for
+        // the length of a swipe back to it, so its row cannot wait for the
+        // selection to come home. Which page draws it is the screen's call.
         vm.onFolderSelected(1)
         advanceUntilIdle()
-        assertNull(vm.uiState.value.archiveSummary)
+        assertEquals("1 chat", vm.uiState.value.archiveSummary)
+        assertEquals(listOf("Ivan"), vm.uiState.value.folderChats[1].map { it.title })
     }
 
     @Test
