@@ -1,6 +1,6 @@
 package com.telegramyou.app.ui.chat
 
-import android.view.SurfaceView
+import android.view.TextureView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -136,8 +136,15 @@ fun VideoPlayerScreen(
                 // seconds reads as a broken button.
                 CircularProgressIndicator(color = Color.White)
             } else {
+                // TextureView rather than SurfaceView, and the reason is
+                // visible in every screenshot: a SurfaceView gets a window of
+                // its own, which inside a Dialog is a second window over the
+                // first — it renders where nothing can photograph it, and on
+                // some devices behind the dialog entirely. A TextureView is
+                // an ordinary view in the same hierarchy, so it composites
+                // with everything above it and shows up in a capture.
                 AndroidView(
-                    factory = { ctx -> SurfaceView(ctx).also(player::setVideoSurfaceView) },
+                    factory = { ctx -> TextureView(ctx).also(player::setVideoTextureView) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(video.aspect.coerceIn(0.4f, 2.5f))

@@ -255,7 +255,23 @@ class SmokeTest {
         // pause icon is the player telling us it is running. A still first
         // frame would satisfy anything weaker than this.
         waitFor(By.desc("Pause"), "the player, playing")
+
+        // And prove it is running rather than merely open. The time under
+        // the scrubber is the player's own, so a clip that never started
+        // leaves it at zero — which is exactly what a black surface and a
+        // pause icon would otherwise look like.
+        val started = device.wait(
+            Until.hasObject(By.textStartsWith("0:0").textContains("/")),
+            STEP_TIMEOUT
+        )
+        assertTrue("the player never showed a time", started)
+        device.waitForIdle(IDLE_TIMEOUT)
         screenshot("14-video")
+        val label = device.findObject(By.textContains("/"))?.text
+        assertTrue(
+            "the clip did not advance: $label",
+            label != null && !label.startsWith("0:00")
+        )
     }
 
     /**
