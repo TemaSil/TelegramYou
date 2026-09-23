@@ -669,8 +669,13 @@ class SmokeTest {
     private fun scrollBackTo(selector: BySelector, what: String) {
         if (device.hasObject(selector)) return
         val list = device.findObject(By.scrollable(true))
-        repeat(6) {
-            list?.scroll(Direction.UP, 0.8f)
+        // Small steps, and plenty of them. The demo chat adds a line every
+        // twenty-five seconds, so by the time this test runs the video can be
+        // a dozen messages above the fold — and a long stride can carry it
+        // past between two checks, which is how this failed while finding it
+        // perfectly well one run earlier.
+        repeat(14) {
+            list?.scroll(Direction.UP, 0.4f)
             device.waitForIdle(IDLE_TIMEOUT)
             if (device.hasObject(selector)) return
         }
@@ -688,10 +693,30 @@ class SmokeTest {
         assertTrue("$what never appeared", found)
     }
 
+    /**
+     * Taps [selector], retrying once.
+     *
+     * The retry is not superstition: the demo chat inserts a message every
+     * twenty-five seconds, which re-lays out whatever is on screen, and a
+     * node found by `wait` can be gone by the time `findObject` asks for it
+     * again. That raced twice on the chat header in one evening.
+     *
+     * And it photographs the screen before giving up, because "nothing to
+     * tap" says nothing at all about what was there instead.
+     */
     private fun tap(selector: BySelector) {
-        device.wait(Until.hasObject(selector), STEP_TIMEOUT)
-        device.findObject(selector)?.click() ?: error("nothing to tap: $selector")
-        device.waitForIdle(IDLE_TIMEOUT)
+        repeat(2) {
+            device.wait(Until.hasObject(selector), STEP_TIMEOUT)
+            val node = device.findObject(selector)
+            if (node != null) {
+                node.click()
+                device.waitForIdle(IDLE_TIMEOUT)
+                return
+            }
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+        screenshot("failed-tapping-$selector")
+        error("nothing to tap: $selector")
     }
 
     /**
