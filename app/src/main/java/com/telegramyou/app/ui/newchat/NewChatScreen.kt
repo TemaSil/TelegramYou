@@ -327,7 +327,7 @@ fun JoinLinkScreen(
                             .fillMaxWidth()
                             .padding(24.dp)
                     ) {
-                        AvatarBubble(title = preview.title, seed = preview.avatarColor, size = 72.dp, photoPath = preview.photoPath)
+                        AvatarBubble(title = preview.title, seed = preview.avatarColor, size = 72.dp)
                         Text(preview.title, style = MaterialTheme.typography.titleLarge)
                         Text(
                             "%,d %s".format(
