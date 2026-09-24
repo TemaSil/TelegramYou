@@ -23,6 +23,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
+import org.junit.Assume.assumeTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -55,6 +56,10 @@ class SmokeTest {
 
     @Before
     fun launchFromCold() {
+        // Every test here drives the demo backend — the code 12345, the
+        // seeded chats, the chat that speaks on a timer. A live build has
+        // none of those, and LiveClientTest is its test instead.
+        assumeTrue("the smoke test drives the demo client", BuildConfig.USE_DEMO_CLIENT)
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // Heads-up notifications off for the run, and this is the fix rather
         // than a convenience. The demo chat speaks every twenty-five seconds
@@ -73,6 +78,9 @@ class SmokeTest {
     /** Left as it was found, for whatever runs on this emulator next. */
     @After
     fun restoreHeadsUpNotifications() {
+        // Skipped in a live build before the device was ever set up, and
+        // JUnit runs this regardless.
+        if (!::device.isInitialized) return
         device.executeShellCommand("settings put global heads_up_notifications_enabled 1")
         // A test that turned the screen leaves it upright and free again.
         device.setOrientationNatural()

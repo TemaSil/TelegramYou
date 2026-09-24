@@ -1,0 +1,157 @@
+# The live client on an emulator, as far as it goes without an account.
+#
+# The UI workflow drives the demo client, whose seeded chats it needs. This
+# one builds the live client — with the TELEGRAM_API_ID and TELEGRAM_API_HASH
+# repository secrets (Settings → Secrets and variables → Actions), the same
+# ones the Build workflow puts into the published APK — and checks that it
+# starts. GitHub masks the values in the log. The live build fetches TDLib's
+# libraries itself (see fetchTdlib in app/build.gradle.kts), and
+# LiveClientTest checks that the library loads, TDLib accepts the parameters
+# and the app arrives at the phone-number step. It stops there: the next step
+# sends a login code to a real phone.
+#
+# What comes back is a screenshot of the login screen and the test report,
+# on the live-screenshots branch, and TDLib's own log lines with the hash
+# filtered out.
+name: Live
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Read by app/build.gradle.kts, which makes this a live build.
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The credentials are there
+        run: |
+          if [ -z "$TELEGRAM_API_ID" ] || [ -z "$TELEGRAM_API_HASH" ]; then
+            echo "::error::Add TELEGRAM_API_ID and TELEGRAM_API_HASH under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Nothing from a live build goes into the cache other workflows read.
+          cache-read-only: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the live client on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb logcat -c
+            adb logcat > logcat-full.txt &
+            ./gradlew :app:connectedDebugAndroidTest --stacktrace -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.LiveClientTest || true
+
+      - name: Gather the evidence
+        if: always()
+        run: |
+          mkdir -p evidence/screenshots
+          cp -r app/build/outputs/androidTest-results/connected/. evidence/results/ \
+            2>/dev/null || true
+          find app/build/outputs -name '*.png' -exec cp {} evidence/screenshots/ \; \
+            2>/dev/null || true
+          if [ -f logcat-full.txt ]; then
+            grep -A 40 "FATAL EXCEPTION" logcat-full.txt > evidence/crash.txt 2>/dev/null || true
+            [ -s evidence/crash.txt ] || rm -f evidence/crash.txt
+            # TDLib's own complaints, which are what a failed start leaves.
+            grep -iE "tdlib|TdLibTelegramClient|UnsatisfiedLink" logcat-full.txt \
+              | grep -v "$TELEGRAM_API_HASH" | tail -80 > evidence/tdlib-log.txt 2>/dev/null || true
+            [ -s evidence/tdlib-log.txt ] || rm -f evidence/tdlib-log.txt
+          fi
+          find evidence -type f | sort
+
+      - name: Publish the evidence
+        if: always()
+        run: |
+          if [ -z "$(find evidence -type f 2>/dev/null)" ]; then
+            echo "Nothing to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan live-screenshots
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -not -name . -not -name .git -not -name evidence \
+            -exec rm -rf {} + 2>/dev/null || true
+          {
+            echo "# The live client, at the login screen"
+            echo
+            echo "From commit ${GITHUB_SHA}, run ${GITHUB_RUN_ID}."
+            echo "Rewritten on every run of the Live workflow."
+          } > README.md
+          git add -A
+          git commit -q -m "Live client at ${GITHUB_SHA}"
+          git push -f origin live-screenshots
+
+      # The report decides, as in the UI workflow: AGP exits 0 on a failed
+      # instrumentation test. A run in which the test was skipped — the build
+      # came out as the demo after all — counts as a failure too.
+      - name: Did the live client start
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+
+          ran = failed = 0
+          for path in glob.glob('evidence/results/**/*.xml', recursive=True):
+              try:
+                  root = ET.parse(path).getroot()
+              except ET.ParseError:
+                  continue
+              for case in root.iter('testcase'):
+                  if case.get('name') != 'tdlibStartsAndAsksForAPhoneNumber':
+                      continue
+                  if list(case.iter('skipped')):
+                      continue
+                  ran += 1
+                  for problem in list(case.iter('failure')) + list(case.iter('error')):
+                      failed += 1
+                      print(f"::error title=Live client::"
+                            + (problem.text or '').strip().splitlines()[0])
+                      print((problem.text or '').strip())
+
+          if ran == 0:
+              print("::error::The live test did not run; the build may have been the demo.")
+              sys.exit(1)
+          if failed:
+              sys.exit(1)
+          print("::notice title=Live client::TDLib started and asked for a phone number.")
+          PY

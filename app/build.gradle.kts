@@ -2,6 +2,7 @@
 // script, `java.` resolves to Gradle's `java` extension, not the package.
 import java.net.URI
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.util.Properties
 import javax.inject.Inject
 
@@ -37,6 +38,48 @@ val appVersionName = "0.2.$buildNumber"
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use(::load)
+}
+
+/**
+ * The Telegram credentials this build uses, or none for the demo client.
+ *
+ * Read from local.properties on a developer's machine, and from the
+ * environment on CI, where the Build workflow passes in the repository's
+ * TELEGRAM_API_ID and TELEGRAM_API_HASH secrets. Never from a tracked file:
+ * the repository is public, and a hash committed to it is found by anyone
+ * searching GitHub, where one inside the APK takes a decompiler.
+ *
+ * `-PdemoClient=true` builds the demo whatever is configured. The UI
+ * workflow uses it: its smoke test drives the demo's seeded chats and its
+ * login code, which a live build does not have.
+ */
+val forceDemo = providers.gradleProperty("demoClient").orNull == "true"
+val telegramApiId: String =
+    if (forceDemo) "0"
+    else localProperties.getProperty("TELEGRAM_API_ID")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("TELEGRAM_API_ID")?.takeIf { it.isNotBlank() }
+        ?: "0"
+val telegramApiHash: String =
+    if (telegramApiId == "0") ""
+    else localProperties.getProperty("TELEGRAM_API_HASH")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("TELEGRAM_API_HASH").orEmpty()
+val isLiveBuild = telegramApiId != "0" && telegramApiHash.isNotBlank()
+
+/**
+ * The hash as it is stored in the APK: XORed with a mask made fresh for each
+ * build, both as hex. The app puts it back together at start-up.
+ *
+ * This is masking, not encryption — the app has to be able to read it, so
+ * anything that runs the app can too. What it stops is the one-line
+ * extraction: `strings` over the APK, or a search of the dex for a 32-digit
+ * hex word, no longer finds it.
+ */
+val maskedApiHash: Pair<String, String> = run {
+    val plain = telegramApiHash.toByteArray()
+    val mask = ByteArray(plain.size).also { SecureRandom().nextBytes(it) }
+    val masked = ByteArray(plain.size) { i -> (plain[i].toInt() xor mask[i].toInt()).toByte() }
+    fun ByteArray.hex() = joinToString("") { byte -> "%02x".format(byte) }
+    masked.hex() to mask.hex()
 }
 
 android {
@@ -78,21 +121,11 @@ android {
         versionCode = buildNumber
         versionName = appVersionName
 
-        buildConfigField(
-            "int",
-            "TELEGRAM_API_ID",
-            (localProperties.getProperty("TELEGRAM_API_ID") ?: "0")
-        )
-        buildConfigField(
-            "String",
-            "TELEGRAM_API_HASH",
-            "\"${localProperties.getProperty("TELEGRAM_API_HASH") ?: ""}\""
-        )
-        buildConfigField(
-            "boolean",
-            "USE_DEMO_CLIENT",
-            ((localProperties.getProperty("TELEGRAM_API_ID") ?: "0") == "0").toString()
-        )
+        buildConfigField("int", "TELEGRAM_API_ID", if (isLiveBuild) telegramApiId else "0")
+        // Masked; see maskedApiHash. ApiCredentials in the app reverses it.
+        buildConfigField("String", "TELEGRAM_API_HASH_MASKED", "\"${maskedApiHash.first}\"")
+        buildConfigField("String", "TELEGRAM_API_HASH_MASK", "\"${maskedApiHash.second}\"")
+        buildConfigField("boolean", "USE_DEMO_CLIENT", (!isLiveBuild).toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Screenshots taken by an instrumentation test have nowhere safe to
@@ -372,6 +405,6 @@ val fetchTdlib = tasks.register<FetchTdlib>("fetchTdlib") {
 // native call with UnsatisfiedLinkError, so a live build fetches them itself.
 // The demo build — CI's, and anyone's without credentials — needs none and
 // never downloads anything.
-if ((localProperties.getProperty("TELEGRAM_API_ID") ?: "0") != "0") {
+if (isLiveBuild) {
     tasks.named("preBuild") { dependsOn(fetchTdlib) }
 }

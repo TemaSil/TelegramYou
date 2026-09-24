@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.os.Build
 import com.telegramyou.app.settings.AppearanceStore
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.telegram.unmaskApiHash
 import com.telegramyou.app.telegram.demo.DemoTelegramClient
 import com.telegramyou.app.telegram.tdlib.TdLibTelegramClient
 
@@ -28,7 +29,10 @@ class TelegramYouApp : Application() {
             TdLibTelegramClient(
                 context = this,
                 apiId = BuildConfig.TELEGRAM_API_ID,
-                apiHash = BuildConfig.TELEGRAM_API_HASH
+                apiHash = unmaskApiHash(
+                    BuildConfig.TELEGRAM_API_HASH_MASKED,
+                    BuildConfig.TELEGRAM_API_HASH_MASK
+                )
             )
         }
         telegramRepository = TelegramRepository(client)

@@ -18,12 +18,12 @@ release title says which build it is.
 > found**? The browser cached that 404. Reload the page ignoring the cache
 > (Ctrl+Shift+R, or ⌘+Shift+R on a Mac), or open it in a private window.
 
-**It is the demo build, and that is not a limitation of the build — it is the
-only one CI can make.** The whole interface is there, the login code is
-`12345`, and nothing leaves the phone. The live client needs a Telegram
-`api_id` and `api_hash`, which are deliberately not in this repository, and
-TDLib's native libraries, which are far too large for git. Building it is a
-local job; see below.
+**It is the live client: sign in with your own Telegram account.** CI builds
+it with the project's `api_id` and `api_hash` from the repository's secrets,
+and puts TDLib's native libraries in the APK. The keys are never in the
+repository itself; see *Credentials* in CLAUDE.md. A fork without those
+secrets builds the demo instead — the whole interface, offline, login code
+`12345`.
 
 It is debug-signed, so Android will ask whether to allow installing from this
 source.
@@ -79,7 +79,7 @@ part should use when it arrives.
 
 | Mode | When | Behavior |
 |------|------|----------|
-| **Demo** | `TELEGRAM_API_ID=0` (default) | Offline UI; login code `12345` |
+| **Demo** | no credentials, or `-PdemoClient=true` | Offline UI; login code `12345` |
 | **TDLib** | real `api_id` + `api_hash` | Full auth → chats → messages → files → stories |
 
 ## Getting set up
@@ -88,8 +88,9 @@ part should use when it arrives.
 gradlew.bat :app:assembleDebug
 ```
 
-That builds the **demo** client: the whole UI, offline, login code `12345`,
-no account and no keys needed. It is enough for most work on the interface.
+Without credentials that builds the **demo** client: the whole UI, offline,
+login code `12345`, no account and no keys needed. It is enough for most work
+on the interface.
 
 Copy `local.properties.example` to `local.properties` if you want to point
 Android Studio at a particular SDK, or to go live below.
@@ -142,9 +143,10 @@ TELEGRAM_API_HASH=your_api_hash_here
 ```
 
    The same `api_id` and `api_hash` serve any client of yours — one made
-   for another project works here too. They go in `local.properties` and
-   nowhere else: never in a tracked file, and never in the CI build, whose
-   APK is public and would hand the hash to anyone who unzips it.
+   for another project works here too. On a developer's machine they go in
+   `local.properties`; on CI, in the repository's `TELEGRAM_API_ID` and
+   `TELEGRAM_API_HASH` secrets. Never in a tracked file: the repository is
+   public, and the hash cannot be reissued.
 3. With a phone connected, `gradlew.bat :app:installDebug`. The first live
    build downloads TDLib's libraries by itself (see *Native TDLib* above),
    and the debug key is the same as the demo APK's, so it installs over it.
