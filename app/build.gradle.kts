@@ -1,3 +1,7 @@
+// Imported rather than written out in full: inside a task class in a build
+// script, `java.` resolves to Gradle's `java` extension, not the package.
+import java.net.URI
+import java.security.MessageDigest
 import java.util.Properties
 import javax.inject.Inject
 
@@ -304,11 +308,11 @@ abstract class FetchTdlib : DefaultTask() {
         val url = "https://github.com/TemaSil/TelegramYou/releases/download/" +
             "${release.get()}/tdlib-jnilibs-java.zip"
         logger.lifecycle("Downloading $url")
-        java.net.URI(url).toURL().openStream().use { input ->
+        URI(url).toURL().openStream().use { input ->
             zip.outputStream().use { output -> input.copyTo(output) }
         }
 
-        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val digest = MessageDigest.getInstance("SHA-256")
         zip.inputStream().use { input ->
             val buffer = ByteArray(1 shl 16)
             while (true) {
@@ -317,7 +321,7 @@ abstract class FetchTdlib : DefaultTask() {
                 digest.update(buffer, 0, read)
             }
         }
-        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        val actual = digest.digest().joinToString("") { byte -> "%02x".format(byte) }
         if (actual != sha256.get()) {
             zip.delete()
             throw GradleException(
