@@ -23,6 +23,13 @@ kotlin {
 }
 
 dependencies {
+    // Google's phone-number library, the one Android and Telegram's own
+    // clients format numbers with: the as-you-type formatter, which country a
+    // number belongs to, and each country's calling code. Pure Java, so it
+    // belongs here with the rest of the logic, and its answers are tested on
+    // the JVM like everything else in this module.
+    implementation("com.googlecode.libphonenumber:libphonenumber:9.0.40")
+
     testImplementation("junit:junit:4.13.2")
 }
 

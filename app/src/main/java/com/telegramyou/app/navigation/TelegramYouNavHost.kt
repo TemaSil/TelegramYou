@@ -148,7 +148,10 @@ fun TelegramYouNavHost(
                 onSubmitPhone = authViewModel::submitPhone,
                 onSubmitCode = authViewModel::submitCode,
                 onSubmitPassword = authViewModel::submitPassword,
-                onResendCode = authViewModel::resendCode
+                onResendCode = authViewModel::resendCode,
+                onChangeNumber = authViewModel::onChangeNumber,
+                onChangeNumberCancelled = authViewModel::onChangeNumberCancelled,
+                onDefaultRegion = authViewModel::onDefaultRegion
             )
         }
         composable(Route.Home.PATTERN) {

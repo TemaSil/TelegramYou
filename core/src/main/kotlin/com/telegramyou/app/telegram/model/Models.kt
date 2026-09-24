@@ -49,7 +49,17 @@ data class AuthUiState(
     val codeHint: String = "",
     val errorMessage: String? = null,
     val isLoading: Boolean = false,
-    val me: TelegramUser? = null
+    val me: TelegramUser? = null,
+    /**
+     * How many digits the code has, when the server says — the login screen
+     * sends it the moment the last one is typed. Zero when unknown.
+     */
+    val codeLength: Int = 0,
+    /** Whether the server offers another way to send the code. */
+    val canResend: Boolean = false,
+    /** Seconds after [codeSentAtMillis] before asking again is allowed. */
+    val resendAfterSeconds: Int = 0,
+    val codeSentAtMillis: Long = 0L
 )
 
 data class ChatPreview(

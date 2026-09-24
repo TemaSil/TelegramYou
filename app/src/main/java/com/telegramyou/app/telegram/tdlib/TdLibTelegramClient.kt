@@ -14,6 +14,7 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPositions
 import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.ui.auth.codeDeliveryText
 import com.telegramyou.app.ui.chat.applying
 import com.telegramyou.app.ui.format.Presence
 import com.telegramyou.app.ui.format.chatListTimeLabel
@@ -1558,23 +1559,34 @@ class TdLibTelegramClient(
                 }
             }
             "authorizationStateWaitCode" -> {
+                // Where the code went, how long it is — so the screen can
+                // send it on the last digit — and when another may be asked
+                // for. next_type is the other route the server offers; with
+                // none, there is nothing to resend.
                 val codeInfo = state.optJSONObject("code_info")
-                val hint = codeInfo?.optJSONObject("type")?.optString("@type") ?: "code"
+                val type = codeInfo?.optJSONObject("type")
+                val phone = codeInfo?.optString("phone_number").orEmpty()
                 _authState.update {
                     it.copy(
                         state = AuthState.WaitCode,
                         isLoading = false,
-                        codeHint = "Enter the code from Telegram ($hint)"
+                        errorMessage = null,
+                        codeHint = codeDeliveryText(type?.optString("@type").orEmpty(), phone),
+                        codeLength = type?.optInt("length") ?: 0,
+                        canResend = codeInfo?.optJSONObject("next_type") != null,
+                        resendAfterSeconds = codeInfo?.optInt("timeout") ?: 0,
+                        codeSentAtMillis = System.currentTimeMillis()
                     )
                 }
             }
             "authorizationStateWaitPassword" -> {
-                val hint = state.optString("password_hint").ifBlank { "2FA password" }
+                val hint = state.optString("password_hint")
                 _authState.update {
                     it.copy(
                         state = AuthState.WaitPassword,
                         isLoading = false,
-                        codeHint = "Cloud password: $hint"
+                        errorMessage = null,
+                        codeHint = if (hint.isBlank()) "" else "Hint: $hint"
                     )
                 }
             }
