@@ -270,6 +270,44 @@ careful with.
 - [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
       copy should move to `LocalClipboard`, which is suspend
 
+## The live backend, reviewed, 24 September 2026
+
+Demo mode is all CI has ever run, so the TDLib backend had only ever been
+compiled. Read against the API it talks to, it had drifted in ways no test
+here could see. What was fixed, on `fix/live-backend`:
+
+- **A refusal crashed the app.** Send, edit, delete, react, mute, pin and the
+  rest let TDLib's exception escape `viewModelScope`. Each view model now
+  has one `attempt()` and a snackbar; a refused send puts the draft back.
+- **Every chat was drawn pinned** (order compared with 2^50; real orders are
+  a date in the top bits), **every sent message drawn read** (`sending_state`,
+  an object, read as a number), and **chats the account is not in** — search
+  results, groups just left — listed at the bottom. Positions now live in
+  `ChatPositions` in `:core`, with tests.
+- **Stories never showed**: the array was read from a field that does not
+  exist. They now come from `updateChatActiveStories`.
+- **The pinned bar never showed** (`pinned_message_id` is gone from `chat`),
+  and **muting reset a chat's sound and previews** (a partial settings
+  object). Fixed with `getChatPinnedMessage` and the chat's own settings.
+- **The open chat never heard of edits, deletions, reactions, reads or a
+  send's real id**, and was refetched after every send, losing the history
+  scrolled back through. `MessageUpdate` events and a tested reducer in
+  `:core` replace both.
+- **A notification line could repeat** once per screen rotation. Fixed, and
+  the smoke test now turns the screen and reads the notification back.
+
+Still open, found in the same reading and not yet worth the change:
+
+- `isOnline` is always false live — user status updates are not read.
+- Times are `HH:mm` whatever the day; the demo says "Yesterday", live does
+  not.
+- `getChatHistory` often answers a first call with one message; the list
+  pages in the rest on scroll, but opens nearly empty.
+- The composer's `loadChats` asks for fifty chats once; there is no paging
+  past them.
+- Only `ChatScreen`, `HomeViewModel` and the navigation graph are left
+  unreviewed.
+
 ## Where this was left, 19 September 2026
 
 A day of finishing sections rather than starting them. Everything here is on
