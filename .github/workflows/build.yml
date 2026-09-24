@@ -84,15 +84,6 @@ jobs:
               # has to be read rather than remembered.
               ("media3", GOOGLE, "androidx/media3/media3-exoplayer"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
-              # The Compose preview screenshot plugin, by its Gradle plugin
-              # marker. Versioned independently of AGP, so which one pairs
-              # with AGP 9 cannot be guessed from the AGP version.
-              (
-                  "screenshot-plugin",
-                  GOOGLE,
-                  "com/android/compose/screenshot/"
-                  "com.android.compose.screenshot.gradle.plugin",
-              ),
           )
 
           # -alpha, -beta, -rc, -dev and friends. A BOM's own date-shaped

@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.android.compose.screenshot")
 }
 
 /**
@@ -138,13 +137,6 @@ android {
         compose = true
         buildConfig = true
     }
-
-    // Yes, this is also in gradle.properties, and both are required. The
-    // plugin checks the property while being applied, which happens before
-    // this block exists; then it checks the module's own experimental
-    // properties while configuring the project. Setting either one alone
-    // fails, each time with a message naming only the other place.
-    experimentalProperties["android.experimental.enableScreenshotTest"] = true
 
 
     packaging {

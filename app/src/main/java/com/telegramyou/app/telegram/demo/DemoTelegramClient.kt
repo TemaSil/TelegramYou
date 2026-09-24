@@ -385,6 +385,13 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
+    /** Every demo chat is already in memory; there is never a next page. */
+    override suspend fun loadMoreChats(folderId: Int?): Boolean = false
+
+    // Nothing to track: the demo keeps every chat in memory anyway.
+    override fun retainChat(chatId: Long) = Unit
+    override fun releaseChat(chatId: Long) = Unit
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
         val chat = _chats.value.first { it.id == chatId }

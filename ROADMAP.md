@@ -267,8 +267,8 @@ careful with.
 - Adaptive navigation → `ShortNavigationBar` / `WideNavigationRail`
 - Avatars and story rings → `MaterialShapes`
 - Grouped lists → `SegmentedListItem`, never hand-cut corner radii
-- [ ] `LocalClipboardManager` is deprecated on this Compose — `ChatScreen`
-      copy should move to `LocalClipboard`, which is suspend
+- [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
+      `ui/common`; `LocalClipboardManager` is gone
 
 ## The live backend, reviewed, 24 September 2026
 
@@ -296,17 +296,33 @@ here could see. What was fixed, on `fix/live-backend`:
 - **A notification line could repeat** once per screen rotation. Fixed, and
   the smoke test now turns the screen and reads the notification back.
 
-Still open, found in the same reading and not yet worth the change:
+And the second pass, on `fix/live-backend-rest`, closing what the first
+left open:
 
-- `isOnline` is always false live — user status updates are not read.
-- Times are `HH:mm` whatever the day; the demo says "Yesterday", live does
-  not.
-- `getChatHistory` often answers a first call with one message; the list
-  pages in the rest on scroll, but opens nearly empty.
-- `refreshChats` asks each list for fifty chats once; there is no paging
-  past them.
-- Only `ChatScreen`, `HomeViewModel` and the navigation graph are left
-  unreviewed.
+- **Opening a chat marked nothing read**, in either backend — the badge
+  stayed until "Mark as read" was chosen from the list. The conversation now
+  marks itself read while it is in front, and clears its notification.
+- **Turning the phone on chat info, the media grid, the archive or a
+  new-group form threw the person back to the chat list**: the redirect
+  after sign-in checked a list of routes that had fallen behind.
+- **A new message pulled someone reading back through the history down to
+  the bottom.** It now only follows along when the list was at its end, or
+  the message is our own.
+- Presence, member counts and dates, all tested in `:core`: a private chat
+  says "online" or "last seen …", a group "1,284 members", a channel
+  subscribers, and the list says "Yesterday" or "Mon" rather than a bare
+  time for a message from March.
+- A conversation opens with a full page even when TDLib answers the first
+  request with one message; the chat list asks for its next page as it
+  nears its end.
+- TDLib's `openChat`/`closeChat` are counted across the three screens that
+  open a chat.
+- Copying moved to `LocalClipboard`; the dead screenshot previews are gone
+  (see below).
+
+Still unverified: none of this has run against a real account. That needs
+the TDLib libraries unpacked and an `api_id` on a developer's machine — see
+README.
 
 ## Where this was left, 19 September 2026
 
@@ -554,44 +570,19 @@ four domain interfaces without touching either backend.
    play button in the bubble, Media3 behind a full-screen player with
    Material's own controls.
 
-### Screenshot rendering: groundwork laid, not working yet
+### Screenshot rendering: taken out, 24 September 2026
 
-Compose Preview Screenshot Testing is applied and configured, and the build
-is green with it. What does not work is the rendering, and six runs narrowed
-why to one fact:
+Compose Preview Screenshot Testing (`com.android.compose.screenshot`) was
+applied for a week and never rendered anything: under AGP 9 the
+`screenshotTest` source set was never even compiled, so its four previews
+drifted out of step with the screens they called and nothing noticed. The
+plugin, its two `enableScreenshotTest` switches and the previews are gone.
 
-```
---- compiled screenshotTest classes ---
-                    (nothing)
-```
-
-**The previews are never compiled.** Not from `src/screenshotTest/java`, not
-from `src/screenshotTest/kotlin` — both were tried. So this is not layoutlib
-refusing a Material 3 Expressive alpha, and not a preview that cannot be
-drawn; the source set simply is not being built. `updateDebugScreenshotTest`
-then reports "test sources present ... did not discover any tests", which
-sounds like a task misconfiguration and is really an empty classpath.
-
-What is already in place and correct:
-
-- Plugin `com.android.compose.screenshot:0.0.1-alpha16` — the newest; the
-  Build workflow prints the list.
-- `android.experimental.enableScreenshotTest` in **both** `gradle.properties`
-  and the module's `experimentalProperties`. Both are required, and each
-  failure names only the other one.
-- Four previews in `app/src/screenshotTest/kotlin` — chat list in both
-  themes, a conversation, the login screen — non-private, with dynamic colour
-  off and fixed instants so they render identically on any machine.
-
-Where to look next: whether AGP 9's built-in Kotlin compiles the
-`screenshotTest` source set at all, and what `./gradlew :app:tasks` and
-`:app:sourceSets` actually report for it. The plugin's alphas track AGP
-closely and 9.4 is very new, so "not supported yet" is a live possibility —
-in which case Roborazzi is the fallback.
-
-The rendering steps have been taken back out of the workflow. A step that
-always fails teaches nothing after the first time, and a red build on every
-push costs more than the feature is currently worth.
+What it was for is done another way: the **UI** workflow draws the real app
+on an emulator after every push to `main`, and the **`gallery`** branch
+keeps those screens build by build. If a pixel-level check is wanted again,
+Roborazzi is the candidate — it does not depend on AGP compiling a source
+set of its own.
 
 ### Known debts, none of them hidden
 
@@ -609,8 +600,6 @@ push costs more than the feature is currently worth.
   not the theme's.
 - `onClick = {}` stubs remain on the search button and the composer's voice
   button. They look like features and are not.
-- `LocalClipboardManager` is deprecated on this Compose; copying should move
-  to `LocalClipboard`, which is suspend.
 - **[`tdlib-java-d1085f9`](https://github.com/TemaSil/TelegramYou/releases/tag/tdlib-java-d1085f9)**
   — `tdlib-jnilibs-java.zip`, 34.6 MB, all four ABIs — has still not been
   unpacked into `app/src/main/jniLibs/`. Live mode needs it; demo mode does

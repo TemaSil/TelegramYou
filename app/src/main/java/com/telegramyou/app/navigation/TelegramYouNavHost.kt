@@ -5,6 +5,12 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import com.telegramyou.app.notifications.PostedNotifications
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.core.app.NotificationManagerCompat
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,16 +65,13 @@ fun TelegramYouNavHost(
     LaunchedEffect(auth.state) {
         when (auth.state) {
             AuthState.Ready -> {
-                // Compared against the registered patterns rather than by
-                // prefix: "starts with chat" would also match a future
-                // chat-settings route and quietly stop redirecting.
+                // Anywhere but the login screen is already inside. This was a
+                // list of the routes that count, and it fell behind as screens
+                // were added: this effect runs again on every recreation, so
+                // turning the phone on chat info, the media grid, the archive
+                // or a new-group form threw the person back to the chat list.
                 val current = navController.currentDestination?.route
-                val alreadyInside = current in setOf(
-                    Route.Home.PATTERN,
-                    Route.Chat.PATTERN,
-                    Route.Story.PATTERN,
-                    Route.Settings.PATTERN
-                )
+                val alreadyInside = current != null && current != Route.Auth.PATTERN
                 if (!alreadyInside) {
                     navController.navigateTo(Route.Home) {
                         popUpTo(0) { inclusive = true }
@@ -205,7 +208,8 @@ fun TelegramYouNavHost(
                 onContactPicked = homeViewModel::onContactPicked,
                 onComposeNavigated = homeViewModel::onComposeNavigated,
                 onLogout = homeViewModel::logout,
-                onErrorShown = homeViewModel::onErrorShown
+                onErrorShown = homeViewModel::onErrorShown,
+                onListEndReached = homeViewModel::onListEndReached
             )
         }
         // Group and channel share a screen and a state holder; only what the
@@ -370,9 +374,27 @@ fun TelegramYouNavHost(
             // conversations there is no open chat, and claiming the old one
             // would silence a message that belongs in the shade.
             val openChat = state.detail?.chat?.id
+            val context = LocalContext.current
             DisposableEffect(openChat) {
                 AppVisibility.openChatId = openChat
+                // What the shade holds for this chat is being read right now.
+                openChat?.let { id ->
+                    NotificationManagerCompat.from(context)
+                        .cancel(PostedNotifications.notificationId(id))
+                    PostedNotifications.clear(id)
+                }
                 onDispose { AppVisibility.openChatId = null }
+            }
+            // Read while in front, and again as each newer message lands —
+            // but not while the app is behind something else, which is what
+            // repeatOnLifecycle(RESUMED) keeps out. See ChatViewModel.onSeen.
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val newest = state.messages.lastOrNull()?.id
+            LaunchedEffect(newest, lifecycleOwner) {
+                if (newest == null) return@LaunchedEffect
+                lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                    chatViewModel.onSeen()
+                }
             }
             ChatScreen(
                 state = state,

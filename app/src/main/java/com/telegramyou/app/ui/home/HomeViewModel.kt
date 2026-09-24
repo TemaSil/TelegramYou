@@ -503,7 +503,32 @@ class HomeViewModel(
         }
     }
 
+    /** Lists that answered "nothing more", by folder id; null is the main list. */
+    private val exhaustedLists = mutableSetOf<Int?>()
+    private var loadingMore = false
+
+    /**
+     * The list for [folderId] is near its end; fetch the next chats.
+     *
+     * Guarded twice, like paging older messages: a list resting at its end
+     * reports that on every frame, and without the guards that is a request
+     * per frame — forever, once the list has run out.
+     */
+    fun onListEndReached(folderId: Int?) {
+        if (loadingMore || folderId in exhaustedLists) return
+        loadingMore = true
+        viewModelScope.launch {
+            var more = false
+            attempt("Could not load more chats") { more = repository.loadMoreChats(folderId) }
+            if (!more) exhaustedLists += folderId
+            loadingMore = false
+        }
+    }
+
     fun refresh() {
+        // A refresh may bring new chats to the bottom of any list, so every
+        // list is worth asking again.
+        exhaustedLists.clear()
         viewModelScope.launch {
             refreshing.value = true
             try {

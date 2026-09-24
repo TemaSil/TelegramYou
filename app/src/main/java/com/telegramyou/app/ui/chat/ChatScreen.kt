@@ -113,6 +113,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -129,7 +130,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalClipboardManager
+import com.telegramyou.app.ui.common.rememberTextCopier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
@@ -137,7 +138,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.semantics.contentDescription
@@ -315,8 +315,28 @@ fun ChatScreen(
     // Keyed on the newest message, not on the count. Paging older history in
     // also changes the count, and scrolling to the bottom because somebody
     // scrolled up is the opposite of what they asked for.
+    //
+    // And only when following along: the first time the chat opens, after
+    // our own message, or when the list was already at its end. Someone
+    // reading back through the history is not pulled away from it by a new
+    // line — the jump-to-latest button is there for that — which is what
+    // every messenger does and what this did not.
+    //
+    // The target counts the loading row the list may carry above the
+    // messages; the message's own index was one short whenever it did.
+    var hasScrolledIn by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.messages.lastOrNull()?.id) {
-        if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
+        val newest = state.messages.lastOrNull() ?: return@LaunchedEffect
+        val info = listState.layoutInfo
+        val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
+        // Two from the end: the list may or may not have laid out the new
+        // item by the time this runs.
+        val following = lastVisible >= info.totalItemsCount - 2
+        if (!hasScrolledIn || newest.isOutgoing || following) {
+            val leading = if (state.isLoadingOlder) 1 else 0
+            listState.animateScrollToItem(state.messages.size - 1 + leading)
+            hasScrolledIn = true
+        }
     }
 
     // derivedStateOf so this recomputes on scroll without recomposing the
@@ -346,7 +366,7 @@ fun ChatScreen(
 
     val detail = state.detail
     val chat = detail?.chat
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberTextCopier()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -626,7 +646,7 @@ fun ChatScreen(
                             // one against the last of a run is what reads right.
                             showAvatar = detail?.chat?.isGroup == true,
                             onCopy = {
-                                clipboard.setText(AnnotatedString(message.text))
+                                copyToClipboard(message.text)
                             },
                             onReply = { onReplyTo(message) },
                             onEdit = { onEdit(message) },
@@ -764,7 +784,7 @@ fun ChatScreen(
                         count = state.selection.count,
                         actions = state.availableActions,
                         onCopy = {
-                            clipboard.setText(AnnotatedString(copyText(state.selectedMessages)))
+                            copyToClipboard(copyText(state.selectedMessages))
                             onSelectionCleared()
                         },
                         onForward = onForwardRequested,

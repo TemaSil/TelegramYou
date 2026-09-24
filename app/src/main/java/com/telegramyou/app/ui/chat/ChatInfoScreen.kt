@@ -32,8 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import com.telegramyou.app.ui.common.rememberTextCopier
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.ui.components.AvatarBubble
@@ -63,7 +62,7 @@ fun ChatInfoScreen(
     onLeaveConfirmed: () -> Unit
 ) {
     val chat = detail?.chat
-    val clipboard = LocalClipboardManager.current
+    val copyToClipboard = rememberTextCopier()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -150,7 +149,7 @@ fun ChatInfoScreen(
                         // row is what a finger aims at, and the only thing
                         // there is to do with a link on a phone is copy it.
                         modifier = Modifier.clickable {
-                            clipboard.setText(AnnotatedString(link))
+                            copyToClipboard(link)
                             scope.launch {
                                 snackbarHostState.showSnackbar("Invite link copied")
                             }

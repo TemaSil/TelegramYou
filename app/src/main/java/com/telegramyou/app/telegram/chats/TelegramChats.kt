@@ -27,10 +27,37 @@ interface TelegramChats {
     suspend fun refreshChats()
 
     /**
+     * Asks for the next chats of a list — the main one for a null
+     * [folderId], otherwise that folder — and answers whether there may be
+     * more.
+     *
+     * [refreshChats] loads one page of each list. An account with more chats
+     * than that had no way to reach the rest; this is what the list calls as
+     * it nears its end. What arrives comes through [chats] as usual.
+     */
+    suspend fun loadMoreChats(folderId: Int?): Boolean
+
+    /**
      * Everything a conversation screen needs. Returns a fixed window of
      * recent messages today; paging is the next thing this owes.
      */
     suspend fun openChat(chatId: Long): ChatDetail
+
+    /**
+     * A screen showing [chatId] has appeared, and [releaseChat] says it has
+     * gone.
+     *
+     * Telegram wants to know which chats are open — in supergroups and
+     * channels some updates only arrive for open ones — and a chat is open
+     * from three screens here, each with its own state holder: the
+     * conversation, its media grid and its info screen. So this is counted,
+     * once per holder rather than once per fetch, and the chat closes when
+     * the last holder goes. Not suspending: the release is called as a
+     * holder is torn down, with nothing left to wait on.
+     */
+    fun retainChat(chatId: Long)
+
+    fun releaseChat(chatId: Long)
 
     /**
      * Chats matching [query], best matches first.
@@ -63,7 +90,9 @@ interface TelegramChats {
      *
      * Its own method rather than a side effect of opening one, because the
      * point of it is to clear a badge without going in — which is most of why
-     * anybody reaches for it.
+     * anybody reaches for it. The open conversation calls it too, whenever a
+     * message it shows is newer than what it last marked, and only while it
+     * is actually on screen: see ChatViewModel.onSeen.
      */
     suspend fun markChatRead(chatId: Long)
 

@@ -169,6 +169,9 @@ class ChatViewModel(
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     init {
+        // Held open for as long as this state holder lives; released in
+        // onCleared. See TelegramChats.retainChat for why it is counted.
+        repository.retainChat(chatId)
         reload()
         viewModelScope.launch {
             // Forwarding needs somewhere to forward to, and the chat list is
@@ -257,6 +260,37 @@ class ChatViewModel(
         }
 
     fun onErrorShown() = _uiState.update { it.copy(errorMessage = null) }
+
+    /** The newest message already marked read from here; see [onSeen]. */
+    private var markedUpTo = 0L
+
+    /**
+     * The conversation is on screen, showing everything up to its newest
+     * message — so that much is read.
+     *
+     * Called by the screen while it is in front, again whenever a newer
+     * message arrives, and never from the background: a message landing in
+     * a chat left open on a phone in a pocket has not been read by anybody.
+     * Only what came from someone else counts, and only once per message.
+     * Opening a chat used to leave its badge where it was until "Mark as
+     * read" was chosen from the list.
+     */
+    fun onSeen() {
+        val newest = _uiState.value.messages.lastOrNull { !it.isOutgoing } ?: return
+        if (newest.id <= markedUpTo) return
+        markedUpTo = newest.id
+        viewModelScope.launch {
+            // Quietly: a read receipt that did not go is not worth a snackbar,
+            // and the next message on screen will try again.
+            try {
+                repository.markChatRead(chatId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                markedUpTo = 0L
+            }
+        }
+    }
 
     // ── composing ────────────────────────────────────────────────────────
 
@@ -500,6 +534,7 @@ class ChatViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        repository.releaseChat(chatId)
         // The screen can go away mid-sentence, and a MediaPlayer left holding
         // a file handle outlives it.
         voicePlayer.stop()

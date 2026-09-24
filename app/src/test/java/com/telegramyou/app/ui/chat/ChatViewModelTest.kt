@@ -311,6 +311,31 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `a chat on screen is marked read once per newer message`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11)))
+        val reads = { client.chatCalls.count { it == "markChatRead:$CHAT_ID" } }
+
+        vm.onSeen()
+        vm.onSeen()
+        assertEquals("once for what is on screen, however often it is looked at", 1, reads())
+
+        client.deliver(message(12))
+        vm.onSeen()
+        assertEquals("again for the message that arrived", 2, reads())
+
+        client.deliver(message(13).copy(isOutgoing = true))
+        vm.onSeen()
+        assertEquals("our own message is not something to read", 2, reads())
+    }
+
+    @Test
+    fun `the chat is held open from the first moment`() = runTest {
+        val (_, client) = viewModel(listOf(message(10)))
+
+        assertEquals(1, client.chatCalls.count { it == "retainChat:$CHAT_ID" })
+    }
+
+    @Test
     fun `a selected message deleted elsewhere drops out of the selection`() = runTest {
         val (vm, client) = viewModel(listOf(message(10), message(11)))
         vm.onSelectionToggled(message(10))

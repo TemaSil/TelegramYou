@@ -80,6 +80,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -139,7 +142,9 @@ fun HomeScreen(
     onComposeNavigated: () -> Unit,
     onLogout: () -> Unit,
     /** Called once a refusal in [HomeUiState.errorMessage] has been shown. */
-    onErrorShown: () -> Unit = {}
+    onErrorShown: () -> Unit = {},
+    /** A list is near its end: the main one for null, else that folder. */
+    onListEndReached: (Int?) -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -389,10 +394,12 @@ fun HomeScreen(
                     onRefresh = onRefresh,
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    val page: @Composable (List<ChatPreview>, Boolean, Boolean) -> Unit =
-                        { chats, isAll, inPager ->
+                    val page: @Composable (List<ChatPreview>, Int?, Boolean) -> Unit =
+                        { chats, folderId, inPager ->
+                            val isAll = folderId == null
                             ChatListPage(
                                 chats = chats,
+                                onNearEnd = { onListEndReached(folderId) },
                                 archiveSummary = if (isAll) state.archiveSummary else null,
                                 shapedAvatars = settings.shapedAvatars,
                                 // A sideways drag is the pager's where there
@@ -409,7 +416,7 @@ fun HomeScreen(
                     if (tabs.isEmpty()) {
                         // No folders, nothing to page between: one list, and
                         // the rows keep their own swipes.
-                        page(state.chats, /* isAll = */ true, /* inPager = */ false)
+                        page(state.chats, /* folderId = */ null, /* inPager = */ false)
                     } else {
                         HorizontalPager(
                             state = pager,
@@ -422,7 +429,7 @@ fun HomeScreen(
                         ) { index ->
                             page(
                                 state.folderChats.getOrElse(index) { emptyList() },
-                                /* isAll = */ tabs.getOrNull(index)?.id == null,
+                                /* folderId = */ tabs.getOrNull(index)?.id,
                                 /* inPager = */ true
                             )
                         }
@@ -485,6 +492,7 @@ private fun CollapsingHeader(
 @Composable
 private fun ChatListPage(
     chats: List<ChatPreview>,
+    onNearEnd: () -> Unit,
     archiveSummary: String?,
     shapedAvatars: Boolean,
     swipeActions: Boolean,
@@ -495,7 +503,22 @@ private fun ChatListPage(
     onMarkRead: (Long) -> Unit,
     onArchivedChange: (Long, Boolean) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    // Near the end rather than at it, so the next chats are on their way
+    // before the last row is reached. derivedStateOf keeps a scroll from
+    // recomposing the page for every pixel.
+    val nearEnd by remember {
+        derivedStateOf {
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()?.index ?: return@derivedStateOf false
+            last >= info.totalItemsCount - LOAD_MORE_AHEAD
+        }
+    }
+    LaunchedEffect(nearEnd, chats.size) {
+        if (nearEnd && chats.isNotEmpty()) onNearEnd()
+    }
     LazyColumn(
+        state = listState,
         // The lighter panel the chats sit on, and the second half
         // of Material's "contain content for emphasis": the rows
         // are the lightest tone, the panel under them is a step
@@ -991,3 +1014,6 @@ private fun ArchiveEntryRow(
         content = { Text("Archived", fontWeight = FontWeight.Bold) }
     )
 }
+
+/** How many rows from the end a chat list asks for its next page. */
+private const val LOAD_MORE_AHEAD = 8

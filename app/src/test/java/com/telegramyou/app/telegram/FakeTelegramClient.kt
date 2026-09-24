@@ -201,6 +201,22 @@ class FakeTelegramClient(
         chatCalls += "setChatPinned:$chatId:$pinned"
     }
 
+    /** What loadMoreChats answers; each call is recorded in chatCalls. */
+    var hasMoreChats = false
+
+    override suspend fun loadMoreChats(folderId: Int?): Boolean {
+        chatCalls += "loadMoreChats:$folderId"
+        return hasMoreChats
+    }
+
+    override fun retainChat(chatId: Long) {
+        chatCalls += "retainChat:$chatId"
+    }
+
+    override fun releaseChat(chatId: Long) {
+        chatCalls += "releaseChat:$chatId"
+    }
+
     override suspend fun markChatRead(chatId: Long) {
         chatCalls += "markChatRead:$chatId"
     }

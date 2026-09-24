@@ -132,6 +132,28 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `a list that has run out is not asked again until a refresh`() = runTest {
+        val (vm, client) = viewModel()
+        val asks = { client.chatCalls.count { it == "loadMoreChats:null" } }
+
+        client.hasMoreChats = true
+        vm.onListEndReached(null)
+        advanceUntilIdle()
+        client.hasMoreChats = false
+        vm.onListEndReached(null)
+        advanceUntilIdle()
+        vm.onListEndReached(null)
+        advanceUntilIdle()
+        assertEquals("twice, then it said there was no more", 2, asks())
+
+        vm.refresh()
+        advanceUntilIdle()
+        vm.onListEndReached(null)
+        advanceUntilIdle()
+        assertEquals(3, asks())
+    }
+
+    @Test
     fun `a refused mute is said in a snackbar rather than thrown`() = runTest {
         val (vm, client) = viewModel()
         client.failWith = IllegalStateException("CHAT_NOT_MODIFIED")

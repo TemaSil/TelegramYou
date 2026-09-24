@@ -124,8 +124,8 @@ actually looks like today.
 
 **Check for newer versions at the start of a session, and when anything here
 feels dated.** The Build workflow prints what Google's Maven and Maven
-Central offer on every run — compose-bom, material3, AGP, Kotlin, and the
-screenshot plugin — as check-run annotations titled `Available versions`.
+Central offer on every run — compose-bom, material3, AGP, Kotlin, Media3 and
+the navigation suite — as check-run annotations titled `Available versions`.
 Read those rather than guessing: this environment cannot reach
 `dl.google.com` at all, so a version invented from memory is a red build.
 

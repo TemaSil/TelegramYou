@@ -15,6 +15,11 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPositions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.ui.chat.applying
+import com.telegramyou.app.ui.format.Presence
+import com.telegramyou.app.ui.format.chatListTimeLabel
+import com.telegramyou.app.ui.format.isOnline
+import com.telegramyou.app.ui.format.memberCountLabel
+import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
@@ -49,6 +54,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.time.ZoneId
 import java.io.FileOutputStream
 import java.util.Base64
 import java.text.SimpleDateFormat
@@ -101,6 +107,14 @@ class TdLibTelegramClient(
      */
     private val positions = ChatPositions()
     private val usersById = ConcurrentHashMap<Long, JSONObject>()
+
+    /**
+     * Basic groups and supergroups by their own ids, as TDLib announces them.
+     * A chat only names its group; the member count and whether a supergroup
+     * is really a channel live on these.
+     */
+    private val basicGroups = ConcurrentHashMap<Long, JSONObject>()
+    private val supergroups = ConcurrentHashMap<Long, JSONObject>()
     private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
 
     /**
@@ -255,18 +269,36 @@ class TdLibTelegramClient(
         refreshStories()
     }
 
-    private suspend fun loadChatList(list: JSONObject) {
-        val engine = this.engine ?: return
-        try {
+    /**
+     * One `loadChats`, answering whether the list may have more. 404 is TDLib
+     * saying it has nothing left to load — the ordinary end of a list, not a
+     * failure.
+     */
+    private suspend fun loadChatList(list: JSONObject): Boolean {
+        val engine = this.engine ?: return false
+        return try {
             engine.send(
                 JSONObject()
                     .put("@type", "loadChats")
                     .put("chat_list", list)
                     .put("limit", CHAT_PAGE)
             )
+            true
         } catch (e: TdLibException) {
             Log.d(TAG, "loadChats(${list.optString("@type")}): ${e.message}")
+            false
         }
+    }
+
+    override suspend fun loadMoreChats(folderId: Int?): Boolean {
+        awaitReady()
+        val list = if (folderId == null) {
+            JSONObject().put("@type", "chatListMain")
+        } else {
+            JSONObject().put("@type", "chatListFolder").put("chat_folder_id", folderId)
+        }
+        // The chats themselves arrive as updates and are published there.
+        return loadChatList(list)
     }
 
     override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
@@ -541,20 +573,38 @@ class TdLibTelegramClient(
         .put("use_default_disable_pinned_message_notifications", true)
         .put("use_default_disable_mention_notifications", true)
 
+    /**
+     * How many state holders have this chat open; see [retainChat]. TDLib's
+     * own openChat and closeChat are a switch rather than a count, so the
+     * count is kept here and only its first and last steps reach TDLib.
+     */
+    private val openCounts = ConcurrentHashMap<Long, Int>()
+
+    override fun retainChat(chatId: Long) {
+        if (openCounts.merge(chatId, 1, Int::plus) != 1) return
+        switchChat(chatId, "openChat")
+    }
+
+    override fun releaseChat(chatId: Long) {
+        val left = openCounts.compute(chatId) { _, count -> ((count ?: 1) - 1).takeIf { it > 0 } }
+        if (left != null) return
+        switchChat(chatId, "closeChat")
+    }
+
+    private fun switchChat(chatId: Long, type: String) {
+        scope.launch {
+            try {
+                awaitReady()
+                requireEngine().send(JSONObject().put("@type", type).put("chat_id", chatId))
+            } catch (e: Exception) {
+                Log.d(TAG, "$type: ${e.message}")
+            }
+        }
+    }
+
     override suspend fun openChat(chatId: Long): ChatDetail {
         awaitReady()
-        val eng = requireEngine()
-        eng.send(JSONObject().put("@type", "openChat").put("chat_id", chatId))
-        val history = eng.send(
-            JSONObject()
-                .put("@type", "getChatHistory")
-                .put("chat_id", chatId)
-                .put("from_message_id", 0)
-                .put("offset", 0)
-                .put("limit", 50)
-                .put("only_local", false)
-        )
-        val mapped = parseMessages(chatId, history.optJSONArray("messages"))
+        val mapped = parseMessages(chatId, firstPage(chatId))
         messagesByChat[chatId] = mapped.toMutableList()
         val chat = chatsById[chatId]
         val preview = chat?.let { toPreview(it) }
@@ -567,6 +617,38 @@ class TdLibTelegramClient(
             pinnedMessage = pinnedMessage(chatId),
             members = groupMembers(chat)
         )
+    }
+
+    /**
+     * The newest [HISTORY_PAGE] messages, newest first, as TDLib lists them.
+     *
+     * Asked for more than once, because TDLib answers from what it has to
+     * hand: the first `getChatHistory` of a chat opened cold often returns a
+     * single message, and a conversation opening with one line in it reads
+     * as empty. Each further request starts below the oldest message so far,
+     * and it stops at a full page, at the end of the history, or after
+     * [HISTORY_ATTEMPTS] tries — scrolling up pages in the rest either way.
+     */
+    private suspend fun firstPage(chatId: Long): JSONArray {
+        val engine = requireEngine()
+        val page = JSONArray()
+        var from = 0L
+        repeat(HISTORY_ATTEMPTS) {
+            val answer = engine.send(
+                JSONObject()
+                    .put("@type", "getChatHistory")
+                    .put("chat_id", chatId)
+                    .put("from_message_id", from)
+                    .put("offset", 0)
+                    .put("limit", HISTORY_PAGE - page.length())
+                    .put("only_local", false)
+            ).optJSONArray("messages")
+            if (answer == null || answer.length() == 0) return page
+            for (index in 0 until answer.length()) page.put(answer.get(index))
+            if (page.length() >= HISTORY_PAGE) return page
+            from = answer.optJSONObject(answer.length() - 1)?.optLong("id") ?: return page
+        }
+        return page
     }
 
     /**
@@ -1166,6 +1248,8 @@ class TdLibTelegramClient(
         // must not see its folders, its archive or its cached messages.
         chatsById.clear()
         usersById.clear()
+        basicGroups.clear()
+        supergroups.clear()
         messagesByChat.clear()
         positions.clear()
         storyKeys.clear()
@@ -1262,6 +1346,21 @@ class TdLibTelegramClient(
             "updateUser" -> {
                 val user = update.optJSONObject("user") ?: return
                 usersById[user.optLong("id")] = user
+            }
+            "updateBasicGroup" -> {
+                val group = update.optJSONObject("basic_group") ?: return
+                basicGroups[group.optLong("id")] = group
+            }
+            "updateSupergroup" -> {
+                val group = update.optJSONObject("supergroup") ?: return
+                supergroups[group.optLong("id")] = group
+            }
+            "updateUserStatus" -> {
+                // Someone came online or went away. Only the status changes,
+                // and the chat list redraws for the dot beside their avatar.
+                val user = usersById[update.optLong("user_id")] ?: return
+                user.put("status", update.optJSONObject("status"))
+                publishChats()
             }
             "updateFile" -> {
                 // The only place progress comes from. TDLib does not answer
@@ -1745,12 +1844,16 @@ class TdLibTelegramClient(
             id = id,
             title = chat.optString("title").ifBlank { "Chat" },
             lastMessage = previewText(last),
-            timestampLabel = formatTime(last?.optInt("date") ?: 0),
+            timestampLabel = chatListTimeLabel(
+                epochSeconds = last?.optLong("date") ?: 0L,
+                nowSeconds = nowSeconds(),
+                zone = ZoneId.systemDefault()
+            ),
             unreadCount = chat.optInt("unread_count"),
             folderIds = positions.folderIds(id),
             isPinned = positions.isPinned(id),
             isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
-            isOnline = false,
+            isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
             isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
             isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
             avatarColor = id,
@@ -1759,11 +1862,49 @@ class TdLibTelegramClient(
         )
     }
 
+    /** The other person in a private chat, if this client has heard of them. */
+    private fun privateChatUser(chat: JSONObject): JSONObject? {
+        val type = chat.optJSONObject("type") ?: return null
+        if (type.optString("@type") != "chatTypePrivate") return null
+        return usersById[type.optLong("user_id")]
+    }
+
+    /** A TDLib `userStatus`, read into the tested model in :core. */
+    private fun presenceOf(user: JSONObject): Presence {
+        val status = user.optJSONObject("status") ?: return Presence.Unknown
+        return when (status.optString("@type")) {
+            "userStatusOnline" -> Presence.Online(status.optLong("expires"))
+            "userStatusOffline" -> Presence.Offline(status.optLong("was_online"))
+            "userStatusRecently" -> Presence.Recently
+            "userStatusLastWeek" -> Presence.WithinWeek
+            "userStatusLastMonth" -> Presence.WithinMonth
+            else -> Presence.Unknown
+        }
+    }
+
+    private fun nowSeconds(): Long = System.currentTimeMillis() / 1000
+
     private fun statusLabel(chat: JSONObject?): String? {
         chat ?: return null
         return when (chat.optJSONObject("type")?.optString("@type")) {
-            "chatTypePrivate" -> "private chat"
-            "chatTypeBasicGroup", "chatTypeSupergroup" -> "group"
+            // Where the person is, the way the header of every messenger
+            // says it — this used to be the words "private chat".
+            "chatTypePrivate" -> privateChatUser(chat)
+                ?.let { presenceLabel(presenceOf(it), nowSeconds(), ZoneId.systemDefault()) }
+            // How many are in it, from the group objects TDLib keeps current;
+            // this used to say "group" for groups and channels alike.
+            "chatTypeBasicGroup" -> {
+                val id = chat.optJSONObject("type")?.optLong("basic_group_id")
+                memberCountLabel(basicGroups[id]?.optInt("member_count") ?: 0, isChannel = false)
+            }
+            "chatTypeSupergroup" -> {
+                val type = chat.optJSONObject("type")
+                val group = supergroups[type?.optLong("supergroup_id")]
+                memberCountLabel(
+                    count = group?.optInt("member_count") ?: 0,
+                    isChannel = type?.optBoolean("is_channel") == true
+                )
+            }
             else -> null
         }
     }
@@ -2102,6 +2243,12 @@ class TdLibTelegramClient(
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
+        /** How many messages a conversation opens with. */
+        private const val HISTORY_PAGE = 50
+
+        /** How many requests [firstPage] may spend filling that page. */
+        private const val HISTORY_ATTEMPTS = 4
+
         /** How many chats one `loadChats` asks for. */
         private const val CHAT_PAGE = 50
 
