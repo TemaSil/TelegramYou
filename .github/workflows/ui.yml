@@ -78,9 +78,9 @@ jobs:
             # SmokeTest alone, because LiveClientTest has nothing to test in
             # a demo build — and AGP's report files a skipped test as a
             # failure, so leaving it to skip itself turns the run red.
-            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true \
-              -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest \
-              --stacktrace || echo failed > failed.marker
+            # One line: the emulator runner executes each line of this
+            # script on its own, so a backslash continuation is two commands.
+            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
             # Nothing is pulled off the device: the screenshots go through
