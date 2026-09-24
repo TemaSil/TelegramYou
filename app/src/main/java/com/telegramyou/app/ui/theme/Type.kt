@@ -103,6 +103,9 @@ val TelegramYouTypography = Typography(
  * Latin only is deliberate while the name is all it sets: there is no
  * Cyrillic in the family at all, so it could not carry a chat list anyway.
  */
+/** The size the app's name is set at, which its optical size follows. */
+val AppTitleSize = 26.sp
+
 @OptIn(ExperimentalTextApi::class)
 val AppTitleFontFamily = FontFamily(
     Font(
@@ -112,7 +115,7 @@ val AppTitleFontFamily = FontFamily(
             FontVariation.weight(FontWeight.Medium.weight),
             // Set for the size the title is drawn at, so the letterforms are
             // the ones drawn for display rather than for body text.
-            FontVariation.opticalSizing(30.sp)
+            FontVariation.opticalSizing(AppTitleSize)
         )
     )
 )

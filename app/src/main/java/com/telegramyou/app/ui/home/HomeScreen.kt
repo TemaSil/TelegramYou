@@ -96,6 +96,7 @@ import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
+import com.telegramyou.app.ui.theme.AppTitleSize
 
 /**
  * The chat list.
@@ -613,8 +614,11 @@ private fun HomeTitleBar(
                     // name: the rest of the screen stays on the system
                     // face, which is what makes this read as a title.
                     fontFamily = AppTitleFontFamily,
-                    fontSize = 30.sp,
-                    lineHeight = 34.sp,
+                    // A step down from 30, asked for once it was in Google
+                    // Sans: this face runs wider than the system one, and
+                    // at 30 the name read louder than the chats under it.
+                    fontSize = AppTitleSize,
+                    lineHeight = 32.sp,
                     // Looser than the -1.2 the system face needed. This
                     // one's display cut is already drawn tight, and
                     // pulling it in as far again ran the letters together.
