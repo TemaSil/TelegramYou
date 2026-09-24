@@ -1,71 +1,123 @@
 package com.telegramyou.app.ui.auth
 
+import android.content.Context
+import android.telephony.TelephonyManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.contentType
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
+import com.telegramyou.app.ui.components.materialShapeSet
+import com.telegramyou.app.ui.theme.AppTitleFontFamily
+import kotlinx.coroutines.delay
+import java.util.Locale
 
 /**
  * Logging in: phone, then the confirmation code, then a password if the
  * account has two-step verification.
  *
- * Renders an [AuthFormState] and reports every keystroke and submission. What
- * has been typed lives in [AuthViewModel], not here — a rotation partway
- * through a confirmation code used to lose it, and a code cannot be asked for
- * again without another SMS.
+ * Renders an [AuthFormState] and reports every keystroke and submission; what
+ * has been typed lives in [AuthViewModel], so a rotation partway through a
+ * code does not lose it.
  *
- * This is the first screen anyone sees, so it is the first chance to be wrong
- * about what the app is. It used to paint its mark with `TealSeed` and
- * `CoralPop` — the two constants that exist only as the palette for Android 11
- * and below — which meant the one screen that introduces a client called
- * **You** ignored the wallpaper it is named after. Every colour here now comes
- * from the scheme, so on Android 12 and up the mark is the phone's own colour
- * and below it falls back with everything else.
+ * Rebuilt on 24 September 2026 to the rules the rest of the app follows, and
+ * against what Telegram's own clients do on the same screen (Nekogram read as
+ * a reference for behaviour only):
+ *
+ * - **One phone field with the flag in it.** Telegram splits country, code
+ *   and number into three; one field whose leading flag opens the country
+ *   list is the Material shape of it, and it takes a pasted "+44 20 …" whole.
+ *   It starts with the SIM's calling code, formats as it is typed and names
+ *   the country under it — all of it from libphonenumber, in `PhoneEntry`.
+ * - **The action at the bottom, where the thumb is**, as an Expressive
+ *   button of the medium size — its own type size, padding and a shape that
+ *   morphs when pressed — rather than a default button stretched to 56dp
+ *   with 14sp text in it. It carries its own loading indicator, so waiting
+ *   no longer greys out the whole screen.
+ * - **A code is sent on its last digit**, the way every Telegram client
+ *   does, and filled in from the SMS by autofill. Resending waits out the
+ *   server's timer, visibly, and the number can be corrected.
+ * - **The mark is a Material shape** and the name is set in Google Sans
+ *   Flex, as on the chat list.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun AuthScreen(
     state: AuthFormState,
@@ -75,241 +127,472 @@ fun AuthScreen(
     onSubmitPhone: () -> Unit,
     onSubmitCode: () -> Unit,
     onSubmitPassword: () -> Unit,
-    onResendCode: () -> Unit
+    onResendCode: () -> Unit,
+    onChangeNumber: () -> Unit = {},
+    onChangeNumberCancelled: () -> Unit = {},
+    onDefaultRegion: (String?) -> Unit = {}
 ) {
     val auth = state.auth
+    val context = LocalContext.current
+    LaunchedEffect(Unit) { onDefaultRegion(deviceRegion(context)) }
+    BackHandler(enabled = state.isChangingNumber, onBack = onChangeNumberCancelled)
 
-    Box(
+    val submit: () -> Unit = when (state.step) {
+        AuthStep.Phone -> onSubmitPhone
+        AuthStep.Code -> onSubmitCode
+        AuthStep.Password -> onSubmitPassword
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            // A flat container tone, not a gradient. The gradient here mixed
-            // primary at 22% into the top and secondary at 12% into the
-            // bottom, and the chat background taught this project what that
-            // costs: a tinted haze lands within a few units of the container
-            // tones drawn on top of it, and the edges of those containers stop
-            // being visible. A login screen has one card-shaped thing on it,
-            // so it can least afford that.
-            //
-            // Background before the insets, so the colour reaches under the
-            // status and navigation bars while the content stays clear of
-            // them. safeDrawingPadding replaces a hardcoded 48.dp of vertical
-            // padding, which was a guess at the size of bars it never asked
-            // about.
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            // The container tone reaches under the system bars; the content
+            // stays clear of them and of the keyboard, which pushes the
+            // button up with it rather than covering it.
+            .background(MaterialTheme.colorScheme.surface)
             .safeDrawingPadding()
             .imePadding()
+            .padding(horizontal = 24.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 28.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
         ) {
-            // A Surface with a shape and a container colour, rather than a Box
-            // clipped to a circle and filled with a linear gradient of two
-            // hardcoded constants. The glyph was the text "✈" set in
-            // displayMedium, which is a font's idea of a paper plane and
-            // changes size with the user's text settings; Material ships the
-            // icon.
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(88.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.Send,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
-            }
-            Spacer(Modifier.height(24.dp))
-            Text(
-                text = "TelegramYou",
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Material You Expressive client",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(36.dp))
+                BrandMark()
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "TelegramYou",
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontFamily = AppTitleFontFamily,
+                        fontSize = 32.sp,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(40.dp))
 
-            AnimatedContent(
-                targetState = auth.state,
-                transitionSpec = {
-                    (fadeIn() + slideInVertically { it / 3 }) togetherWith
-                        (fadeOut() + slideOutVertically { -it / 4 })
-                },
-                label = "authStep"
-                // Named for what it is, so it cannot shadow the screen's own
-                // state — which is how this went wrong the first time.
-            ) { step ->
-                when (step) {
-                    AuthState.WaitPhoneNumber,
-                    AuthState.Bootstrapping,
-                    AuthState.Error,
-                    AuthState.Closed -> {
-                        AuthFieldColumn(
-                            title = "Your phone",
-                            subtitle = "We'll send a login code via Telegram",
-                            value = state.phone,
-                            onValueChange = onPhoneChange,
-                            placeholder = "+1 234 567 8900",
-                            keyboardType = KeyboardType.Phone,
+                // Forward slides in from the end, back from the start, on
+                // the motion scheme's springs — the same motion the rest of
+                // the app moves with.
+                val motion = MaterialTheme.motionScheme
+                AnimatedContent(
+                    targetState = state.step,
+                    transitionSpec = {
+                        val forward = targetState.ordinal > initialState.ordinal
+                        val sign = if (forward) 1 else -1
+                        (fadeIn(motion.defaultEffectsSpec()) +
+                            slideInHorizontally(motion.defaultSpatialSpec()) { sign * it / 4 }) togetherWith
+                            (fadeOut(motion.fastEffectsSpec()) +
+                                slideOutHorizontally(motion.defaultSpatialSpec()) { -sign * it / 4 })
+                    },
+                    label = "authStep"
+                ) { step ->
+                    when (step) {
+                        AuthStep.Phone -> PhoneStep(
+                            phone = state.phone,
                             error = auth.errorMessage,
-                            onSubmit = onSubmitPhone,
-                            submitLabel = "Continue"
+                            onPhoneChange = onPhoneChange,
+                            onSubmit = { if (state.canSubmit) onSubmitPhone() }
+                        )
+                        AuthStep.Code -> CodeStep(
+                            state = state,
+                            onCodeChange = onCodeChange,
+                            onSubmit = { if (state.canSubmit) onSubmitCode() },
+                            onResendCode = onResendCode,
+                            onChangeNumber = onChangeNumber
+                        )
+                        AuthStep.Password -> PasswordStep(
+                            password = state.password,
+                            hint = auth.codeHint,
+                            error = auth.errorMessage,
+                            onPasswordChange = onPasswordChange,
+                            onSubmit = { if (state.canSubmit) onSubmitPassword() }
                         )
                     }
-                    AuthState.WaitCode -> {
-                        AuthFieldColumn(
-                            title = "Enter code",
-                            subtitle = auth.codeHint.ifBlank {
-                                "Check Telegram for the code"
-                            },
-                            value = state.code,
-                            onValueChange = onCodeChange,
-                            placeholder = "12345",
-                            keyboardType = KeyboardType.Number,
-                            error = auth.errorMessage,
-                            onSubmit = onSubmitCode,
-                            submitLabel = "Sign in",
-                            secondary = {
-                                TextButton(onClick = onResendCode) {
-                                    Text("Resend code")
-                                }
-                            }
-                        )
-                    }
-                    AuthState.WaitPassword -> {
-                        AuthFieldColumn(
-                            title = "2FA password",
-                            subtitle = "Cloud password is enabled on this account",
-                            value = state.password,
-                            onValueChange = onPasswordChange,
-                            placeholder = "Password",
-                            keyboardType = KeyboardType.Password,
-                            isPassword = true,
-                            error = auth.errorMessage,
-                            onSubmit = onSubmitPassword,
-                            submitLabel = "Unlock"
-                        )
-                    }
-                    AuthState.Ready -> Unit
                 }
             }
         }
-        ExpressiveLoadingOverlay(visible = auth.isLoading)
+
+        SubmitButton(
+            label = when (state.step) {
+                AuthStep.Phone -> "Continue"
+                AuthStep.Code -> "Sign in"
+                AuthStep.Password -> "Unlock"
+            },
+            isLoading = auth.isLoading && auth.state != AuthState.Bootstrapping,
+            enabled = state.canSubmit,
+            onClick = submit,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+    }
+
+    // Only while TDLib itself is starting: there is nothing to type into yet.
+    // Everything after that waits inside the button instead.
+    ExpressiveLoadingOverlay(visible = auth.state == AuthState.Bootstrapping && auth.isLoading)
+}
+
+/**
+ * The app's mark: the paper plane on a twelve-point cookie, one of the
+ * shapes the avatars use, in the wallpaper's primary container.
+ */
+@Composable
+private fun BrandMark() {
+    val cookie = materialShapeSet()[9]
+    Box(
+        modifier = Modifier
+            .size(96.dp)
+            .clip(cookie)
+            .background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            Icons.AutoMirrored.Rounded.Send,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+/** A step's heading and the line under it. */
+@Composable
+private fun StepHeader(title: String, subtitle: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (subtitle.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
 /**
- * One step of the sign-in: a heading, a field, and the button that submits it.
- *
- * The field reports its error through `isError` and `supportingText` rather
- * than through a Text placed under it by hand. That is not tidying: the stock
- * wiring recolours the border and the label together and announces the message
- * to a screen reader as the field's own error, which a loose Text below it
- * does not.
+ * The field takes the focus as its step arrives, so the keyboard that was up
+ * for the number is still up for the code.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AuthFieldColumn(
-    title: String,
-    subtitle: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    keyboardType: KeyboardType,
-    error: String?,
-    onSubmit: () -> Unit,
-    submitLabel: String,
-    isPassword: Boolean = false,
-    secondary: (@Composable () -> Unit)? = null
-) {
-    // Each step takes the focus as it arrives, so the keyboard that was up for
-    // the phone number is still up for the code. It used to close when the
-    // step changed and the field had to be tapped to bring it back — which is
-    // a tap for something the app already knew was wanted, in the middle of
-    // copying a code out of another app.
-    //
-    // Keyed on the title because that is what distinguishes one step from the
-    // next: AnimatedContent composes a new AuthFieldColumn per step, and the
-    // key makes the intent explicit rather than relying on that.
-    val focusRequester = remember { FocusRequester() }
+private fun rememberStepFocus(): FocusRequester {
+    val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    LaunchedEffect(title) {
-        focusRequester.requestFocus()
-        // Focus alone does not always raise the keyboard when the field
-        // arrives with its screen rather than by being touched.
+    LaunchedEffect(Unit) {
+        focus.requestFocus()
         keyboard?.show()
     }
+    return focus
+}
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-        Spacer(Modifier.height(20.dp))
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PhoneStep(
+    phone: String,
+    error: String?,
+    onPhoneChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    val focus = rememberStepFocus()
+    var picking by rememberSaveable { mutableStateOf(false) }
+    val countries = remember { PhoneEntry.countries(Locale.getDefault()) }
+    val region = PhoneEntry.region(phone)
+    val country = countries.firstOrNull { it.region == region }
+
+    Column {
+        StepHeader("Your phone", "Check the country code and enter your number")
         OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
+            value = phone,
+            onValueChange = onPhoneChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
-            singleLine = true,
-            placeholder = { Text(placeholder) },
+                .focusRequester(focus)
+                .semantics { contentType = ContentType.PhoneNumber },
+            label = { Text("Phone number") },
+            leadingIcon = {
+                // The country, and the way to choose another — a flag is
+                // what every phone field in every messenger puts here.
+                IconButton(
+                    onClick = { picking = true },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Country: ${country?.name ?: "not chosen"}. Choose"
+                    }
+                ) {
+                    if (country != null) {
+                        Text(country.flag, fontSize = 22.sp)
+                    } else {
+                        Icon(Icons.Rounded.Public, contentDescription = null)
+                    }
+                }
+            },
+            supportingText = {
+                Text(error?.takeIf { it.isNotBlank() } ?: country?.name.orEmpty())
+            },
             isError = !error.isNullOrBlank(),
-            supportingText = error?.takeIf { it.isNotBlank() }?.let { message ->
-                { Text(message) }
-            },
-            visualTransformation = if (isPassword) {
-                PasswordVisualTransformation()
-            } else {
-                VisualTransformation.None
-            },
+            singleLine = true,
+            visualTransformation = PhoneTransformation,
             keyboardOptions = KeyboardOptions(
-                keyboardType = keyboardType,
+                keyboardType = KeyboardType.Phone,
                 imeAction = ImeAction.Done
             ),
             keyboardActions = KeyboardActions(onDone = { onSubmit() })
-            // No colours and no shape passed. Both were set to what the
-            // defaults already are — a primary focused border, a primary
-            // cursor, the large shape — so they said nothing and would have
-            // gone stale the moment the theme moved.
         )
-        Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onSubmit,
+    }
+
+    if (picking) {
+        CountrySheet(
+            countries = countries,
+            onPick = { picked ->
+                onPhoneChange(PhoneEntry.withCountry(phone, picked))
+                picking = false
+            },
+            onDismiss = { picking = false }
+        )
+    }
+}
+
+/**
+ * Every country, searchable by name or by code, in a sheet — the list
+ * Telegram opens from its country field, as a Material sheet of list items.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CountrySheet(
+    countries: List<PhoneCountry>,
+    onPick: (PhoneCountry) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val shown = remember(query, countries) {
+        val needle = query.trim().removePrefix("+")
+        if (needle.isEmpty()) countries
+        else countries.filter {
+            it.name.contains(needle, ignoreCase = true) ||
+                it.callingCode.toString().startsWith(needle) ||
+                it.region.equals(needle, ignoreCase = true)
+        }
+    }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
             modifier = Modifier
                 .fillMaxWidth()
-                // Taller than a Button's 40dp default because this is the
-                // screen's only action and it is reached with a thumb, at the
-                // bottom of a form, one-handed.
-                .height(56.dp)
-        ) {
-            // One button, not two. This used to hold a FilledIconButton inside
-            // it, which put a clickable inside a clickable: the inner one took
-            // the touches over its own 28dp, and a screen reader read the row
-            // as two separate controls with the same action. The label is the
-            // whole button now.
-            Text(submitLabel, style = MaterialTheme.typography.labelLarge)
+                .padding(horizontal = 16.dp),
+            placeholder = { Text("Country or code") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            singleLine = true
+        )
+        Spacer(Modifier.height(8.dp))
+        LazyColumn {
+            items(shown, key = { it.region }) { country ->
+                ListItem(
+                    headlineContent = { Text(country.name) },
+                    leadingContent = { Text(country.flag, fontSize = 22.sp) },
+                    trailingContent = {
+                        Text(
+                            "+${country.callingCode}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    // The sheet's own tone, as the other sheets' rows have.
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable { onPick(country) }
+                )
+            }
         }
-        secondary?.invoke()
     }
+}
+
+@Composable
+private fun CodeStep(
+    state: AuthFormState,
+    onCodeChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onResendCode: () -> Unit,
+    onChangeNumber: () -> Unit
+) {
+    val auth = state.auth
+    val focus = rememberStepFocus()
+
+    // A clock for the resend button, restarted with each code sent.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(auth.codeSentAtMillis) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(1_000)
+        }
+    }
+    val waitSeconds = (auth.resendAfterSeconds - (now - auth.codeSentAtMillis) / 1_000)
+        .toInt().coerceAtLeast(0)
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        StepHeader(
+            "Enter code",
+            auth.codeHint.ifBlank { "Check Telegram for the code" }
+        )
+        OutlinedTextField(
+            value = state.code,
+            onValueChange = onCodeChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focus)
+                // So the system can offer the code from the SMS itself.
+                .semantics { contentType = ContentType.SmsOtpCode },
+            label = { Text("Code") },
+            supportingText = auth.errorMessage?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
+            isError = !auth.errorMessage.isNullOrBlank(),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.titleLarge.copy(letterSpacing = 6.sp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.NumberPassword,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = { onSubmit() })
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onChangeNumber) { Text("Change number") }
+            if (auth.canResend) {
+                TextButton(onClick = onResendCode, enabled = waitSeconds == 0) {
+                    Text(
+                        if (waitSeconds > 0) "Resend in ${countdownLabel(waitSeconds)}"
+                        else "Resend code"
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PasswordStep(
+    password: String,
+    hint: String,
+    error: String?,
+    onPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    val focus = rememberStepFocus()
+    var visible by rememberSaveable { mutableStateOf(false) }
+    Column {
+        StepHeader(
+            "Two-step verification",
+            "This account has a cloud password. $hint".trim()
+        )
+        OutlinedTextField(
+            value = password,
+            onValueChange = onPasswordChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focus)
+                .semantics { contentType = ContentType.Password },
+            label = { Text("Password") },
+            trailingIcon = {
+                IconButton(onClick = { visible = !visible }) {
+                    Icon(
+                        if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                        contentDescription = if (visible) "Hide password" else "Show password"
+                    )
+                }
+            },
+            supportingText = error?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
+            isError = !error.isNullOrBlank(),
+            singleLine = true,
+            visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = { onSubmit() })
+        )
+    }
+}
+
+/**
+ * The step's one action, as Material 3 Expressive sizes it: the medium
+ * button's height, padding and type together, and its shape morphing on
+ * press. While a request is out it shows Material's loading indicator in
+ * place of the label and keeps its colour, rather than greying out.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SubmitButton(
+    label: String,
+    isLoading: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val size = ButtonDefaults.MediumContainerHeight
+    Button(
+        onClick = { if (!isLoading) onClick() },
+        enabled = enabled || isLoading,
+        shapes = ButtonDefaults.shapesFor(size),
+        contentPadding = ButtonDefaults.contentPaddingFor(size),
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = size)
+    ) {
+        if (isLoading) {
+            LoadingIndicator(
+                color = LocalContentColor.current,
+                modifier = Modifier.size(28.dp)
+            )
+        } else {
+            Text(label, style = ButtonDefaults.textStyleFor(size))
+        }
+    }
+}
+
+/** Draws "+79123456789" as "+7 912 345-67-89"; see PhoneEntry.format. */
+private object PhoneTransformation : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val raw = text.text
+        val formatted = PhoneEntry.format(raw)
+        return TransformedText(
+            AnnotatedString(formatted),
+            object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int =
+                    PhoneEntry.toFormatted(raw, formatted, offset)
+
+                override fun transformedToOriginal(offset: Int): Int =
+                    PhoneEntry.toRaw(raw, formatted, offset)
+            }
+        )
+    }
+}
+
+/**
+ * The country this phone is in: its SIM's, then its network's, then the
+ * language setting's — the order Telegram's clients guess in.
+ */
+private fun deviceRegion(context: Context): String? {
+    val telephony = context.getSystemService(TelephonyManager::class.java)
+    return listOfNotNull(
+        telephony?.simCountryIso,
+        telephony?.networkCountryIso,
+        Locale.getDefault().country
+    ).firstOrNull { it.length == 2 }
 }

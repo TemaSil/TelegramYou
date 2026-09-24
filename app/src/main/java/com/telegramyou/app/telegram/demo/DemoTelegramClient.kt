@@ -201,7 +201,13 @@ class DemoTelegramClient : TelegramClient {
             it.copy(
                 isLoading = false,
                 state = AuthState.WaitCode,
-                codeHint = "Code sent to $phone (demo: 12345)"
+                codeHint = "Demo mode: the code is 12345",
+                // What a real SMS looks like to the screen: five digits, and
+                // another may be asked for after half a minute.
+                codeLength = 5,
+                canResend = true,
+                resendAfterSeconds = 30,
+                codeSentAtMillis = System.currentTimeMillis()
             )
         }
     }
@@ -248,7 +254,11 @@ class DemoTelegramClient : TelegramClient {
     override suspend fun resendCode() {
         delay(300)
         _authState.update {
-            it.copy(codeHint = "New demo code sent: 12345", errorMessage = null)
+            it.copy(
+                codeHint = "Demo mode: the code is still 12345",
+                errorMessage = null,
+                codeSentAtMillis = System.currentTimeMillis()
+            )
         }
     }
 

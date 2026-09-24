@@ -776,8 +776,10 @@ class SmokeTest {
         waitFor(By.text("Enter code"), "the code screen")
         screenshot("02-code")
 
+        // Sent on its fifth digit, like every Telegram client: the button
+        // is only there for a code whose length the server did not give.
         type("12345")
-        tap(By.text("Sign in"))
+        device.findObject(By.text("Sign in"))?.click()
 
         // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
         // the system dialog covers the very chat the tests wait for. Granting
