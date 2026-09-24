@@ -195,17 +195,38 @@ not `Java_org_drinkless_*`. TDLib binds its natives with `RegisterNatives`
 from inside `JNI_OnLoad`, so a correct library exports no `Java_*` symbols at
 all. Checking for those rejects a good build.
 
-## Credentials — never commit them
+## Credentials — shipped in the APK, never in git
 
-`app/build.gradle.kts` reads `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` from
-`local.properties`, which is git-ignored and has never been committed. Copy
-`local.properties.example` to set up a machine.
+**The published APK is the live client** — the owner's decision of 24
+September 2026. Nobody should have to build a Telegram client with their own
+keys to use it, and no Telegram client asks that: the official one and every
+fork carry their `api_id` and `api_hash` inside the app.
 
-**Do not put an api_hash anywhere git tracks**, and do not ask the user to
-paste one into a file that does. It cannot be reissued at my.telegram.org, so
-a committed hash is public permanently, on an account that cannot be detached
-from it. `TELEGRAM_API_ID=0` selects the demo backend, which is the right
-answer whenever live access is not actually required.
+Where the keys live, and the one place they must not:
+
+- **CI:** the repository secrets `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`
+  (Settings → Secrets and variables → Actions). The Build workflow passes
+  them to Gradle as environment variables, and the APK it publishes is live.
+  Without them — a fork, a pull request from one — it builds the demo.
+- **A developer's machine:** `local.properties`, git-ignored, which wins over
+  the environment. Copy `local.properties.example` to set one up.
+- **Never in a tracked file.** The repository is public: a hash committed to
+  it is found by anyone searching GitHub, where one inside the APK takes a
+  decompiler. It cannot be reissued at my.telegram.org, so a leak is for
+  good. Do not put it in code, in a workflow file, in a commit message or in
+  the README, and do not ask anyone to paste it into a file that git tracks.
+
+In the APK the hash is masked, not stored as text: the build XORs it with a
+random mask (`maskedApiHash` in `app/build.gradle.kts`) and the app reverses
+it at start-up (`unmaskApiHash` in `:core`). That stops `strings` or a dex
+search finding it; it is not encryption — the app must be able to read it,
+so anything that runs the app can too.
+
+`-PdemoClient=true` builds the demo whatever is configured; the UI workflow
+uses it, because its smoke test drives the demo's seeded chats and the code
+`12345`. The **Live** workflow (run by hand) builds with the secrets and
+checks that TDLib starts and asks for a phone number — it stops there, since
+the next step texts a real phone.
 
 The same goes for signing keys: `*.jks` and `*.keystore` are git-ignored and
 should stay so — **with one deliberate exception**, `app/debug.keystore`, which
@@ -218,9 +239,9 @@ different key. Android will not install one over another: it reports a package
 conflict, and the only way through was to uninstall the app and lose everything
 in it. A single tracked debug key fixes that for CI and for both developers at
 once. Its password is `android` and its alias `androiddebugkey`, the values the
-Android SDK has used for its own debug keystore forever; it signs debug builds
-of a demo client and nothing else. **A release key is not covered by this** and
-must never be committed.
+Android SDK has used for its own debug keystore forever; it signs debug
+builds and nothing else. **A release key is not covered by this** and must
+never be committed.
 
 ## Working here
 

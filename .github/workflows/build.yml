@@ -26,6 +26,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The live client's credentials, from the repository's secrets — see
+    # telegramApiId in app/build.gradle.kts. With both set, the APK this
+    # publishes is the live client, as every Telegram client ships; with
+    # either missing — a fork, a pull request from one — it is the demo, and
+    # everything else here works the same.
+    #
+    # Secrets rather than a tracked file on the owner's decision of 24
+    # September 2026, which is to ship the live client from here: the hash
+    # goes into the APK, masked, and never into the repository, where a
+    # search of GitHub would find it.
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
     steps:
       - uses: actions/checkout@v4
 
@@ -400,12 +413,7 @@ jobs:
           body: |
             The newest build of `main`, rebuilt on every push.
 
-            **This is the demo build.** It has the whole interface and no
-            account: the login code is `12345` and nothing leaves the phone.
-            CI cannot build the live client — the Telegram `api_id` and
-            `api_hash` are deliberately not in this repository, and TDLib's
-            native libraries are too large for git. Live mode is a local
-            build; see the README.
+            ${{ env.TELEGRAM_API_ID != '' && 'Sign in with your own Telegram account: this is the live client.' || '**This is the demo build.** The login code is `12345` and nothing leaves the phone; the repository has no Telegram credentials configured.' }}
 
             Debug-signed, so Android will ask you to allow installing from
             this source. Version `${{ env.VERSION }}`, built from
@@ -415,12 +423,11 @@ jobs:
             working; which build it is shows in the release title and in the
             app's own entry under Android settings.
 
-      # The task a developer runs to go live, run here so it cannot rot
-      # unnoticed: it downloads TDLib's libraries from this repository's own
-      # release, checks the zip's sha256 and unpacks it. Last on purpose —
-      # after the APK has been built and published — because the libraries
-      # land in src/main/jniLibs, and the published build is the demo one and
-      # must not carry thirty-five megabytes it never loads.
+      # The task that puts TDLib's libraries in place, run here so it cannot
+      # rot unnoticed. With the credentials configured the live build above
+      # has already run it and this finds nothing to do; without them — a
+      # fork's demo build — this is the only place it is exercised. Last, so
+      # a demo APK is published before any libraries land in jniLibs.
       - name: The TDLib download task still works
         run: |
           ./gradlew :app:fetchTdlib --stacktrace

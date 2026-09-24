@@ -73,7 +73,9 @@ jobs:
           script: |
             adb logcat -c
             adb logcat > logcat-full.txt &
-            ./gradlew :app:connectedDebugAndroidTest --stacktrace || echo failed > failed.marker
+            # The demo client whatever the repository has configured: the
+            # smoke test signs in with 12345 and drives the demo's chats.
+            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
             # Nothing is pulled off the device: the screenshots go through
