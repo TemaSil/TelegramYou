@@ -677,8 +677,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       an accent bar rather than a `Card` inside a bubble. Nothing is
       fetched here: a client that read the page itself would tell every
       linked site who is looking. The image is still to come
-- [ ] In-chat search with jump to the hit — global message search is in, this
-      is the same query narrowed to one conversation
+- [ ] Jump to a search hit older than the loaded window — the search itself
+      is done (above); what is left is loading the history around a hit
+      the list has not reached, `getChatHistory` from that message's id
 - [x] Load older messages on scroll — `loadOlderMessages`, guarded against
       the request-per-frame a list sitting at the top would otherwise make
 
@@ -730,8 +731,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Compose — the pencil opens a contact picker in a `ModalBottomSheet`.
       It used to open `chats.firstOrNull()`, which looked like composing
       and was not
-- [~] Mute and unmute from a long-press `DropdownMenu`; pin and mark-read
-      still need client methods
+- [x] Long-press `DropdownMenu` on a row — pin, mute, archive and mark as
+      read, on both backends (`toggleChatIsPinned`, `viewMessages`)
 - [x] Adaptive navigation — `NavigationSuiteScaffold`, which picks its shape
       from the window: the same short navigation bar in compact, a wide rail
       where the window is big enough for one. Note that a phone in landscape
