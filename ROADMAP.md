@@ -754,7 +754,13 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
 - [x] Shaped avatars — each person gets one of Material's shapes from the
       same seed as their colour, so they are the same clover in the list, in
       a group header and on their own row. Switchable in Appearance, because
-      a list of circles is what every other messenger looks like
+      a list of circles is what every other messenger looks like. Since 24
+      September the same shape follows them into the conversation — header,
+      message avatars, member list, pickers — through `personShape`
+- [x] Typing, shown by shape — while someone types, their avatar morphs
+      through Material's shapes and turns, the loading indicator's language,
+      and settles back on their own shape (`typingShape`, from TDLib's
+      `updateChatAction`). The login screen's mark uses the same motion
 - [x] Compose — the pencil opens a contact picker in a `ModalBottomSheet`.
       It used to open `chats.firstOrNull()`, which looked like composing
       and was not
@@ -766,6 +772,20 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       is *not* one of those — Material keeps the bar whenever the window is
       short, which is why the emulator test resizes the window to a tablet's
       rather than turning the phone
+
+## Sign-in
+
+- [x] Phone entry — one field with the SIM's calling code already in it,
+      formatted as typed and flagged by country, with a searchable country
+      sheet behind the flag; libphonenumber, in `PhoneEntry` in `:core`
+- [x] The code sent on its last digit, SMS autofill, resend after the
+      server's timer with a countdown, correcting the number
+- [x] Two-step password with a show/hide toggle
+- [x] Expressive medium button at the bottom, loading inside it
+- [ ] Log in with a QR code from another device — TDLib's
+      `requestQrCodeAuthentication`; Telegram's own clients offer it
+- [ ] Email login steps (`authorizationStateWaitEmailAddress` / `…Code`),
+      which new accounts can be asked for and which still end in an error
 
 ## 3. Settings and profile
 
