@@ -75,27 +75,49 @@ class TestDcClientTest {
             assertEquals("TDLib did not start: ${state.errorMessage}", AuthState.WaitPhoneNumber, state.state)
         }
 
-        val phone = "+99966$DC${Random.nextInt(1000, 10000)}"
-        repository.submitPhoneNumber(phone)
-        val afterPhone = awaitStep(setOf(AuthState.WaitCode, AuthState.Ready)) { auth.value }
-        if (afterPhone.state != AuthState.WaitCode) {
-            fail("$phone was not accepted: ${afterPhone.state} ${afterPhone.errorMessage}")
+        // Each test data centre in turn until one lets us in. The documented
+        // rule — the centre's digit, repeated for the code's length — was
+        // refused on centre 2 twice, so the others are tried too and every
+        // answer is kept for the failure message.
+        val tried = mutableListOf<String>()
+        var signedIn: AuthUiState? = null
+        for (dc in DATA_CENTRES) {
+            val phone = "+99966$dc${Random.nextInt(1000, 10000)}"
+            // After a refused code the client is still at the code step, so
+            // "at the code step" alone would be the old number's answer. A new
+            // code has a new sending time.
+            val sentBefore = auth.value.codeSentAtMillis
+            repository.submitPhoneNumber(phone)
+            val afterPhone = awaitStep(setOf(AuthState.WaitCode, AuthState.Ready)) {
+                auth.value.let { state ->
+                    if (state.state == AuthState.WaitCode && state.codeSentAtMillis == sentBefore &&
+                        state.errorMessage?.contains("CODE_INVALID") == true
+                    ) state.copy(state = AuthState.Bootstrapping, errorMessage = null) else state
+                }
+            }
+            if (afterPhone.state == AuthState.Ready) {
+                signedIn = afterPhone
+                break
+            }
+            if (afterPhone.state != AuthState.WaitCode) {
+                tried += "$phone: not accepted, ${afterPhone.state} ${afterPhone.errorMessage}"
+                continue
+            }
+            val codeLength = afterPhone.codeLength.takeIf { it > 0 } ?: 5
+            repository.submitCode(dc.toString().repeat(codeLength))
+            val answer = awaitStep(setOf(AuthState.Ready, AuthState.WaitPassword)) { auth.value }
+            if (answer.state == AuthState.Ready) {
+                signedIn = answer
+                break
+            }
+            tried += "$phone, $codeLength digits (${afterPhone.codeHint}): " +
+                "${answer.state} ${answer.errorMessage}"
         }
-        // The data centre's digit, as many times as the code is long. The
-        // documentation says five; the server says how long it is, and the
-        // first run found five refused, so the server's word is taken.
-        val codeLength = afterPhone.codeLength.takeIf { it > 0 } ?: 5
-        repository.submitCode(DC.toString().repeat(codeLength))
-        val signedIn = awaitStep(setOf(AuthState.Ready, AuthState.WaitPassword)) { auth.value }
         instrumentation.uiAutomation.takeScreenshot().writeToTestStorage("testdc-01-signed-in")
-        assertEquals(
-            "$phone did not get in with a $codeLength-digit code " +
-                "(${afterPhone.codeHint}): ${signedIn.errorMessage}",
-            AuthState.Ready,
-            signedIn.state
-        )
+        val account = signedIn
+            ?: error("No test data centre let us in:\n" + tried.joinToString("\n"))
 
-        val me = signedIn.me ?: auth.value.me ?: error("signed in with no account")
+        val me = account.me ?: auth.value.me ?: error("signed in with no account")
         val savedMessages = repository.openPrivateChat(me.id)
 
         // A picture the size of a phone photo's thumbnail, through the same
@@ -169,8 +191,8 @@ class TestDcClientTest {
     }
 
     private companion object {
-        /** Test data centre 2: the one TDLib's own examples use. */
-        const val DC = 2
+        /** Test data centres, 2 first: the one TDLib's own examples use. */
+        val DATA_CENTRES = listOf(2, 1, 3)
         const val LAUNCH_TIMEOUT = 30_000L
         const val TDLIB_TIMEOUT = 90_000L
         const val SEND_TIMEOUT = 120_000L

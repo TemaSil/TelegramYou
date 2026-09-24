@@ -15,6 +15,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,9 +61,15 @@ private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
     )
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        // The whole cell takes the tap, name included: a finger aimed at the
+        // name under a circle is aiming at that story, and only the circle
+        // used to answer — the smoke test missed it exactly that way.
         modifier = Modifier
             .width(72.dp)
             .alpha(alpha)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp)
     ) {
         AvatarBubble(
             title = if (story.isOwn) "＋" else story.authorName,
@@ -69,8 +77,7 @@ private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
             size = 64.dp,
             ring = !story.isOwn,
             ringSeen = !story.hasUnseen,
-            photoPath = story.photoPath,
-            onClick = onClick
+            photoPath = story.photoPath
         )
         Spacer(Modifier.height(6.dp))
         Text(
