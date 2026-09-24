@@ -303,7 +303,7 @@ Still open, found in the same reading and not yet worth the change:
   not.
 - `getChatHistory` often answers a first call with one message; the list
   pages in the rest on scroll, but opens nearly empty.
-- The composer's `loadChats` asks for fifty chats once; there is no paging
+- `refreshChats` asks each list for fifty chats once; there is no paging
   past them.
 - Only `ChatScreen`, `HomeViewModel` and the navigation graph are left
   unreviewed.
