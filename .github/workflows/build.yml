@@ -414,3 +414,15 @@ jobs:
             The file name is the same every build so the link above keeps
             working; which build it is shows in the release title and in the
             app's own entry under Android settings.
+
+      # The task a developer runs to go live, run here so it cannot rot
+      # unnoticed: it downloads TDLib's libraries from this repository's own
+      # release, checks the zip's sha256 and unpacks it. Last on purpose —
+      # after the APK has been built and published — because the libraries
+      # land in src/main/jniLibs, and the published build is the demo one and
+      # must not carry thirty-five megabytes it never loads.
+      - name: The TDLib download task still works
+        run: |
+          ./gradlew :app:fetchTdlib --stacktrace
+          ls -l app/src/main/jniLibs/*/libtdjsonjava.so
+          cat app/src/main/jniLibs/TDLIB_RELEASE

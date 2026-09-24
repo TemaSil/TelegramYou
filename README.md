@@ -105,14 +105,23 @@ Android Studio at a particular SDK, or to go live below.
 of megabytes each and are not kept in git. Without them the app still builds
 and runs in demo mode; live mode needs them.
 
-Actions → **Build TDLib** → *Run workflow* compiles OpenSSL and TDLib for
-every Android ABI and publishes a `tdlib-java-<sha>` release. It takes a bit
-over an hour and only has to be done once, or when TDLib is bumped. Then:
+They come from this repository's own release, and one command fetches them:
 
-```bash
-unzip tdlib-jnilibs-java.zip
-cp -r jniLibs/* app/src/main/jniLibs/
+```bat
+gradlew.bat :app:fetchTdlib
 ```
+
+It downloads `tdlib-jnilibs-java.zip` from the pinned `tdlib-java-<sha>`
+release, refuses it unless its sha256 matches the one in
+`app/build.gradle.kts`, and unpacks every ABI into `app/src/main/jniLibs/`.
+A live build — `TELEGRAM_API_ID` set in `local.properties` — runs it by
+itself when the libraries are missing, so usually there is nothing to
+remember. The demo build never downloads anything.
+
+The release itself is made by Actions → **Build TDLib** → *Run workflow*,
+which compiles OpenSSL and TDLib for every Android ABI. It takes a bit over
+an hour and only has to be done when TDLib is bumped; the new tag and the
+zip's checksum then go into `app/build.gradle.kts` together.
 
 It builds TDLib's **JSONJava** interface, which produces `libtdjsonjava.so` —
 the name `System.loadLibrary("tdjsonjava")` in `JsonClient` looks for, and the
@@ -132,7 +141,15 @@ TELEGRAM_API_ID=12345678
 TELEGRAM_API_HASH=your_api_hash_here
 ```
 
-3. Sync Gradle → Run. Auth flow matches TDLib getting-started:
+   The same `api_id` and `api_hash` serve any client of yours — one made
+   for another project works here too. They go in `local.properties` and
+   nowhere else: never in a tracked file, and never in the CI build, whose
+   APK is public and would hand the hash to anyone who unzips it.
+3. With a phone connected, `gradlew.bat :app:installDebug`. The first live
+   build downloads TDLib's libraries by itself (see *Native TDLib* above),
+   and the debug key is the same as the demo APK's, so it installs over it.
+4. Sign in with your number; the code arrives in Telegram. Auth flow matches
+   TDLib getting-started:
    - `authorizationStateWaitTdlibParameters` → `setTdlibParameters`
    - phone → code → (optional 2FA password) → `authorizationStateReady`
    - then `loadChats` / `getChatHistory` / `sendMessage` / `inputFileLocal`

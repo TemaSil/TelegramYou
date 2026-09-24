@@ -1,4 +1,5 @@
 import java.util.Properties
+import javax.inject.Inject
 
 plugins {
     id("com.android.application")
@@ -262,4 +263,111 @@ dependencies {
     // viewModelScope runs on Dispatchers.Main, which does not exist on the
     // JVM until a test provides one.
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+}
+
+// ── TDLib's native libraries ────────────────────────────────────────────────
+//
+// `./gradlew :app:fetchTdlib` (gradlew.bat on Windows) downloads the libraries
+// the live client needs and puts them in src/main/jniLibs/, which is
+// git-ignored — they are 35 MB zipped and far too big for the repository. It
+// replaces the by-hand "download the zip from Releases and unzip it" step.
+//
+// Pinned to one release of the Build TDLib workflow and to the checksum of its
+// zip. These files go into the APK and run inside the app with its
+// permissions, so a download that is not byte for byte the one that was built
+// is refused rather than packaged. Bumping TDLib means running that workflow
+// and changing both lines together; `sha256sum tdlib-jnilibs-java.zip` gives
+// the second.
+val tdlibRelease = "tdlib-java-d1085f9"
+val tdlibSha256 = "05b7f02abbd95d8b8c4375f934fdf81efc949ea46f6adbcf837146a1c1e50d18"
+
+/**
+ * Downloads, verifies and unpacks the TDLib release.
+ *
+ * A task type of its own rather than a doLast block, so it touches the
+ * project only through injected services and stays usable with Gradle's
+ * configuration cache. Skipped when the libraries from this same release are
+ * already in place: the marker file names the release they came from.
+ */
+abstract class FetchTdlib : DefaultTask() {
+    @get:Input abstract val release: Property<String>
+    @get:Input abstract val sha256: Property<String>
+    @get:OutputDirectory abstract val jniLibs: DirectoryProperty
+    @get:Internal abstract val download: RegularFileProperty
+    @get:Inject abstract val files: FileSystemOperations
+    @get:Inject abstract val archives: ArchiveOperations
+
+    @TaskAction
+    fun fetch() {
+        val zip = download.get().asFile
+        zip.parentFile.mkdirs()
+        val url = "https://github.com/TemaSil/TelegramYou/releases/download/" +
+            "${release.get()}/tdlib-jnilibs-java.zip"
+        logger.lifecycle("Downloading $url")
+        java.net.URI(url).toURL().openStream().use { input ->
+            zip.outputStream().use { output -> input.copyTo(output) }
+        }
+
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        zip.inputStream().use { input ->
+            val buffer = ByteArray(1 shl 16)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
+        if (actual != sha256.get()) {
+            zip.delete()
+            throw GradleException(
+                "tdlib-jnilibs-java.zip from ${release.get()} has sha256 $actual, " +
+                    "expected ${sha256.get()}. Not unpacking it."
+            )
+        }
+
+        // The zip holds jniLibs/<abi>/libtdjsonjava.so; the leading folder is
+        // dropped so each ABI lands directly under src/main/jniLibs.
+        files.sync {
+            from(archives.zipTree(zip)) {
+                include("jniLibs/**/*.so")
+                eachFile { relativePath = RelativePath(true, *relativePath.segments.drop(1).toTypedArray()) }
+                includeEmptyDirs = false
+            }
+            into(jniLibs)
+        }
+        val abis = listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+        val missing = abis.filterNot { jniLibs.file("$it/libtdjsonjava.so").get().asFile.exists() }
+        if (missing.isNotEmpty()) {
+            throw GradleException("The release has no libtdjsonjava.so for: $missing")
+        }
+        // The marker the task's onlyIf reads: which release these came from.
+        jniLibs.file("TDLIB_RELEASE").get().asFile.writeText(release.get() + "\n")
+        zip.delete()
+        logger.lifecycle("TDLib ${release.get()} unpacked for ${abis.joinToString()}")
+    }
+}
+
+val fetchTdlib = tasks.register<FetchTdlib>("fetchTdlib") {
+    group = "telegram"
+    description = "Downloads TDLib's native libraries into src/main/jniLibs"
+    release.set(tdlibRelease)
+    sha256.set(tdlibSha256)
+    jniLibs.set(layout.projectDirectory.dir("src/main/jniLibs"))
+    download.set(layout.buildDirectory.file("tdlib/tdlib-jnilibs-java.zip"))
+    // Copied into locals so the check captures two values, not the script:
+    // the configuration cache has to be able to store it.
+    val marker = layout.projectDirectory.file("src/main/jniLibs/TDLIB_RELEASE").asFile
+    val wanted = tdlibRelease
+    onlyIf("the libraries from $wanted are not already in place") {
+        !marker.exists() || marker.readText().trim() != wanted
+    }
+}
+
+// A live build without the libraries installs and then dies on the first
+// native call with UnsatisfiedLinkError, so a live build fetches them itself.
+// The demo build — CI's, and anyone's without credentials — needs none and
+// never downloads anything.
+if ((localProperties.getProperty("TELEGRAM_API_ID") ?: "0") != "0") {
+    tasks.named("preBuild") { dependsOn(fetchTdlib) }
 }
