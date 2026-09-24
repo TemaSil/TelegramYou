@@ -37,6 +37,21 @@ import com.telegramyou.app.ui.avatars.avatarShapeIndex
 @Composable
 fun typingShape(seed: Long): Shape {
     val start = if (LocalShapedAvatars.current) avatarShapeIndex(seed, SHAPE_COUNT) else 0
+    return cyclingShape(start)
+}
+
+/**
+ * Entry [startIndex] of the shape set, morphing through three others and
+ * back and turning, for as long as it is composed. [typingShape] is this at
+ * a typing pace; the login screen's mark is it at a resting one.
+ */
+@Composable
+fun cyclingShape(
+    startIndex: Int,
+    stepMillis: Int = STEP_MILLIS,
+    turnMillis: Int = TURN_MILLIS
+): Shape {
+    val start = startIndex.mod(SHAPE_COUNT)
     // Three steps away each time, so neighbouring stops are never two
     // shapes that look alike.
     val morphs = remember(start) {
@@ -47,13 +62,13 @@ fun typingShape(seed: Long): Shape {
     val phase by transition.animateFloat(
         initialValue = 0f,
         targetValue = STOPS.toFloat(),
-        animationSpec = infiniteRepeatable(tween(STOPS * STEP_MILLIS, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(STOPS * stepMillis, easing = LinearEasing)),
         label = "typingPhase"
     )
     val turn by transition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(TURN_MILLIS, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(turnMillis, easing = LinearEasing)),
         label = "typingTurn"
     )
     val step = phase.toInt().coerceAtMost(STOPS - 1)

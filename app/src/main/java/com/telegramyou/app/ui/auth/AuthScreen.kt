@@ -84,7 +84,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
-import com.telegramyou.app.ui.components.materialShapeSet
+import com.telegramyou.app.ui.components.cyclingShape
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -241,16 +241,18 @@ fun AuthScreen(
 }
 
 /**
- * The app's mark: the paper plane on a twelve-point cookie, one of the
- * shapes the avatars use, in the wallpaper's primary container.
+ * The app's mark: the paper plane on one of the shapes the avatars use, in
+ * the wallpaper's primary container — morphing slowly through the set and
+ * turning, the motion a typing avatar makes but at rest. It starts on the
+ * twelve-point cookie. Only the outline moves; the plane stays level.
  */
 @Composable
 private fun BrandMark() {
-    val cookie = materialShapeSet()[9]
+    val outline = cyclingShape(startIndex = 9, stepMillis = 1_400, turnMillis = 16_000)
     Box(
         modifier = Modifier
             .size(96.dp)
-            .clip(cookie)
+            .clip(outline)
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
@@ -266,7 +268,13 @@ private fun BrandMark() {
 /** A step's heading and the line under it. */
 @Composable
 private fun StepHeader(title: String, subtitle: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    // The full width, so the heading centres on the screen rather than on
+    // itself at the start of whatever column holds it — which is how the
+    // phone step's heading ended up pushed to the left.
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Text(
             title,
             style = MaterialTheme.typography.headlineSmall,
