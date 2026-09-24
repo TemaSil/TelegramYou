@@ -191,8 +191,12 @@ class TestDcClientTest {
     }
 
     private companion object {
-        /** Test data centres, 2 first: the one TDLib's own examples use. */
-        val DATA_CENTRES = listOf(2, 1, 3)
+        /**
+         * The test data centre to sign in on: 2, the one TDLib's own examples
+         * use. Trying 1 and 3 as well was tried and told nothing more — see
+         * the Live workflow for where this test stands.
+         */
+        val DATA_CENTRES = listOf(2)
         const val LAUNCH_TIMEOUT = 30_000L
         const val TDLIB_TIMEOUT = 90_000L
         const val SEND_TIMEOUT = 120_000L

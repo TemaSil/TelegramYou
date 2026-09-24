@@ -1,9 +1,6 @@
 package com.telegramyou.app.ui.stories
 
 import android.view.TextureView
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +28,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,20 +79,26 @@ fun StoryViewerScreen(
 ) {
     val frame = state.frame ?: return
     val path = state.paths[frame.id]?.takeIf { it.isNotBlank() } ?: frame.localPath
-    val progress = remember { Animatable(0f) }
+    var progress by remember { mutableFloatStateOf(0f) }
 
     fun forward() {
         onSeen()
         if (!onNext()) onClose()
     }
 
+    // A clock, not an animation. An animation is scaled by the system's
+    // animation setting, and with animations off — an accessibility choice,
+    // and how CI's emulator runs — a five-second story lasted no time at all
+    // and the viewer closed as it opened. Frames are counted in real time.
     LaunchedEffect(state.index, state.isFrameReady) {
-        progress.snapTo(0f)
+        progress = 0f
         if (!state.isFrameReady) return@LaunchedEffect
-        progress.animateTo(
-            1f,
-            tween(durationMillis = storyFrameMillis(frame).toInt(), easing = LinearEasing)
-        )
+        val total = storyFrameMillis(frame)
+        val start = withFrameMillis { it }
+        while (progress < 1f) {
+            val now = withFrameMillis { it }
+            progress = ((now - start).toFloat() / total).coerceAtMost(1f)
+        }
         forward()
     }
 
@@ -145,7 +152,7 @@ fun StoryViewerScreen(
                         progress = {
                             when {
                                 index < state.index -> 1f
-                                index == state.index -> progress.value
+                                index == state.index -> progress
                                 else -> 0f
                             }
                         },

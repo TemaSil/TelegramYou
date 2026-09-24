@@ -288,9 +288,16 @@ The first time the live client was used on a real account, on
 - **A photo that failed to send looked like one still sending, for ever.**
   `updateMessageSendFailed` was not handled. A refused message is now marked
   on its bubble, a pending one wears a clock, and the server's reason comes
-  up in a snackbar. The Live workflow now signs in on Telegram's test servers
-  (`-PtelegramTestDc=true`, a +99966 number, no SMS) and sends a photo to
-  Saved Messages, so a refusal fails CI with the server's own words.
+  up in a snackbar. The Live workflow also builds for Telegram's test
+  servers (`-PtelegramTestDc=true`) to sign in with a +99966 number and
+  send a photo to Saved Messages. **Not yet working**: the servers take the
+  number and send a code, then refuse the documented one (the data
+  centre's digit five times), so that step reports as a warning until it
+  signs in once. The cause of the reported photo failure is therefore still
+  unknown; the next failure on a phone will at least say it.
+- **A story lasted no time with animations switched off** — its timer was
+  an animation, and the system's animation scale shortened it to nothing.
+  It is a real-time clock now.
 - **No avatar ever showed a picture.** Nothing asked TDLib to download chat
   and profile photos. They are now fetched at the lowest priority and drawn
   over the initials everywhere an avatar is.
