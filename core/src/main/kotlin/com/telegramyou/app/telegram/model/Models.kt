@@ -61,6 +61,8 @@ data class ChatPreview(
     val isPinned: Boolean = false,
     val isMuted: Boolean = false,
     val isOnline: Boolean = false,
+    /** Someone in it is typing right now; the avatar morphs while this holds. */
+    val isTyping: Boolean = false,
     val isChannel: Boolean = false,
     val isGroup: Boolean = false,
     val avatarColor: Long = id,

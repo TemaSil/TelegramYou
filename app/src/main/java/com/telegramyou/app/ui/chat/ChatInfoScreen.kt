@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -115,7 +116,8 @@ fun ChatInfoScreen(
                     AvatarBubble(
                         title = chat?.title ?: "Chat",
                         seed = chat?.avatarColor ?: 1,
-                        size = 96.dp
+                        size = 96.dp,
+                        shape = personShape(chat?.avatarColor ?: 1)
                     )
                     Text(
                         chat?.title ?: "Chat",
@@ -205,7 +207,8 @@ fun ChatInfoScreen(
                             AvatarBubble(
                                 title = member.displayName,
                                 seed = member.avatarColor,
-                                size = 40.dp
+                                size = 40.dp,
+                                shape = personShape(member.avatarColor)
                             )
                         }
                     )

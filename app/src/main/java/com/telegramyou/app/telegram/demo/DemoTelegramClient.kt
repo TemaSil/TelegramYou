@@ -121,12 +121,18 @@ class DemoTelegramClient : TelegramClient {
      * the position this backend exists to avoid. It starts once the person is
      * signed in, not at construction, so the login screen is quiet.
      */
+    private fun setTyping(chatId: Long, typing: Boolean) {
+        _chats.update { list ->
+            list.map { if (it.id == chatId) it.copy(isTyping = typing) else it }
+        }
+    }
+
     private fun startDemoChatter() {
         if (chatter != null) return
         chatter = scope.launch {
             var index = 0
             while (isActive) {
-                delay(DEMO_CHATTER_INTERVAL_MS)
+                delay(DEMO_CHATTER_INTERVAL_MS - DEMO_TYPING_MS)
                 // The seeded chat that talks, while it is unmuted — not
                 // whichever chat happens to be first. A group created or
                 // joined in the demo goes to the top of the list, and taking
@@ -138,6 +144,12 @@ class DemoTelegramClient : TelegramClient {
                     ?: continue
                 val line = DEMO_CHATTER_LINES[index % DEMO_CHATTER_LINES.size]
                 index++
+                // Typing first, as a person does: the avatar morphs for a few
+                // seconds before each line lands, which is how the typing
+                // shape can be seen without an account.
+                setTyping(chat.id, true)
+                delay(DEMO_TYPING_MS)
+                setTyping(chat.id, false)
                 appendIncoming(chat.id, chat.title, line)
             }
         }
@@ -761,7 +773,8 @@ class DemoTelegramClient : TelegramClient {
         ),
         ChatPreview(
             2, "Lina Park", "typing… wait, almost", "11:02", unreadCount = 1,
-            isOnline = true, avatarColor = 22,
+            // Always typing, so the morph is on screen from the first look.
+            isOnline = true, isTyping = true, avatarColor = 22,
             folderIds = setOf(FOLDER_PEOPLE)
         ),
         ChatPreview(
@@ -1087,6 +1100,9 @@ private val DEMO_JOIN_LINK = "https://t.me/+ExpressiveDesignClub"
 
 /** The seeded chat the demo's timer speaks in — Material Design. */
 private val CHATTY_CHAT_ID = 1L
+
+/** How long the chatty chat types before each line. */
+private val DEMO_TYPING_MS = 3_000L
 private val DEMO_JOIN_TITLE = "Expressive Design Club"
 
 private val DEMO_VIDEO_FILE_ID = 1601

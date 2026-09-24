@@ -158,7 +158,8 @@ fun ChatListRow(
                     } else {
                         CircleShape
                     },
-                    showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup
+                    showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup,
+                    typing = chat.isTyping
                 )
             },
             supportingContent = {

@@ -47,6 +47,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -127,6 +128,16 @@ class TdLibTelegramClient(
      */
     private val storyKeys = ConcurrentHashMap<Long, Pair<Long, Int>>()
     private val storyKeySeq = AtomicLong(0)
+
+    /**
+     * Until when each chat has someone typing, in epoch milliseconds.
+     *
+     * TDLib repeats an action every few seconds while it lasts and says
+     * `chatActionCancel` when it stops — but a person whose connection drops
+     * mid-sentence never sends the cancel, so each action also expires on
+     * its own after [TYPING_MILLIS].
+     */
+    private val typingUntil = ConcurrentHashMap<Long, Long>()
 
     /** Each chat's `chatActiveStories`, as `updateChatActiveStories` last said. */
     private val activeStories = ConcurrentHashMap<Long, JSONObject>()
@@ -1355,6 +1366,23 @@ class TdLibTelegramClient(
                 val group = update.optJSONObject("supergroup") ?: return
                 supergroups[group.optLong("id")] = group
             }
+            "updateChatAction" -> {
+                val chatId = update.optLong("chat_id")
+                val action = update.optJSONObject("action")?.optString("@type").orEmpty()
+                if (action == "chatActionCancel" || action.isEmpty()) {
+                    typingUntil.remove(chatId)
+                } else {
+                    // Typing, recording a voice note, choosing a sticker:
+                    // all of them are someone in the middle of writing.
+                    typingUntil[chatId] = System.currentTimeMillis() + TYPING_MILLIS
+                    // Redrawn once it has lapsed, in case no cancel comes.
+                    scope.launch {
+                        delay(TYPING_MILLIS + 100)
+                        withContext(updateDispatcher) { publishChats() }
+                    }
+                }
+                publishChats()
+            }
             "updateUserStatus" -> {
                 // Someone came online or went away. Only the status changes,
                 // and the chat list redraws for the dot beside their avatar.
@@ -1854,6 +1882,7 @@ class TdLibTelegramClient(
             isPinned = positions.isPinned(id),
             isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
             isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
+            isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
             isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
             isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
             avatarColor = id,
@@ -2243,6 +2272,9 @@ class TdLibTelegramClient(
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
+        /** How long a chat action counts without being repeated. */
+        private const val TYPING_MILLIS = 6_000L
+
         /** How many messages a conversation opens with. */
         private const val HISTORY_PAGE = 50
 

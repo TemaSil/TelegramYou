@@ -42,6 +42,11 @@ fun AvatarBubble(
      */
     shape: Shape = CircleShape,
     showOnline: Boolean = false,
+    /**
+     * They are typing. The outline morphs through Material's shapes while
+     * this holds and returns to [shape] when it stops; see typingShape.
+     */
+    typing: Boolean = false,
     ring: Boolean = false,
     ringSeen: Boolean = false,
     onClick: (() -> Unit)? = null
@@ -56,6 +61,7 @@ fun AvatarBubble(
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "avatarScale"
     )
+    val outline = if (typing) typingShape(seed) else shape
     val base = avatarColor(seed)
     val initials = title
         .split(" ")
@@ -98,11 +104,11 @@ fun AvatarBubble(
                                     )
                                 )
                             },
-                            shape = shape
+                            shape = outline
                         )
                     } else Modifier
                 )
-                .clip(shape)
+                .clip(outline)
                 .background(
                     Brush.linearGradient(listOf(base, base.copy(alpha = 0.75f)))
                 )

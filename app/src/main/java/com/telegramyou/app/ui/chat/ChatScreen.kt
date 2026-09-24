@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.components.personShape
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -402,7 +403,8 @@ fun ChatScreen(
                             if (chat != null) {
                                 // A group shows who is in it, each member in
                                 // their own shape; anything with one person
-                                // behind it keeps the single circle, because a
+                                // behind it keeps a single avatar — in the
+                                // shape it has in the chat list — because a
                                 // cluster of one is just an avatar drawn oddly.
                                 val members = if (chat.isGroup || chat.isChannel) {
                                     // The server's list when there is one,
@@ -423,7 +425,11 @@ fun ChatScreen(
                                     AvatarBubble(
                                         title = chat.title,
                                         seed = chat.avatarColor,
-                                        size = 40.dp
+                                        size = 40.dp,
+                                        // The shape the chat has in the list,
+                                        // morphing while they type here too.
+                                        shape = personShape(chat.avatarColor),
+                                        typing = detail?.isTyping == true
                                     )
                                 }
                                 Spacer(Modifier.width(10.dp))
@@ -1021,7 +1027,8 @@ private fun MessageBubble(
                     AvatarBubble(
                         title = message.senderName.orEmpty().ifBlank { "?" },
                         seed = message.senderId ?: message.chatId,
-                        size = 28.dp
+                        size = 28.dp,
+                        shape = personShape(message.senderId ?: message.chatId)
                     )
                 }
             }
@@ -1912,7 +1919,8 @@ private fun ForwardSheet(
                             AvatarBubble(
                                 title = target.title,
                                 seed = target.avatarColor,
-                                size = 40.dp
+                                size = 40.dp,
+                                shape = personShape(target.avatarColor)
                             )
                         },
                         // The sheet's tone, not the row's default — see the

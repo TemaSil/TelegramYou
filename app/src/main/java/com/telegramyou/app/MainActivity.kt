@@ -1,5 +1,7 @@
 package com.telegramyou.app
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.telegramyou.app.ui.components.LocalShapedAvatars
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -75,12 +77,16 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = appearance.dynamicColor
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    TelegramYouNavHost(
-                        repository = app.telegramRepository,
-                        appearance = app.appearance,
-                        openChatId = pendingChatId,
-                        onChatOpened = { pendingChatId = null }
-                    )
+                    // Shaped avatars are an appearance setting like the two
+                    // above, and every screen that draws a person reads it.
+                    CompositionLocalProvider(LocalShapedAvatars provides appearance.shapedAvatars) {
+                        TelegramYouNavHost(
+                            repository = app.telegramRepository,
+                            appearance = app.appearance,
+                            openChatId = pendingChatId,
+                            onChatOpened = { pendingChatId = null }
+                        )
+                    }
                 }
             }
         }

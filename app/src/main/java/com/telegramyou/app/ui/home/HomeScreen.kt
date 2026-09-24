@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -860,7 +861,8 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
             AvatarBubble(
                 title = hit.chat.title,
                 seed = hit.chat.avatarColor,
-                size = 40.dp
+                size = 40.dp,
+                shape = personShape(hit.chat.avatarColor)
             )
         },
         headlineContent = {
@@ -968,7 +970,8 @@ private fun ContactPickerSheet(
                             leadingContent = {
                                 AvatarBubble(
                                     title = person.displayName,
-                                    seed = person.avatarColor
+                                    seed = person.avatarColor,
+                                    shape = personShape(person.avatarColor)
                                 )
                             },
                             modifier = Modifier.clickable { onPick(person.id) }

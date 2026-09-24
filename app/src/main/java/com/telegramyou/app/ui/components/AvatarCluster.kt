@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.components
 
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.telegramyou.app.ui.avatars.avatarShapeIndex
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -117,23 +119,57 @@ fun AvatarCluster(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun materialShapeSet(): List<Shape> = listOf(
-    CircleShape,
-    starShape(points = 4, innerRatio = 0.75f, rounding = 0.50f),
-    polygonShape(vertices = 4, rounding = 0.30f),
-    starShape(points = 6, innerRatio = 0.78f, rounding = 0.48f),
-    polygonShape(vertices = 3, rounding = 0.24f),
-    starShape(points = 8, innerRatio = 0.82f, rounding = 0.44f),
-    polygonShape(vertices = 5, rounding = 0.14f),
-    starShape(points = 5, innerRatio = 0.70f, rounding = 0.40f),
-    polygonShape(vertices = 6, rounding = 0.12f),
-    starShape(points = 12, innerRatio = 0.88f, rounding = 0.40f),
-    starShape(points = 3, innerRatio = 0.62f, rounding = 0.44f),
-    polygonShape(vertices = 8, rounding = 0.10f)
+internal fun materialShapeSet(): List<Shape> = SHAPE_SPECS.indices.map { index ->
+    if (SHAPE_SPECS[index] is ShapeSpec.Circle) {
+        CircleShape
+    } else {
+        remember(index) { materialPolygon(index) }.toShape()
+    }
+}
+
+/** How many shapes [materialShapeSet] holds. */
+internal val SHAPE_COUNT: Int get() = SHAPE_SPECS.size
+
+/** One entry of the set, as the recipe it is built from. */
+private sealed interface ShapeSpec {
+    data object Circle : ShapeSpec
+    data class Polygon(val vertices: Int, val rounding: Float) : ShapeSpec
+    data class Star(val points: Int, val innerRatio: Float, val rounding: Float) : ShapeSpec
+}
+
+/**
+ * The set, in its order — which is part of what it is: a person's shape is
+ * an index into this list, so reordering it re-shapes everybody.
+ */
+private val SHAPE_SPECS: List<ShapeSpec> = listOf(
+    ShapeSpec.Circle,
+    ShapeSpec.Star(points = 4, innerRatio = 0.75f, rounding = 0.50f),
+    ShapeSpec.Polygon(vertices = 4, rounding = 0.30f),
+    ShapeSpec.Star(points = 6, innerRatio = 0.78f, rounding = 0.48f),
+    ShapeSpec.Polygon(vertices = 3, rounding = 0.24f),
+    ShapeSpec.Star(points = 8, innerRatio = 0.82f, rounding = 0.44f),
+    ShapeSpec.Polygon(vertices = 5, rounding = 0.14f),
+    ShapeSpec.Star(points = 5, innerRatio = 0.70f, rounding = 0.40f),
+    ShapeSpec.Polygon(vertices = 6, rounding = 0.12f),
+    ShapeSpec.Star(points = 12, innerRatio = 0.88f, rounding = 0.40f),
+    ShapeSpec.Star(points = 3, innerRatio = 0.62f, rounding = 0.44f),
+    ShapeSpec.Polygon(vertices = 8, rounding = 0.10f)
 )
 
 /**
- * A regular polygon, as a [Shape] an avatar can be clipped to.
+ * Entry [index] of the set as a polygon in the unit square — what a morph
+ * needs, where clipping needs a [Shape]. The circle is a twelve-sided one
+ * rounded all the way, so it can morph like the rest.
+ */
+internal fun materialPolygon(index: Int): RoundedPolygon =
+    when (val spec = SHAPE_SPECS[index]) {
+        ShapeSpec.Circle -> RoundedPolygon.circle(numVertices = 12).normalized()
+        is ShapeSpec.Polygon -> regularPolygon(spec.vertices, spec.rounding)
+        is ShapeSpec.Star -> starPolygon(spec.points, spec.innerRatio, spec.rounding)
+    }
+
+/**
+ * A regular polygon.
  *
  * [rounding] is a fraction of the distance to the neighbouring vertex: 0 is a
  * hard corner, and values approaching 1 round the shape away into a circle.
@@ -145,18 +181,14 @@ internal fun materialShapeSet(): List<Shape> = listOf(
  * Smoothing stays at its maximum: unsmoothed, a rounded corner meets the
  * straight edge with a visible kink at this size.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun polygonShape(vertices: Int, rounding: Float): Shape =
-    remember(vertices, rounding) {
-        RoundedPolygon(
-            numVertices = vertices,
-            radius = 1f,
-            centerX = 0f,
-            centerY = 0f,
-            rounding = CornerRounding(radius = rounding, smoothing = 1f)
-        ).normalized()
-    }.toShape()
+private fun regularPolygon(vertices: Int, rounding: Float): RoundedPolygon =
+    RoundedPolygon(
+        numVertices = vertices,
+        radius = 1f,
+        centerX = 0f,
+        centerY = 0f,
+        rounding = CornerRounding(radius = rounding, smoothing = 1f)
+    ).normalized()
 
 /**
  * A star, which is what Material's cookies and flowers actually are.
@@ -171,20 +203,42 @@ private fun polygonShape(vertices: Int, rounding: Float): Shape =
  * The rounding applies to every point, inner and outer alike, which is what
  * keeps the scallops round rather than sharp.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun starPolygon(points: Int, innerRatio: Float, rounding: Float): RoundedPolygon {
+    val corners = points * 2
+    val vertices = FloatArray(corners * 2)
+    for (corner in 0 until corners) {
+        val radius = if (corner % 2 == 0) 1f else innerRatio
+        val angle = PI * corner / points
+        vertices[corner * 2] = radius * cos(angle).toFloat()
+        vertices[corner * 2 + 1] = radius * sin(angle).toFloat()
+    }
+    return RoundedPolygon(
+        vertices = vertices,
+        rounding = CornerRounding(radius = rounding, smoothing = 1f)
+    ).normalized()
+}
+
+/**
+ * Whether people get shapes, from the Appearance setting.
+ *
+ * Provided once at the root rather than passed to every screen that draws
+ * an avatar: the conversation, its info screen and the pickers all draw
+ * people, and none of them otherwise had any reason to know about settings.
+ */
+val LocalShapedAvatars = staticCompositionLocalOf { true }
+
+/**
+ * The shape a person or chat is drawn in, everywhere.
+ *
+ * The same seed gives the same shape as in the chat list, so the clover
+ * someone is in the list is the clover they are in their conversation's
+ * header, beside their messages, and in a group's member list — which is
+ * the reason for giving people shapes at all. A circle when the setting is
+ * off.
+ */
 @Composable
-private fun starShape(points: Int, innerRatio: Float, rounding: Float): Shape =
-    remember(points, innerRatio, rounding) {
-        val corners = points * 2
-        val vertices = FloatArray(corners * 2)
-        for (corner in 0 until corners) {
-            val radius = if (corner % 2 == 0) 1f else innerRatio
-            val angle = PI * corner / points
-            vertices[corner * 2] = radius * cos(angle).toFloat()
-            vertices[corner * 2 + 1] = radius * sin(angle).toFloat()
-        }
-        RoundedPolygon(
-            vertices = vertices,
-            rounding = CornerRounding(radius = rounding, smoothing = 1f)
-        ).normalized()
-    }.toShape()
+fun personShape(seed: Long): Shape {
+    if (!LocalShapedAvatars.current) return CircleShape
+    val shapes = materialShapeSet()
+    return shapes[avatarShapeIndex(seed, shapes.size)]
+}

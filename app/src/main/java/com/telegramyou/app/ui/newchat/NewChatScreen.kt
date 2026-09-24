@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.newchat
 
+import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -223,7 +224,8 @@ fun NewChatScreen(
                             AvatarBubble(
                                 title = person.displayName,
                                 seed = person.avatarColor,
-                                size = 40.dp
+                                size = 40.dp,
+                                shape = personShape(person.avatarColor)
                             )
                         },
                         // The checkbox draws the state; the row takes the tap,
