@@ -39,7 +39,7 @@ import org.junit.runner.RunWith
  * nobody's phone — sending a photo to its own Saved Messages.
  *
  * Numbers of the form +99966XYYYY exist there for testing, X being the data
- * centre, and each one's login code is X five times. A number nobody has used
+ * centre, and each one's login code is X repeated for the code's length. A number nobody has used
  * yet is registered on the spot, which the client does by itself.
  *
  * This is the test for "I can't send a photo": the whole path the composer
@@ -81,11 +81,16 @@ class TestDcClientTest {
         if (afterPhone.state != AuthState.WaitCode) {
             fail("$phone was not accepted: ${afterPhone.state} ${afterPhone.errorMessage}")
         }
-        repository.submitCode(DC.toString().repeat(5))
+        // The data centre's digit, as many times as the code is long. The
+        // documentation says five; the server says how long it is, and the
+        // first run found five refused, so the server's word is taken.
+        val codeLength = afterPhone.codeLength.takeIf { it > 0 } ?: 5
+        repository.submitCode(DC.toString().repeat(codeLength))
         val signedIn = awaitStep(setOf(AuthState.Ready, AuthState.WaitPassword)) { auth.value }
         instrumentation.uiAutomation.takeScreenshot().writeToTestStorage("testdc-01-signed-in")
         assertEquals(
-            "$phone did not get in: ${signedIn.errorMessage}",
+            "$phone did not get in with a $codeLength-digit code " +
+                "(${afterPhone.codeHint}): ${signedIn.errorMessage}",
             AuthState.Ready,
             signedIn.state
         )

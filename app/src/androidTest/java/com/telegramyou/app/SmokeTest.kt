@@ -17,6 +17,7 @@ import androidx.test.services.storage.TestStorage
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
 import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
@@ -786,7 +787,14 @@ class SmokeTest {
             Until.hasObject(By.text("Your phone")),
             DIALOG_TIMEOUT
         )
-        if (!loginIsUp) return
+        if (!loginIsUp) {
+            // Signed in already, by an earlier test in this process — but the
+            // permission dialog may still be up if that test failed before
+            // answering it, and it covers everything the next test looks for.
+            // That is how one flaky test once failed all twelve.
+            allowNotifications()
+            return
+        }
         screenshot("01-login")
 
         // Into the field, not into its placeholder. Compose publishes a
@@ -803,7 +811,12 @@ class SmokeTest {
         // Sent on its fifth digit, like every Telegram client: the button
         // is only there for a code whose length the server did not give.
         type("12345")
-        device.findObject(By.text("Sign in"))?.click()
+        // Usually gone already: the code goes on its fifth digit, and the
+        // button can vanish between being found and being pressed.
+        try {
+            device.findObject(By.text("Sign in"))?.click()
+        } catch (_: StaleObjectException) {
+        }
 
         // The chat list asks for POST_NOTIFICATIONS the moment it appears, and
         // the system dialog covers the very chat the tests wait for. Granting
