@@ -159,7 +159,8 @@ fun ChatListRow(
                         CircleShape
                     },
                     showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup,
-                    typing = chat.isTyping
+                    typing = chat.isTyping,
+                    photoPath = chat.photoPath
                 )
             },
             supportingContent = {
@@ -185,11 +186,21 @@ fun ChatListRow(
                         )
                         Spacer(Modifier.width(4.dp))
                     }
-                    Text(
-                        text = chat.lastMessage,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    // What every Telegram client does while someone writes:
+                    // the preview gives way to the fact of it.
+                    if (chat.isTyping) {
+                        Text(
+                            text = "typing…",
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
+                        )
+                    } else {
+                        Text(
+                            text = chat.lastMessage,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             },
             trailingContent = {

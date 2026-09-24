@@ -69,6 +69,7 @@ private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
             size = 64.dp,
             ring = !story.isOwn,
             ringSeen = !story.hasUnseen,
+            photoPath = story.photoPath,
             onClick = onClick
         )
         Spacer(Modifier.height(6.dp))

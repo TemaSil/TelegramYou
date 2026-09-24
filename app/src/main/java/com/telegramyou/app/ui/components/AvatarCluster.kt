@@ -29,7 +29,7 @@ import kotlin.math.PI
  * than their position: the same id gives the same clover in every group they
  * are in, and across a reload.
  */
-data class ClusterMember(val name: String, val seed: Long)
+data class ClusterMember(val name: String, val seed: Long, val photoPath: String? = null)
 
 /**
  * The people in a group, overlapping, each in a different shape.
@@ -73,6 +73,7 @@ fun AvatarCluster(
                 seed = member.seed,
                 size = size,
                 shape = shapes[indices[position]],
+                photoPath = member.photoPath,
                 // Drawn in order, so each avatar laps the one before it. The
                 // leftmost ends up furthest back, which is the way a hand of
                 // cards is held and reads as depth rather than as a mistake.

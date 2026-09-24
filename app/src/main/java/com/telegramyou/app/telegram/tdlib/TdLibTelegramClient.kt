@@ -29,6 +29,8 @@ import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.SendState
+import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.InviteLinkPreview
@@ -64,6 +66,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -120,14 +123,15 @@ class TdLibTelegramClient(
     private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
 
     /**
-     * Stories by the id this client gave them.
+     * The rail's circles by the id this client gave them: one per posting
+     * chat, not per story.
      *
-     * A story is named by its poster's chat and its own number, and the
-     * screens want one Long. The pair used to be packed into one as
-     * `chatId shl 16 + storyId`, which broke on the 65,536th story; a table
-     * cannot run out.
+     * Keyed by story, the id changed as soon as the first unseen story was
+     * seen — under the viewer showing it, which then found nothing under its
+     * id and closed. A chat's circle keeps its id for as long as it has
+     * stories, which is what the viewer holds on to.
      */
-    private val storyKeys = ConcurrentHashMap<Long, Pair<Long, Int>>()
+    private val storyKeys = ConcurrentHashMap<Long, Long>()
     private val storyKeySeq = AtomicLong(0)
 
     /**
@@ -142,6 +146,18 @@ class TdLibTelegramClient(
 
     /** Each chat's `chatActiveStories`, as `updateChatActiveStories` last said. */
     private val activeStories = ConcurrentHashMap<Long, JSONObject>()
+
+    /**
+     * Profile and chat pictures, by TDLib file id: the ones asked for, and
+     * where each landed once it did.
+     *
+     * TDLib hands out a chat's picture as a file that is not downloaded yet,
+     * and nothing downloads it unless asked. Nothing asked, which is why no
+     * avatar in the live client ever showed anything but initials.
+     */
+    private val requestedPhotos = ConcurrentHashMap.newKeySet<Int>()
+    private val downloadedPhotos = ConcurrentHashMap<Int, String>()
+    private val photoRepublishPending = AtomicBoolean(false)
 
     private val _authState = MutableStateFlow(
         AuthUiState(state = AuthState.Bootstrapping, isLoading = true)
@@ -202,6 +218,24 @@ class TdLibTelegramClient(
                 isLoading = false
             )
         }
+    }
+
+    /** The last thing [setOnline] was told, sent again once signed in. */
+    @Volatile
+    private var isOnline = false
+
+    override fun setOnline(online: Boolean) {
+        isOnline = online
+        sendOnline()
+    }
+
+    private fun sendOnline() {
+        engine?.sendFireAndForget(
+            JSONObject()
+                .put("@type", "setOption")
+                .put("name", "online")
+                .put("value", JSONObject().put("@type", "optionValueBoolean").put("value", isOnline))
+        )
     }
 
     override fun shutdown() {
@@ -625,7 +659,7 @@ class TdLibTelegramClient(
             chat = preview,
             messages = mapped,
             memberCountLabel = statusLabel(chat),
-            isTyping = false,
+            isTyping = preview.isTyping,
             pinnedMessage = pinnedMessage(chatId),
             members = groupMembers(chat)
         )
@@ -1221,30 +1255,93 @@ class TdLibTelegramClient(
         }
     }
 
-    override suspend fun markStorySeen(storyId: Long) {
-        _stories.update { list ->
-            list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
+    /**
+     * Every active story of the chat behind [storyId], oldest first, with
+     * what each one shows.
+     *
+     * `getStory` for each: the active-stories update only lists ids. A story
+     * that cannot be fetched — deleted in the meantime, or expired — is left
+     * out rather than failing the rest.
+     */
+    override suspend fun storyFrames(storyId: Long): List<StoryFrame> {
+        awaitReady()
+        val chatId = storyKeys[storyId] ?: return emptyList()
+        val active = activeStories[chatId] ?: return emptyList()
+        val maxRead = active.optInt("max_read_story_id")
+        return activeStoryIds(active).mapNotNull { id ->
+            try {
+                val story = requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getStory")
+                        .put("story_poster_chat_id", chatId)
+                        .put("story_sender_chat_id", chatId)
+                        .put("story_id", id)
+                        .put("only_local", false)
+                )
+                storyFrame(story, isSeen = id <= maxRead)
+            } catch (e: TdLibException) {
+                Log.d(TAG, "getStory($chatId, $id): ${e.message}")
+                null
+            }
         }
-        val (chatId, realStoryId) = storyKeys[storyId] ?: return
+    }
+
+    private fun storyFrame(story: JSONObject, isSeen: Boolean): StoryFrame {
+        val content = story.optJSONObject("content")
+        val caption = story.optJSONObject("caption")?.optString("text").orEmpty()
+        val base = StoryFrame(
+            id = story.optInt("id"),
+            caption = caption,
+            date = story.optLong("date"),
+            isSeen = isSeen
+        )
+        return when (content?.optString("@type")) {
+            "storyContentPhoto" -> {
+                // The largest size: a story fills the screen.
+                val sizes = content.optJSONObject("photo")?.optJSONArray("sizes")
+                val file = sizes?.optJSONObject(sizes.length() - 1)?.optJSONObject("photo")
+                base.copy(fileId = file?.optInt("id"), localPath = file?.localPathIfDownloaded())
+            }
+            "storyContentVideo" -> {
+                val video = content.optJSONObject("video")
+                val file = video?.optJSONObject("video")
+                base.copy(
+                    fileId = file?.optInt("id"),
+                    localPath = file?.localPathIfDownloaded(),
+                    isVideo = true,
+                    durationSeconds = video?.optDouble("duration") ?: 0.0
+                )
+            }
+            else -> base
+        }
+    }
+
+    /**
+     * Opening a story is what tells Telegram it was seen. Opened and closed
+     * again straight away: a story left open keeps TDLib polling for it.
+     */
+    override suspend fun markStorySeen(storyId: Long, frameId: Int) {
+        val chatId = storyKeys[storyId] ?: return
+        // Seen to the end: the circle's ring goes grey now rather than when
+        // the server's echo arrives.
+        val last = activeStories[chatId]?.let { activeStoryIds(it) }?.maxOrNull()
+        if (last != null && frameId >= last) {
+            _stories.update { list ->
+                list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
+            }
+        }
         try {
-            // Opened and closed again straight away: openStory is what marks
-            // it viewed, and a story left open keeps TDLib polling for it.
-            val engine = requireEngine()
-            engine.send(
-                JSONObject()
-                    .put("@type", "openStory")
-                    .put("story_poster_chat_id", chatId)
-                    .put("story_sender_chat_id", chatId)
-                    .put("story_id", realStoryId)
-            )
-            engine.send(
-                JSONObject()
-                    .put("@type", "closeStory")
-                    .put("story_poster_chat_id", chatId)
-                    .put("story_sender_chat_id", chatId)
-                    .put("story_id", realStoryId)
-            )
-        } catch (e: Throwable) {
+            awaitReady()
+            for (type in listOf("openStory", "closeStory")) {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", type)
+                        .put("story_poster_chat_id", chatId)
+                        .put("story_sender_chat_id", chatId)
+                        .put("story_id", frameId)
+                )
+            }
+        } catch (e: TdLibException) {
             Log.d(TAG, "markStorySeen: ${e.message}")
         }
     }
@@ -1265,6 +1362,8 @@ class TdLibTelegramClient(
         messagesByChat.clear()
         positions.clear()
         storyKeys.clear()
+        requestedPhotos.clear()
+        downloadedPhotos.clear()
         _chats.value = emptyList()
         _stories.value = emptyList()
         _folders.value = emptyList()
@@ -1399,6 +1498,12 @@ class TdLibTelegramClient(
                 // the object.
                 val file = update.optJSONObject("file") ?: return
                 val id = file.optInt("id")
+                if (id in requestedPhotos) {
+                    file.localPathIfDownloaded()?.let { path ->
+                        downloadedPhotos[id] = path
+                        republishPhotos()
+                    }
+                }
                 val local = file.optJSONObject("local")
                 val remote = file.optJSONObject("remote")
                 val downloading = local?.optBoolean("is_downloading_active") == true
@@ -1444,6 +1549,7 @@ class TdLibTelegramClient(
                 val chat = chatsById[chatId] ?: return
                 when (update.optString("@type")) {
                     "updateChatTitle" -> chat.put("title", update.optString("title"))
+                    "updateChatPhoto" -> chat.put("photo", update.optJSONObject("photo"))
                     "updateChatLastMessage" -> {
                         chat.put("last_message", update.optJSONObject("last_message"))
                         val positions = update.optJSONArray("positions")
@@ -1508,6 +1614,24 @@ class TdLibTelegramClient(
                     MessageUpdate.Replaced(
                         oldId = update.optLong("old_message_id"),
                         message = mapMessage(chatId, message)
+                    )
+                )
+            }
+            "updateMessageSendFailed" -> {
+                // Refused by the server, or failed on the way: an upload that
+                // broke, a file too big, a chat that no longer takes posts.
+                // Unhandled, a photo that failed looked exactly like one
+                // still sending, for ever.
+                val message = update.optJSONObject("message") ?: return
+                val chatId = message.optLong("chat_id")
+                val error = update.optJSONObject("error")
+                Log.w(TAG, "send failed in $chatId: ${error?.optInt("code")} ${error?.optString("message")}")
+                emitUpdate(
+                    MessageUpdate.SendFailed(
+                        oldId = update.optLong("old_message_id"),
+                        message = mapMessage(chatId, message),
+                        error = error?.optString("message").orEmpty()
+                            .ifBlank { "the server refused it" }
                     )
                 )
             }
@@ -1650,6 +1774,9 @@ class TdLibTelegramClient(
                     it.copy(state = AuthState.Ready, isLoading = false, me = me, errorMessage = null)
                 }
                 if (!readySignal.isCompleted) readySignal.complete(Unit)
+                // The activity said it was in front before there was an
+                // account to be online as.
+                sendOnline()
                 refreshChats()
             }
             "authorizationStateLoggingOut",
@@ -1665,7 +1792,7 @@ class TdLibTelegramClient(
     private fun buildTdlibParameters(): JSONObject =
         JSONObject()
             .put("@type", "setTdlibParameters")
-            .put("use_test_dc", false)
+            .put("use_test_dc", BuildConfig.USE_TEST_DC)
             .put("database_directory", databaseDir.absolutePath)
             .put("files_directory", filesDir.absolutePath)
             .put("use_file_database", true)
@@ -1755,34 +1882,40 @@ class TdLibTelegramClient(
             .sortedByDescending { it.optLong("order") }
             .mapNotNull { active ->
                 val chatId = active.optLong("chat_id")
-                val stories = active.optJSONArray("stories") ?: return@mapNotNull null
-                val ids = (0 until stories.length()).mapNotNull { index ->
-                    stories.optJSONObject(index)
-                        ?.let { it.optInt("story_id", it.optInt("id")) }
-                        ?.takeIf { it != 0 }
-                }
+                val ids = activeStoryIds(active)
                 if (ids.isEmpty()) return@mapNotNull null
                 val maxRead = active.optInt("max_read_story_id")
-                val firstUnseen = ids.firstOrNull { it > maxRead }
-                val title = chatsById[chatId]?.optString("title").orEmpty()
+                val chat = chatsById[chatId]
+                val title = chat?.optString("title").orEmpty()
                 StoryItem(
-                    id = storyKey(chatId, firstUnseen ?: ids.first()),
+                    id = storyKey(chatId),
                     authorName = title.ifBlank { "Story" },
-                    hasUnseen = firstUnseen != null,
+                    hasUnseen = ids.any { it > maxRead },
                     avatarColor = chatId,
                     previewEmoji = "✨",
-                    caption = title
+                    caption = title,
+                    photoPath = photoPath(chat?.optJSONObject("photo")?.optJSONObject("small"))
                 )
             }
             .take(STORY_RAIL_LIMIT)
         _stories.value = listOf(own) + others
     }
 
-    /** The same key for the same story every time — see [storyKeys]. */
-    private fun storyKey(chatId: Long, storyId: Int): Long {
-        storyKeys.entries.firstOrNull { it.value == chatId to storyId }?.let { return it.key }
+    /** The ids of a `chatActiveStories`, in the order TDLib lists them. */
+    private fun activeStoryIds(active: JSONObject): List<Int> {
+        val stories = active.optJSONArray("stories") ?: return emptyList()
+        return (0 until stories.length()).mapNotNull { index ->
+            stories.optJSONObject(index)
+                ?.let { it.optInt("story_id", it.optInt("id")) }
+                ?.takeIf { it != 0 }
+        }
+    }
+
+    /** The same key for the same chat every time — see [storyKeys]. */
+    private fun storyKey(chatId: Long): Long {
+        storyKeys.entries.firstOrNull { it.value == chatId }?.let { return it.key }
         val key = storyKeySeq.incrementAndGet()
-        storyKeys[key] = chatId to storyId
+        storyKeys[key] = chatId
         return key
     }
 
@@ -1895,6 +2028,7 @@ class TdLibTelegramClient(
             isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
             isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
             isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
+            photoPath = photoPath(chat.optJSONObject("photo")?.optJSONObject("small")),
             isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
             isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
             avatarColor = id,
@@ -2063,6 +2197,9 @@ class TdLibTelegramClient(
             date = message.optInt("date").toLong(),
             senderName = sender?.let { mapUser(it).displayName },
             senderId = senderId,
+            senderPhotoPath = sender?.let {
+                photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small"))
+            },
             canBeEdited = message.optBoolean("can_be_edited"),
             canBeDeletedForSelf = message.optBoolean("can_be_deleted_only_for_self"),
             canBeDeletedForEveryone =
@@ -2086,6 +2223,11 @@ class TdLibTelegramClient(
                 (message.optJSONObject("sending_state") == null &&
                     message.optLong("id") <=
                     (chatsById[chatId]?.optLong("last_read_outbox_message_id") ?: 0L)),
+            sendState = when (message.optJSONObject("sending_state")?.optString("@type")) {
+                "messageSendingStatePending" -> SendState.Pending
+                "messageSendingStateFailed" -> SendState.Failed
+                else -> SendState.Sent
+            },
             contentType = contentType,
             fileName = content?.optJSONObject("document")?.optString("file_name"),
             fileSizeLabel = null,
@@ -2244,8 +2386,57 @@ class TdLibTelegramClient(
                 ?: user.optString("username").ifBlank { null },
             phoneNumber = user.optString("phone_number").ifBlank { null },
             avatarColor = user.optLong("id"),
-            isPremium = user.optBoolean("is_premium")
+            isPremium = user.optBoolean("is_premium"),
+            photoPath = photoPath(user.optJSONObject("profile_photo")?.optJSONObject("small"))
         )
+
+    /**
+     * Where a picture is on this device, or null while it is not — in which
+     * case it is asked for, once, and [republishPhotos] redraws whatever
+     * showed initials when it arrives.
+     *
+     * Priority 1, the lowest: an avatar is worth having but never worth
+     * delaying a photo someone tapped.
+     */
+    private fun photoPath(file: JSONObject?): String? {
+        file ?: return null
+        file.localPathIfDownloaded()?.let { return it }
+        val id = file.optInt("id").takeIf { it != 0 } ?: return null
+        downloadedPhotos[id]?.let { return it }
+        if (requestedPhotos.add(id)) {
+            engine?.sendFireAndForget(
+                JSONObject()
+                    .put("@type", "downloadFile")
+                    .put("file_id", id)
+                    .put("priority", 1)
+                    .put("offset", 0)
+                    .put("limit", 0)
+                    .put("synchronous", false)
+            )
+        }
+        return null
+    }
+
+    /**
+     * Redraws the chat list, the stories rail and the account once pictures
+     * have arrived — once for a burst of them, which is how they arrive when
+     * the list first loads.
+     */
+    private fun republishPhotos() {
+        if (!photoRepublishPending.compareAndSet(false, true)) return
+        scope.launch {
+            delay(PHOTO_REPUBLISH_MILLIS)
+            photoRepublishPending.set(false)
+            withContext(updateDispatcher) {
+                publishChats()
+                publishStories()
+                val me = _authState.value.me ?: return@withContext
+                val user = usersById[me.id] ?: return@withContext
+                val path = photoPath(user.optJSONObject("profile_photo")?.optJSONObject("small"))
+                if (path != me.photoPath) _authState.update { it.copy(me = it.me?.copy(photoPath = path)) }
+            }
+        }
+    }
 
     private fun formatTime(epochSec: Int): String {
         if (epochSec <= 0) return ""
@@ -2286,6 +2477,9 @@ class TdLibTelegramClient(
         private const val TAG = "TdLibTelegramClient"
         /** How long a chat action counts without being repeated. */
         private const val TYPING_MILLIS = 6_000L
+
+        /** How long arriving avatars are gathered before one redraw. */
+        private const val PHOTO_REPUBLISH_MILLIS = 300L
 
         /** How many messages a conversation opens with. */
         private const val HISTORY_PAGE = 50

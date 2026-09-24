@@ -66,6 +66,17 @@ val telegramApiHash: String =
 val isLiveBuild = telegramApiId != "0" && telegramApiHash.isNotBlank()
 
 /**
+ * `-PtelegramTestDc=true` points a live build at Telegram's test servers.
+ *
+ * There, numbers of the form +99966XYYYY exist for testing, and their login
+ * code is X five times — no SMS, nobody's phone. That is what lets the Live
+ * workflow sign in and send a photo, which the production servers could only
+ * do with a real number and a real code. Never set for an APK anyone installs:
+ * the test servers have their own accounts, and nobody's chats are there.
+ */
+val useTestDc = providers.gradleProperty("telegramTestDc").orNull == "true"
+
+/**
  * The hash as it is stored in the APK: XORed with a mask made fresh for each
  * build, both as hex. The app puts it back together at start-up.
  *
@@ -126,6 +137,7 @@ android {
         buildConfigField("String", "TELEGRAM_API_HASH_MASKED", "\"${maskedApiHash.first}\"")
         buildConfigField("String", "TELEGRAM_API_HASH_MASK", "\"${maskedApiHash.second}\"")
         buildConfigField("boolean", "USE_DEMO_CLIENT", (!isLiveBuild).toString())
+        buildConfigField("boolean", "USE_TEST_DC", useTestDc.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Screenshots taken by an instrumentation test have nowhere safe to

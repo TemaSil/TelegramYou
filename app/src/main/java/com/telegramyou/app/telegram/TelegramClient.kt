@@ -31,4 +31,12 @@ interface TelegramClient :
     fun start()
 
     fun shutdown()
+
+    /**
+     * Whether the app is in front of the person. Telegram treats a session
+     * that never says so as away: it shows the account offline, and it does
+     * not send it who is typing. Nothing here said so, which is why the live
+     * client never saw anyone type.
+     */
+    fun setOnline(online: Boolean) {}
 }

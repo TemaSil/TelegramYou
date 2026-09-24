@@ -117,3 +117,17 @@ fun memberCountLabel(count: Int, isChannel: Boolean, locale: Locale = Locale.get
     }
     return String.format(locale, "%,d %s", count, noun)
 }
+
+/**
+ * How long ago a story went up, the way Telegram's viewer says it: "just now",
+ * "12m", "5h". A story lives for a day, so hours are as far as it goes.
+ */
+fun storyAgeLabel(postedSeconds: Long, nowSeconds: Long): String {
+    if (postedSeconds <= 0) return ""
+    val minutes = (nowSeconds - postedSeconds).coerceAtLeast(0) / 60
+    return when {
+        minutes < 1 -> "just now"
+        minutes < 60 -> "${minutes}m"
+        else -> "${minutes / 60}h"
+    }
+}

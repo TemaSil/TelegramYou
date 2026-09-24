@@ -178,10 +178,21 @@ class ChatViewModel(
             // already a flow the repository keeps current — asking for it per
             // tap would put a request between the button and the sheet.
             repository.observeChats().collect { chats ->
+                // The same list carries this chat's own changing state — who
+                // is typing, its picture once downloaded — which the header
+                // used to take once from openChat and never again. So in the
+                // live client the header never said anyone was typing.
+                val here = chats.firstOrNull { it.id == chatId }
                 _uiState.update { state ->
-                    // This chat is excluded: forwarding a message into the
-                    // conversation it came from is a copy of itself.
-                    state.copy(forwardTargets = chats.filter { it.id != chatId })
+                    state.copy(
+                        // This chat is excluded: forwarding a message into the
+                        // conversation it came from is a copy of itself.
+                        forwardTargets = chats.filter { it.id != chatId },
+                        detail = state.detail?.let { detail ->
+                            if (here == null) detail
+                            else detail.copy(chat = here, isTyping = here.isTyping)
+                        }
+                    )
                 }
             }
         }
@@ -226,6 +237,12 @@ class ChatViewModel(
                 replyTo = patched.replyTo?.takeIf { it.id !in update.messageIds },
                 editing = patched.editing?.takeIf { it.id !in update.messageIds },
                 draft = if (patched.editing?.id in update.messageIds) "" else patched.draft,
+                selection = patched.selection.retaining(patched.messages)
+            )
+            // Said as well as drawn: the bubble's mark is easy to miss, and
+            // what the server said is the only clue to what went wrong.
+            is MessageUpdate.SendFailed -> patched.copy(
+                errorMessage = failureText("Could not send", update.error),
                 selection = patched.selection.retaining(patched.messages)
             )
             is MessageUpdate.Replaced -> patched.copy(

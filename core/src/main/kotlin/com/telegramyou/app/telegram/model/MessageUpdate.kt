@@ -31,6 +31,23 @@ sealed interface MessageUpdate {
         override val chatId: Long get() = message.chatId
     }
 
+    /**
+     * A message sent from here that the server refused — too big, a flood
+     * wait, a chat this account may no longer post to.
+     *
+     * Like [Replaced], TDLib gives it a new id as it fails, and [message]
+     * carries [SendState.Failed]. [error] is what the server said, for the
+     * person who pressed send: a failure only the bubble shows is one nobody
+     * notices.
+     */
+    data class SendFailed(
+        val oldId: Long,
+        val message: ChatMessage,
+        val error: String
+    ) : MessageUpdate {
+        override val chatId: Long get() = message.chatId
+    }
+
     data class Deleted(override val chatId: Long, val messageIds: Set<Long>) : MessageUpdate
 
     /** New text or caption, by anyone, here or on another device. */

@@ -270,6 +270,34 @@ careful with.
 - [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
       `ui/common`; `LocalClipboardManager` is gone
 
+## On a real account, 24 September 2026
+
+The first time the live client was used on a real account, on
+`fix/live-typing-stories-photos`:
+
+- **Nobody was ever seen typing.** Telegram only tells a session who is
+  typing while that session says it is online, and this client never did.
+  TDLib's `online` option now follows the activity in and out of the
+  foreground. The chat's header also took "typing" once from `openChat` and
+  never again; it now follows the chat list.
+- **No story could be opened.** The viewer's state began as "no story" and
+  the route closed on it before anything had been looked up. A circle is now
+  keyed by its chat rather than by its first unseen story, which changed
+  under the viewer. It plays the real photos and videos from `getStory`, one
+  after another with a segment each, and the smoke test opens one.
+- **A photo that failed to send looked like one still sending, for ever.**
+  `updateMessageSendFailed` was not handled. A refused message is now marked
+  on its bubble, a pending one wears a clock, and the server's reason comes
+  up in a snackbar. The Live workflow now signs in on Telegram's test servers
+  (`-PtelegramTestDc=true`, a +99966 number, no SMS) and sends a photo to
+  Saved Messages, so a refusal fails CI with the server's own words.
+- **No avatar ever showed a picture.** Nothing asked TDLib to download chat
+  and profile photos. They are now fetched at the lowest priority and drawn
+  over the initials everywhere an avatar is.
+- **Demo mode inside the live APK**: ten taps on the login screen's mark
+  restart the app on the demo backend, signed in; signing out of it, or ten
+  more taps, goes back. The real account is left as it was.
+
 ## The live backend, reviewed, 24 September 2026
 
 Demo mode is all CI has ever run, so the TDLib backend had only ever been

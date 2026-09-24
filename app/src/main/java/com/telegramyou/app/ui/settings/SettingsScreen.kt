@@ -116,7 +116,7 @@ fun SettingsContent(
                         Text(me.username?.let { "@$it" } ?: me.phoneNumber.orEmpty())
                     },
                     leadingContent = {
-                        AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 48.dp)
+                        AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 48.dp, photoPath = me.photoPath)
                     }
                 )
                 HorizontalDivider()

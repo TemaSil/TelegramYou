@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.ui.media.FileTransfer
@@ -354,5 +355,7 @@ class FakeTelegramClient(
 
     override suspend fun availableReactions(chatId: Long): List<String> = permittedReactions
 
-    override suspend fun markStorySeen(storyId: Long) = Unit
+    override suspend fun storyFrames(storyId: Long): List<StoryFrame> = emptyList()
+
+    override suspend fun markStorySeen(storyId: Long, frameId: Int) = Unit
 }

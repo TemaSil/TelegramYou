@@ -1,5 +1,13 @@
 package com.telegramyou.app.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -47,6 +55,7 @@ import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TelegramYouNavHost(
     repository: TelegramRepository,
@@ -54,7 +63,9 @@ fun TelegramYouNavHost(
     /** A chat a notification asked to open, or null. */
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
-    onChatOpened: () -> Unit = {}
+    onChatOpened: () -> Unit = {},
+    /** The login screen's mark was tapped ten times; see TelegramYouApp.setDemoMode. */
+    onDemoRequested: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     // Only the auth state is read here, and only to decide where to send the
@@ -151,7 +162,8 @@ fun TelegramYouNavHost(
                 onResendCode = authViewModel::resendCode,
                 onChangeNumber = authViewModel::onChangeNumber,
                 onChangeNumberCancelled = authViewModel::onChangeNumberCancelled,
-                onDefaultRegion = authViewModel::onDefaultRegion
+                onDefaultRegion = authViewModel::onDefaultRegion,
+                onDemoRequested = onDemoRequested
             )
         }
         composable(Route.Home.PATTERN) {
@@ -458,12 +470,25 @@ fun TelegramYouNavHost(
             val storyViewModel: StoryViewModel = viewModel(factory = viewModelFactory)
             val state by storyViewModel.uiState.collectAsStateWithLifecycle()
             val story = state.story
-            if (story == null) {
-                LaunchedEffect(Unit) { navController.popBackStack() }
-            } else {
-                StoryViewerScreen(
+            when {
+                // Closed only once the lookup has answered: the first state is
+                // "not looked up yet", and closing on that is what made every
+                // live story shut the moment it opened.
+                state.isGone -> LaunchedEffect(Unit) { navController.popBackStack() }
+                story == null || state.isLoading -> Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator(color = Color.White)
+                }
+                else -> StoryViewerScreen(
                     story = story,
+                    state = state,
                     onSeen = storyViewModel::markSeen,
+                    onNext = storyViewModel::next,
+                    onPrevious = storyViewModel::previous,
                     onClose = { navController.popBackStack() }
                 )
             }

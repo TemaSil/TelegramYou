@@ -378,6 +378,30 @@ class SmokeTest {
     }
 
     /**
+     * A story opens and stays open.
+     *
+     * The viewer used to close itself the instant it opened: its state began
+     * as "no story", and the route popped on that before the story had been
+     * looked up. The demo never showed it, because nothing here opened a
+     * story at all. Waiting for the caption proves the viewer is up; taking
+     * the screenshot a beat later proves it stayed.
+     */
+    @Test
+    fun aStoryOpensAndStaysOpen() {
+        signIn()
+        waitFor(By.text(STORY_AUTHOR), "the stories rail")
+        awaitNoHeadsUp()
+        tap(By.text(STORY_AUTHOR))
+        waitFor(By.text(STORY_CAPTION), "the story viewer")
+        Thread.sleep(1_500)
+        assertTrue(
+            "the story closed by itself",
+            device.hasObject(By.text(STORY_CAPTION))
+        )
+        screenshot("21-story")
+    }
+
+    /**
      * Folder tabs, which are a filter and have to be seen to filter.
      *
      * The demo backend seeds three folders with overlapping membership, so
@@ -991,6 +1015,14 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+
+        /**
+         * A circle in the demo's stories rail, and its story's caption.
+         * "Circle" rather than a person: every person in the rail also has a
+         * chat of the same name, and a tap by that name can land on the row.
+         */
+        const val STORY_AUTHOR = "Circle"
+        const val STORY_CAPTION = "Palette drop"
         const val APP_TITLE = "TelegramYou"
 
         /**

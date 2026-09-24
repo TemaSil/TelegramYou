@@ -58,6 +58,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -130,7 +132,8 @@ fun AuthScreen(
     onResendCode: () -> Unit,
     onChangeNumber: () -> Unit = {},
     onChangeNumberCancelled: () -> Unit = {},
-    onDefaultRegion: (String?) -> Unit = {}
+    onDefaultRegion: (String?) -> Unit = {},
+    onDemoRequested: () -> Unit = {}
 ) {
     val auth = state.auth
     val context = LocalContext.current
@@ -167,7 +170,7 @@ fun AuthScreen(
                     .padding(vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                BrandMark()
+                BrandMark(onDemoRequested = onDemoRequested)
                 Spacer(Modifier.height(16.dp))
                 Text(
                     text = "TelegramYou",
@@ -247,13 +250,23 @@ fun AuthScreen(
  * twelve-point cookie. Only the outline moves; the plane stays level.
  */
 @Composable
-private fun BrandMark() {
+private fun BrandMark(onDemoRequested: () -> Unit) {
     val outline = cyclingShape(startIndex = 9, stepMillis = 1_400, turnMillis = 16_000)
+    // The way into the demo: ten taps in a row, as Android's build number
+    // opens developer options. Hidden on purpose — it is for showing the app
+    // without an account, not a second way to sign in — so there is no
+    // ripple to give it away.
+    val taps = remember { RepeatedTaps(required = DEMO_TAPS) }
     Box(
         modifier = Modifier
             .size(96.dp)
             .clip(outline)
-            .background(MaterialTheme.colorScheme.primaryContainer),
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    if (taps.tap(System.currentTimeMillis())) onDemoRequested()
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -604,3 +617,6 @@ private fun deviceRegion(context: Context): String? {
         Locale.getDefault().country
     ).firstOrNull { it.length == 2 }
 }
+
+/** How many taps on the mark open the demo. */
+private const val DEMO_TAPS = 10

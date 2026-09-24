@@ -84,7 +84,8 @@ class MainActivity : ComponentActivity() {
                             repository = app.telegramRepository,
                             appearance = app.appearance,
                             openChatId = pendingChatId,
-                            onChatOpened = { pendingChatId = null }
+                            onChatOpened = { pendingChatId = null },
+                            onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }
                         )
                     }
                 }
@@ -104,6 +105,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         AppVisibility.isInForeground = true
+        (application as TelegramYouApp).telegramRepository.setOnline(true)
     }
 
     override fun onStop() {
@@ -111,6 +113,7 @@ class MainActivity : ComponentActivity() {
         // screen is being read. Once the activity has stopped it is not,
         // whatever is still composed.
         AppVisibility.isInForeground = false
+        (application as TelegramYouApp).telegramRepository.setOnline(false)
         super.onStop()
     }
 }

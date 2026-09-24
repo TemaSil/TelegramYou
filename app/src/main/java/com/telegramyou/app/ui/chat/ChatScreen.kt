@@ -65,6 +65,8 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.DoneAll
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -153,6 +155,7 @@ import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.SendState
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.LinkPreview
@@ -414,7 +417,7 @@ fun ChatScreen(
                                     // show a header.
                                     detail?.members
                                         ?.takeIf { it.isNotEmpty() }
-                                        ?.map { ClusterMember(name = it.displayName, seed = it.id) }
+                                        ?.map { ClusterMember(name = it.displayName, seed = it.id, photoPath = it.photoPath) }
                                         ?: clusterMembers(state.messages)
                                 } else {
                                     emptyList()
@@ -429,7 +432,8 @@ fun ChatScreen(
                                         // The shape the chat has in the list,
                                         // morphing while they type here too.
                                         shape = personShape(chat.avatarColor),
-                                        typing = detail?.isTyping == true
+                                        typing = detail?.isTyping == true,
+                                        photoPath = chat.photoPath
                                     )
                                 }
                                 Spacer(Modifier.width(10.dp))
@@ -1028,7 +1032,8 @@ private fun MessageBubble(
                         title = message.senderName.orEmpty().ifBlank { "?" },
                         seed = message.senderId ?: message.chatId,
                         size = 28.dp,
-                        shape = personShape(message.senderId ?: message.chatId)
+                        shape = personShape(message.senderId ?: message.chatId),
+                        photoPath = message.senderPhotoPath
                     )
                 }
             }
@@ -1195,14 +1200,27 @@ private fun MessageBubble(
                         Spacer(Modifier.width(4.dp))
                         // Material ships both ticks, so there is nothing to draw
                         // by hand: one for sent, two for read.
+                        // A clock while it is on its way — a photo uploading
+                        // spends seconds there — and the error mark if the
+                        // server refused it, which used to wear a tick.
                         Icon(
-                            imageVector = if (message.isRead) {
-                                Icons.Rounded.DoneAll
-                            } else {
-                                Icons.Rounded.Done
+                            imageVector = when {
+                                message.sendState == SendState.Failed -> Icons.Rounded.ErrorOutline
+                                message.sendState == SendState.Pending -> Icons.Rounded.Schedule
+                                message.isRead -> Icons.Rounded.DoneAll
+                                else -> Icons.Rounded.Done
                             },
-                            contentDescription = if (message.isRead) "Read" else "Sent",
-                            tint = footnote,
+                            contentDescription = when {
+                                message.sendState == SendState.Failed -> "Not sent"
+                                message.sendState == SendState.Pending -> "Sending"
+                                message.isRead -> "Read"
+                                else -> "Sent"
+                            },
+                            tint = if (message.sendState == SendState.Failed) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                footnote
+                            },
                             modifier = Modifier.size(14.dp)
                         )
                     }
@@ -1920,7 +1938,8 @@ private fun ForwardSheet(
                                 title = target.title,
                                 seed = target.avatarColor,
                                 size = 40.dp,
-                                shape = personShape(target.avatarColor)
+                                shape = personShape(target.avatarColor),
+                                photoPath = target.photoPath
                             )
                         },
                         // The sheet's tone, not the row's default — see the
@@ -2794,7 +2813,11 @@ private fun clusterMembers(messages: List<ChatMessage>): List<ClusterMember> =
         .filterNot { it.isOutgoing }
         .mapNotNull { message ->
             val name = message.senderName?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            ClusterMember(name = name, seed = message.senderId ?: name.hashCode().toLong())
+            ClusterMember(
+                name = name,
+                seed = message.senderId ?: name.hashCode().toLong(),
+                photoPath = message.senderPhotoPath
+            )
         }
         .distinctBy { it.seed }
         .toList()

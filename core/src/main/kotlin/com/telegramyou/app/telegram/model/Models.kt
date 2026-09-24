@@ -17,7 +17,9 @@ data class TelegramUser(
      * again. It arrives from `getUserFullInfo`, not `getMe` — a separate call,
      * which is why it is empty until that one answers.
      */
-    val bio: String = ""
+    val bio: String = "",
+    /** Their profile picture on this device, once downloaded; see ChatPreview. */
+    val photoPath: String? = null
 ) {
     val displayName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
@@ -73,6 +75,11 @@ data class ChatPreview(
     val isOnline: Boolean = false,
     /** Someone in it is typing right now; the avatar morphs while this holds. */
     val isTyping: Boolean = false,
+    /**
+     * The chat's picture on this device, or null — while it downloads, and
+     * for every chat without one. The avatar draws initials until then.
+     */
+    val photoPath: String? = null,
     val isChannel: Boolean = false,
     val isGroup: Boolean = false,
     val avatarColor: Long = id,
@@ -136,6 +143,12 @@ data class InviteLinkPreview(
     val avatarColor: Long = title.hashCode().toLong()
 )
 
+/**
+ * One circle in the stories rail: everything one chat has posted in the last
+ * day, not a single story. [id] names the chat's circle and stays the same as
+ * its stories are watched — it used to name the first unseen story, so it
+ * changed the moment that one was seen, under the viewer showing it.
+ */
 data class StoryItem(
     val id: Long,
     val authorName: String,
@@ -143,8 +156,49 @@ data class StoryItem(
     val hasUnseen: Boolean = true,
     val avatarColor: Long = id,
     val previewEmoji: String = "✨",
-    val caption: String = ""
+    val caption: String = "",
+    /** The poster's picture, for the circle; see ChatPreview.photoPath. */
+    val photoPath: String? = null
 )
+
+/**
+ * One story inside a [StoryItem], as the viewer plays it.
+ *
+ * [fileId] is what TDLib downloads by, and [localPath] is set when the file is
+ * already on this device. Both are absent for a story with nothing to show —
+ * the demo's, or a kind this client does not play — which the viewer draws
+ * from [caption] alone.
+ */
+data class StoryFrame(
+    /** The story's own number within its poster's stories. */
+    val id: Int,
+    val caption: String = "",
+    /** When it was posted, in epoch seconds. */
+    val date: Long = 0L,
+    val fileId: Int? = null,
+    val localPath: String? = null,
+    val isVideo: Boolean = false,
+    /** A video's length; a photo is shown for a fixed time instead. */
+    val durationSeconds: Double = 0.0,
+    val isSeen: Boolean = false
+)
+
+/** Where the viewer starts: the first story not yet seen, or the first. */
+fun List<StoryFrame>.startIndex(): Int = indexOfFirst { !it.isSeen }.coerceAtLeast(0)
+
+/** How long [frame] stays on screen, in milliseconds. */
+fun storyFrameMillis(frame: StoryFrame): Long =
+    if (frame.isVideo && frame.durationSeconds > 0) {
+        (frame.durationSeconds * 1000).toLong().coerceIn(1_000L, 60_000L)
+    } else {
+        STORY_PHOTO_MILLIS
+    }
+
+/** Telegram's own time for a photo story. */
+const val STORY_PHOTO_MILLIS = 5_000L
+
+/** How far an outgoing message has got. */
+enum class SendState { Pending, Sent, Failed }
 
 enum class MessageContentType {
     Text,
@@ -224,6 +278,8 @@ data class ChatMessage(
     val senderName: String? = null,
     /** Author, so a group avatar keeps one colour per person. */
     val senderId: Long? = null,
+    /** The author's picture on this device, for a group's avatar gutter. */
+    val senderPhotoPath: String? = null,
     /**
      * The message this one answers.
      *
@@ -246,6 +302,15 @@ data class ChatMessage(
     /** Telegram marks an edited message; hiding that would be dishonest. */
     val isEdited: Boolean = false,
     val isRead: Boolean = false,
+    /**
+     * Where one of our own messages is on its way out. Always [SendState.Sent]
+     * for anyone else's.
+     *
+     * A photo spends seconds as [SendState.Pending] while it uploads, and a
+     * message the server refused stays [SendState.Failed] — which used to be
+     * drawn with the same tick as one that arrived.
+     */
+    val sendState: SendState = SendState.Sent,
     val contentType: MessageContentType = MessageContentType.Text,
     val fileName: String? = null,
     val fileSizeLabel: String? = null,

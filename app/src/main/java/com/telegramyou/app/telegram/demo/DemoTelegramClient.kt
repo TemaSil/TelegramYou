@@ -15,6 +15,7 @@ import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.InviteLinkPreview
@@ -45,7 +46,15 @@ import java.util.concurrent.atomic.AtomicLong
  * Fully interactive offline client for UI / Expressive motion development.
  * Swap to TdLibTelegramClient when TELEGRAM_API_ID / HASH are set in local.properties.
  */
-class DemoTelegramClient : TelegramClient {
+class DemoTelegramClient(
+    /**
+     * Start already signed in. The demo reached from the login screen does:
+     * it is somewhere to look around, and making someone type a made-up
+     * number and 12345 first would be a login screen for nothing. The demo
+     * build starts signed out, because the UI test drives the login.
+     */
+    private val signedIn: Boolean = false
+) : TelegramClient {
     private val messageId = AtomicLong(1_000)
 
     private val _authState = MutableStateFlow(
@@ -106,6 +115,19 @@ class DemoTelegramClient : TelegramClient {
     override fun start() {
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber, isLoading = false)
         seedMessages()
+        if (signedIn) {
+            _authState.value = AuthUiState(
+                state = AuthState.Ready,
+                me = TelegramUser(
+                    id = 1,
+                    firstName = "You",
+                    lastName = "Expressive",
+                    username = "telegramyou",
+                    isPremium = true
+                )
+            )
+            startDemoChatter()
+        }
     }
 
     override fun shutdown() {
@@ -664,7 +686,17 @@ class DemoTelegramClient : TelegramClient {
         }
     }
 
-    override suspend fun markStorySeen(storyId: Long) {
+    /**
+     * One story per circle, made of its emoji and caption: the demo has no
+     * pictures to show, and the viewer draws a story without media from
+     * those.
+     */
+    override suspend fun storyFrames(storyId: Long): List<StoryFrame> {
+        val story = _stories.value.firstOrNull { it.id == storyId } ?: return emptyList()
+        return listOf(StoryFrame(id = 1, caption = story.caption, isSeen = !story.hasUnseen))
+    }
+
+    override suspend fun markStorySeen(storyId: Long, frameId: Int) {
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
         }

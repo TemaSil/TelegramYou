@@ -225,7 +225,8 @@ fun NewChatScreen(
                                 title = person.displayName,
                                 seed = person.avatarColor,
                                 size = 40.dp,
-                                shape = personShape(person.avatarColor)
+                                shape = personShape(person.avatarColor),
+                                photoPath = person.photoPath
                             )
                         },
                         // The checkbox draws the state; the row takes the tap,
@@ -326,7 +327,7 @@ fun JoinLinkScreen(
                             .fillMaxWidth()
                             .padding(24.dp)
                     ) {
-                        AvatarBubble(title = preview.title, seed = preview.avatarColor, size = 72.dp)
+                        AvatarBubble(title = preview.title, seed = preview.avatarColor, size = 72.dp, photoPath = preview.photoPath)
                         Text(preview.title, style = MaterialTheme.typography.titleLarge)
                         Text(
                             "%,d %s".format(

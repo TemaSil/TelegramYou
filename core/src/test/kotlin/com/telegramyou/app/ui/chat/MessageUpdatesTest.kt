@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.chat
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.telegram.model.SendState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -54,6 +55,18 @@ class MessageUpdatesTest {
         val both = window + message(9_000_001, "hi") + message(4, "hi")
         val confirmed = both.applying(MessageUpdate.Replaced(9_000_001, message(4, "hi")))
         assertEquals(listOf(1L, 2L, 3L, 4L), confirmed.map { it.id })
+    }
+
+    @Test
+    fun `a refused send stays on screen, marked failed, under its new id`() {
+        val sending = window + message(9_000_001, "pic", outgoing = true)
+            .copy(sendState = SendState.Pending)
+        val refused = message(9_000_002, "pic", outgoing = true).copy(sendState = SendState.Failed)
+        val failed = sending.applying(MessageUpdate.SendFailed(9_000_001, refused, "FILE_PARTS_INVALID"))
+        assertEquals(listOf(1L, 2L, 3L, 9_000_002L), failed.map { it.id })
+        assertEquals(SendState.Failed, failed.last().sendState)
+        assertEquals("repeated, it changes nothing", failed,
+            failed.applying(MessageUpdate.SendFailed(9_000_001, refused, "FILE_PARTS_INVALID")))
     }
 
     @Test

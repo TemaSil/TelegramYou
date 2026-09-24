@@ -117,7 +117,8 @@ fun ChatInfoScreen(
                         title = chat?.title ?: "Chat",
                         seed = chat?.avatarColor ?: 1,
                         size = 96.dp,
-                        shape = personShape(chat?.avatarColor ?: 1)
+                        shape = personShape(chat?.avatarColor ?: 1),
+                        photoPath = chat?.photoPath
                     )
                     Text(
                         chat?.title ?: "Chat",
@@ -208,7 +209,8 @@ fun ChatInfoScreen(
                                 title = member.displayName,
                                 seed = member.avatarColor,
                                 size = 40.dp,
-                                shape = personShape(member.avatarColor)
+                                shape = personShape(member.avatarColor),
+                                photoPath = member.photoPath
                             )
                         }
                     )

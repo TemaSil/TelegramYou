@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -23,11 +25,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import com.telegramyou.app.ui.theme.avatarColor
+import java.io.File
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -49,6 +54,12 @@ fun AvatarBubble(
     typing: Boolean = false,
     ring: Boolean = false,
     ringSeen: Boolean = false,
+    /**
+     * The person's or the chat's own picture, once it is on this device.
+     * Drawn over the initials, which stay underneath as what shows while it
+     * loads and for everyone who never set one.
+     */
+    photoPath: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -132,6 +143,19 @@ fun AvatarBubble(
                 fontWeight = FontWeight.Bold,
                 fontSize = (size.value / 3.2f).sp
             )
+            if (photoPath != null) {
+                AsyncImage(
+                    model = File(photoPath),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    // Inside the story ring rather than over it: the ring is
+                    // drawn by this box, and a picture filling it would cover
+                    // the ring's inner half.
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (ring) Modifier.padding(4.dp).clip(outline) else Modifier)
+                )
+            }
         }
 
         if (showOnline) {

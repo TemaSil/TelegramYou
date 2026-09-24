@@ -24,16 +24,11 @@ fun List<ChatMessage>.applying(
     is MessageUpdate.Added ->
         if (!appendNew || any { it.id == update.message.id }) this else this + update.message
 
-    is MessageUpdate.Replaced -> {
-        val index = indexOfFirst { it.id == update.oldId }
-        when {
-            index == -1 -> this
-            // The real id already arrived by another route — a reload, or a
-            // repeated update — so the temporary copy is the one to drop.
-            any { it.id == update.message.id } -> filterIndexed { i, _ -> i != index }
-            else -> toMutableList().also { it[index] = update.message }
-        }
-    }
+    is MessageUpdate.Replaced -> replacing(update.oldId, update.message)
+
+    // The same swap: a refused message changes id as it fails, just as a
+    // delivered one does.
+    is MessageUpdate.SendFailed -> replacing(update.oldId, update.message)
 
     is MessageUpdate.Deleted ->
         if (none { it.id in update.messageIds }) this
@@ -51,6 +46,17 @@ fun List<ChatMessage>.applying(
     is MessageUpdate.ReadUpTo -> map {
         if (it.isOutgoing && !it.isRead && it.id <= update.lastReadId) it.copy(isRead = true)
         else it
+    }
+}
+
+private fun List<ChatMessage>.replacing(oldId: Long, message: ChatMessage): List<ChatMessage> {
+    val index = indexOfFirst { it.id == oldId }
+    return when {
+        index == -1 -> this
+        // The real id already arrived by another route — a reload, or a
+        // repeated update — so the temporary copy is the one to drop.
+        any { it.id == message.id } -> filterIndexed { i, _ -> i != index }
+        else -> toMutableList().also { it[index] = message }
     }
 }
 

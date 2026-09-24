@@ -83,7 +83,7 @@ fun ProfileContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 96.dp)
+            AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 96.dp, photoPath = me.photoPath)
             // The account's name, not the draft's. This is what Telegram
             // currently thinks you are called, and it changing is the
             // confirmation that a save went through.

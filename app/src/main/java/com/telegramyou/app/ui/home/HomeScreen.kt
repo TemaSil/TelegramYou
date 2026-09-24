@@ -862,7 +862,8 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
                 title = hit.chat.title,
                 seed = hit.chat.avatarColor,
                 size = 40.dp,
-                shape = personShape(hit.chat.avatarColor)
+                shape = personShape(hit.chat.avatarColor),
+                photoPath = hit.chat.photoPath
             )
         },
         headlineContent = {
@@ -971,7 +972,8 @@ private fun ContactPickerSheet(
                                 AvatarBubble(
                                     title = person.displayName,
                                     seed = person.avatarColor,
-                                    shape = personShape(person.avatarColor)
+                                    shape = personShape(person.avatarColor),
+                                    photoPath = person.photoPath
                                 )
                             },
                             modifier = Modifier.clickable { onPick(person.id) }
