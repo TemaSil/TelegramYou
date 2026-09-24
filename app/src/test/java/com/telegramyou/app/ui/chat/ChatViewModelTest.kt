@@ -5,6 +5,7 @@ import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageReaction
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -151,23 +153,85 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `reloading after sending discards what was paged in`() = runTest {
-        val (vm, _) = viewModel(
+    fun `sending keeps what was paged in`() = runTest {
+        val (vm, client) = viewModel(
             listOf(message(10)),
             listOf(message(9))
         )
         vm.onLoadOlder()
-        assertEquals(listOf(9L, 10L), vm.uiState.value.messages.map { it.id })
+        val opened = client.openChatCount
 
-        // Sending reopens the chat, and that window is authoritative: keeping
-        // the old pages around would duplicate or contradict it.
         vm.onDraftChange("hello")
         vm.onSend()
 
-        assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
-        assertTrue("paging starts over rather than staying exhausted",
-            vm.uiState.value.hasMoreOlder)
+        // Nothing is fetched again: the history scrolled back through is
+        // still there, and the list has nothing to jump over.
+        assertEquals(opened, client.openChatCount)
+        assertEquals(listOf(9L, 10L), vm.uiState.value.messages.map { it.id })
+        assertEquals(listOf("hello"), client.sentTexts)
+        assertEquals("", vm.uiState.value.draft)
+
+        // The message itself arrives the way every message does.
+        client.deliver(message(11, "hello").copy(isOutgoing = true))
+        assertEquals(listOf(9L, 10L, 11L), vm.uiState.value.messages.map { it.id })
     }
+
+    @Test
+    fun `a refused send puts the draft back and says why`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.failWith = TdLibLikeException("Too Many Requests: retry after 17")
+
+        vm.onDraftChange("hello")
+        vm.onReplyTo(message(10))
+        vm.onSend()
+
+        assertEquals("hello", vm.uiState.value.draft)
+        assertEquals(10L, vm.uiState.value.replyTo?.id)
+        assertEquals(
+            "Could not send: Too Many Requests: retry after 17",
+            vm.uiState.value.errorMessage
+        )
+
+        vm.onErrorShown()
+        assertNull(vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `a confirmed send moves the message to its real id`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.deliver(message(9_000_001, "hi").copy(isOutgoing = true))
+        vm.onReplyTo(message(9_000_001, "hi"))
+
+        client.announce(MessageUpdate.Replaced(9_000_001, message(11, "hi")))
+
+        assertEquals(listOf(10L, 11L), vm.uiState.value.messages.map { it.id })
+        assertEquals(
+            "the banner follows the message, or the reply would aim at nothing",
+            11L,
+            vm.uiState.value.replyTo?.id
+        )
+    }
+
+    @Test
+    fun `deleting takes the message off at once, and a refusal brings the window back`() =
+        runTest {
+            val (vm, client) = viewModel(listOf(message(10), message(11)))
+
+            client.failWith = TdLibLikeException("MESSAGE_DELETE_FORBIDDEN")
+            val opened = client.openChatCount
+            vm.onDeleteConfirmed(message(11), forEveryone = true)
+
+            assertEquals("the server's copy is fetched again", opened + 1, client.openChatCount)
+            assertEquals(listOf(10L, 11L), vm.uiState.value.messages.map { it.id })
+            assertEquals(
+                "Could not delete: Message delete forbidden",
+                vm.uiState.value.errorMessage
+            )
+
+            client.failWith = null
+            vm.onDeleteConfirmed(message(11), forEveryone = true)
+            assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
+        }
 
     @Test
     fun `reacting redraws the message before the client is told`() = runTest {
@@ -247,17 +311,28 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun `a selected message that disappears is dropped on reload`() = runTest {
+    fun `a selected message deleted elsewhere drops out of the selection`() = runTest {
         val (vm, client) = viewModel(listOf(message(10), message(11)))
         vm.onSelectionToggled(message(10))
         vm.onSelectionToggled(message(11))
 
-        // Someone else deleted 11; the next window comes back without it.
-        client.window = listOf(message(10))
-        vm.onDraftChange("x")
-        vm.onSend()
+        // Someone else deleted 11, and the server says so.
+        client.announce(MessageUpdate.Deleted(CHAT_ID, setOf(11L)))
 
         assertEquals(setOf(10L), vm.uiState.value.selection.ids)
+        assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
+    }
+
+    @Test
+    fun `an edit from another device is drawn where the message is`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)), listOf(message(9)))
+        vm.onLoadOlder()
+
+        client.announce(MessageUpdate.Edited(CHAT_ID, 9, "fixed"))
+
+        val edited = vm.uiState.value.messages.first { it.id == 9L }
+        assertEquals("fixed", edited.text)
+        assertTrue(edited.isEdited)
     }
 
     @Test
@@ -362,3 +437,10 @@ class ChatViewModelTest {
         const val CHAT_ID = 1L
     }
 }
+
+/**
+ * What a refusal from TDLib looks like to the view model: an exception whose
+ * message is the server's own words. The real TdLibException lives with the
+ * TDLib client, which loads a native library these tests cannot.
+ */
+private class TdLibLikeException(message: String) : Exception(message)

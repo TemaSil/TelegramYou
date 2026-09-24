@@ -3,13 +3,16 @@ package com.telegramyou.app.telegram
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.RemoteInput
 import com.telegramyou.app.TelegramYouApp
+import com.telegramyou.app.notifications.PostedNotifications
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 /**
  * Sends what somebody typed into a notification, without opening the app.
@@ -40,14 +43,26 @@ class NotificationReplyReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                app.telegramRepository.sendMessage(chatId = chatId, text = text)
+                // Bounded: a receiver that holds goAsync past its window is
+                // killed, and a client still signing in after a cold start
+                // could keep this waiting indefinitely.
+                withTimeout(REPLY_TIMEOUT_MS) {
+                    app.telegramRepository.sendMessage(chatId = chatId, text = text)
+                }
                 // Taken down only once the message is away. A notification
                 // that vanishes on tap and a message that never sent is the
                 // pair of events nobody can tell apart afterwards.
-                NotificationManagerCompat.from(context).cancel(chatId.toInt())
+                NotificationManagerCompat.from(context)
+                    .cancel(PostedNotifications.notificationId(chatId))
                 // Answered means read: the next message from this chat opens
                 // a fresh entry rather than re-listing what was replied to.
                 PostedNotifications.clear(chatId)
+            } catch (e: Exception) {
+                // Refused, or timed out. The notification stays, which is
+                // the one sign left that the reply did not go — an exception
+                // out of here would have taken the whole process down, in
+                // the background, with nothing on screen to say why.
+                Log.w(TAG, "reply to $chatId failed: ${e.message}")
             } finally {
                 pending.finish()
             }
@@ -59,5 +74,10 @@ class NotificationReplyReceiver : BroadcastReceiver() {
 
         /** The key the typed text arrives under, shared with the action. */
         const val KEY_REPLY = "com.telegramyou.app.KEY_REPLY"
+
+        private const val TAG = "NotificationReply"
+
+        /** Inside the ten seconds a receiver gets after goAsync. */
+        private const val REPLY_TIMEOUT_MS = 8_000L
     }
 }

@@ -132,6 +132,20 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `a refused mute is said in a snackbar rather than thrown`() = runTest {
+        val (vm, client) = viewModel()
+        client.failWith = IllegalStateException("CHAT_NOT_MODIFIED")
+
+        vm.onMutedChange(1, true)
+        advanceUntilIdle()
+
+        assertEquals("Could not mute: Chat not modified", vm.uiState.value.errorMessage)
+        vm.onErrorShown()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.errorMessage)
+    }
+
+    @Test
     fun `the archive row outlives choosing a folder`() = runTest {
         val (vm, client) = viewModel()
         client.setFolders(listOf(ChatFolder(1, "Work")))

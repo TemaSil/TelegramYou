@@ -3,6 +3,7 @@ package com.telegramyou.app.telegram.messages
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,18 @@ interface TelegramMessages {
      * them to ignore is `decideNotification` in :core, not this.
      */
     val incomingMessages: Flow<ChatMessage>
+
+    /**
+     * Every change to a message the backend hears of — new ones, including
+     * our own; sends confirmed under their real id; edits, deletions and
+     * reactions from anyone; the other side reading.
+     *
+     * The open conversation applies these to what it already holds rather
+     * than fetching itself again. Like [incomingMessages] this is a stream of
+     * events, not state: a subscriber that joins late has the window it just
+     * opened, and nothing before that is owed to it.
+     */
+    val messageUpdates: Flow<MessageUpdate>
 
     /** [replyToId] answers an existing message, or null for a fresh one. */
     suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null)

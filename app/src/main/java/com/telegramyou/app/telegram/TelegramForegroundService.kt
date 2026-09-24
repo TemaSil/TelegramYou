@@ -15,10 +15,12 @@ import com.telegramyou.app.TelegramYouApp
 import com.telegramyou.app.notifications.NotifiableMessage
 import com.telegramyou.app.notifications.NotificationContext
 import com.telegramyou.app.notifications.NotificationDecision
+import com.telegramyou.app.notifications.PostedNotifications
 import com.telegramyou.app.notifications.decideNotification
 import com.telegramyou.app.notifications.groupForShade
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -41,11 +43,18 @@ class TelegramForegroundService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** The one collector of arrivals; see onStartCommand. */
+    private var arrivals: Job? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(ONGOING_NOTIFICATION_ID, ongoingNotification())
-        observeArrivals()
+        // Once per service, not once per start. The activity starts this in
+        // onCreate, so every rotation or theme change is another start — and
+        // each used to add another collector, until one message was being
+        // posted as many times as the screen had been turned.
+        if (arrivals == null) arrivals = observeArrivals()
         // START_STICKY so a process killed for memory comes back: a messenger
         // that stops delivering after the first low-memory moment is worse
         // than one that never claimed to.
@@ -57,9 +66,9 @@ class TelegramForegroundService : Service() {
         super.onDestroy()
     }
 
-    private fun observeArrivals() {
+    private fun observeArrivals(): Job {
         val app = application as TelegramYouApp
-        scope.launch {
+        return scope.launch {
             app.telegramRepository.incomingMessages.collect { message ->
                 val chat = app.telegramRepository.chats.value
                     .firstOrNull { it.id == message.chatId }
@@ -87,11 +96,15 @@ class TelegramForegroundService : Service() {
     }
 
     private fun post(message: NotifiableMessage) {
-        val forChat = PostedNotifications.add(message, MAX_LINES_PER_CHAT)
+        // Null when it is already on show: nothing new to post.
+        val forChat = PostedNotifications.add(message, MAX_LINES_PER_CHAT) ?: return
         if (!canPost()) return
         val manager = NotificationManagerCompat.from(this)
         groupForShade(forChat).forEach { entry ->
-            manager.notify(entry.chatId.toInt(), conversationNotification(entry.messages))
+            manager.notify(
+                PostedNotifications.notificationId(entry.chatId),
+                conversationNotification(entry.messages)
+            )
         }
     }
 
@@ -149,7 +162,7 @@ class TelegramForegroundService : Service() {
             this,
             // Per chat, like the open intent: one shared request code would
             // have every reply land in whichever chat was notified first.
-            chatId.toInt(),
+            PostedNotifications.notificationId(chatId),
             intent,
             // MUTABLE, and it has to be: the system writes the typed text
             // into this intent before delivering it. An immutable one arrives
@@ -186,7 +199,7 @@ class TelegramForegroundService : Service() {
             // A request code per chat: one shared code would have every
             // notification reuse the first chat's extras, however
             // FLAG_UPDATE_CURRENT is spelled.
-            chatId.toInt(),
+            PostedNotifications.notificationId(chatId),
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )

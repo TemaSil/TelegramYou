@@ -4,6 +4,7 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
@@ -120,7 +121,23 @@ class FakeTelegramClient(
      * to have run by the time it asserts, and tryEmit would return before
      * anyone had seen it.
      */
-    suspend fun deliver(message: ChatMessage) = _incomingMessages.emit(message)
+    suspend fun deliver(message: ChatMessage) {
+        _incomingMessages.emit(message)
+        _messageUpdates.emit(MessageUpdate.Added(message))
+    }
+
+    private val _messageUpdates = MutableSharedFlow<MessageUpdate>(extraBufferCapacity = 16)
+    override val messageUpdates: SharedFlow<MessageUpdate> = _messageUpdates
+
+    /** Any other change, as though the server had just announced it. */
+    suspend fun announce(update: MessageUpdate) = _messageUpdates.emit(update)
+
+    /** Set to make the next request of each kind fail the way TDLib does. */
+    var failWith: Exception? = null
+
+    private fun maybeFail() {
+        failWith?.let { throw it }
+    }
 
     override fun start() = Unit
     override fun shutdown() = Unit
@@ -273,6 +290,7 @@ class FakeTelegramClient(
         private set
 
     override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        maybeFail()
         this.muted = chatId to muted
     }
 
@@ -281,7 +299,13 @@ class FakeTelegramClient(
 
     override suspend fun downloadFile(fileId: Int): String? = downloadedPath
 
-    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) = Unit
+    /** Every text sent, in order. */
+    val sentTexts = mutableListOf<String>()
+
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
+        maybeFail()
+        sentTexts += text
+    }
     override suspend fun sendAttachment(
         chatId: Long,
         draft: AttachmentDraft,
@@ -292,6 +316,7 @@ class FakeTelegramClient(
     val deletedIds = mutableListOf<Long>()
 
     override suspend fun deleteMessage(chatId: Long, messageId: Long, forEveryone: Boolean) {
+        maybeFail()
         deletedIds += messageId
     }
     override suspend fun editMessage(chatId: Long, messageId: Long, text: String) = Unit

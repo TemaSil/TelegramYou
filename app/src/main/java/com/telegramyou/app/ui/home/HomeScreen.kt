@@ -137,7 +137,9 @@ fun HomeScreen(
     onComposeDismiss: () -> Unit,
     onContactPicked: (Long) -> Unit,
     onComposeNavigated: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    /** Called once a refusal in [HomeUiState.errorMessage] has been shown. */
+    onErrorShown: () -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -152,6 +154,13 @@ fun HomeScreen(
         LaunchedEffect(chatId) {
             onComposeNavigated()
             onOpenChat(chatId)
+        }
+    }
+
+    state.errorMessage?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onErrorShown()
         }
     }
 

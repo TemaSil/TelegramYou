@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -96,6 +97,9 @@ class DemoTelegramClient : TelegramClient {
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
+    private val _messageUpdates = MutableSharedFlow<MessageUpdate>(extraBufferCapacity = 64)
+    override val messageUpdates: SharedFlow<MessageUpdate> = _messageUpdates.asSharedFlow()
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var chatter: Job? = null
 
@@ -167,6 +171,7 @@ class DemoTelegramClient : TelegramClient {
             }
         }
         _incomingMessages.tryEmit(msg)
+        _messageUpdates.tryEmit(MessageUpdate.Added(msg))
     }
 
     override suspend fun submitPhoneNumber(phone: String) {
@@ -467,7 +472,9 @@ class DemoTelegramClient : TelegramClient {
                 draft.names.forEachIndexed { index, name ->
                     appendOutgoing(
                         chatId = chatId,
-                        text = caption.ifBlank { name },
+                        // The caption on the first only, as the live client
+                        // sends it.
+                        text = caption.takeIf { index == 0 }.orEmpty().ifBlank { name },
                         type = MessageContentType.Document,
                         fileName = name,
                         fileSizeLabel = "1.${index + 2} MB",
@@ -493,7 +500,7 @@ class DemoTelegramClient : TelegramClient {
                 draft.uris.forEachIndexed { index, uri ->
                     appendOutgoing(
                         chatId = chatId,
-                        text = caption.ifBlank { "Photo" },
+                        text = caption.takeIf { index == 0 }.orEmpty().ifBlank { "Photo" },
                         type = MessageContentType.Photo,
                         mediaEmoji = "🖼️",
                         replyToId = replyToId.takeIf { index == 0 },
@@ -533,7 +540,7 @@ class DemoTelegramClient : TelegramClient {
                 isRead = false,
                 canBeEdited = false,
                 canBeDeletedForEveryone = true
-            )
+            ).also { _messageUpdates.tryEmit(MessageUpdate.Added(it)) }
         }
     }
 
@@ -544,6 +551,7 @@ class DemoTelegramClient : TelegramClient {
     ) {
         delay(80)
         chatMessages[chatId]?.removeAll { it.id == messageId }
+        _messageUpdates.tryEmit(MessageUpdate.Deleted(chatId, setOf(messageId)))
     }
 
     override suspend fun editMessage(chatId: Long, messageId: Long, text: String) {
@@ -552,6 +560,7 @@ class DemoTelegramClient : TelegramClient {
         val index = bucket.indexOfFirst { it.id == messageId }
         if (index == -1) return
         bucket[index] = bucket[index].copy(text = text, isEdited = true)
+        _messageUpdates.tryEmit(MessageUpdate.Edited(chatId, messageId, text))
     }
 
     /**
@@ -716,6 +725,10 @@ class DemoTelegramClient : TelegramClient {
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
+        // The conversation on screen draws our own message from this, the
+        // same way it draws one arriving — it no longer fetches itself again
+        // after a send.
+        _messageUpdates.tryEmit(MessageUpdate.Added(msg))
         _chats.update { list ->
             list.map { chat ->
                 if (chat.id == chatId) {

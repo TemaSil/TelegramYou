@@ -10,7 +10,10 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.toggleReaction
+import com.telegramyou.app.ui.failureText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,7 +127,17 @@ data class ChatUiState(
      * model has no navigator, and a screen that left on its own would have
      * to guess when.
      */
-    val hasLeft: Boolean = false
+    val hasLeft: Boolean = false,
+    /**
+     * What the last request that failed has to say, for a snackbar; null once
+     * it has been shown.
+     *
+     * The server refuses things this client cannot predict — an edit past its
+     * time limit, a message in a channel this account may not post to, a
+     * flood wait — and every one of those used to escape the view model's
+     * scope and take the app down with it.
+     */
+    val errorMessage: String? = null
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -170,13 +183,14 @@ class ChatViewModel(
             }
         }
         viewModelScope.launch {
-            // Arrivals for this chat, appended as they land. Without this the
-            // conversation is whatever openChat returned and never changes:
-            // a message sent while it was on screen only appeared after a
-            // reload, which for a messenger is the whole feature missing.
-            repository.incomingMessages
+            // Everything that happens to this chat's messages while it is on
+            // screen — arrivals, our own sends as the server confirms them,
+            // edits, deletions, reactions, the other side reading. Without
+            // this the conversation is whatever openChat returned, and the
+            // only way to see a change was to fetch the whole window again.
+            repository.messageUpdates
                 .filter { it.chatId == chatId }
-                .collect { message -> appendArrival(message) }
+                .collect { update -> applyUpdate(update) }
         }
         viewModelScope.launch {
             // Every file in flight, for every bubble that has one. The map is
@@ -190,18 +204,59 @@ class ChatViewModel(
     }
 
     /**
-     * Adds a newly arrived message to the window already on screen.
+     * Applies one change to the window on screen, wherever the message is.
      *
-     * Guarded by id: TDLib can repeat an update after a reconnect, and a
-     * message drawn twice is worse than one drawn late. The detail is patched
-     * rather than reloaded because a reload would discard the paged-in
-     * history above it and jump the list.
+     * Patched rather than reloaded, because a reload discards the history
+     * paged in above and jumps the list. A new message goes on the end of the
+     * newest page only. What points at a message — the reply and edit
+     * banners, the selection — follows it when its id changes and lets go
+     * when it is deleted, or the next action would aim at nothing.
      */
-    private fun appendArrival(message: ChatMessage) = _uiState.update { state ->
+    private fun applyUpdate(update: MessageUpdate) = _uiState.update { state ->
         val detail = state.detail ?: return@update state
-        if (detail.messages.any { it.id == message.id }) return@update state
-        state.copy(detail = detail.copy(messages = detail.messages + message))
+        val patched = state.copy(
+            detail = detail.copy(messages = detail.messages.applying(update)),
+            olderMessages = state.olderMessages.applying(update, appendNew = false)
+        )
+        when (update) {
+            is MessageUpdate.Deleted -> patched.copy(
+                replyTo = patched.replyTo?.takeIf { it.id !in update.messageIds },
+                editing = patched.editing?.takeIf { it.id !in update.messageIds },
+                draft = if (patched.editing?.id in update.messageIds) "" else patched.draft,
+                selection = patched.selection.retaining(patched.messages)
+            )
+            is MessageUpdate.Replaced -> patched.copy(
+                replyTo = patched.replyTo?.let {
+                    if (it.id == update.oldId) update.message else it
+                },
+                editing = patched.editing?.let {
+                    if (it.id == update.oldId) update.message else it
+                },
+                selection = patched.selection.retaining(patched.messages)
+            )
+            else -> patched
+        }
     }
+
+    /**
+     * Runs one request, and turns a refusal into a message on screen rather
+     * than an exception out of the scope — which, uncaught, is a crash.
+     *
+     * Cancellation is let through: it is the screen going away, not the
+     * server saying no.
+     */
+    private suspend fun attempt(failure: String, request: suspend () -> Unit): Boolean =
+        try {
+            request()
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            _uiState.update { it.copy(errorMessage = failureText(failure, e.message)) }
+            false
+        }
+
+    fun onErrorShown() = _uiState.update { it.copy(errorMessage = null) }
 
     // ── composing ────────────────────────────────────────────────────────
 
@@ -232,24 +287,52 @@ class ChatViewModel(
         else it.copy(replyTo = null)
     }
 
+    /**
+     * Sends the draft, or saves the edit.
+     *
+     * The composer is cleared before the request rather than after it, so a
+     * second tap while the first is on its way has nothing to send twice.
+     * Nothing is fetched afterwards: the message arrives through
+     * [TelegramRepository.messageUpdates] like any other, and an edit is
+     * drawn at once and confirmed the same way. A refusal puts back what was
+     * typed, unless something new has been typed since.
+     */
     fun onSend() {
         val state = _uiState.value
         val text = state.draft
         val attachment = state.pendingAttachment
         if (text.isBlank() && attachment == null) return
-        val amending = state.editing?.id
-        val answering = state.replyTo?.id
+        val amending = state.editing
+        val answering = state.replyTo
+
+        _uiState.update {
+            it.copy(draft = "", pendingAttachment = null, replyTo = null, editing = null)
+        }
+        if (amending != null) applyUpdate(MessageUpdate.Edited(chatId, amending.id, text))
 
         viewModelScope.launch {
-            if (amending != null) {
-                repository.editMessage(chatId, amending, text)
+            val sent = if (amending != null) {
+                attempt("Could not save the edit") {
+                    repository.editMessage(chatId, amending.id, text)
+                }
             } else {
-                repository.sendMessage(chatId, text, attachment, answering)
+                attempt("Could not send") {
+                    repository.sendMessage(chatId, text, attachment, answering?.id)
+                }
             }
+            if (sent) return@launch
             _uiState.update {
-                it.copy(draft = "", pendingAttachment = null, replyTo = null, editing = null)
+                if (it.draft.isNotEmpty() || it.pendingAttachment != null) it
+                else it.copy(
+                    draft = text,
+                    pendingAttachment = attachment,
+                    replyTo = answering,
+                    editing = amending
+                )
             }
-            reload()
+            // The edit was drawn before it was refused; the server's copy is
+            // the one to show.
+            if (amending != null) reload()
         }
     }
 
@@ -275,7 +358,16 @@ class ChatViewModel(
             }
         }
         viewModelScope.launch {
-            repository.toggleReaction(chatId, message.id, emoji)
+            val done = attempt("Could not react") {
+                repository.toggleReaction(chatId, message.id, emoji)
+            }
+            // Toggling is its own inverse, so a refusal is undone by drawing
+            // the same tap again.
+            if (!done) _uiState.update { state ->
+                state.mapMessage(message.id) {
+                    it.copy(reactions = toggleReaction(it.reactions, emoji))
+                }
+            }
         }
     }
 
@@ -299,7 +391,10 @@ class ChatViewModel(
                 }
             )
         },
-        olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it }
+        olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it },
+        // The grid's copy too, so a file fetched from one screen is not
+        // fetched again from the other.
+        media = media.map { if (it.id == messageId) transform(it) else it }
     )
 
     // ── voice ────────────────────────────────────────────────────────────
@@ -426,7 +521,13 @@ class ChatViewModel(
             val thumbId = video.thumbFileId ?: return
             if (video.thumbPath != null || !requestedPhotos.add(thumbId)) return
             viewModelScope.launch {
-                val path = repository.downloadFile(thumbId) ?: return@launch
+                val path = repository.downloadFile(thumbId)
+                if (path == null) {
+                    // Forgotten, so the next time it scrolls into view asks
+                    // again — a dropped connection is not a missing poster.
+                    requestedPhotos.remove(thumbId)
+                    return@launch
+                }
                 _uiState.update { state ->
                     state.mapMessage(message.id) {
                         it.copy(video = it.video?.copy(thumbPath = path))
@@ -438,7 +539,12 @@ class ChatViewModel(
         val fileId = message.photoFileId ?: return
         if (message.photoPath != null || !requestedPhotos.add(fileId)) return
         viewModelScope.launch {
-            val path = repository.downloadFile(fileId) ?: return@launch
+            val path = repository.downloadFile(fileId)
+            if (path == null) {
+                // See the poster above: failing once must not mean never.
+                requestedPhotos.remove(fileId)
+                return@launch
+            }
             _uiState.update { state ->
                 state.mapMessage(message.id) { it.copy(photoPath = path) }
             }
@@ -477,22 +583,28 @@ class ChatViewModel(
         val fileId = video.fileId ?: return
         if (video.path != null || !requestedVideos.add(fileId)) return
         viewModelScope.launch {
-            val path = repository.downloadFile(fileId) ?: return@launch
+            val path = repository.downloadFile(fileId)
+            if (path == null) {
+                // Forgotten, so opening it again tries again rather than
+                // spinning on a download nobody is running.
+                requestedVideos.remove(fileId)
+                return@launch
+            }
             _uiState.update { state ->
-                val updated = state.mapMessage(message.id) {
+                val withFile: (ChatMessage) -> ChatMessage = {
                     it.copy(video = it.video?.copy(path = path))
                 }
-                // The open dialog is holding a copy of the message from
-                // before the file arrived; without this it would keep its
-                // spinner until it was closed and opened again.
-                if (updated.viewingVideo?.id == message.id) {
-                    updated.copy(
-                        viewingVideo = updated.messages.firstOrNull { it.id == message.id }
-                            ?: updated.viewingVideo
-                    )
-                } else {
-                    updated
-                }
+                state.mapMessage(message.id, withFile).copy(
+                    // The open dialog holds its own copy of the message from
+                    // before the file arrived, and it may have been opened
+                    // from the media grid — whose messages need not be in
+                    // the conversation's window at all. Patched directly, or
+                    // it would keep its spinner until closed and reopened.
+                    viewingVideo = state.viewingVideo
+                        ?.takeIf { it.id == message.id }
+                        ?.let(withFile)
+                        ?: state.viewingVideo
+                )
             }
         }
     }
@@ -577,7 +689,9 @@ class ChatViewModel(
             it.copy(forwardSheetOpen = false, selection = it.selection.cleared())
         }
         viewModelScope.launch {
-            repository.forwardMessages(chatId, ids, target.id)
+            attempt("Could not forward") {
+                repository.forwardMessages(chatId, ids, target.id)
+            }
         }
     }
 
@@ -600,9 +714,22 @@ class ChatViewModel(
         _uiState.update {
             it.copy(selection = it.selection.cleared(), confirmingSelectionDelete = false)
         }
+        delete(targets.map { it.id }, forEveryone)
+    }
+
+    /**
+     * Takes the messages off the screen at once, then asks the server.
+     *
+     * A refusal fetches the window again, since it is the only honest way to
+     * put back whichever of them the server kept.
+     */
+    private fun delete(ids: List<Long>, forEveryone: Boolean) {
+        applyUpdate(MessageUpdate.Deleted(chatId, ids.toSet()))
         viewModelScope.launch {
-            targets.forEach { repository.deleteMessage(chatId, it.id, forEveryone) }
-            reload()
+            val done = attempt("Could not delete") {
+                ids.forEach { repository.deleteMessage(chatId, it, forEveryone) }
+            }
+            if (!done) reload()
         }
     }
 
@@ -615,36 +742,10 @@ class ChatViewModel(
 
     fun onDeleteConfirmed(message: ChatMessage, forEveryone: Boolean) {
         _uiState.update { it.copy(pendingDelete = null) }
-        viewModelScope.launch {
-            repository.deleteMessage(chatId, message.id, forEveryone)
-            _uiState.update { state ->
-                // A banner pointing at a message that no longer exists would
-                // send the next line into nothing.
-                state.copy(
-                    replyTo = state.replyTo?.takeIf { it.id != message.id },
-                    editing = state.editing?.takeIf { it.id != message.id },
-                    draft = if (state.editing?.id == message.id) "" else state.draft
-                )
-            }
-            reload()
-        }
+        // The banners pointing at it go with it — see applyUpdate.
+        delete(listOf(message.id), forEveryone)
     }
 
-    /**
-     * Asks for the page before the oldest message on screen.
-     *
-     * Guarded on both flags: a list scrolled to the top fires this on every
-     * frame, and without the guard that is a request per frame — and then a
-     * request per frame forever once the history runs out.
-     */
-    /**
-     * Fetches every photo in this chat, for the media grid.
-     *
-     * Called when that screen opens rather than with the conversation: it is
-     * a separate request and most chats are never browsed this way. Called
-     * again on each visit, because photos are added while it is closed and a
-     * grid that showed yesterday's set would be quietly wrong.
-     */
     /**
      * Fetches the invite link for the info screen.
      *
@@ -669,8 +770,8 @@ class ChatViewModel(
 
     fun onLeaveConfirmed() {
         viewModelScope.launch {
-            repository.leaveChat(chatId)
-            _uiState.update { it.copy(confirmingLeave = false, hasLeft = true) }
+            val left = attempt("Could not leave") { repository.leaveChat(chatId) }
+            _uiState.update { it.copy(confirmingLeave = false, hasLeft = left) }
         }
     }
 
@@ -679,6 +780,14 @@ class ChatViewModel(
         _uiState.update { it.copy(hasLeft = false) }
     }
 
+    /**
+     * Fetches every photo in this chat, for the media grid.
+     *
+     * Called when that screen opens rather than with the conversation: it is
+     * a separate request and most chats are never browsed this way. Called
+     * again on each visit, because photos are added while it is closed and a
+     * grid that showed yesterday's set would be quietly wrong.
+     */
     fun loadMedia() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMedia = true) }
@@ -687,6 +796,13 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Asks for the page before the oldest message on screen.
+     *
+     * Guarded on both flags: a list scrolled to the top fires this on every
+     * frame, and without the guard that is a request per frame — and then a
+     * request per frame forever once the history runs out.
+     */
     fun onLoadOlder() {
         val state = _uiState.value
         if (state.isLoadingOlder || !state.hasMoreOlder) return
@@ -694,7 +810,16 @@ class ChatViewModel(
 
         _uiState.update { it.copy(isLoadingOlder = true) }
         viewModelScope.launch {
-            val older = repository.loadOlderMessages(chatId, oldest.id)
+            var older = emptyList<ChatMessage>()
+            val done = attempt("Could not load older messages") {
+                older = repository.loadOlderMessages(chatId, oldest.id)
+            }
+            if (!done) {
+                // Not "no more history" — the next scroll to the top may try
+                // again.
+                _uiState.update { it.copy(isLoadingOlder = false) }
+                return@launch
+            }
             _uiState.update { current ->
                 current.copy(
                     olderMessages = older + current.olderMessages,
@@ -714,11 +839,16 @@ class ChatViewModel(
 
     private fun reload() {
         viewModelScope.launch {
-            val detail = repository.openChat(chatId)
-            // Asked for once per load rather than per tap: a chat's permitted
-            // reactions do not change while it is open, and the picker has to
-            // open without waiting for a request.
-            val reactions = repository.availableReactions(chatId)
+            lateinit var detail: ChatDetail
+            var reactions = emptyList<String>()
+            val opened = attempt("Could not open the chat") {
+                detail = repository.openChat(chatId)
+                // Asked for once per load rather than per tap: a chat's
+                // permitted reactions do not change while it is open, and
+                // the picker has to open without waiting for a request.
+                reactions = repository.availableReactions(chatId)
+            }
+            if (!opened) return@launch
             // The window from openChat is fresh, so anything paged in before
             // it is discarded rather than left to duplicate or contradict it.
             _uiState.update {

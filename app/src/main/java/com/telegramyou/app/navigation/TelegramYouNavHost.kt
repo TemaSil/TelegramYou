@@ -204,7 +204,8 @@ fun TelegramYouNavHost(
                 onComposeDismiss = homeViewModel::onComposeDismiss,
                 onContactPicked = homeViewModel::onContactPicked,
                 onComposeNavigated = homeViewModel::onComposeNavigated,
-                onLogout = homeViewModel::logout
+                onLogout = homeViewModel::logout,
+                onErrorShown = homeViewModel::onErrorShown
             )
         }
         // Group and channel share a screen and a state holder; only what the
@@ -266,7 +267,9 @@ fun TelegramYouNavHost(
                 onOpenChat = { id -> navController.navigateTo(Route.Chat(id)) },
                 onMutedChange = homeViewModel::onMutedChange,
                 onUnarchive = { id -> homeViewModel.onArchivedChange(id, archived = false) },
-                onMarkRead = homeViewModel::onMarkRead
+                onMarkRead = homeViewModel::onMarkRead,
+                errorMessage = state.errorMessage,
+                onErrorShown = homeViewModel::onErrorShown
             )
         }
 
@@ -415,7 +418,8 @@ fun TelegramYouNavHost(
                 onPhotoOpened = chatViewModel::onPhotoOpened,
                 onPhotoClosed = chatViewModel::onPhotoClosed,
                 onVideoOpened = chatViewModel::onVideoOpened,
-                onVideoClosed = chatViewModel::onVideoClosed
+                onVideoClosed = chatViewModel::onVideoClosed,
+                onErrorShown = chatViewModel::onErrorShown
             )
         }
         composable(

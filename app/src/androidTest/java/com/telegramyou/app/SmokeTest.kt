@@ -1,6 +1,9 @@
 package com.telegramyou.app
 
+import android.app.NotificationManager
 import android.content.ContentValues
+import androidx.core.app.NotificationCompat
+import com.telegramyou.app.notifications.PostedNotifications
 import android.os.SystemClock
 import android.content.Intent
 import android.graphics.Bitmap
@@ -71,6 +74,9 @@ class SmokeTest {
     @After
     fun restoreHeadsUpNotifications() {
         device.executeShellCommand("settings put global heads_up_notifications_enabled 1")
+        // A test that turned the screen leaves it upright and free again.
+        device.setOrientationNatural()
+        device.unfreezeRotation()
     }
 
     /**
@@ -605,6 +611,64 @@ class SmokeTest {
     }
 
     /**
+     * One message, one line in its notification — after the screen has been
+     * turned.
+     *
+     * The activity starts the notification service in onCreate, so each
+     * rotation starts it again, and each start used to add another listener
+     * for new messages. Two rotations, three listeners, and a message could
+     * land in the shade three times over.
+     *
+     * Read from the app's own notifications rather than from the shade: the
+     * shade collapses a conversation to its latest line, so a duplicate can
+     * be there and not be on screen. The notification's MessagingStyle holds
+     * every line it was given.
+     */
+    @Test
+    fun aMessageIsNotifiedOnceAfterTurningTheScreen() {
+        signIn()
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+
+        device.setOrientationLeft()
+        device.waitForIdle(IDLE_TIMEOUT)
+        device.setOrientationNatural()
+        device.waitForIdle(IDLE_TIMEOUT)
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list, after turning the screen")
+
+        // A clean slate for this chat. The app's process outlives each test,
+        // and so do its notifications — an entry left by an earlier test,
+        // with the demo's four lines going round, could repeat a line
+        // honestly and fail this for nothing.
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSystemService(NotificationManager::class.java)
+            .cancel(PostedNotifications.notificationId(NOTIFYING_CHAT_ID))
+        PostedNotifications.clear(NOTIFYING_CHAT_ID)
+
+        device.pressHome()
+        device.waitForIdle(IDLE_TIMEOUT)
+        waitForNotification()
+        screenshot("20-notification-after-rotation")
+
+        val lines = notifiedLines(NOTIFYING_CHAT)
+        assertTrue("the notification for $NOTIFYING_CHAT has no lines", lines.isNotEmpty())
+        assertEquals("a line posted more than once: $lines", lines.distinct(), lines)
+    }
+
+    /** The lines of this app's notification for [chatTitle], oldest first. */
+    private fun notifiedLines(chatTitle: String): List<String> {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val manager = context.getSystemService(NotificationManager::class.java)
+        return manager.activeNotifications
+            .mapNotNull {
+                NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(it.notification)
+            }
+            .firstOrNull { it.conversationTitle?.toString() == chatTitle }
+            ?.messages
+            ?.map { it.text.toString() }
+            .orEmpty()
+    }
+
+    /**
      * Puts [text] into the reply field, and proves it landed there.
      *
      * Not [type]: that takes the first `android.widget.EditText` on screen,
@@ -891,6 +955,8 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+        /** Its id in the demo backend, where it is the first chat seeded. */
+        const val NOTIFYING_CHAT_ID = 1L
 
         /** systemui, which owns the shade and the reply field in it. */
         const val SYSTEM_UI = "com.android.systemui"

@@ -94,6 +94,8 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -232,9 +234,22 @@ fun ChatScreen(
     onPhotoOpened: (ChatMessage) -> Unit,
     onPhotoClosed: () -> Unit,
     onVideoOpened: (ChatMessage) -> Unit,
-    onVideoClosed: () -> Unit
+    onVideoClosed: () -> Unit,
+    /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
+    onErrorShown: () -> Unit
 ) {
     val listState = rememberLazyListState()
+
+    // A refusal from the server, said once in a snackbar — a failed send
+    // puts the text back in the composer as well, so the message is there
+    // to try again.
+    val snackbarHostState = remember { SnackbarHostState() }
+    state.errorMessage?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onErrorShown()
+        }
+    }
 
     val context = LocalContext.current
     // Declared before the pickers, which launch work on it from their callbacks.
@@ -334,6 +349,7 @@ fun ChatScreen(
     val clipboard = LocalClipboardManager.current
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 navigationIcon = {

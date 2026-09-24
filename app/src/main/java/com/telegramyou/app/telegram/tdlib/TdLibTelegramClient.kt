@@ -12,6 +12,9 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.ChatPositions
+import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.ui.chat.applying
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageReaction
@@ -31,6 +34,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -51,6 +55,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Live Telegram client via official TDLib JSON API.
@@ -72,23 +78,44 @@ class TdLibTelegramClient(
     private val uploadCache: File =
         File(context.cacheDir, "tdlib-upload").also { it.mkdirs() }
 
+    /**
+     * Where every update is handled, one at a time and in the order TDLib
+     * sent them.
+     *
+     * The chat objects below are `JSONObject`s, which are not safe to change
+     * on one thread while another reads them — and updates arrive on TDLib's
+     * receiver thread while the chat list is built on another. Handling each
+     * update, and building the list, on this one thread is what keeps the two
+     * from meeting halfway through a write.
+     */
+    private val updateDispatcher = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "tdlib-updates").apply { isDaemon = true }
+    }.asCoroutineDispatcher()
+
     private val chatsById = ConcurrentHashMap<Long, JSONObject>()
 
-    /** Chat ids currently holding a position in `chatListArchive`. */
-    private val archivedChats = ConcurrentHashMap.newKeySet<Long>()
+    /**
+     * Which list each chat is in, whether it is pinned there, and which
+     * folders hold it — see ChatPositions in :core, where the rules are
+     * tested.
+     */
+    private val positions = ChatPositions()
+    private val usersById = ConcurrentHashMap<Long, JSONObject>()
+    private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
 
     /**
-     * Which folders each chat is in, by chat id.
+     * Stories by the id this client gave them.
      *
-     * Kept the same way the archive is, and for the same reason: a chat
-     * object carries no list of its folders. Membership is having a position
-     * in `chatListFolder`, and TDLib announces that as a position with a
-     * non-zero order — so this is filled from the same updates.
+     * A story is named by its poster's chat and its own number, and the
+     * screens want one Long. The pair used to be packed into one as
+     * `chatId shl 16 + storyId`, which broke on the 65,536th story; a table
+     * cannot run out.
      */
-    private val chatFolders = ConcurrentHashMap<Long, MutableSet<Int>>()
-    private val usersById = ConcurrentHashMap<Long, JSONObject>()
-    private val chatOrder = ConcurrentHashMap<Long, Long>()
-    private val messagesByChat = ConcurrentHashMap<Long, MutableList<ChatMessage>>()
+    private val storyKeys = ConcurrentHashMap<Long, Pair<Long, Int>>()
+    private val storyKeySeq = AtomicLong(0)
+
+    /** Each chat's `chatActiveStories`, as `updateChatActiveStories` last said. */
+    private val activeStories = ConcurrentHashMap<Long, JSONObject>()
 
     private val _authState = MutableStateFlow(
         AuthUiState(state = AuthState.Bootstrapping, isLoading = true)
@@ -111,6 +138,10 @@ class TdLibTelegramClient(
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
+    // Same buffering, for the same reason: emitted from the update handler.
+    private val _messageUpdates = MutableSharedFlow<MessageUpdate>(extraBufferCapacity = 256)
+    override val messageUpdates: SharedFlow<MessageUpdate> = _messageUpdates.asSharedFlow()
+
     private val _stories = MutableStateFlow<List<StoryItem>>(emptyList())
     override val stories: StateFlow<List<StoryItem>> = _stories.asStateFlow()
 
@@ -127,7 +158,12 @@ class TdLibTelegramClient(
             return
         }
         try {
-            val eng = TdJsonEngine { update -> handleUpdate(update) }
+            val eng = TdJsonEngine { update ->
+                // Off TDLib's receiver thread straight away: it must get back
+                // to receiving, and everything that changes the chat objects
+                // runs on updateDispatcher — see there.
+                scope.launch(updateDispatcher) { handleUpdate(update) }
+            }
             engine = eng
             eng.start()
             // Kick the client — first request triggers authorization updates
@@ -201,34 +237,35 @@ class TdLibTelegramClient(
         }
     }
 
+    /**
+     * Loads the main list, the archive and every folder, then publishes.
+     *
+     * Each load may answer 404, and for all three that is TDLib saying "you
+     * already have everything" — which is what every refresh after the first
+     * one hears. So a failure is per list and never stops the rest: it used
+     * to be one try around the lot, and the second pull-to-refresh skipped
+     * the folders, the list and the stories alike.
+     */
     override suspend fun refreshChats() {
         awaitReady()
+        loadChatList(JSONObject().put("@type", "chatListMain"))
+        loadChatList(JSONObject().put("@type", "chatListArchive"))
+        loadFolderChats()
+        withContext(updateDispatcher) { publishChats() }
+        refreshStories()
+    }
+
+    private suspend fun loadChatList(list: JSONObject) {
+        val engine = this.engine ?: return
         try {
-            requireEngine().send(
+            engine.send(
                 JSONObject()
                     .put("@type", "loadChats")
-                    .put("chat_list", JSONObject().put("@type", "chatListMain"))
-                    .put("limit", 50)
+                    .put("chat_list", list)
+                    .put("limit", CHAT_PAGE)
             )
-            // The archive as well, and its failure is not this call's failure:
-            // an account with an empty archive answers 404 Not Found, which is
-            // the normal case and not a reason to leave the main list
-            // unpublished.
-            try {
-                requireEngine().send(
-                    JSONObject()
-                        .put("@type", "loadChats")
-                        .put("chat_list", JSONObject().put("@type", "chatListArchive"))
-                        .put("limit", 50)
-                )
-            } catch (e: TdLibException) {
-                Log.d(TAG, "loadChats(archive): ${e.message}")
-            }
-            loadFolderChats()
-            publishChats()
-            refreshStories()
         } catch (e: TdLibException) {
-            Log.w(TAG, "loadChats: ${e.message}")
+            Log.d(TAG, "loadChats(${list.optString("@type")}): ${e.message}")
         }
     }
 
@@ -421,10 +458,15 @@ class TdLibTelegramClient(
         requireEngine().send(
             JSONObject()
                 .put("@type", "toggleChatIsPinned")
-                // Which list it is pinned in. Main rather than Archive: this
-                // client has no archive screen yet, so pinning inside one
-                // would put the chat somewhere nothing can show it.
-                .put("chat_list", JSONObject().put("@type", "chatListMain"))
+                // Pinned within the list it is in: an archived chat pinned in
+                // the main list would be refused, since it is not there.
+                .put(
+                    "chat_list",
+                    JSONObject().put(
+                        "@type",
+                        if (positions.isArchived(chatId)) "chatListArchive" else "chatListMain"
+                    )
+                )
                 .put("chat_id", chatId)
                 .put("is_pinned", pinned)
         )
@@ -456,27 +498,48 @@ class TdLibTelegramClient(
         refreshChats()
     }
 
+    /**
+     * Mutes or unmutes, and changes nothing else.
+     *
+     * `setChatNotificationSettings` replaces the chat's settings whole, and
+     * a field left out of the object is read as false or zero — so sending
+     * only the two mute fields also switched off the chat's sound and its
+     * message previews. The chat's own current settings are the starting
+     * point instead, which also keeps this right for whatever fields the
+     * TDLib build behind the `.so` has that this code has never heard of.
+     */
     override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
         awaitReady()
+        val settings = chatsById[chatId]?.optJSONObject("notification_settings")
+            ?.let { JSONObject(it.toString()) }
+            ?: defaultNotificationSettings()
+        settings
+            // use_default_mute_for false is what makes mute_for this chat's
+            // own setting rather than the scope's; without it the value
+            // below is ignored.
+            .put("use_default_mute_for", false)
+            // Telegram measures a mute in seconds. Its "forever" is a very
+            // large number rather than a flag, and this is the value its own
+            // clients use.
+            .put("mute_for", if (muted) MUTE_FOREVER_SECONDS else 0)
         requireEngine().send(
             JSONObject()
                 .put("@type", "setChatNotificationSettings")
                 .put("chat_id", chatId)
-                .put(
-                    "notification_settings",
-                    JSONObject()
-                        .put("@type", "chatNotificationSettings")
-                        // use_default_mute_for false is what makes mute_for
-                        // this chat's own setting rather than the scope's;
-                        // without it the value below is ignored.
-                        .put("use_default_mute_for", false)
-                        // Telegram measures a mute in seconds. Its "forever"
-                        // is a very large number rather than a flag, and this
-                        // is the value its own clients use.
-                        .put("mute_for", if (muted) MUTE_FOREVER_SECONDS else 0)
-                )
+                .put("notification_settings", settings)
         )
     }
+
+    /** Every setting following the account's defaults, for a chat not yet seen. */
+    private fun defaultNotificationSettings(): JSONObject = JSONObject()
+        .put("@type", "chatNotificationSettings")
+        .put("use_default_sound", true)
+        .put("use_default_show_preview", true)
+        .put("use_default_mute_stories", true)
+        .put("use_default_story_sound", true)
+        .put("use_default_show_story_poster", true)
+        .put("use_default_disable_pinned_message_notifications", true)
+        .put("use_default_disable_mention_notifications", true)
 
     override suspend fun openChat(chatId: Long): ChatDetail {
         awaitReady()
@@ -501,7 +564,7 @@ class TdLibTelegramClient(
             messages = mapped,
             memberCountLabel = statusLabel(chat),
             isTyping = false,
-            pinnedMessage = pinnedMessage(chatId, chat),
+            pinnedMessage = pinnedMessage(chatId),
             members = groupMembers(chat)
         )
     }
@@ -704,26 +767,27 @@ class TdLibTelegramClient(
     }
 
     /**
-     * The chat's pinned message, fetched by id.
+     * The chat's pinned message — the newest one, which is what the bar shows.
      *
-     * What is pinned is usually old, so it is rarely in the window that was
-     * just loaded and has to be asked for on its own. A failure here is not a
-     * failure to open the chat: the bar is missing, the conversation is not.
+     * `getChatPinnedMessage`, because a `chat` carries no pinned id: this
+     * used to read a `pinned_message_id` field TDLib stopped sending when
+     * chats gained several pins, and so the bar never appeared. What is
+     * pinned is usually old, so it is rarely in the window just loaded
+     * anyway.
+     *
+     * A chat with nothing pinned answers 404, the ordinary case; any failure
+     * is a missing bar, never a chat that will not open.
      */
-    private suspend fun pinnedMessage(chatId: Long, chat: JSONObject?): ChatMessage? {
-        val pinnedId = chat?.optLong("pinned_message_id")?.takeIf { it != 0L } ?: return null
-        return try {
-            val raw = requireEngine().send(
-                JSONObject()
-                    .put("@type", "getMessage")
-                    .put("chat_id", chatId)
-                    .put("message_id", pinnedId)
-            )
-            mapMessage(chatId, raw)
-        } catch (e: TdLibException) {
-            Log.w(TAG, "pinnedMessage: ${e.message}")
-            null
-        }
+    private suspend fun pinnedMessage(chatId: Long): ChatMessage? = try {
+        val raw = requireEngine().send(
+            JSONObject()
+                .put("@type", "getChatPinnedMessage")
+                .put("chat_id", chatId)
+        )
+        mapMessage(chatId, raw)
+    } catch (e: TdLibException) {
+        Log.d(TAG, "pinnedMessage: ${e.message}")
+        null
     }
 
     override suspend fun loadOlderMessages(
@@ -801,18 +865,27 @@ class TdLibTelegramClient(
     ) {
         awaitReady()
         when (draft) {
-            // Only the first of a batch answers the quoted message; the rest
-            // would each repeat the quote, which is not what Telegram does.
-            is AttachmentDraft.Photos -> draft.uris.forEachIndexed { index, uri ->
-                val path = copyUriToCache(uri, "photo_${System.currentTimeMillis()}.jpg")
-                sendLocalFile(chatId, path, caption, photo = true,
-                    replyToId = replyToId.takeIf { index == 0 })
+            // Several photos go as an album, which is what Telegram draws as
+            // one grid rather than a column of separate bubbles. The caption
+            // and the quote belong to the first; each photo used to carry
+            // both, so a three-photo send said the same words three times.
+            is AttachmentDraft.Photos -> {
+                val paths = draft.uris.map { uri ->
+                    copyUriToCache(uri, "photo_${System.currentTimeMillis()}.jpg")
+                }
+                if (paths.size == 1) {
+                    sendLocalFile(chatId, paths.single(), caption, photo = true, replyToId = replyToId)
+                } else {
+                    sendPhotoAlbums(chatId, paths, caption, replyToId)
+                }
             }
+            // Files one by one, with the caption and the quote on the first
+            // only — the same rule, without the album.
             is AttachmentDraft.Files ->
                 draft.uris.zip(draft.names).forEachIndexed { index, (uri, name) ->
                     val path = copyUriToCache(uri, name)
-                    sendLocalFile(chatId, path, caption, photo = false,
-                        replyToId = replyToId.takeIf { index == 0 })
+                    sendLocalFile(chatId, path, caption.takeIf { index == 0 }.orEmpty(),
+                        photo = false, replyToId = replyToId.takeIf { index == 0 })
                 }
             // No copy here: a recording is already a file this app wrote, in
             // this app's own cache. Everything else arrives as a Uri from
@@ -824,6 +897,42 @@ class TdLibTelegramClient(
                 waveform = draft.waveform,
                 caption = caption,
                 replyToId = replyToId
+            )
+        }
+    }
+
+    /**
+     * `sendMessageAlbum`, in groups of ten — the most Telegram puts in one.
+     * Only the very first photo carries the caption and answers the quote.
+     */
+    private suspend fun sendPhotoAlbums(
+        chatId: Long,
+        paths: List<String>,
+        caption: String,
+        replyToId: Long?
+    ) {
+        paths.chunked(ALBUM_LIMIT).forEachIndexed { chunkIndex, chunk ->
+            val contents = JSONArray()
+            chunk.forEachIndexed { index, path ->
+                val first = chunkIndex == 0 && index == 0
+                contents.put(
+                    JSONObject()
+                        .put("@type", "inputMessagePhoto")
+                        .put("photo", JSONObject().put("@type", "inputFileLocal").put("path", path))
+                        .put(
+                            "caption",
+                            JSONObject()
+                                .put("@type", "formattedText")
+                                .put("text", if (first) caption else "")
+                        )
+                )
+            }
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "sendMessageAlbum")
+                    .put("chat_id", chatId)
+                    .withReplyTo(replyToId.takeIf { chunkIndex == 0 })
+                    .put("input_message_contents", contents)
             )
         }
     }
@@ -1022,18 +1131,27 @@ class TdLibTelegramClient(
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
         }
+        val (chatId, realStoryId) = storyKeys[storyId] ?: return
         try {
-            // storyId encodes chatId in high bits for our mapping; openStory when possible
-            val chatId = storyId shr 16
-            val realStoryId = (storyId and 0xFFFF).toInt()
-            requireEngine().send(
+            // Opened and closed again straight away: openStory is what marks
+            // it viewed, and a story left open keeps TDLib polling for it.
+            val engine = requireEngine()
+            engine.send(
                 JSONObject()
                     .put("@type", "openStory")
+                    .put("story_poster_chat_id", chatId)
                     .put("story_sender_chat_id", chatId)
                     .put("story_id", realStoryId)
             )
-        } catch (_: Throwable) {
-            // optional on older TDLib builds
+            engine.send(
+                JSONObject()
+                    .put("@type", "closeStory")
+                    .put("story_poster_chat_id", chatId)
+                    .put("story_sender_chat_id", chatId)
+                    .put("story_id", realStoryId)
+            )
+        } catch (e: Throwable) {
+            Log.d(TAG, "markStorySeen: ${e.message}")
         }
     }
 
@@ -1044,8 +1162,19 @@ class TdLibTelegramClient(
             // ignore
         }
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber)
+        // Everything the last account left behind: the next one to sign in
+        // must not see its folders, its archive or its cached messages.
+        chatsById.clear()
+        usersById.clear()
+        messagesByChat.clear()
+        positions.clear()
+        storyKeys.clear()
         _chats.value = emptyList()
         _stories.value = emptyList()
+        _folders.value = emptyList()
+        // Nothing may run as though still signed in until the next account
+        // is ready.
+        readySignal = CompletableDeferred()
     }
 
     // The profile calls. Three, because TDLib has three, and each is allowed
@@ -1123,7 +1252,8 @@ class TdLibTelegramClient(
         )
     }
 
-    private fun handleUpdate(update: JSONObject) {
+    /** Runs on updateDispatcher, one update at a time — see there. */
+    private suspend fun handleUpdate(update: JSONObject) {
         when (update.optString("@type")) {
             "updateAuthorizationState" -> {
                 val state = update.optJSONObject("authorization_state") ?: return
@@ -1172,11 +1302,15 @@ class TdLibTelegramClient(
             }
             "updateNewChat" -> {
                 val chat = update.optJSONObject("chat") ?: return
-                chatsById[chat.optLong("id")] = chat
-                scope.launch { publishChats() }
+                val chatId = chat.optLong("id")
+                chatsById[chatId] = chat
+                // A new chat arrives with its positions inside it; nothing
+                // else will announce them.
+                chat.optJSONArray("positions")?.let { applyPositions(chatId, it) }
+                publishChats()
             }
             "updateChatTitle", "updateChatPhoto", "updateChatLastMessage",
-            "updateChatReadInbox", "updateChatNotificationSettings",
+            "updateChatReadInbox", "updateChatReadOutbox", "updateChatNotificationSettings",
             "updateChatUnreadMentionCount" -> {
                 val chatId = update.optLong("chat_id")
                 val chat = chatsById[chatId] ?: return
@@ -1190,11 +1324,22 @@ class TdLibTelegramClient(
                     "updateChatReadInbox" -> {
                         chat.put("unread_count", update.optInt("unread_count"))
                     }
+                    "updateChatReadOutbox" -> {
+                        // The other side has read up to here. Kept on the
+                        // chat, which is where mapMessage reads it for the
+                        // ticks, and told to the conversation on screen.
+                        val lastRead = update.optLong("last_read_outbox_message_id")
+                        chat.put("last_read_outbox_message_id", lastRead)
+                        emitUpdate(MessageUpdate.ReadUpTo(chatId, lastRead))
+                    }
+                    "updateChatUnreadMentionCount" -> {
+                        chat.put("unread_mention_count", update.optInt("unread_mention_count"))
+                    }
                     "updateChatNotificationSettings" -> {
                         chat.put("notification_settings", update.optJSONObject("notification_settings"))
                     }
                 }
-                scope.launch { publishChats() }
+                publishChats()
             }
             "updateChatFolders" -> {
                 // The account's folders, whole, on every change: TDLib sends
@@ -1203,36 +1348,97 @@ class TdLibTelegramClient(
                 // only for the lists that have been loaded — which is why
                 // refreshChats loads each folder as well as the main list.
                 _folders.value = parseFolders(update.optJSONArray("chat_folders"))
-                scope.launch {
-                    loadFolderChats()
-                    publishChats()
-                }
+                // Loading waits on the server, and this thread must not: the
+                // positions it brings back arrive as updates of their own.
+                scope.launch { loadFolderChats() }
             }
             "updateChatPosition" -> {
                 val chatId = update.optLong("chat_id")
                 val position = update.optJSONObject("position") ?: return
                 applyPosition(chatId, position)
-                scope.launch { publishChats() }
+                publishChats()
             }
             "updateNewMessage" -> {
                 val message = update.optJSONObject("message") ?: return
                 val chatId = message.optLong("chat_id")
                 val mapped = mapMessage(chatId, message)
-                messagesByChat.getOrPut(chatId) { mutableListOf() }.add(mapped)
                 chatsById[chatId]?.put("last_message", message)
                 // Announced before publishChats, because a subscriber that
                 // reacts to the message should not have to race the chat list
                 // rebuild to see it.
                 _incomingMessages.tryEmit(mapped)
-                scope.launch { publishChats() }
+                emitUpdate(MessageUpdate.Added(mapped))
+                publishChats()
             }
             "updateMessageSendSucceeded" -> {
-                // refresh last message mapping if needed
+                // Our message, now under the id the server gave it. Until
+                // this lands it has a temporary one, and anything aimed at
+                // that — an edit, a reply, a delete — would be refused.
+                val message = update.optJSONObject("message") ?: return
+                val chatId = message.optLong("chat_id")
+                emitUpdate(
+                    MessageUpdate.Replaced(
+                        oldId = update.optLong("old_message_id"),
+                        message = mapMessage(chatId, message)
+                    )
+                )
             }
-            "updateActiveStories", "updateChatActiveStories" -> {
-                scope.launch { refreshStories() }
+            "updateDeleteMessages" -> {
+                // from_cache means TDLib only dropped its local copy to save
+                // memory; the messages still exist.
+                if (!update.optBoolean("is_permanent")) return
+                val ids = update.optJSONArray("message_ids") ?: return
+                emitUpdate(
+                    MessageUpdate.Deleted(
+                        chatId = update.optLong("chat_id"),
+                        messageIds = (0 until ids.length()).map { ids.optLong(it) }.toSet()
+                    )
+                )
+            }
+            "updateMessageContent" -> {
+                // Only what changes the words is passed on. The same update
+                // fires for a poll's votes or a location moving, and marking
+                // those "edited" would be wrong.
+                val chatId = update.optLong("chat_id")
+                val messageId = update.optLong("message_id")
+                val text = contentText(update.optJSONObject("new_content"))
+                    ?.takeIf { it.isNotBlank() }
+                    ?: return
+                val known = messagesByChat[chatId]?.firstOrNull { it.id == messageId }
+                if (known != null && known.text == text) return
+                emitUpdate(MessageUpdate.Edited(chatId, messageId, text))
+            }
+            "updateMessageInteractionInfo" -> {
+                emitUpdate(
+                    MessageUpdate.ReactionsChanged(
+                        chatId = update.optLong("chat_id"),
+                        messageId = update.optLong("message_id"),
+                        reactions = parseReactions(update.optJSONObject("interaction_info"))
+                    )
+                )
+            }
+            "updateChatActiveStories" -> {
+                // The whole of one chat's active stories, every time they
+                // change. Kept rather than fetched: this is how TDLib hands
+                // them out, once loadActiveStories has asked.
+                val active = update.optJSONObject("active_stories") ?: return
+                activeStories[active.optLong("chat_id")] = active
+                publishStories()
             }
         }
+    }
+
+    /**
+     * Tells the open conversation, and keeps this client's own copy in step:
+     * reply quotes and reaction toggles read [messagesByChat], and a copy
+     * that fell behind would quote a deleted message or undo a reaction.
+     */
+    private fun emitUpdate(update: MessageUpdate) {
+        messagesByChat[update.chatId]?.let { known ->
+            val applied = known.applying(update)
+            messagesByChat[update.chatId] = applied.toMutableList()
+        }
+        _messageUpdates.tryEmit(update)
     }
 
     private suspend fun onAuthorizationState(state: JSONObject) {
@@ -1364,7 +1570,39 @@ class TdLibTelegramClient(
         ""
     }
 
+    /**
+     * Asks TDLib to announce the main story list.
+     *
+     * The stories themselves come back as `updateChatActiveStories`, one per
+     * chat, and [publishStories] builds the rail from those. This used to ask
+     * thirty chats one by one for their stories, read the answer from a field
+     * that is not there, and so never showed a live story at all. 404 means
+     * everything is already loaded, which after the first time it always is.
+     */
     private suspend fun refreshStories() {
+        val engine = this.engine ?: return
+        try {
+            engine.send(
+                JSONObject()
+                    .put("@type", "loadActiveStories")
+                    .put("story_list", JSONObject().put("@type", "storyListMain"))
+            )
+        } catch (e: TdLibException) {
+            Log.d(TAG, "loadActiveStories: ${e.message}")
+        }
+        withContext(updateDispatcher) { publishStories() }
+    }
+
+    /**
+     * The rail: our own entry first, then every chat with an active story in
+     * the main list, in TDLib's order.
+     *
+     * Unseen is read the way Telegram keeps it — one watermark per chat,
+     * `max_read_story_id`, and any story above it is new. The first unseen
+     * one is what opening the circle marks as seen; with none unseen, the
+     * first.
+     */
+    private fun publishStories() {
         val own = StoryItem(
             id = 0,
             authorName = "My story",
@@ -1373,49 +1611,57 @@ class TdLibTelegramClient(
             previewEmoji = "＋",
             caption = "Add"
         )
-        val items = mutableListOf(own)
-        try {
-            // Prefer active stories from main list chats
-            chatsById.values.take(30).forEach { chat ->
-                val chatId = chat.optLong("id")
-                try {
-                    val active = requireEngine().send(
-                        JSONObject()
-                            .put("@type", "getChatActiveStories")
-                            .put("chat_id", chatId)
-                    )
-                    val stories = active.optJSONObject("stories")
-                        ?.optJSONArray("stories")
-                        ?: return@forEach
-                    if (stories.length() == 0) return@forEach
-                    val first = stories.optJSONObject(0) ?: return@forEach
-                    val storyId = first.optInt("id")
-                    items += StoryItem(
-                        id = (chatId shl 16) + storyId,
-                        authorName = chat.optString("title").ifBlank { "Story" },
-                        hasUnseen = !(active.optJSONObject("stories")?.optBoolean("max_read_story_id") ?: false),
-                        avatarColor = chatId,
-                        previewEmoji = "✨",
-                        caption = chat.optString("title")
-                    )
-                } catch (_: Throwable) {
-                    // chat may not support stories
+        val others = activeStories.values
+            .filter { it.optJSONObject("list")?.optString("@type") == "storyListMain" }
+            .sortedByDescending { it.optLong("order") }
+            .mapNotNull { active ->
+                val chatId = active.optLong("chat_id")
+                val stories = active.optJSONArray("stories") ?: return@mapNotNull null
+                val ids = (0 until stories.length()).mapNotNull { index ->
+                    stories.optJSONObject(index)
+                        ?.let { it.optInt("story_id", it.optInt("id")) }
+                        ?.takeIf { it != 0 }
                 }
+                if (ids.isEmpty()) return@mapNotNull null
+                val maxRead = active.optInt("max_read_story_id")
+                val firstUnseen = ids.firstOrNull { it > maxRead }
+                val title = chatsById[chatId]?.optString("title").orEmpty()
+                StoryItem(
+                    id = storyKey(chatId, firstUnseen ?: ids.first()),
+                    authorName = title.ifBlank { "Story" },
+                    hasUnseen = firstUnseen != null,
+                    avatarColor = chatId,
+                    previewEmoji = "✨",
+                    caption = title
+                )
             }
-        } catch (t: Throwable) {
-            Log.w(TAG, "stories: ${t.message}")
-        }
-        _stories.value = items.distinctBy { it.id }.take(20)
+            .take(STORY_RAIL_LIMIT)
+        _stories.value = listOf(own) + others
     }
 
+    /** The same key for the same story every time — see [storyKeys]. */
+    private fun storyKey(chatId: Long, storyId: Int): Long {
+        storyKeys.entries.firstOrNull { it.value == chatId to storyId }?.let { return it.key }
+        val key = storyKeySeq.incrementAndGet()
+        storyKeys[key] = chatId to storyId
+        return key
+    }
+
+    /**
+     * Rebuilds the chat list from the chats and their positions.
+     *
+     * Only chats with a place in the main list or the archive. TDLib also
+     * knows about chats the account is not in — search results, a group just
+     * left, a channel opened from a link — and every one of those used to
+     * turn up at the bottom of the list, which is also why leaving a group
+     * seemed not to work.
+     *
+     * Called on updateDispatcher, so the chats cannot change while this
+     * reads them.
+     */
     private suspend fun publishChats() = chatMutex.withLock {
-        val list = chatsById.values
-            .map { toPreview(it) }
-            .sortedWith(
-                compareByDescending<ChatPreview> { chatOrder[it.id] ?: 0L }
-                    .thenByDescending { it.id }
-            )
-        _chats.value = list
+        _chats.value = positions.listed(chatsById.keys)
+            .mapNotNull { id -> chatsById[id]?.let { toPreview(it) } }
     }
 
     /**
@@ -1454,25 +1700,12 @@ class TdLibTelegramClient(
      * thing for a folder to be.
      */
     private suspend fun loadFolderChats() {
-        // The field, not requireEngine(): this also runs from an update
-        // callback, which can arrive while the client is being torn down.
-        val engine = this.engine ?: return
         for (folder in _folders.value) {
-            try {
-                engine.send(
-                    JSONObject()
-                        .put("@type", "loadChats")
-                        .put(
-                            "chat_list",
-                            JSONObject()
-                                .put("@type", "chatListFolder")
-                                .put("chat_folder_id", folder.id)
-                        )
-                        .put("limit", 50)
-                )
-            } catch (e: TdLibException) {
-                Log.d(TAG, "loadChats(folder ${folder.id}): ${e.message}")
-            }
+            loadChatList(
+                JSONObject()
+                    .put("@type", "chatListFolder")
+                    .put("chat_folder_id", folder.id)
+            )
         }
     }
 
@@ -1482,33 +1715,25 @@ class TdLibTelegramClient(
         }
     }
 
+    /**
+     * One `chatPosition` into [positions]. A position names its list, its
+     * order — zero meaning "not in this list any more" — and whether the chat
+     * is pinned there.
+     */
     private fun applyPosition(chatId: Long, position: JSONObject) {
-        val listType = position.optJSONObject("list")?.optString("@type")
-        val order = position.optLong("order")
-
-        // A chat is in the archive when it has a position in that list with a
-        // non-zero order, and leaves it when that order goes to zero — which
-        // is how TDLib says "removed from this list" rather than sending a
-        // deletion. Tracked here because `chat` objects carry no "archived"
-        // flag of their own: membership of a list *is* having a position in
-        // it.
-        if (listType == "chatListArchive") {
-            if (order == 0L) archivedChats.remove(chatId) else archivedChats.add(chatId)
-            return
+        val list = position.optJSONObject("list") ?: return
+        val kind = when (list.optString("@type")) {
+            "chatListMain" -> ChatPositions.ChatList.Main
+            "chatListArchive" -> ChatPositions.ChatList.Archive
+            "chatListFolder" -> ChatPositions.ChatList.Folder(list.optInt("chat_folder_id"))
+            else -> return
         }
-        if (listType == "chatListFolder") {
-            val folderId = position.optJSONObject("list")?.optInt("chat_folder_id")
-                ?: return
-            val ids = chatFolders.getOrPut(chatId) { ConcurrentHashMap.newKeySet() }
-            if (order == 0L) ids.remove(folderId) else ids.add(folderId)
-            return
-        }
-        if (listType != null && listType != "chatListMain") return
-        if (order == 0L) {
-            chatOrder.remove(chatId)
-        } else {
-            chatOrder[chatId] = order
-        }
+        positions.apply(
+            chatId = chatId,
+            list = kind,
+            order = position.optLong("order"),
+            isPinned = position.optBoolean("is_pinned")
+        )
     }
 
     private fun toPreview(chat: JSONObject): ChatPreview {
@@ -1522,15 +1747,15 @@ class TdLibTelegramClient(
             lastMessage = previewText(last),
             timestampLabel = formatTime(last?.optInt("date") ?: 0),
             unreadCount = chat.optInt("unread_count"),
-            folderIds = chatFolders[id]?.toSet().orEmpty(),
-            isPinned = (chatOrder[id] ?: 0L) >= PINNED_ORDER_THRESHOLD,
+            folderIds = positions.folderIds(id),
+            isPinned = positions.isPinned(id),
             isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
             isOnline = false,
             isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
             isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
-            isArchived = id in archivedChats
+            isArchived = positions.isArchived(id)
         )
     }
 
@@ -1614,16 +1839,29 @@ class TdLibTelegramClient(
         }
     }
 
+    /**
+     * The words a message's content shows: its text, or a media caption with
+     * a fallback where the caption is empty. Null for content with no words
+     * of its own — which is how an edit that did not touch them is told
+     * apart from one that did.
+     */
+    private fun contentText(content: JSONObject?): String? = when (content?.optString("@type")) {
+        "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
+        "messagePhoto" -> content.optJSONObject("caption")?.optString("text").orEmpty()
+            .ifBlank { "Photo" }
+        "messageDocument" -> content.optJSONObject("caption")?.optString("text").orEmpty()
+            .ifBlank { content.optJSONObject("document")?.optString("file_name").orEmpty() }
+        "messageVideo", "messageVoiceNote", "messageAudio", "messageAnimation" ->
+            content.optJSONObject("caption")?.optString("text")
+        else -> null
+    }
+
     private fun mapMessage(chatId: Long, message: JSONObject): ChatMessage {
         val content = message.optJSONObject("content")
         val type = content?.optString("@type").orEmpty()
-        val text = when (type) {
-            "messageText" -> content?.optJSONObject("text")?.optString("text").orEmpty()
-            "messagePhoto" -> content?.optJSONObject("caption")?.optString("text").orEmpty().ifBlank { "Photo" }
-            "messageDocument" -> content?.optJSONObject("caption")?.optString("text").orEmpty()
-                .ifBlank { content?.optJSONObject("document")?.optString("file_name").orEmpty() }
-            else -> previewText(message)
-        }
+        // A caption where there is one — a video's used to be dropped for
+        // "🎬 Video" — and the list's short description where there is not.
+        val text = contentText(content)?.takeIf { it.isNotBlank() } ?: previewText(message)
         val contentType = when (type) {
             "messagePhoto" -> MessageContentType.Photo
             "messageVideo" -> MessageContentType.Video
@@ -1658,7 +1896,14 @@ class TdLibTelegramClient(
                 ?.optJSONObject("quote")
                 ?.optString("text")
                 ?.takeIf { it.isNotBlank() },
-            isRead = !message.optBoolean("is_outgoing") || message.optInt("sending_state") == 0,
+            // An incoming message is ours to read, not theirs; an outgoing
+            // one is read when the chat's watermark has reached it. This used
+            // to test sending_state as a number — it is an object — which
+            // made every message we sent look read the moment it left.
+            isRead = !message.optBoolean("is_outgoing") ||
+                (message.optJSONObject("sending_state") == null &&
+                    message.optLong("id") <=
+                    (chatsById[chatId]?.optLong("last_read_outbox_message_id") ?: 0L)),
             contentType = contentType,
             fileName = content?.optJSONObject("document")?.optString("file_name"),
             fileSizeLabel = null,
@@ -1667,7 +1912,7 @@ class TdLibTelegramClient(
                 MessageContentType.Document -> "📎"
                 else -> null
             },
-            reactions = parseReactions(message),
+            reactions = parseReactions(message.optJSONObject("interaction_info")),
             linkPreview = linkPreview(content),
             // Only a voice note carries these, and only once TDLib has the
             // bytes: the id arrives with the message, the path with the file.
@@ -1752,8 +1997,8 @@ class TdLibTelegramClient(
      * means nothing without fetching the sticker, and a chip showing a
      * numeric id would be worse than showing nothing.
      */
-    private fun parseReactions(message: JSONObject): List<MessageReaction> {
-        val array = message.optJSONObject("interaction_info")
+    private fun parseReactions(interactionInfo: JSONObject?): List<MessageReaction> {
+        val array = interactionInfo
             ?.optJSONObject("reactions")
             ?.optJSONArray("reactions")
             ?: return emptyList()
@@ -1857,8 +2102,14 @@ class TdLibTelegramClient(
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
-        // TDLib uses very large order values for pinned chats
-        private const val PINNED_ORDER_THRESHOLD = 1L shl 50
+        /** How many chats one `loadChats` asks for. */
+        private const val CHAT_PAGE = 50
+
+        /** The most photos Telegram puts in one album. */
+        private const val ALBUM_LIMIT = 10
+
+        /** How many circles the stories rail draws besides our own. */
+        private const val STORY_RAIL_LIMIT = 20
 
         /** Telegram's own "muted forever": about 100 years, in seconds. */
         private const val MUTE_FOREVER_SECONDS = 2_147_483_647

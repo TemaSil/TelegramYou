@@ -14,6 +14,8 @@ import com.telegramyou.app.ui.profile.canSaveProfile
 import com.telegramyou.app.ui.profile.profileChanges
 import com.telegramyou.app.ui.profile.profileDraftOf
 import com.telegramyou.app.ui.profile.validateProfile
+import com.telegramyou.app.ui.failureText
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +78,13 @@ data class HomeUiState(
     val isRefreshing: Boolean = false,
     val search: SearchState = SearchState(),
     val profile: ProfileUiState = ProfileUiState(),
-    val compose: ComposeState = ComposeState()
+    val compose: ComposeState = ComposeState(),
+    /**
+     * What the last refused request has to say — a mute, a pin, an archive —
+     * for a snackbar; null once shown. See ChatUiState.errorMessage for why
+     * this exists at all.
+     */
+    val errorMessage: String? = null
 )
 
 /**
@@ -162,6 +170,9 @@ class HomeViewModel(
 
     private val compose = MutableStateFlow(ComposeState())
 
+    /** The last refusal not yet shown; see [HomeUiState.errorMessage]. */
+    private val failure = MutableStateFlow<String?>(null)
+
     /**
      * The chosen folder, null for All.
      *
@@ -213,6 +224,8 @@ class HomeViewModel(
         home.copy(profile = profileState(home.me, editing))
     }.combine(compose) { home, composeState ->
         home.copy(compose = composeState)
+    }.combine(failure) { home, message ->
+        home.copy(errorMessage = message)
     }.stateIn(
         scope = viewModelScope,
         // Kept briefly past the last subscriber: a rotation unsubscribes and
@@ -282,7 +295,27 @@ class HomeViewModel(
      * first.
      */
     fun logout() {
-        viewModelScope.launch { repository.logout() }
+        viewModelScope.launch { attempt("Could not sign out") { repository.logout() } }
+    }
+
+    /**
+     * Runs one request and turns a refusal into [HomeUiState.errorMessage]
+     * rather than an exception out of the scope, which is a crash.
+     * Cancellation passes through: it is the screen leaving, not a failure.
+     */
+    private suspend fun attempt(action: String, request: suspend () -> Unit): Boolean =
+        try {
+            request()
+            true
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            failure.value = failureText(action, e.message)
+            false
+        }
+
+    fun onErrorShown() {
+        failure.value = null
     }
 
     /**
@@ -294,7 +327,11 @@ class HomeViewModel(
      * faster.
      */
     fun onMutedChange(chatId: Long, muted: Boolean) {
-        viewModelScope.launch { repository.setChatMuted(chatId, muted) }
+        viewModelScope.launch {
+            attempt(if (muted) "Could not mute" else "Could not unmute") {
+                repository.setChatMuted(chatId, muted)
+            }
+        }
     }
 
     // ── profile ──────────────────────────────────────────────────────────
@@ -390,12 +427,18 @@ class HomeViewModel(
      * copy would have to guess the new order as well as the new flag.
      */
     fun onPinnedChange(chatId: Long, pinned: Boolean) {
-        viewModelScope.launch { repository.setChatPinned(chatId, pinned) }
+        viewModelScope.launch {
+            attempt(if (pinned) "Could not pin" else "Could not unpin") {
+                repository.setChatPinned(chatId, pinned)
+            }
+        }
     }
 
     /** Clears a chat's unread badge without opening it. */
     fun onMarkRead(chatId: Long) {
-        viewModelScope.launch { repository.markChatRead(chatId) }
+        viewModelScope.launch {
+            attempt("Could not mark as read") { repository.markChatRead(chatId) }
+        }
     }
 
     // ── composing ────────────────────────────────────────────────────────
@@ -410,7 +453,8 @@ class HomeViewModel(
     fun onComposeOpen() {
         compose.value = ComposeState(sheetOpen = true, isLoading = true)
         viewModelScope.launch {
-            val list = repository.contacts()
+            var list = emptyList<TelegramUser>()
+            attempt("Could not load contacts") { list = repository.contacts() }
             compose.update { it.copy(contacts = list, isLoading = false) }
         }
     }
@@ -429,8 +473,13 @@ class HomeViewModel(
     fun onContactPicked(userId: Long) {
         viewModelScope.launch {
             compose.update { it.copy(isLoading = true) }
-            val chatId = repository.openPrivateChat(userId)
-            compose.value = ComposeState(openChatId = chatId)
+            var chatId: Long? = null
+            attempt("Could not open the chat") { chatId = repository.openPrivateChat(userId) }
+            compose.value = if (chatId != null) {
+                ComposeState(openChatId = chatId)
+            } else {
+                compose.value.copy(isLoading = false)
+            }
         }
     }
 
@@ -447,14 +496,18 @@ class HomeViewModel(
      * rather than a field on it.
      */
     fun onArchivedChange(chatId: Long, archived: Boolean) {
-        viewModelScope.launch { repository.setChatArchived(chatId, archived) }
+        viewModelScope.launch {
+            attempt(if (archived) "Could not archive" else "Could not unarchive") {
+                repository.setChatArchived(chatId, archived)
+            }
+        }
     }
 
     fun refresh() {
         viewModelScope.launch {
             refreshing.value = true
             try {
-                repository.refreshChats()
+                attempt("Could not refresh") { repository.refreshChats() }
             } finally {
                 refreshing.value = false
             }
