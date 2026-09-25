@@ -313,7 +313,10 @@ class SmokeTest {
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
 
+        // The pencil opens a FAB menu; the group is one of its items.
         tap(By.desc("Compose"))
+        waitFor(By.text("New group"), "the FAB menu")
+        screenshot("24-fab-menu")
         tap(By.text("New group"))
         waitFor(By.text("Group name"), "the new group form")
         type(NEW_GROUP_NAME)

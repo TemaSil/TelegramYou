@@ -821,9 +821,11 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       through Material's shapes and turns, the loading indicator's language,
       and settles back on their own shape (`typingShape`, from TDLib's
       `updateChatAction`). The login screen's mark uses the same motion
-- [x] Compose — the pencil opens a contact picker in a `ModalBottomSheet`.
-      It used to open `chats.firstOrNull()`, which looked like composing
-      and was not
+- [x] Compose — the pencil is a `ToggleFloatingActionButton` opening a
+      `FloatingActionButtonMenu`: new message, new group, new channel, join
+      with a link. New message opens a contact picker in a
+      `ModalBottomSheet`. It used to open `chats.firstOrNull()`, which
+      looked like composing and was not
 - [x] Long-press `DropdownMenu` on a row — pin, mute, archive and mark as
       read, on both backends (`toggleChatIsPinned`, `viewMessages`)
 - [x] Adaptive navigation — `NavigationSuiteScaffold`, which picks its shape

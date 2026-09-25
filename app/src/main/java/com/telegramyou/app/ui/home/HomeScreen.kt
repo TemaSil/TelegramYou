@@ -1,5 +1,16 @@
 package com.telegramyou.app.ui.home
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.FloatingActionButtonMenu
+import androidx.compose.material3.FloatingActionButtonMenuItem
+import androidx.compose.material3.ToggleFloatingActionButton
+import androidx.compose.material3.ToggleFloatingActionButtonDefaults.animateIcon
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.LightMode
@@ -245,36 +256,19 @@ fun HomeScreen(
             // Only where composing means anything. On Profile or Settings a
             // pencil is a button with nowhere to go.
             if (tab != HomeTab.Chats) return@Scaffold
-            FloatingActionButton(
-                // A contact picker, not the first chat in the list. That is
-                // what this used to open, which made the pencil a button that
-                // looked like composing and was not.
-                onClick = onComposeOpen,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                shape = MaterialTheme.shapes.large
-            ) {
-                Icon(Icons.Rounded.Edit, contentDescription = "Compose")
-            }
+            ComposeFabMenu(
+                onNewMessage = onComposeOpen,
+                onNewGroup = onNewGroup,
+                onNewChannel = onNewChannel,
+                onJoinLink = onJoinLink
+            )
         }
     ) { padding ->
         if (state.compose.sheetOpen) {
             ContactPickerSheet(
                 compose = state.compose,
                 onDismiss = onComposeDismiss,
-                onPick = onContactPicked,
-                onNewGroup = {
-                    onComposeDismiss()
-                    onNewGroup()
-                },
-                onNewChannel = {
-                    onComposeDismiss()
-                    onNewChannel()
-                },
-                onJoinLink = {
-                    onComposeDismiss()
-                    onJoinLink()
-                }
+                onPick = onContactPicked
             )
         }
 
@@ -970,14 +964,76 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
 // LoadingIndicator is Expressive, which are separate annotations and separate
 // mistakes to make.
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+/**
+ * The pencil, opened into what it can start: Material 3 Expressive's FAB
+ * menu. A toggle FAB whose pencil turns to a close mark, and the choices
+ * rising from it — where they used to be three rows at the top of a sheet
+ * that opened first, which was one tap and one sheet too many for anything
+ * but a message.
+ *
+ * Back closes it, as it closes every other thing that opens over the list.
+ * The semantics are the sample's: a screen reader hears one toggle with its
+ * state, then the items.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ComposeFabMenu(
+    onNewMessage: () -> Unit,
+    onNewGroup: () -> Unit,
+    onNewChannel: () -> Unit,
+    onJoinLink: () -> Unit
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    BackHandler(expanded) { expanded = false }
+    val items = listOf(
+        Triple(Icons.Rounded.Edit, "New message", onNewMessage),
+        Triple(Icons.Rounded.Group, "New group", onNewGroup),
+        Triple(Icons.Rounded.Campaign, "New channel", onNewChannel),
+        Triple(Icons.Rounded.Link, "Join with a link", onJoinLink)
+    )
+    FloatingActionButtonMenu(
+        expanded = expanded,
+        button = {
+            ToggleFloatingActionButton(
+                checked = expanded,
+                onCheckedChange = { expanded = it },
+                modifier = Modifier.semantics {
+                    traversalIndex = -1f
+                    stateDescription = if (expanded) "Expanded" else "Collapsed"
+                    // "Compose" still, so it is found by the name it has
+                    // always had.
+                    contentDescription = "Compose"
+                }
+            ) {
+                val icon by remember {
+                    derivedStateOf { if (checkedProgress > 0.5f) Icons.Rounded.Close else Icons.Rounded.Edit }
+                }
+                Icon(
+                    painter = rememberVectorPainter(icon),
+                    contentDescription = null,
+                    modifier = Modifier.animateIcon({ checkedProgress })
+                )
+            }
+        }
+    ) {
+        items.forEach { (icon, label, action) ->
+            FloatingActionButtonMenuItem(
+                onClick = {
+                    expanded = false
+                    action()
+                },
+                icon = { Icon(icon, contentDescription = null) },
+                text = { Text(label) }
+            )
+        }
+    }
+}
+
 @Composable
 private fun ContactPickerSheet(
     compose: ComposeState,
     onDismiss: () -> Unit,
-    onPick: (Long) -> Unit,
-    onNewGroup: () -> Unit,
-    onNewChannel: () -> Unit,
-    onJoinLink: () -> Unit
+    onPick: (Long) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         // Rows take the sheet's tone rather than painting their own: a
@@ -989,28 +1045,8 @@ private fun ContactPickerSheet(
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
         )
-        // The three ways to a chat that is not a person, above the people.
-        // Where Telegram puts them too, and for its reason: the pencil means
-        // "start something", and a group is something to start.
-        ListItem(
-            headlineContent = { Text("New group") },
-            leadingContent = { Icon(Icons.Rounded.Group, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onNewGroup)
-        )
-        ListItem(
-            headlineContent = { Text("New channel") },
-            leadingContent = { Icon(Icons.Rounded.Campaign, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onNewChannel)
-        )
-        ListItem(
-            headlineContent = { Text("Join with a link") },
-            leadingContent = { Icon(Icons.Rounded.Link, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onJoinLink)
-        )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        // Only people. A group, a channel and a link are the FAB menu's
+        // other items, one step earlier — see ComposeFabMenu.
         when {
             compose.isLoading && compose.contacts.isEmpty() -> {
                 // The stock Expressive indicator rather than a spinner drawn
