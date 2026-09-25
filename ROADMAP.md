@@ -976,7 +976,11 @@ them. Ticks are only worth something if somebody moves them.
       not worked out yet is -1 rather than 0 and dividing by it gives a bar
       that never reaches the end. Audio files are still not playable; voice
       notes have their own player
-- [ ] Stickers, animated stickers, custom emoji
+- [~] Stickers — shown in the conversation without a bubble, WEBP through
+      Coil and animated TGS through Lottie; a sheet behind the smiley in the
+      field with the recent ones and each installed set as a tab; sent as
+      TDLib's `inputSticker`. Video (WEBM) stickers show their still
+      thumbnail, and custom emoji are not in yet
 
 ## 5. Notifications
 
