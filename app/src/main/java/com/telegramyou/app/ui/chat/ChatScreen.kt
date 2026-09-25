@@ -1,5 +1,16 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.material.icons.rounded.EmojiEmotions
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.ui.components.personShape
@@ -249,6 +260,31 @@ fun ChatScreen(
     onStickerPickerDismiss: () -> Unit = {}
 ) {
     val listState = rememberLazyListState()
+
+    // The conversation rises with the keyboard. The list's box shrinks as
+    // the keyboard grows (imePadding, below), but a list holds on to its top,
+    // so the newest messages slid under the composer and stayed there. Each
+    // frame of the keyboard's own animation, the list is scrolled on by as
+    // much as the keyboard grew — back by as much as it shrank — which keeps
+    // its bottom where it was and moves the bubbles up in step with the keys.
+    val density = LocalDensity.current
+    val keyboard = WindowInsets.ime
+    LaunchedEffect(listState) {
+        var previous = keyboard.getBottom(density)
+        snapshotFlow { keyboard.getBottom(density) }.collect { bottom ->
+            val grew = bottom - previous
+            previous = bottom
+            if (grew != 0) listState.dispatchRawDelta(grew.toFloat())
+        }
+    }
+
+    // When this conversation was opened, in the same seconds as a message's
+    // date: what arrives after it pops into place; what was already here
+    // does not. And each message pops once — a sent one is announced under a
+    // temporary id and again under the server's, which is a new list item
+    // with the same words, and would otherwise bounce twice.
+    val openedAt = remember { System.currentTimeMillis() / 1000 }
+    val popped = remember { mutableSetOf<String>() }
 
     // A refusal from the server, said once in a snackbar — a failed send
     // puts the text back in the composer as well, so the message is there
@@ -638,12 +674,35 @@ fun ChatScreen(
                         // The Column is the item's single root, which the
                         // modifier needs; the separators above the bubble
                         // belong to the same item and have to move with it.
+                        // A message that arrives while the chat is open grows
+                        // out of the corner it belongs to — ours from the
+                        // composer's side, theirs from the other — on the
+                        // spatial spring, bounce and all. It used to only
+                        // fade, which read as the message having always been
+                        // there and the screen being slow to show it.
+                        val signature = "${message.date}:${message.isOutgoing}:${message.text}"
+                        val appear = remember(message.id) {
+                            val fresh = message.date >= openedAt && popped.add(signature)
+                            Animatable(if (fresh) 0f else 1f)
+                        }
+                        val pop = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+                        LaunchedEffect(appear) { if (appear.value < 1f) appear.animateTo(1f, pop) }
+                        val outgoing = message.isOutgoing
                         Column(
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                                placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                                fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
-                            )
+                            modifier = Modifier
+                                .animateItem(
+                                    fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                                    placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                                    fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
+                                )
+                                .graphicsLayer {
+                                    val progress = appear.value
+                                    alpha = progress.coerceIn(0f, 1f)
+                                    scaleX = POP_FROM + (1f - POP_FROM) * progress
+                                    scaleY = scaleX
+                                    translationY = (1f - progress) * POP_RISE.toPx()
+                                    transformOrigin = TransformOrigin(if (outgoing) 1f else 0f, 1f)
+                                }
                         ) {
                         if (startsNewDay(previous, message)) {
                             DaySeparator(message.date)
@@ -1041,12 +1100,16 @@ private fun MessageBubble(
         if (showAvatar && !outgoing) {
             // The gutter is held even where no avatar is drawn, so bubbles in a
             // run stay on one left edge instead of stepping in and out.
-            Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.Center) {
+            // 36dp, up from 28: at 28 a person's shape — a clover, a
+            // hexagon — was too small to read as anything but a stray
+            // mark, which is how it was described. At the bubble's bottom,
+            // against the last message of a run, as Telegram places it.
+            Box(modifier = Modifier.width(44.dp), contentAlignment = Alignment.BottomStart) {
                 if (isLastInRun) {
                     AvatarBubble(
                         title = message.senderName.orEmpty().ifBlank { "?" },
                         seed = message.senderId ?: message.chatId,
-                        size = 28.dp,
+                        size = 36.dp,
                         shape = personShape(message.senderId ?: message.chatId),
                         photoPath = message.senderPhotoPath
                     )
@@ -1139,6 +1202,10 @@ private fun MessageBubble(
                     }
                     MessageContentType.Photo -> {
                         PhotoMessage(
+                            // Flush with the bubble's top as well as its sides,
+                            // unless a name or a quote sits above it.
+                            bleedTop = message.replyToId == null &&
+                                !(!outgoing && isFirstInRun && sender != null),
                             transfer = message.photoFileId?.let { transfers[it] },
                             path = message.photoPath,
                             aspect = message.photoAspect,
@@ -1500,6 +1567,7 @@ fun PhotoViewer(
  */
 @Composable
 private fun PhotoMessage(
+    bleedTop: Boolean,
     path: String?,
     aspect: Float,
     caption: String,
@@ -1514,11 +1582,16 @@ private fun PhotoMessage(
     Column {
         Box(
             modifier = Modifier
+                // The whole width of the bubble, out past the padding the
+                // words inside it keep: the photo is the bubble, with its
+                // corners, and the caption and the time sit under it. It used
+                // to be a smaller rounded picture inside the bubble, framed
+                // by a band of bubble colour on every side.
+                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
                 .fillMaxWidth()
                 // Clamped: a panorama would otherwise be a sliver and a very
                 // tall photo would fill the screen on its own.
                 .aspectRatio(aspect.coerceIn(0.6f, 1.9f))
-                .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(onClick = onOpen),
             contentAlignment = Alignment.Center
@@ -2796,18 +2869,27 @@ private fun ComposerBar(
                         ),
                         modifier = Modifier
                             .padding(bottom = ComposerButtonLift)
+                            // The press is read on the Initial pass, before
+                            // the button's own clickable sees it. Read on the
+                            // Main pass, as this was, it came after the
+                            // clickable had already taken the touch — and a
+                            // tap detector waits for a touch nobody has
+                            // taken, so holding the microphone did nothing
+                            // at all. The button keeps its ripple either way.
                             .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
+                                awaitEachGesture {
+                                    awaitFirstDown(
+                                        requireUnconsumed = false,
+                                        pass = PointerEventPass.Initial
+                                    )
                                     onRecordStart()
-                                    // Waits here until the finger lifts or the
-                                    // gesture is taken over by a scroll; either
-                                    // way the recording ends where it started.
-                                    val released = tryAwaitRelease()
-                                    if (released) onRecordStop() else onRecordCancel()
+                                    // Until the finger lifts, or leaves for
+                                    // somewhere else — a scroll, a slide off
+                                    // the button — which throws it away.
+                                    val lifted = waitForUpOrCancellation(PointerEventPass.Initial)
+                                    if (lifted != null) onRecordStop() else onRecordCancel()
                                 }
-                            )
-                        }
+                            }
                     ) {
                         Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
                     }
@@ -2949,3 +3031,31 @@ private fun LinkPreviewCard(preview: LinkPreview, outgoing: Boolean) {
 
 /** How big a sticker is drawn in the conversation. */
 private val STICKER_SIZE = 160.dp
+
+/** How small a new message starts before it springs to size. */
+private const val POP_FROM = 0.72f
+
+/** How far below its place a new message starts. */
+private val POP_RISE = 28.dp
+
+/** The room the words in a bubble keep from its edges. */
+private val BUBBLE_PADDING_H = 14.dp
+private val BUBBLE_PADDING_V = 10.dp
+
+/**
+ * Lays this out [horizontal] wider on both sides and [top] higher than the
+ * space it was given, so it reaches past the padding of what holds it — a
+ * photo out to the edges of its bubble, which clips it to its own shape.
+ */
+private fun Modifier.bleed(horizontal: Dp, top: Dp): Modifier = layout { measurable, constraints ->
+    val side = horizontal.roundToPx()
+    val up = top.roundToPx()
+    val widened = constraints.copy(
+        minWidth = constraints.minWidth + 2 * side,
+        maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + 2 * side else constraints.maxWidth
+    )
+    val placeable = measurable.measure(widened)
+    layout(placeable.width - 2 * side, (placeable.height - up).coerceAtLeast(0)) {
+        placeable.place(-side, -up)
+    }
+}

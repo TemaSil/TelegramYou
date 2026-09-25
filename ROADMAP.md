@@ -270,6 +270,23 @@ careful with.
 - [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
       `ui/common`; `LocalClipboardManager` is gone
 
+## The conversation, 25 September 2026
+
+- **It rises with the keyboard.** The list's box shrank as the keyboard
+  came up, but a list holds on to its top, so the newest messages slid under
+  the composer. It is now scrolled on by as much as the keyboard grows, frame
+  by frame, and the bubbles move up with the keys.
+- **New messages pop in** — grown out of their sender's corner on the
+  spatial spring, bounce included, instead of only fading.
+- **The composer's corners** are a fixed 28dp rather than half its height,
+  which at five lines were half-discs cutting into the buttons.
+- **Holding the microphone did nothing.** The press was read after the
+  button's own clickable had taken it; it is read first now.
+- **Photos fill their bubble** to its edges and corners, with the caption
+  and the time beneath, instead of sitting framed inside it.
+- **Group avatars** are 36dp at the foot of each run; at 28 a person's
+  shape read as a stray mark.
+
 ## Motion between screens, 25 September 2026
 
 - **A chat opens out of its row, and a story out of its circle** — Material's
