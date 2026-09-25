@@ -49,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -103,6 +105,10 @@ fun ProxyScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddOpen,
+                // Named explicitly: the alpha's extended button publishes an
+                // empty node, which TalkBack reads as "button" and UiAutomator
+                // cannot find — see the same fix on NewChatScreen.
+                modifier = Modifier.semantics { contentDescription = "Add proxy" },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
                 text = { Text("Add proxy") }
             )

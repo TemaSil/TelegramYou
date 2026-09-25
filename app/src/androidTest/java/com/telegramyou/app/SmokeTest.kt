@@ -428,7 +428,8 @@ class SmokeTest {
         tap(By.desc("More"))
         tap(By.text("Proxy"))
         waitFor(By.text("Use proxy"), "the proxy screen")
-        tap(By.text("Add proxy"))
+        // By its description: the alpha's extended FAB publishes no text.
+        tap(By.desc("Add proxy"))
         waitFor(By.text("Save and connect"), "the add-proxy sheet")
         // Server, port and secret, in that order down the sheet.
         val fields = device.findObjects(By.clazz("android.widget.EditText"))
