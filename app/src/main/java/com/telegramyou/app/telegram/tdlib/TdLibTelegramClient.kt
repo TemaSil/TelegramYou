@@ -253,6 +253,22 @@ class TdLibTelegramClient(
         )
     }
 
+    private var preferIpv6 = false
+
+    override fun setPreferIpv6(prefer: Boolean) {
+        preferIpv6 = prefer
+        sendPreferIpv6()
+    }
+
+    private fun sendPreferIpv6() {
+        engine?.sendFireAndForget(
+            JSONObject()
+                .put("@type", "setOption")
+                .put("name", "prefer_ipv6")
+                .put("value", JSONObject().put("@type", "optionValueBoolean").put("value", preferIpv6))
+        )
+    }
+
     override fun shutdown() {
         engine?.stop()
         engine = null
@@ -1292,7 +1308,8 @@ class TdLibTelegramClient(
     override suspend fun forwardMessages(
         fromChatId: Long,
         messageIds: List<Long>,
-        toChatId: Long
+        toChatId: Long,
+        withoutQuote: Boolean
     ) {
         if (messageIds.isEmpty()) return
         awaitReady()
@@ -1303,9 +1320,9 @@ class TdLibTelegramClient(
                 .put("chat_id", toChatId)
                 .put("from_chat_id", fromChatId)
                 .put("message_ids", ids)
-                // The plain forward: the author's name travels with it, and
-                // the copy is not presented as something we wrote.
-                .put("send_copy", false)
+                // The plain forward carries the author's name. A copy, asked
+                // for in Settings → For geeks, arrives as the forwarder's own.
+                .put("send_copy", withoutQuote)
                 .put("remove_caption", false)
         )
     }
@@ -2219,6 +2236,9 @@ class TdLibTelegramClient(
                 // The activity said it was in front before there was an
                 // account to be online as.
                 sendOnline()
+                // And set again here, where the engine is certainly running:
+                // the setting may have been read before it was.
+                sendPreferIpv6()
                 refreshChats()
             }
             "authorizationStateLoggingOut",

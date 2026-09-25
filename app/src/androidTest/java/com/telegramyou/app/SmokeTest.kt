@@ -1148,6 +1148,43 @@ class SmokeTest {
      * node that happens to carry the words, and setting text on that is a
      * no-op that reports success.
      */
+    /**
+     * Settings → For geeks: two switches turned on, and the conversation
+     * showing both — times to the second, and Details in a message's menu
+     * with the message's id in it.
+     */
+    @Test
+    fun forGeeksSwitchesReachTheChat() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        repeat(4) {
+            if (device.wait(Until.hasObject(By.text("For geeks")), SHORT_WAIT)) return@repeat
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        tap(By.text("For geeks"))
+        waitFor(By.text("Seconds in message times"), "the geek settings")
+        tap(By.text("Seconds in message times"))
+        tap(By.text("Message details"))
+        screenshot("33-for-geeks")
+        device.pressBack()
+        waitFor(By.text("Appearance"), "the settings again")
+
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list again")
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        waitFor(By.text(Pattern.compile("\\d{2}:\\d{2}:\\d{2}")), "a time with seconds")
+        device.findObject(By.text("Welcome to TelegramYou")).longClick()
+        tap(By.text("Details"))
+        waitFor(By.text("Message ID"), "the message details")
+    }
+
     /** From the chat list to the login screen, through Settings. */
     private fun logOut() {
         waitFor(By.text("Material Design"), "the chat list")

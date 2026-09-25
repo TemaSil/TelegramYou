@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.chat
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import android.widget.Toast
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Download
+import com.telegramyou.app.settings.QUICK_REACTION
+import com.telegramyou.app.settings.DoubleTapAction
+import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -1100,6 +1108,14 @@ private fun MessageBubble(
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
+    // Settings → For geeks, which adds to this bubble's gestures and menu.
+    val geeks = LocalGeekSettings.current
+    var detailsOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val mediaScope = rememberCoroutineScope()
+    if (detailsOpen) {
+        MessageDetailsDialog(message = message, onDismiss = { detailsOpen = false })
+    }
 
     // Swipe right to reply. The drag is kept in pixels because that is what
     // the pointer reports; the thresholds are dp, so they convert once here
@@ -1204,7 +1220,15 @@ private fun MessageBubble(
                     // menu on a plain tap the rest of the time would fire on
                     // every scroll that ends on a bubble.
                     onClick = { if (isSelecting) onSelect() },
-                    onLongClick = { if (isSelecting) onSelect() else menuOpen = true }
+                    onLongClick = { if (isSelecting) onSelect() else menuOpen = true },
+                    // Only when one is chosen: a double-tap handler makes every
+                    // single tap wait to see whether a second is coming.
+                    onDoubleClick = when (geeks.doubleTap) {
+                        DoubleTapAction.Nothing -> null
+                        DoubleTapAction.React -> ({ if (!isSelecting) onReactionToggled(QUICK_REACTION) })
+                        DoubleTapAction.Reply -> ({ if (!isSelecting) onReply() })
+                        DoubleTapAction.Copy -> ({ if (!isSelecting) onCopy() })
+                    }
                 )
         ) {
             Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
@@ -1349,7 +1373,8 @@ private fun MessageBubble(
                         )
                     }
                     Text(
-                        message.timeLabel,
+                        if (geeks.showSeconds) timeWithSeconds(message.date) ?: message.timeLabel
+                        else message.timeLabel,
                         style = MaterialTheme.typography.labelSmall,
                         color = footnote
                     )
@@ -1424,6 +1449,57 @@ private fun MessageBubble(
                         menuOpen = false
                     }
                 )
+                // Settings → For geeks → Save and copy media, for a file that
+                // is on this phone already: nothing is fetched to save it.
+                val mediaPath = message.photoPath ?: message.video?.path
+                if (geeks.saveMedia && mediaPath != null && MediaActions.canSaveToDownloads) {
+                    DropdownMenuItem(
+                        text = { Text("Save to Downloads") },
+                        leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            val mime = if (message.photoPath != null) "image/jpeg" else "video/mp4"
+                            mediaScope.launch {
+                                val saved = withContext(Dispatchers.IO) {
+                                    MediaActions.saveToDownloads(context, mediaPath, mime)
+                                }
+                                Toast.makeText(
+                                    context,
+                                    if (saved) "Saved to Downloads" else "Could not save",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    )
+                }
+                val photoPath = message.photoPath
+                if (geeks.saveMedia && photoPath != null) {
+                    DropdownMenuItem(
+                        text = { Text("Copy photo") },
+                        leadingIcon = { Icon(Icons.Rounded.Image, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            mediaScope.launch {
+                                val copied = withContext(Dispatchers.IO) {
+                                    MediaActions.copyPhoto(context, photoPath)
+                                }
+                                if (!copied) {
+                                    Toast.makeText(context, "Could not copy the photo", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    )
+                }
+                if (geeks.messageDetails) {
+                    DropdownMenuItem(
+                        text = { Text("Details") },
+                        leadingIcon = { Icon(Icons.Rounded.Info, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            detailsOpen = true
+                        }
+                    )
+                }
                 if (message.canBeEdited) {
                     DropdownMenuItem(
                         text = { Text("Edit") },
@@ -1851,6 +1927,56 @@ private fun VideoMessage(
         }
     }
 }
+
+/**
+ * Settings → For geeks → Message details: when it was sent, to the second,
+ * and the ids Telegram knows it by — what a bug report or a bot needs, and
+ * what no bubble shows. Every line can be copied at once.
+ */
+@Composable
+private fun MessageDetailsDialog(message: ChatMessage, onDismiss: () -> Unit) {
+    val copy = rememberTextCopier()
+    val lines = buildList {
+        add("Sent" to fullDate(message.date))
+        add("Message ID" to message.id.toString())
+        add("Chat ID" to message.chatId.toString())
+        message.senderName?.takeIf { it.isNotBlank() }?.let { add("From" to it) }
+        message.senderId?.let { add("Sender ID" to it.toString()) }
+        if (message.isEdited) add("Edited" to "Yes")
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Message details") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                lines.forEach { (label, value) ->
+                    Column {
+                        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                copy(lines.joinToString("\n") { "${it.first}: ${it.second}" })
+                onDismiss()
+            }) { Text("Copy") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+/** 14:03:27, from a message's epoch seconds; null when it has none. */
+private fun timeWithSeconds(epochSeconds: Long): String? =
+    if (epochSeconds <= 0) null
+    else java.time.Instant.ofEpochSecond(epochSeconds).atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss"))
+
+/** Fri 25 Sep 2026, 14:03:27 — in the phone's own language for the day and month. */
+private fun fullDate(epochSeconds: Long): String =
+    java.time.Instant.ofEpochSecond(epochSeconds).atZone(java.time.ZoneId.systemDefault())
+        .format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM yyyy, HH:mm:ss"))
 
 /** What the play button on a voice bubble is currently doing. */
 enum class VoiceState { Idle, Loading, Playing }

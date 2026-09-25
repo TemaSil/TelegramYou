@@ -13,6 +13,9 @@ import com.telegramyou.app.telegram.demo.DemoTelegramClient
 import com.telegramyou.app.telegram.tdlib.TdLibTelegramClient
 import com.telegramyou.app.update.AppUpdates
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import com.telegramyou.app.settings.GeekStore
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -23,6 +26,10 @@ class TelegramYouApp : Application() {
 
     /** Read once here so the activity does not touch disk on every recreate. */
     lateinit var appearance: AppearanceStore
+        private set
+
+    /** Settings → For geeks. */
+    lateinit var geeks: GeekStore
         private set
 
     /** Checking for and installing a newer build; see AppUpdates. */
@@ -41,6 +48,7 @@ class TelegramYouApp : Application() {
         super.onCreate()
         createNotificationChannels()
         appearance = AppearanceStore(this)
+        geeks = GeekStore(this)
         updates = AppUpdates(this)
         // Quietly, once a launch: nothing is said unless there is a newer
         // build, and then the Settings tab says so.
@@ -64,6 +72,13 @@ class TelegramYouApp : Application() {
         }
         telegramRepository = TelegramRepository(client)
         telegramRepository.start()
+        // The one geek setting that is TDLib's rather than the screens': sent
+        // now and again whenever it is switched.
+        MainScope().launch {
+            geeks.settings.map { it.preferIpv6 }.distinctUntilChanged().collect {
+                telegramRepository.setPreferIpv6(it)
+            }
+        }
 
         if (isSwitchedToDemo) {
             // Signing out of the demo is leaving it. Otherwise it would land

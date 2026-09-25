@@ -1086,13 +1086,25 @@ Premium and Telegram Business are out of scope.
 
 Cheap once the base holds; its `NekoConfig` carries about sixty switches.
 
-- [ ] Configurable double-tap action
-- [ ] Message details — date, id, sender
-- [ ] Forward without quoting
-- [ ] Copy photo, save file, open in browser
-- [ ] Time with seconds, no number rounding
-- [ ] Hide stories, hide the all-chats tab
-- [ ] Show RPC errors, prefer IPv6
+All of these live behind one row, Settings → For geeks, and every one is
+off until turned on — the client behaves as it always did for anyone who
+never opens that screen. The settings are in `:core` with tests
+(`GeekSettings`), kept by `GeekStore` and read by the screens through
+`LocalGeekSettings`.
+
+- [x] Configurable double-tap action — nothing, ❤️, reply or copy; the
+      handler is only attached when one is chosen, since a double-tap
+      handler makes every single tap wait
+- [x] Message details — exact time to the second, message, chat and sender
+      ids, in a dialog from the message's menu, copyable at once
+- [x] Forward without quoting — TDLib's `send_copy`
+- [x] Save to Downloads (MediaStore, Android 10 and later, no permission)
+      and copy a photo (a copy in the cache, shared by FileProvider, so the
+      clipboard never sees TDLib's own directory). Open in browser is not in
+- [x] Time with seconds. Number rounding is not in
+- [x] Hide stories, hide the All tab when there are folders
+- [x] Prefer IPv6 — TDLib's `prefer_ipv6`. Showing RPC errors is not in:
+      failures already reach a snackbar with the server's words
 
 Blocked on a base we do not have: translation and auto-translate, voice
 transcription, a tablet layout, markdown parser options, QR login.

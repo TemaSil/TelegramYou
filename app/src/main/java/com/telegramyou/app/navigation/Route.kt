@@ -62,6 +62,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → For geeks. */
+    data object Geeks : Route {
+        const val PATTERN = "settings/geeks"
+        override val path = PATTERN
+    }
+
     /**
      * Making a group or a channel. Routes rather than sheets: each is a form
      * with a keyboard up and a list under it, and a sheet would be fighting

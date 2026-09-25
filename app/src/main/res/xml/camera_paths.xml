@@ -5,6 +5,9 @@
     camera/ is where a photo taken from the composer is written.
     updates/ holds a downloaded update, which Android's installer reads from
     there (see AppUpdates).
+    clipboard/ holds the one photo last copied from a message (see
+    MediaActions): a copy, so the clipboard is handed that file and not a
+    door into TDLib's whole download directory.
 
     One directory, inside the app's own cache: the camera app needs a writable
     Uri and nothing else should be reachable through the provider. A path that
@@ -14,4 +17,5 @@
 <paths>
     <cache-path name="camera" path="camera/" />
     <cache-path name="updates" path="updates/" />
+    <cache-path name="clipboard" path="clipboard/" />
 </paths>

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.settings.hiddenLeadingTabs
+import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -182,7 +184,8 @@ fun HomeScreen(
     /** A list is near its end: the main one for null, else that folder. */
     onListEndReached: (Int?) -> Unit = {},
     onOpenProxy: () -> Unit = {},
-    onOpenSavedMessages: () -> Unit = {}
+    onOpenSavedMessages: () -> Unit = {},
+    onOpenGeeks: () -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -336,7 +339,8 @@ fun HomeScreen(
                         onDynamicColorChange = onDynamicColorChange,
                         onShapedAvatarsChange = onShapedAvatarsChange,
                         onLogout = onLogout,
-                        contentPadding = padding
+                        contentPadding = padding,
+                        onOpenGeeks = onOpenGeeks
                     )
                     return@AnimatedContent
                 }
@@ -377,7 +381,12 @@ fun HomeScreen(
             // The folders are pages. The view model still owns which one is
             // chosen — it survives a rotation there, and it filters — so the
             // pager starts on that page and reports each page it settles on.
-            val tabs = state.folderTabs
+            // Settings → For geeks can take the All tab away when there are
+            // folders to be in instead. The tabs, their counts and their pages
+            // are three lists in step, so all three move by the same amount.
+            val geeks = LocalGeekSettings.current
+            val skipped = hiddenLeadingTabs(state.folderTabs.map { it.id }, geeks.hideAllChatsTab)
+            val tabs = state.folderTabs.drop(skipped)
             val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
                 .coerceAtLeast(0)
             val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
@@ -435,13 +444,15 @@ fun HomeScreen(
                         // as a row inside the list it painted itself back to the
                         // header's tone across the full width, which squared off
                         // the rounded corners it was sitting on.
-                        StoriesRail(
-                            stories = state.stories,
-                            onStoryClick = onOpenStory
-                        )
+                        if (!geeks.hideStories) {
+                            StoriesRail(
+                                stories = state.stories,
+                                onStoryClick = onOpenStory
+                            )
+                        }
                         FolderTabs(
                             tabs = tabs,
-                            unread = state.folderUnread,
+                            unread = state.folderUnread.drop(skipped),
                             // The page being swiped towards, not the one last
                             // settled on: the indicator moves with the finger.
                             selectedIndex = pager.targetPage,
@@ -495,7 +506,7 @@ fun HomeScreen(
                                 verticalAlignment = Alignment.Top
                             ) { index ->
                                 page(
-                                    state.folderChats.getOrElse(index) { emptyList() },
+                                    state.folderChats.getOrElse(index + skipped) { emptyList() },
                                     /* folderId = */ tabs.getOrNull(index)?.id,
                                     /* inPager = */ true,
                                     /* current = */ index == pager.currentPage

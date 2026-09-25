@@ -97,7 +97,13 @@ interface TelegramMessages {
      * sent one at a time they arrive as separate forwards, each with its own
      * header, which is not what was selected.
      */
-    suspend fun forwardMessages(fromChatId: Long, messageIds: List<Long>, toChatId: Long)
+    suspend fun forwardMessages(
+        fromChatId: Long,
+        messageIds: List<Long>,
+        toChatId: Long,
+        /** As copies, with no "Forwarded from" — Settings → For geeks. */
+        withoutQuote: Boolean = false
+    )
 
     /**
      * Fetches a file to this device and answers with its path.

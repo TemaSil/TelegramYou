@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,7 +56,8 @@ fun SettingsScreen(
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onShapedAvatarsChange: (Boolean) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onOpenGeeks: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -79,7 +81,8 @@ fun SettingsScreen(
             onDynamicColorChange = onDynamicColorChange,
             onShapedAvatarsChange = onShapedAvatarsChange,
             onLogout = onLogout,
-            contentPadding = padding
+            contentPadding = padding,
+            onOpenGeeks = onOpenGeeks
         )
     }
 }
@@ -102,7 +105,8 @@ fun SettingsContent(
     onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     contentPadding: PaddingValues,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenGeeks: () -> Unit = {}
 ) {
         Column(
             modifier = modifier
@@ -217,6 +221,17 @@ fun SettingsContent(
 
             HorizontalDivider()
 
+            // One row, and everything behind it off until turned on: the
+            // settings most people never need, kept out of their way.
+            ListItem(
+                headlineContent = { Text("For geeks") },
+                supportingContent = { Text("Small things for people who like to tinker") },
+                leadingContent = { Icon(Icons.Rounded.Science, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenGeeks)
+            )
+
+            HorizontalDivider()
+
             SectionHeader("About")
             UpdateSection()
 
@@ -239,7 +254,7 @@ fun SettingsContent(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+internal fun SectionHeader(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelLarge,

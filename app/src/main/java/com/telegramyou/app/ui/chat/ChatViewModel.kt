@@ -863,7 +863,7 @@ class ChatViewModel(
      * The conversation is not reloaded: the messages went somewhere else, and
      * nothing about this one changed.
      */
-    fun onForwardTo(target: ChatPreview) {
+    fun onForwardTo(target: ChatPreview, withoutQuote: Boolean = false) {
         val ids = _uiState.value.selection.ids.toList()
         if (ids.isEmpty()) return
         _uiState.update {
@@ -871,7 +871,7 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             attempt("Could not forward") {
-                repository.forwardMessages(chatId, ids, target.id)
+                repository.forwardMessages(chatId, ids, target.id, withoutQuote)
             }
         }
     }

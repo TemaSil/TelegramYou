@@ -696,7 +696,8 @@ class DemoTelegramClient(
     override suspend fun forwardMessages(
         fromChatId: Long,
         messageIds: List<Long>,
-        toChatId: Long
+        toChatId: Long,
+        withoutQuote: Boolean
     ) {
         delay(160)
         val source = chatMessages[fromChatId].orEmpty().filter { it.id in messageIds }

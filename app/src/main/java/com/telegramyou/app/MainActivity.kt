@@ -3,6 +3,7 @@ package com.telegramyou.app
 import androidx.compose.runtime.CompositionLocalProvider
 import com.telegramyou.app.ui.components.LocalShapedAvatars
 import android.os.Build
+import com.telegramyou.app.settings.LocalGeekSettings
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -73,6 +74,7 @@ class MainActivity : ComponentActivity() {
             // Collected rather than read: flipping a switch in settings has to
             // change the colours behind it, not on the next launch.
             val appearance by app.appearance.settings.collectAsStateWithLifecycle()
+            val geekSettings by app.geeks.settings.collectAsStateWithLifecycle()
             TelegramYouTheme(
                 darkTheme = isDark(appearance.theme, isSystemInDarkTheme()),
                 dynamicColor = appearance.dynamicColor
@@ -82,11 +84,13 @@ class MainActivity : ComponentActivity() {
                     // above, and every screen that draws a person reads it.
                     CompositionLocalProvider(
                         LocalShapedAvatars provides appearance.shapedAvatars,
-                        LocalAppUpdates provides app.updates
+                        LocalAppUpdates provides app.updates,
+                        LocalGeekSettings provides geekSettings
                     ) {
                         TelegramYouNavHost(
                             repository = app.telegramRepository,
                             appearance = app.appearance,
+                            geeks = app.geeks,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }

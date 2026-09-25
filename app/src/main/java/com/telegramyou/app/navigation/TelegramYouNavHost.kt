@@ -65,6 +65,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
+import com.telegramyou.app.ui.settings.GeeksScreen
+import com.telegramyou.app.settings.GeekStore
+import com.telegramyou.app.settings.LocalGeekSettings
 import com.telegramyou.app.ui.proxy.ProxyScreen
 import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
@@ -75,6 +78,8 @@ import com.telegramyou.app.ui.stories.StoryViewerScreen
 fun TelegramYouNavHost(
     repository: TelegramRepository,
     appearance: AppearanceStore,
+    /** Settings → For geeks; defaults where none is given, as in previews. */
+    geeks: GeekStore? = null,
     /** A chat a notification asked to open, or null. */
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
@@ -87,6 +92,7 @@ fun TelegramYouNavHost(
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
     val viewModelFactory = remember(repository) { telegramViewModelFactory(repository) }
+    val geekSettings = LocalGeekSettings.current
 
     // A chat opened from a list: its messages first, then the screen — so the
     // container transform grows a finished conversation out of the row
@@ -287,7 +293,8 @@ fun TelegramYouNavHost(
                 onErrorShown = homeViewModel::onErrorShown,
                 onListEndReached = homeViewModel::onListEndReached,
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
-                onOpenSavedMessages = homeViewModel::onOpenSavedMessages
+                onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
+                onOpenGeeks = { navController.navigateTo(Route.Geeks) }
             )
             }
         }
@@ -391,7 +398,17 @@ fun TelegramYouNavHost(
                     // moves the client's state, and the graph follows state
                     // rather than being navigated by hand.
                     homeViewModel.logout()
-                }
+                },
+                onOpenGeeks = { navController.navigateTo(Route.Geeks) }
+            )
+        }
+        composable(Route.Geeks.PATTERN) {
+            val store = geeks ?: return@composable
+            val settings by store.settings.collectAsStateWithLifecycle()
+            GeeksScreen(
+                settings = settings,
+                onBack = { navController.popBackStack() },
+                onChange = store::update
             )
         }
         composable(
@@ -548,7 +565,9 @@ fun TelegramYouNavHost(
                 onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange,
                 onForwardRequested = chatViewModel::onForwardRequested,
                 onForwardDismissed = chatViewModel::onForwardDismissed,
-                onForwardTo = chatViewModel::onForwardTo,
+                onForwardTo = { target ->
+                    chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote)
+                },
                 onVoiceToggled = chatViewModel::onVoiceToggled,
                 onVoiceSeek = chatViewModel::onVoiceSeek,
                 onPhotoVisible = chatViewModel::onPhotoVisible,

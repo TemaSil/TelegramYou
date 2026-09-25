@@ -335,7 +335,8 @@ class FakeTelegramClient(
     override suspend fun forwardMessages(
         fromChatId: Long,
         messageIds: List<Long>,
-        toChatId: Long
+        toChatId: Long,
+        withoutQuote: Boolean
     ) {
         forwarded = Triple(fromChatId, messageIds, toChatId)
     }

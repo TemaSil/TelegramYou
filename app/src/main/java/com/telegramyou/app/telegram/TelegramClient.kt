@@ -43,4 +43,7 @@ interface TelegramClient :
      * client never saw anyone type.
      */
     fun setOnline(online: Boolean) {}
+
+    /** TDLib's `prefer_ipv6`, from Settings → For geeks. Nothing to do offline. */
+    fun setPreferIpv6(prefer: Boolean) {}
 }
