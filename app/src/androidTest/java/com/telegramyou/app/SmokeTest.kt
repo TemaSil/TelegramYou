@@ -559,11 +559,19 @@ class SmokeTest {
                 // Recomposed under the finger; the next round finds it again.
             }
         }
+        // The quiet check can also land between looking and tapping, and turn
+        // the row into the offer under the finger — since 1.0, when the
+        // published build began to outnumber CI's own. So the row is clicked
+        // only if it is still there, and either outcome is an answer.
+        val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
         if (!device.hasObject(offered)) {
-            tap(row)
-            val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
-            waitFor(answer, "an answer from the update check")
+            device.wait(Until.hasObject(By.text(Pattern.compile("Check for updates|.* is out"))), STEP_TIMEOUT)
+            try {
+                device.findObject(row)?.click()
+            } catch (_: StaleObjectException) {
+            }
         }
+        waitFor(answer, "an answer from the update check")
         screenshot("25-updates")
     }
 
@@ -656,6 +664,12 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the group, in Work")
         screenshot("19-folder-swiped")
         swipeListLeft()
+        // Once more if the page did not move: the demo chat speaks on a
+        // timer, and a message landing mid-gesture has been seen to leave the
+        // pager where it was. Still on Work means the group is still there.
+        if (!device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT) && device.hasObject(By.text(GROUP_CHAT))) {
+            swipeListLeft()
+        }
         waitFor(By.text("Mom"), "Mom, in People")
         // Waited for rather than looked up once. Mom arrives with the first
         // pixels of People, while Work is still sliding out beside her — a
@@ -1279,7 +1293,16 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         waitFor(By.text(Pattern.compile("\\d{2}:\\d{2}:\\d{2}")), "a time with seconds")
-        device.findObject(By.text("Welcome to TelegramYou")).longClick()
+        // Again if the first press lands while the conversation is still
+        // settling from opening and the menu does not come up.
+        repeat(3) {
+            if (device.hasObject(By.text("Details"))) return@repeat
+            try {
+                device.findObject(By.text("Welcome to TelegramYou"))?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Details")), SHORT_WAIT)
+        }
         tap(By.text("Details"))
         waitFor(By.text("Message ID"), "the message details")
     }
