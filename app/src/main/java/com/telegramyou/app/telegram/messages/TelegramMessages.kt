@@ -70,6 +70,27 @@ interface TelegramMessages {
     ): List<ChatMessage>
 
     /**
+     * A page of history with [messageId] in the middle of it, chronological
+     * and including the message itself — where a search hit or a pinned
+     * message lives when it is older than anything loaded.
+     */
+    suspend fun loadMessagesAround(
+        chatId: Long,
+        messageId: Long,
+        limit: Int = 50
+    ): List<ChatMessage>
+
+    /**
+     * The page immediately newer than [afterMessageId], chronological. Empty
+     * means [afterMessageId] is the newest message there is.
+     */
+    suspend fun loadNewerMessages(
+        chatId: Long,
+        afterMessageId: Long,
+        limit: Int = 50
+    ): List<ChatMessage>
+
+    /**
      * Sends copies of [messageIds] from [fromChatId] into [toChatId].
      *
      * A list rather than one id, because Telegram forwards a run as one block:

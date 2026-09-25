@@ -165,6 +165,32 @@ class FakeTelegramClient(
         return if (olderPages.isEmpty()) emptyList() else olderPages.removeAt(0)
     }
 
+    /** What a jump to an old message is answered with; see ChatViewModelTest. */
+    var aroundPage: List<ChatMessage> = emptyList()
+    var lastAroundId: Long? = null
+
+    /** Handed out one per call to loadNewerMessages, then empty. */
+    val newerPages = mutableListOf<List<ChatMessage>>()
+    var lastNewerAfter: Long? = null
+
+    override suspend fun loadMessagesAround(
+        chatId: Long,
+        messageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        lastAroundId = messageId
+        return aroundPage
+    }
+
+    override suspend fun loadNewerMessages(
+        chatId: Long,
+        afterMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        lastNewerAfter = afterMessageId
+        return if (newerPages.isEmpty()) emptyList() else newerPages.removeAt(0)
+    }
+
     // ── not under test ───────────────────────────────────────────────────
 
     override suspend fun submitPhoneNumber(phone: String) = Unit

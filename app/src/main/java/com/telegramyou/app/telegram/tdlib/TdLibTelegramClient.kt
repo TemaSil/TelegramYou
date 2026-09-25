@@ -1027,6 +1027,64 @@ class TdLibTelegramClient(
     }
 
     /**
+     * A negative offset is how getChatHistory reaches forward: -k returns
+     * k - 1 messages newer than from_message_id, the message itself, and
+     * older ones to fill the limit. Half each way puts the message in the
+     * middle of the page.
+     */
+    override suspend fun loadMessagesAround(
+        chatId: Long,
+        messageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        awaitReady()
+        val history = requireEngine().send(
+            JSONObject()
+                .put("@type", "getChatHistory")
+                .put("chat_id", chatId)
+                .put("from_message_id", messageId)
+                .put("offset", -(limit / 2))
+                .put("limit", limit)
+                .put("only_local", false)
+        )
+        return parseMessages(chatId, history.optJSONArray("messages")).also(::rememberMessages)
+    }
+
+    /**
+     * The whole page forward: an offset of -limit returns limit - 1 newer
+     * messages and the one asked from, which is on screen already and is
+     * dropped. Fewer than that newer, and the rest are older ones filling the
+     * limit — dropped too, by the same test.
+     */
+    override suspend fun loadNewerMessages(
+        chatId: Long,
+        afterMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        awaitReady()
+        val history = requireEngine().send(
+            JSONObject()
+                .put("@type", "getChatHistory")
+                .put("chat_id", chatId)
+                .put("from_message_id", afterMessageId)
+                .put("offset", -limit)
+                .put("limit", limit)
+                .put("only_local", false)
+        )
+        return parseMessages(chatId, history.optJSONArray("messages"))
+            .filter { it.id > afterMessageId }
+            .also(::rememberMessages)
+    }
+
+    /** Where the reply lookup reads, so quotes of paged-in messages resolve. */
+    private fun rememberMessages(messages: List<ChatMessage>) {
+        val chatId = messages.firstOrNull()?.chatId ?: return
+        val known = messagesByChat.getOrPut(chatId) { mutableListOf() }
+        val ids = known.mapTo(HashSet()) { it.id }
+        known.addAll(messages.filter { it.id !in ids })
+    }
+
+    /**
      * TDLib expects a reply as an inputMessageReplyToMessage on the send, not
      * a bare id. Absent when nothing is being answered — passing a null
      * message_id would be rejected.

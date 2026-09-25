@@ -153,6 +153,110 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `jumping to a message already loaded only scrolls to it`() = runTest {
+        val (vm, client) = viewModel((10L..20L).map { message(it) })
+        advanceUntilIdle()
+
+        vm.onJumpToMessage(12)
+        advanceUntilIdle()
+
+        assertNull("nothing had to be fetched", client.lastAroundId)
+        assertEquals(12L, vm.uiState.value.scrollTarget)
+        assertFalse(vm.uiState.value.isDetached)
+    }
+
+    @Test
+    fun `jumping to an old message shows the history around it`() = runTest {
+        val (vm, client) = viewModel((100L..110L).map { message(it) })
+        advanceUntilIdle()
+        client.aroundPage = (40L..60L).map { message(it) }
+
+        vm.onJumpToMessage(50)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(50L, client.lastAroundId)
+        assertTrue(state.isDetached)
+        assertEquals((40L..60L).toList(), state.messages.map { it.id })
+        assertEquals(50L, state.scrollTarget)
+        assertEquals(50L, state.highlightedId)
+    }
+
+    @Test
+    fun `newer pages carry a detached stretch forward until it rejoins the latest`() = runTest {
+        val (vm, client) = viewModel((100L..110L).map { message(it) })
+        advanceUntilIdle()
+        client.aroundPage = (40L..60L).map { message(it) }
+        vm.onJumpToMessage(50)
+        advanceUntilIdle()
+
+        client.newerPages += (61L..80L).map { message(it) }
+        vm.onLoadNewer()
+        advanceUntilIdle()
+        assertEquals(60L, client.lastNewerAfter)
+        assertTrue("still short of the latest", vm.uiState.value.isDetached)
+
+        // The next page reaches into the window the chat opened with.
+        client.newerPages += (81L..105L).map { message(it) }
+        vm.onLoadNewer()
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertFalse("met the latest messages, so one conversation again", state.isDetached)
+        assertEquals((40L..110L).toList(), state.messages.map { it.id })
+    }
+
+    @Test
+    fun `back to the latest drops the stretch rather than paging through it`() = runTest {
+        val (vm, client) = viewModel((100L..110L).map { message(it) })
+        advanceUntilIdle()
+        client.aroundPage = (40L..60L).map { message(it) }
+        vm.onJumpToMessage(50)
+        advanceUntilIdle()
+
+        vm.onJumpToLatest()
+
+        val state = vm.uiState.value
+        assertFalse(state.isDetached)
+        assertEquals((100L..110L).toList(), state.messages.map { it.id })
+        assertTrue(state.hasMoreOlder)
+    }
+
+    @Test
+    fun `a message arriving while away from the latest waits there`() = runTest {
+        val (vm, client) = viewModel((100L..110L).map { message(it) })
+        advanceUntilIdle()
+        client.aroundPage = (40L..60L).map { message(it) }
+        vm.onJumpToMessage(50)
+        advanceUntilIdle()
+
+        client.deliver(message(111, "arrived"))
+        advanceUntilIdle()
+        assertTrue(
+            "not dropped into the middle of the past",
+            vm.uiState.value.messages.none { it.id == 111L }
+        )
+
+        vm.onJumpToLatest()
+        assertEquals(111L, vm.uiState.value.messages.last().id)
+    }
+
+    @Test
+    fun `sending from a stretch of the past goes back to the latest`() = runTest {
+        val (vm, client) = viewModel((100L..110L).map { message(it) })
+        advanceUntilIdle()
+        client.aroundPage = (40L..60L).map { message(it) }
+        vm.onJumpToMessage(50)
+        advanceUntilIdle()
+
+        vm.onDraftChange("hello")
+        vm.onSend()
+        advanceUntilIdle()
+
+        assertFalse(vm.uiState.value.isDetached)
+    }
+
+    @Test
     fun `sending keeps what was paged in`() = runTest {
         val (vm, client) = viewModel(
             listOf(message(10)),

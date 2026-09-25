@@ -817,9 +817,15 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       an accent bar rather than a `Card` inside a bubble. Nothing is
       fetched here: a client that read the page itself would tell every
       linked site who is looking. The image is still to come
-- [ ] Jump to a search hit older than the loaded window — the search itself
-      is done (above); what is left is loading the history around a hit
-      the list has not reached, `getChatHistory` from that message's id
+- [x] Jump to a search hit older than the loaded window, and to an old
+      pinned message the same way — `getChatHistory` from that message with a
+      negative offset puts it mid-page, and that page replaces the latest
+      messages on screen. Older pages load above it as ever, newer ones below
+      it until it meets the latest window and is folded back in; the jump
+      button drops it and goes straight back. The hit is lit for a moment.
+      Sending from there goes back to the latest first. The view model's
+      side is unit-tested, and the UI test jumps to the demo group's oldest
+      line, 120 messages before what opening it loads
 - [x] Load older messages on scroll — `loadOlderMessages`, guarded against
       the request-per-frame a list sitting at the top would otherwise make
 
