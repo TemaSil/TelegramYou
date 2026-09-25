@@ -41,6 +41,13 @@ enum class AuthState {
     Bootstrapping,
     WaitPhoneNumber,
     WaitCode,
+    /**
+     * Telegram wants a login email set up before this account can sign in
+     * here — new accounts, and places SMS does not reach, are asked for one.
+     */
+    WaitEmailAddress,
+    /** The code went to the account's login email rather than to Telegram or SMS. */
+    WaitEmailCode,
     WaitPassword,
     /** Showing a QR code for a phone already signed in to scan. */
     WaitQrScan,
@@ -71,7 +78,13 @@ data class AuthUiState(
      * [state] is [AuthState.WaitQrScan]. Telegram replaces it every half
      * minute or so, and each replacement arrives here.
      */
-    val qrLink: String? = null
+    val qrLink: String? = null,
+    /**
+     * Whether the login email can be dropped for a code by SMS instead, while
+     * [state] is [AuthState.WaitEmailCode] — for someone who no longer has
+     * that mailbox. Null when the server does not offer it.
+     */
+    val emailReset: EmailReset? = null
 )
 
 data class ChatPreview(

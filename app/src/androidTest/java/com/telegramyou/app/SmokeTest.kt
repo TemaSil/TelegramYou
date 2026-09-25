@@ -519,20 +519,7 @@ class SmokeTest {
     @Test
     fun signsInWithAQrCode() {
         signIn()
-        waitFor(By.text("Material Design"), "the chat list")
-        awaitNoHeadsUp()
-        tap(By.text("Settings"))
-        waitFor(By.text("Appearance"), "the settings")
-        val logOut = By.text("Log out")
-        repeat(3) {
-            if (device.wait(Until.hasObject(logOut), SHORT_WAIT)) return@repeat
-            try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
-            } catch (_: StaleObjectException) {
-            }
-        }
-        tap(logOut)
-        waitFor(By.text("Your phone"), "the login screen")
+        logOut()
         // The proxies are reachable before signing in — where Telegram is
         // blocked, nothing else on this screen works without one.
         tap(By.desc("Proxy"))
@@ -543,6 +530,32 @@ class SmokeTest {
         waitFor(By.desc("QR code to sign in"), "the QR code")
         screenshot("26-qr-login")
         waitFor(By.text("Material Design"), "the chat list after the scan")
+    }
+
+    /**
+     * Signing in where Telegram asks for a login email first: the address,
+     * the code sent to it, and the way out for a mailbox that is gone. The
+     * demo takes that road for a number ending in five nines, since there is
+     * no real account here to be asked.
+     */
+    @Test
+    fun signsInWithALoginEmail() {
+        signIn()
+        logOut()
+        type("+19999999999")
+        tap(By.text("Continue"))
+        waitFor(By.text("Add a login email"), "the email step")
+        type("me@example.org")
+        tap(By.text("Send code"))
+        waitFor(By.text("Check your email"), "the email code step")
+        waitFor(By.textContains("m***@example.org"), "where the code went")
+        screenshot("27-email-code")
+        // The reset says how long it takes before it is pressed, and what
+        // is pending once it has been.
+        tap(By.text("Reset email (takes 7 days)"))
+        waitFor(By.text("Email resets in 7 days"), "the pending reset")
+        type("12345")
+        waitFor(By.text("Material Design"), "the chat list after the email code")
     }
 
     /**
@@ -1102,6 +1115,24 @@ class SmokeTest {
      * node that happens to carry the words, and setting text on that is a
      * no-op that reports success.
      */
+    /** From the chat list to the login screen, through Settings. */
+    private fun logOut() {
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        val logOut = By.text("Log out")
+        repeat(3) {
+            if (device.wait(Until.hasObject(logOut), SHORT_WAIT)) return@repeat
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        tap(logOut)
+        waitFor(By.text("Your phone"), "the login screen")
+    }
+
     private fun type(text: String) {
         val field = By.clazz("android.widget.EditText")
         device.wait(Until.hasObject(field), STEP_TIMEOUT)

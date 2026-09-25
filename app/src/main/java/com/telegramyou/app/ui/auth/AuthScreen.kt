@@ -94,6 +94,7 @@ import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
 import com.telegramyou.app.ui.components.cyclingShape
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
 import com.telegramyou.app.ui.theme.AppTitleWeight
+import com.telegramyou.app.telegram.model.emailResetLabel
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -141,7 +142,11 @@ fun AuthScreen(
     onOpenProxy: () -> Unit = {},
     onChangeNumberCancelled: () -> Unit = {},
     onDefaultRegion: (String?) -> Unit = {},
-    onDemoRequested: () -> Unit = {}
+    onDemoRequested: () -> Unit = {},
+    onEmailChange: (String) -> Unit = {},
+    onSubmitEmail: () -> Unit = {},
+    onSubmitEmailCode: () -> Unit = {},
+    onResetEmail: () -> Unit = {}
 ) {
     val auth = state.auth
     val context = LocalContext.current
@@ -151,6 +156,8 @@ fun AuthScreen(
     val submit: () -> Unit = when (state.step) {
         AuthStep.Phone -> onSubmitPhone
         AuthStep.Code -> onSubmitCode
+        AuthStep.Email -> onSubmitEmail
+        AuthStep.EmailCode -> onSubmitEmailCode
         AuthStep.Password -> onSubmitPassword
         // A lambda, not an empty block: `-> {}` alone is a block that returns
         // nothing, and the when would no longer be a function.
@@ -226,6 +233,26 @@ fun AuthScreen(
                             onResendCode = onResendCode,
                             onChangeNumber = onChangeNumber
                         )
+                        AuthStep.Email -> EmailStep(
+                            email = state.email,
+                            error = auth.errorMessage,
+                            onEmailChange = onEmailChange,
+                            onSubmit = { if (state.canSubmit) onSubmitEmail() },
+                            onChangeNumber = onChangeNumber
+                        )
+                        // The same step as a code by SMS — the same field,
+                        // sent on its last digit — under its own title, and
+                        // with a way out for a mailbox that is gone.
+                        AuthStep.EmailCode -> CodeStep(
+                            state = state,
+                            title = "Check your email",
+                            fallbackHint = "We emailed you a code",
+                            onCodeChange = onCodeChange,
+                            onSubmit = { if (state.canSubmit) onSubmitEmailCode() },
+                            onResendCode = onResendCode,
+                            onChangeNumber = onChangeNumber,
+                            onResetEmail = onResetEmail
+                        )
                         AuthStep.Password -> PasswordStep(
                             password = state.password,
                             hint = auth.codeHint,
@@ -258,7 +285,8 @@ fun AuthScreen(
         if (state.step != AuthStep.Qr) SubmitButton(
             label = when (state.step) {
                 AuthStep.Phone -> "Continue"
-                AuthStep.Code -> "Sign in"
+                AuthStep.Code, AuthStep.EmailCode -> "Sign in"
+                AuthStep.Email -> "Send code"
                 AuthStep.Password -> "Unlock"
                 AuthStep.Qr -> ""
             },
@@ -539,7 +567,11 @@ private fun CodeStep(
     onCodeChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onResendCode: () -> Unit,
-    onChangeNumber: () -> Unit
+    onChangeNumber: () -> Unit,
+    title: String = "Enter code",
+    fallbackHint: String = "Check Telegram for the code",
+    /** Only for a code sent by email, and only where the server offers it. */
+    onResetEmail: (() -> Unit)? = null
 ) {
     val auth = state.auth
     val focus = rememberStepFocus()
@@ -556,10 +588,7 @@ private fun CodeStep(
         .toInt().coerceAtLeast(0)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        StepHeader(
-            "Enter code",
-            auth.codeHint.ifBlank { "Check Telegram for the code" }
-        )
+        StepHeader(title, auth.codeHint.ifBlank { fallbackHint })
         OutlinedTextField(
             value = state.code,
             onValueChange = onCodeChange,
@@ -593,6 +622,58 @@ private fun CodeStep(
                     )
                 }
             }
+        }
+        // No longer have that mailbox: drop the email for a code by SMS,
+        // after Telegram's wait. The label says how long, so pressing it is
+        // not a surprise a week later.
+        val reset = auth.emailReset
+        if (onResetEmail != null && reset != null) {
+            TextButton(onClick = onResetEmail, enabled = !auth.isLoading) {
+                Text(emailResetLabel(reset))
+            }
+        }
+    }
+}
+
+/**
+ * The login email Telegram asks some sign-ins for before it sends a code —
+ * new accounts, and places SMS does not reliably reach. The code then goes
+ * to that address, and the next step is [CodeStep] for it.
+ */
+@Composable
+private fun EmailStep(
+    email: String,
+    error: String?,
+    onEmailChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onChangeNumber: () -> Unit
+) {
+    val focus = rememberStepFocus()
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        StepHeader(
+            "Add a login email",
+            "Telegram asks for an email to sign in to this account. The code goes there."
+        )
+        OutlinedTextField(
+            value = email,
+            onValueChange = onEmailChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focus)
+                .semantics { contentType = ContentType.EmailAddress },
+            label = { Text("Email") },
+            supportingText = error?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
+            isError = !error.isNullOrBlank(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = { onSubmit() })
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = onChangeNumber) { Text("Change number") }
         }
     }
 }

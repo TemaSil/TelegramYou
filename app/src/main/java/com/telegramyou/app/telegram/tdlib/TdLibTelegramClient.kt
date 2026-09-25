@@ -10,6 +10,7 @@ import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
+import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPositions
@@ -272,6 +273,58 @@ class TdLibTelegramClient(
             )
         } catch (e: TdLibException) {
             _authState.update { it.copy(isLoading = false, errorMessage = e.message) }
+        }
+    }
+
+    override suspend fun submitEmailAddress(email: String) {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "setAuthenticationEmailAddress")
+                    .put("email_address", email.trim())
+            )
+        } catch (e: TdLibException) {
+            _authState.update { it.copy(isLoading = false, errorMessage = e.message) }
+        }
+    }
+
+    override suspend fun submitEmailCode(code: String) {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "checkAuthenticationEmailCode")
+                    .put(
+                        "code",
+                        JSONObject()
+                            .put("@type", "emailAddressAuthenticationCode")
+                            .put("code", code.trim())
+                    )
+            )
+        } catch (e: TdLibException) {
+            _authState.update { it.copy(isLoading = false, errorMessage = e.message) }
+        }
+    }
+
+    /**
+     * Where the reset lands immediately, TDLib moves on to a code by SMS by
+     * itself. Otherwise the state stays on the email code with the reset now
+     * pending, and asking again before it lands is refused with
+     * TASK_ALREADY_EXISTS — which is said as what it means.
+     */
+    override suspend fun resetEmail() {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        try {
+            requireEngine().send(JSONObject().put("@type", "resetAuthenticationEmailAddress"))
+            _authState.update { it.copy(isLoading = false) }
+        } catch (e: TdLibException) {
+            val message = if (e.message.orEmpty().contains("TASK_ALREADY_EXISTS")) {
+                "The reset is already on its way"
+            } else {
+                e.message
+            }
+            _authState.update { it.copy(isLoading = false, errorMessage = message) }
         }
     }
 
@@ -2065,13 +2118,37 @@ class TdLibTelegramClient(
                     )
                 }
             }
-            "authorizationStateWaitEmailAddress",
-            "authorizationStateWaitEmailCode" -> {
+            // Telegram's login email: asked for on some sign-ins before a
+            // code is sent at all, and where an account has one, the place
+            // the code goes. Apple and Google sign-in are offered here too
+            // (allow_apple_id, allow_google_id) and not taken: both need the
+            // vendor's SDK, and the code by email reaches the same place.
+            "authorizationStateWaitEmailAddress" -> {
                 _authState.update {
                     it.copy(
-                        state = AuthState.Error,
+                        state = AuthState.WaitEmailAddress,
                         isLoading = false,
-                        errorMessage = "This login step (${state.optString("@type")}) is not yet supported in TelegramYou UI."
+                        errorMessage = null,
+                        emailReset = null
+                    )
+                }
+            }
+            "authorizationStateWaitEmailCode" -> {
+                val codeInfo = state.optJSONObject("code_info")
+                val pattern = codeInfo?.optString("email_address_pattern").orEmpty()
+                _authState.update {
+                    it.copy(
+                        state = AuthState.WaitEmailCode,
+                        isLoading = false,
+                        errorMessage = null,
+                        codeHint = if (pattern.isBlank()) "We emailed you a code" else "We sent a code to $pattern",
+                        codeLength = codeInfo?.optInt("length") ?: 0,
+                        emailReset = emailResetOf(state.optJSONObject("email_address_reset_state")),
+                        // An email code can always be asked for again; there
+                        // is no timeout on it the way there is on an SMS.
+                        canResend = true,
+                        resendAfterSeconds = 0,
+                        codeSentAtMillis = System.currentTimeMillis()
                     )
                 }
             }
@@ -2852,5 +2929,15 @@ class TdLibTelegramClient(
          */
         private val DEFAULT_REACTIONS =
             listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
+    }
+}
+
+/** TDLib's `EmailAddressResetState`, or null where there is none on offer. */
+private fun emailResetOf(state: JSONObject?): EmailReset? {
+    if (state == null) return null
+    return when (state.optString("@type")) {
+        "emailAddressResetStateAvailable" -> EmailReset.Available(state.optInt("wait_period"))
+        "emailAddressResetStatePending" -> EmailReset.Pending(state.optInt("reset_in"))
+        else -> null
     }
 }

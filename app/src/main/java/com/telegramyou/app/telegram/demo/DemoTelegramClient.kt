@@ -6,6 +6,7 @@ import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
@@ -223,6 +224,15 @@ class DemoTelegramClient(
             }
             return
         }
+        // A number ending in five nines takes the other road in: Telegram
+        // asking for a login email first, the way it does some new accounts.
+        // It is here so the UI test can walk the email steps with no mailbox.
+        if (phone.filter { it.isDigit() }.endsWith(DEMO_EMAIL_PHONE_SUFFIX)) {
+            _authState.update {
+                it.copy(isLoading = false, state = AuthState.WaitEmailAddress)
+            }
+            return
+        }
         _authState.update {
             it.copy(
                 isLoading = false,
@@ -235,6 +245,42 @@ class DemoTelegramClient(
                 resendAfterSeconds = 30,
                 codeSentAtMillis = System.currentTimeMillis()
             )
+        }
+    }
+
+    override suspend fun submitEmailAddress(email: String) {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        delay(500)
+        _authState.update {
+            it.copy(
+                isLoading = false,
+                state = AuthState.WaitEmailCode,
+                codeHint = "Demo mode: sent to ${maskedEmail(email)}, the code is 12345",
+                codeLength = 5,
+                canResend = true,
+                resendAfterSeconds = 0,
+                codeSentAtMillis = System.currentTimeMillis(),
+                emailReset = EmailReset.Available(DEMO_EMAIL_RESET_WAIT)
+            )
+        }
+    }
+
+    override suspend fun submitEmailCode(code: String) = submitCode(code)
+
+    /** A first press asks for the reset; a second, once it is pending, lands it. */
+    override suspend fun resetEmail() {
+        val reset = _authState.value.emailReset
+        _authState.update {
+            if (reset is EmailReset.Pending) {
+                it.copy(
+                    state = AuthState.WaitCode,
+                    emailReset = null,
+                    codeHint = "Demo mode: the code is 12345",
+                    codeSentAtMillis = System.currentTimeMillis()
+                )
+            } else {
+                it.copy(emailReset = EmailReset.Pending(DEMO_EMAIL_RESET_WAIT))
+            }
         }
     }
 
@@ -1314,3 +1360,16 @@ private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
 /** How long the demo's QR code waits before it counts as scanned. */
 private const val DEMO_QR_SCAN_MS = 6_000L
+
+/** A demo number ending in these asks for a login email; see submitPhoneNumber. */
+private const val DEMO_EMAIL_PHONE_SUFFIX = "99999"
+
+/** The week Telegram makes an email reset wait without Premium. */
+private const val DEMO_EMAIL_RESET_WAIT = 7 * 24 * 60 * 60
+
+/** Telegram's way of saying where a code went without saying all of it: m***@example.org. */
+private fun maskedEmail(email: String): String {
+    val at = email.indexOf('@')
+    if (at <= 0) return email
+    return email.take(1) + "***" + email.substring(at)
+}

@@ -104,6 +104,8 @@ fun TelegramYouNavHost(
             }
             AuthState.WaitPhoneNumber,
             AuthState.WaitCode,
+            AuthState.WaitEmailAddress,
+            AuthState.WaitEmailCode,
             AuthState.WaitPassword,
             AuthState.WaitQrScan,
             AuthState.Bootstrapping,
@@ -184,7 +186,11 @@ fun TelegramYouNavHost(
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onChangeNumberCancelled = authViewModel::onChangeNumberCancelled,
                 onDefaultRegion = authViewModel::onDefaultRegion,
-                onDemoRequested = onDemoRequested
+                onDemoRequested = onDemoRequested,
+                onEmailChange = authViewModel::onEmailChange,
+                onSubmitEmail = authViewModel::submitEmail,
+                onSubmitEmailCode = authViewModel::submitEmailCode,
+                onResetEmail = authViewModel::resetEmail
             )
         }
         composable(
