@@ -25,7 +25,11 @@ data class NotifiableMessage(
     val text: String,
     val timestampMillis: Long,
     val isOutgoing: Boolean,
-    val isChatMuted: Boolean
+    val isChatMuted: Boolean,
+    /** Off, and the shade says a message came but not what it says. */
+    val showPreview: Boolean = true,
+    /** Off, and it arrives without a sound. */
+    val sound: Boolean = true
 )
 
 /** What the app knows about itself at the moment the message lands. */

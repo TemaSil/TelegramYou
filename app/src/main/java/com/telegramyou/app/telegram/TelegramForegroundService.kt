@@ -80,7 +80,9 @@ class TelegramForegroundService : Service() {
                     text = message.text,
                     timestampMillis = message.date * 1000L,
                     isOutgoing = message.isOutgoing,
-                    isChatMuted = chat?.isMuted == true
+                    isChatMuted = chat?.isMuted == true,
+                    showPreview = chat?.notifications?.showPreview ?: true,
+                    sound = chat?.notifications?.sound ?: true
                 )
                 val decision = decideNotification(
                     notifiable,
@@ -128,7 +130,11 @@ class TelegramForegroundService : Service() {
             val sender = message.senderName
                 ?.takeIf { it.isNotBlank() }
                 ?.let { Person.Builder().setName(it).build() }
-            style.addMessage(message.text, message.timestampMillis, sender)
+            // With previews off for the chat, the shade says that something
+            // came and from where, and not what it says — which is the whole
+            // point of the setting on a locked phone.
+            val text = if (message.showPreview) message.text else getString(R.string.notification_hidden_preview)
+            style.addMessage(text, message.timestampMillis, sender)
         }
         return NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -136,6 +142,9 @@ class TelegramForegroundService : Service() {
             .setAutoCancel(true)
             .setContentIntent(openChatIntent(latest.chatId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            // The chat's own "no sound": still posted, still in the shade,
+            // just not heard.
+            .setSilent(!latest.sound)
             .addAction(replyAction(latest.chatId))
             .build()
     }

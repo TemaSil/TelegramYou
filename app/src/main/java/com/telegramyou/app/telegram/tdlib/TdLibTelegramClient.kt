@@ -29,6 +29,7 @@ import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ProxyKind
 import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.SendState
@@ -148,6 +149,14 @@ class TdLibTelegramClient(
      * its own after [TYPING_MILLIS].
      */
     private val typingUntil = ConcurrentHashMap<Long, Long>()
+
+    /**
+     * How private chats, groups and channels notify by default, by the scope's
+     * TDLib type. A chat whose own setting says "use the default" takes it
+     * from here — which is most of them, so reading only the chat's own
+     * values would have called nearly every chat unmuted.
+     */
+    private val scopeNotifications = ConcurrentHashMap<String, JSONObject>()
 
     /** Each chat's `chatActiveStories`, as `updateChatActiveStories` last said. */
     private val activeStories = ConcurrentHashMap<Long, JSONObject>()
@@ -610,28 +619,74 @@ class TdLibTelegramClient(
      * TDLib build behind the `.so` has that this code has never heard of.
      */
     override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        val current = chatsById[chatId]?.let { notificationsOf(it) } ?: ChatNotificationSettings()
+        setChatNotifications(
+            chatId,
+            current.copy(mutedUntil = if (muted) ChatNotificationSettings.MUTED_FOREVER else 0L)
+        )
+    }
+
+    /**
+     * The chat's whole settings object, copied and changed where the person
+     * changed something — each `use_default_…` set false for what is written,
+     * or TDLib ignores the value beside it. Sound on goes back to the
+     * default sound rather than naming one: this client has no sound picker,
+     * and "the default" is what a person turning sound back on expects.
+     */
+    override suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings) {
         awaitReady()
-        val settings = chatsById[chatId]?.optJSONObject("notification_settings")
+        val now = nowSeconds()
+        val object_ = chatsById[chatId]?.optJSONObject("notification_settings")
             ?.let { JSONObject(it.toString()) }
             ?: defaultNotificationSettings()
-        settings
-            // use_default_mute_for false is what makes mute_for this chat's
-            // own setting rather than the scope's; without it the value
-            // below is ignored.
+        object_
             .put("use_default_mute_for", false)
-            // Telegram measures a mute in seconds. Its "forever" is a very
-            // large number rather than a flag, and this is the value its own
-            // clients use.
-            .put("mute_for", if (muted) MUTE_FOREVER_SECONDS else 0)
+            // Telegram measures a mute in seconds from now; its "forever" is a
+            // very large number rather than a flag.
+            .put("mute_for", settings.muteForSeconds(now).coerceAtMost(MUTE_FOREVER_SECONDS.toLong()))
+            .put("use_default_show_preview", false)
+            .put("show_preview", settings.showPreview)
+            .put("use_default_sound", settings.sound)
+            .put("sound_id", 0L)
+        val settingsObject = object_
         requireEngine().send(
             JSONObject()
                 .put("@type", "setChatNotificationSettings")
                 .put("chat_id", chatId)
-                .put("notification_settings", settings)
+                .put("notification_settings", settingsObject)
         )
     }
 
     /** Every setting following the account's defaults, for a chat not yet seen. */
+    /**
+     * What a chat's settings come to once its defaults are filled in from its
+     * scope: its own values where it has them, the scope's where it says to
+     * use the default.
+     */
+    private fun notificationsOf(chat: JSONObject): ChatNotificationSettings {
+        val own = chat.optJSONObject("notification_settings") ?: JSONObject()
+        val type = chat.optJSONObject("type")?.optString("@type")
+        val scope = scopeNotifications[
+            when {
+                type == "chatTypePrivate" || type == "chatTypeSecret" -> "notificationSettingsScopePrivateChats"
+                chat.optJSONObject("type")?.optBoolean("is_channel") == true -> "notificationSettingsScopeChannelChats"
+                else -> "notificationSettingsScopeGroupChats"
+            }
+        ] ?: JSONObject()
+        fun <T> pick(flag: String, ownValue: () -> T, scopeValue: () -> T): T =
+            if (own.optBoolean(flag, true)) scopeValue() else ownValue()
+        val muteFor = pick("use_default_mute_for", { own.optLong("mute_for") }, { scope.optLong("mute_for") })
+        return ChatNotificationSettings(
+            mutedUntil = ChatNotificationSettings.mutedUntil(muteFor, nowSeconds()),
+            showPreview = pick("use_default_show_preview", { own.optBoolean("show_preview", true) }, {
+                scope.optBoolean("show_preview", true)
+            }),
+            sound = pick("use_default_sound", { own.optLong("sound_id") != 0L }, {
+                !scope.has("sound_id") || scope.optLong("sound_id") != 0L
+            })
+        )
+    }
+
     private fun defaultNotificationSettings(): JSONObject = JSONObject()
         .put("@type", "chatNotificationSettings")
         .put("use_default_sound", true)
@@ -1813,6 +1868,11 @@ class TdLibTelegramClient(
                 }
                 publishChats()
             }
+            "updateScopeNotificationSettings" -> {
+                val scope = update.optJSONObject("scope")?.optString("@type") ?: return
+                scopeNotifications[scope] = update.optJSONObject("notification_settings") ?: return
+                publishChats()
+            }
             "updateChatFolders" -> {
                 // The account's folders, whole, on every change: TDLib sends
                 // the list rather than a diff, so this replaces rather than
@@ -2277,7 +2337,8 @@ class TdLibTelegramClient(
             unreadCount = chat.optInt("unread_count"),
             folderIds = positions.folderIds(id),
             isPinned = positions.isPinned(id),
-            isMuted = notif?.optInt("mute_for", 0)?.let { it > 0 } ?: false,
+            isMuted = notificationsOf(chat).isMuted(nowSeconds()),
+            notifications = notificationsOf(chat),
             isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
             isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
             photoPath = photoPath(chat.optJSONObject("photo")?.optJSONObject("small")),

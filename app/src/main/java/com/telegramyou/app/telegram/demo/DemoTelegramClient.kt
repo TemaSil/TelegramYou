@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
@@ -354,9 +355,20 @@ class DemoTelegramClient(
     }
 
     override suspend fun setChatMuted(chatId: Long, muted: Boolean) {
+        val current = _chats.value.firstOrNull { it.id == chatId }?.notifications ?: ChatNotificationSettings()
+        setChatNotifications(
+            chatId,
+            current.copy(mutedUntil = if (muted) ChatNotificationSettings.MUTED_FOREVER else 0L)
+        )
+    }
+
+    override suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings) {
         delay(80)
+        val now = System.currentTimeMillis() / 1000
         _chats.update { list ->
-            list.map { if (it.id == chatId) it.copy(isMuted = muted) else it }
+            list.map {
+                if (it.id == chatId) it.copy(notifications = settings, isMuted = settings.isMuted(now)) else it
+            }
         }
     }
 
