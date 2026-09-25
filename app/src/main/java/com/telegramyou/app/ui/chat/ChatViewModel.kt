@@ -11,6 +11,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageUpdate
@@ -696,9 +697,16 @@ class ChatViewModel(
      */
     fun onPhotoVisible(message: ChatMessage) {
         // A video's poster, when this is one: the same fetch with a different
-        // file behind it, and the same guard against asking twice. The video
-        // itself is not fetched here — see onVideoOpened.
+        // file behind it, and the same guard against asking twice. A video
+        // itself is not fetched here — see onVideoOpened — but a GIF and a
+        // round video message are: they are seconds long and meant to be
+        // seen without asking, a GIF playing by itself.
         message.video?.let { video ->
+            if (message.contentType == MessageContentType.Animation ||
+                message.contentType == MessageContentType.VideoNote
+            ) {
+                fetchVideo(message)
+            }
             val thumbId = video.thumbFileId ?: return
             if (video.thumbPath != null || !requestedPhotos.add(thumbId)) return
             viewModelScope.launch {
@@ -759,8 +767,14 @@ class ChatViewModel(
      * spinner and starts playing when the bytes land.
      */
     fun onVideoOpened(message: ChatMessage) {
-        val video = message.video ?: return
+        if (message.video == null) return
         _uiState.update { it.copy(viewingVideo = message) }
+        fetchVideo(message)
+    }
+
+    /** The video file itself, once, into the message and into the open player. */
+    private fun fetchVideo(message: ChatMessage) {
+        val video = message.video ?: return
         val fileId = video.fileId ?: return
         if (video.path != null || !requestedVideos.add(fileId)) return
         viewModelScope.launch {

@@ -1183,6 +1183,9 @@ private fun MessageBubble(
             Spacer(Modifier.width(4.dp))
         }
         val isSticker = message.contentType == MessageContentType.Sticker && message.sticker != null
+        val isVideoNote = message.contentType == MessageContentType.VideoNote && message.video != null
+        // What stands on the conversation with no bubble round it.
+        val standsAlone = isSticker || isVideoNote
         Box {
             Surface(
             shape = shape,
@@ -1195,7 +1198,8 @@ private fun MessageBubble(
                 // A sticker stands on the conversation itself, as it does in
                 // every Telegram client: it is its own shape, and a bubble
                 // around it would be a frame round a picture of a frame.
-                isSticker -> Color.Transparent
+                // A round video message likewise: the circle is the message.
+                standsAlone -> Color.Transparent
                 outgoing -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             },
@@ -1296,12 +1300,53 @@ private fun MessageBubble(
                                 video = video,
                                 caption = message.text,
                                 outgoing = outgoing,
+                                // As a photo: flush with the top unless a name
+                                // or a quote sits above it.
+                                bleedTop = message.replyToId == null &&
+                                    !(!outgoing && isFirstInRun && sender != null),
                                 // Either file can be the one moving: the
                                 // poster on sight, the video when asked for.
                                 transfer = video.fileId?.let { transfers[it] }
                                     ?: video.thumbFileId?.let { transfers[it] },
                                 onPosterVisible = onPhotoVisible,
                                 onOpen = onVideoOpened
+                            )
+                        }
+                    }
+                    MessageContentType.Animation -> {
+                        val gif = message.video
+                        if (gif == null) {
+                            Text(
+                                message.text.ifBlank { "GIF" },
+                                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            AnimationMessage(
+                                gif = gif,
+                                caption = message.text,
+                                outgoing = outgoing,
+                                bleedTop = message.replyToId == null &&
+                                    !(!outgoing && isFirstInRun && sender != null),
+                                transfer = gif.fileId?.let { transfers[it] },
+                                onVisible = onPhotoVisible,
+                                onOpen = onVideoOpened
+                            )
+                        }
+                    }
+                    MessageContentType.VideoNote -> {
+                        val note = message.video
+                        if (note == null) {
+                            Text(
+                                "Video message",
+                                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            VideoNoteMessage(
+                                note = note,
+                                transfer = note.fileId?.let { transfers[it] },
+                                onVisible = onPhotoVisible
                             )
                         }
                     }
@@ -1338,7 +1383,7 @@ private fun MessageBubble(
                 }
                 Spacer(Modifier.height(4.dp))
                 val footnote = (
-                    if (outgoing && !isSticker) MaterialTheme.colorScheme.onPrimary
+                    if (outgoing && !standsAlone) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurface
                 )
                     .copy(alpha = 0.55f)
@@ -1764,6 +1809,7 @@ private fun VideoMessage(
     video: VideoContent,
     caption: String,
     outgoing: Boolean,
+    bleedTop: Boolean,
     transfer: FileTransfer?,
     onPosterVisible: () -> Unit,
     onOpen: () -> Unit
@@ -1779,9 +1825,12 @@ private fun VideoMessage(
         }
         Box(
             modifier = Modifier
+                // Out to the bubble's edges, as a photo is: the video is the
+                // bubble, and its caption and time sit under it. It was a
+                // smaller rounded frame inside a band of bubble colour.
+                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
                 .fillMaxWidth()
                 .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
-                .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .clickable(onClick = onOpen)
                 // One description for the whole thing, on the part that is
@@ -1855,6 +1904,185 @@ private fun VideoMessage(
                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+/**
+ * A GIF: Telegram's name for a short silent MP4. Out to the bubble's edges
+ * like a photo, and playing on its own, looping, without sound — which is
+ * what makes it a GIF rather than a video with a play button. Its poster
+ * holds the space until the file is here, and the file is fetched on sight:
+ * they are small, and a GIF that waits for a tap is a still picture.
+ *
+ * A tap opens it full screen, as a video.
+ */
+@Composable
+private fun AnimationMessage(
+    gif: VideoContent,
+    caption: String,
+    outgoing: Boolean,
+    bleedTop: Boolean,
+    transfer: FileTransfer?,
+    onVisible: () -> Unit,
+    onOpen: () -> Unit
+) {
+    LaunchedEffect(gif.path, gif.thumbPath) {
+        if (gif.path == null || gif.thumbPath == null) onVisible()
+    }
+    Column {
+        Box(
+            modifier = Modifier
+                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
+                .fillMaxWidth()
+                .aspectRatio(gif.aspect.coerceIn(0.6f, 1.9f))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                .clickable(onClick = onOpen)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = if (caption.isBlank() || caption == "GIF") "GIF" else "GIF, $caption"
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            gif.thumbPath?.let { poster ->
+                AsyncImage(
+                    model = poster,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            gif.path?.let { path ->
+                InlineVideo(
+                    path = path,
+                    playing = true,
+                    muted = true,
+                    loop = true,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            if (gif.path == null && transfer == null) {
+                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+            }
+            transfer?.let {
+                TransferOverlay(
+                    transfer = it,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                )
+            }
+            // Said, as every client says it: a loop that plays by itself
+            // could otherwise be taken for a video already running.
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    "GIF",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+        if (caption.isNotBlank() && caption != "GIF") {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                caption,
+                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+/**
+ * A round video message, standing on the conversation with no bubble round
+ * it, as it does in every Telegram client. Its first frame rests in the
+ * circle; a tap plays it in place, with sound, and a second tap pauses. It
+ * goes back to the start when it ends.
+ *
+ * Fetched on sight, like a GIF: a video message is seconds long, and one that
+ * had to download after the tap would answer the tap with a spinner.
+ */
+@Composable
+private fun VideoNoteMessage(
+    note: VideoContent,
+    transfer: FileTransfer?,
+    onVisible: () -> Unit
+) {
+    LaunchedEffect(note.path, note.thumbPath) {
+        if (note.path == null || note.thumbPath == null) onVisible()
+    }
+    var playing by remember(note.path) { mutableStateOf(false) }
+    val duration = formatDuration(note.durationSeconds.toLong())
+    Box(
+        modifier = Modifier
+            .size(VIDEO_NOTE_SIZE)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .clickable(enabled = note.path != null) { playing = !playing }
+            .semantics(mergeDescendants = true) {
+                contentDescription = if (playing) "Video message, playing" else "Video message, $duration"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        note.thumbPath?.let { poster ->
+            AsyncImage(
+                model = poster,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        note.path?.let { path ->
+            InlineVideo(
+                path = path,
+                playing = playing,
+                muted = false,
+                loop = false,
+                modifier = Modifier.fillMaxSize(),
+                onEnded = { playing = false }
+            )
+        }
+        when {
+            note.path == null -> {
+                val progress = transfer?.let(::transferProgress)
+                if (progress != null) {
+                    CircularProgressIndicator(progress = { progress }, modifier = Modifier.size(40.dp))
+                } else {
+                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
+                }
+            }
+            !playing -> Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier.size(52.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(30.dp))
+                }
+            }
+        }
+        if (!playing && note.durationSeconds > 0) {
+            Surface(
+                shape = MaterialTheme.shapes.small,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 14.dp)
+            ) {
+                Text(
+                    duration,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }
@@ -3131,6 +3359,9 @@ private fun LinkPreviewCard(preview: LinkPreview, outgoing: Boolean) {
 
 /** How big a sticker is drawn in the conversation. */
 private val STICKER_SIZE = 160.dp
+
+/** A round video message's diameter: a little under the bubble's widest, as Telegram draws it. */
+private val VIDEO_NOTE_SIZE = 220.dp
 
 /** How small a new message starts before it springs to size. */
 private const val POP_FROM = 0.72f
