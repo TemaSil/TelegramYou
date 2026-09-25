@@ -39,13 +39,21 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 
 ## Screenshots
 
-| Chat list | Conversation | Group | Attachments |
+| Chat list | Conversation | Group | Video messages |
 |---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="180" alt="Chat list"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="180" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="180" alt="Group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> |
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="180" alt="Chat list"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="180" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="180" alt="Group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/31-video-note.jpg" width="180" alt="Video messages"> |
 
-| Video | Chat info | New group | Tablet |
+| Search | Stories | Attachments | Chat info |
 |---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/14-video.jpg" width="180" alt="Video"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/16-new-group.jpg" width="180" alt="New group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/28-old-search-hit.jpg" width="180" alt="Search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/21-story.jpg" width="180" alt="Stories"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> |
+
+| Privacy | Devices | Data and storage | For geeks |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/32-privacy.jpg" width="180" alt="Privacy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/29-devices.jpg" width="180" alt="Devices"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/30-storage.jpg" width="180" alt="Data and storage"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/33-for-geeks.jpg" width="180" alt="For geeks"> |
+
+| QR login | Email login | Proxy | Tablet |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/26-qr-login.jpg" width="180" alt="QR login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/27-email-code.jpg" width="180" alt="Email login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/23-proxy.jpg" width="180" alt="Proxy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
 
 Not drawn for this page: they are taken by the **UI** workflow, which drives
 the demo client on an emulator after every push to `main`, and they change
@@ -55,24 +63,39 @@ first, are in the [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gall
 
 ## What is in it
 
-The demo build is the whole interface, so everything here can be seen without
-an account:
+Version 1.0. The demo build is the whole interface, so everything here can be
+seen without an account:
 
-- **Chat list** — grouped into containers, search across chats and message
-  text, an archive behind its own row, and **folders** as tabs with an unread
-  badge on each and as pages you swipe between. The header — name, folders,
-  stories — scrolls away with the chats and comes back on the way up. Rows
-  swipe to pin or mute where there are no folders to swipe between.
-- **Conversation** — replies, edits, forwarding, selection, reactions, voice
-  messages with a waveform, a pinned-message bar, an unread divider, and a
-  search inside the chat.
-- **Media** — photos in bubbles, a full-screen viewer with pinch, pan,
-  double-tap and drag-to-dismiss, a grid of every photo in a chat, and a
-  carousel of recent photos at the top of the attachment sheet.
-- **Chat info** — members, the invite link, and leaving a group.
-- **Profile and settings** — name, bio and username edited in place; theme and
-  dynamic colour.
-- **Notifications** — a foreground service, and replying from the shade.
+- **Material You, properly** — the palette comes from the wallpaper (below
+  Android 12, or with it switched off, from one teal seed by the same
+  algorithm), Material 3 Expressive components and motion throughout, and
+  the name set in Google Sans Flex.
+- **Signing in** — phone number with the country guessed from the SIM, the
+  code sent on its last digit, two-step password, a **QR code** to scan from
+  another phone, Telegram's **login email** steps, and a proxy before there
+  is an account.
+- **Chat list** — folders as tabs with unread counts and as pages you swipe
+  between, stories above them, an archive, search across chats and messages,
+  and a floating action button that opens into new message, group, channel
+  or joining by link.
+- **Conversation** — opens at its latest message with the history already
+  there; replies, edits, forwarding, selection, reactions, a pinned-message
+  bar, an unread divider, and search that jumps to any message however old.
+  A floating composer with the camera, the microphone and a sticker sheet.
+- **Media** — photos and videos out to the bubble's edges, GIFs that play by
+  themselves, round video messages played in place, voice messages with a
+  waveform, stickers (still and animated), a full-screen viewer and a grid
+  of a chat's media.
+- **Stories** — a viewer with the rail's own segments and timing.
+- **Settings** — theme, dynamic colour, shaped avatars and text size;
+  per-chat notifications; **privacy** rules; the **devices** signed in, each
+  one endable; **data and storage** with the cache cleared by kind; proxies;
+  and updates checked for and installed from inside the app.
+- **For geeks** — double-tap actions, seconds in message times, message
+  details, save and copy media, forwarding without quoting, hiding stories
+  or the All tab, and IPv6 — all off until turned on.
+- **Notifications** — a foreground service, per-chat mute, and replying
+  from the shade.
 - **Adaptive** — the navigation becomes a rail where the window is wide and
   tall enough for one.
 

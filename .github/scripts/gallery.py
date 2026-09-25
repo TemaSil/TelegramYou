@@ -11,8 +11,8 @@ Run by the UI workflow with the gallery branch checked out at GALLERY:
     python3 gallery.py SCREENSHOTS GALLERY VERSION SHA
 
 Only the showcase below is kept, at half size and as JPEG. A run is about
-nineteen full-size PNGs and three and a half megabytes; this is eight
-pictures and a few hundred kilobytes, which a branch that only ever grows
+thirty full-size PNGs and several megabytes; this is sixteen pictures
+and well under a megabyte, which a branch that only ever grows
 can afford. PNG at the same size was still more than twice as heavy, and at
 half size the compression is not what anybody will be looking at.
 """
@@ -32,10 +32,18 @@ SHOWCASE = [
     ("03-chats", "Chat list"),
     ("04-chat", "Conversation"),
     ("06-group-header", "Group"),
+    ("31-video-note", "Video messages"),
+    ("28-old-search-hit", "Search"),
+    ("21-story", "Stories"),
     ("09-attachments", "Attachments"),
-    ("14-video", "Video"),
     ("12-chat-info", "Chat info"),
-    ("16-new-group", "New group"),
+    ("32-privacy", "Privacy"),
+    ("29-devices", "Devices"),
+    ("30-storage", "Data and storage"),
+    ("33-for-geeks", "For geeks"),
+    ("26-qr-login", "QR login"),
+    ("27-email-code", "Email login"),
+    ("23-proxy", "Proxy"),
     ("13-rail", "Tablet"),
 ]
 
