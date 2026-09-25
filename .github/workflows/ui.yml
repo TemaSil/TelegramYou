@@ -257,7 +257,7 @@ jobs:
           run=$(gh api \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?head_sha=${GITHUB_SHA}&per_page=1" \
             --jq '.workflow_runs[0].run_number // empty' || true)
-          if [ -n "$run" ]; then version="0.2.${run}"; else version="${GITHUB_SHA::7}"; fi
+          if [ -n "$run" ]; then version="1.0.${run}"; else version="${GITHUB_SHA::7}"; fi
           echo "Filing the screens as ${version}"
 
           git show "${GITHUB_SHA}:.github/scripts/gallery.py" > "${RUNNER_TEMP}/gallery.py"

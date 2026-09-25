@@ -15,6 +15,9 @@ class AppVersionTest {
         assertTrue(v("0.2.300") > v("0.2.294"))
         assertTrue(v("0.2.1000") > v("0.2.999"))
         assertTrue(v("0.3.1") > v("0.2.999"))
+        // 1.0 took over from 0.2 with the run number still counting on, so a
+        // phone on the last 0.2 is offered the first 1.0.
+        assertTrue(v("1.0.310") > v("0.2.309"))
         assertEquals(0, v("0.2.5").compareTo(v("0.2.5.0")))
     }
 
