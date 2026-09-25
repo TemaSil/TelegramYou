@@ -41,6 +41,8 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -163,12 +165,25 @@ class DemoTelegramClient(
         }
     }
 
+    /** Nudges from [speakNow]; one waiting is as good as several. */
+    private val nudges = Channel<Unit>(Channel.CONFLATED)
+
+    /**
+     * The next line now, rather than when the timer says — for the UI test,
+     * whose notification checks otherwise sat out up to two intervals of
+     * this chat's schedule. The schedule itself is unchanged: the rest of
+     * the tests, and anyone using the demo, hear it at the usual pace.
+     */
+    fun speakNow() {
+        nudges.trySend(Unit)
+    }
+
     private fun startDemoChatter() {
         if (chatter != null) return
         chatter = scope.launch {
             var index = 0
             while (isActive) {
-                delay(DEMO_CHATTER_INTERVAL_MS - DEMO_TYPING_MS)
+                withTimeoutOrNull(DEMO_CHATTER_INTERVAL_MS - DEMO_TYPING_MS) { nudges.receive() }
                 // The seeded chat that talks, while it is unmuted — not
                 // whichever chat happens to be first. A group created or
                 // joined in the demo goes to the top of the list, and taking

@@ -33,9 +33,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Three emulators at once, each running a third of the smoke test. One ran
+  # all of it in ten minutes, nearly all of it tests run back to back;
+  # AndroidJUnitRunner's own sharding splits them, and the report job below
+  # puts the three thirds back together. Public repository minutes cost
+  # nothing, so the extra machines are free and the wait is a third.
   smoke:
+    name: smoke (${{ matrix.shard }} of 3)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      # A failure in one third must not cancel the others: the whole
+      # report is what says what broke.
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2]
     steps:
       - uses: actions/checkout@v4
 
@@ -115,7 +127,7 @@ jobs:
             # failure, so leaving it to skip itself turns the run red.
             # One line: the emulator runner executes each line of this
             # script on its own, so a backslash continuation is two commands.
-            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest --stacktrace || echo failed > failed.marker
+            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest -Pandroid.testInstrumentationRunnerArguments.numShards=3 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard }} --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
             # Nothing is pulled off the device: the screenshots go through
@@ -134,7 +146,11 @@ jobs:
         if: always()
         run: |
           mkdir -p evidence/screenshots
-          cp -r app/build/outputs/androidTest-results/connected/. evidence/results/ \
+          # Each third's report under its own name: the files are named after
+          # the device, and the three would otherwise overwrite each other
+          # when the report job puts them together.
+          mkdir -p "evidence/results/shard-${{ matrix.shard }}"
+          cp -r app/build/outputs/androidTest-results/connected/. "evidence/results/shard-${{ matrix.shard }}/" \
             2>/dev/null || true
           # Wherever AGP decided to put what TestStorage held. The path has a
           # device name in it, so it is found rather than spelled out.
@@ -147,11 +163,42 @@ jobs:
             -exec cp {} evidence/hierarchy/ \; 2>/dev/null || true
           # A fatal exception and the forty lines under it, which is the trace.
           if [ -f logcat-full.txt ]; then
-            grep -A 40 "FATAL EXCEPTION" logcat-full.txt > evidence/crash.txt 2>/dev/null || true
-            [ -s evidence/crash.txt ] || rm -f evidence/crash.txt
+            crash="evidence/crash-shard-${{ matrix.shard }}.txt"
+            grep -A 40 "FATAL EXCEPTION" logcat-full.txt > "$crash" 2>/dev/null || true
+            [ -s "$crash" ] || rm -f "$crash"
           fi
           echo "--- gathered ---"
           find evidence -type f | sort
+
+      # Handed to the report job, which publishes all three thirds as one.
+      # An artifact is fine here where it is not for people: it is read by the
+      # next job of the same run, never fetched from outside.
+      - name: Hand the evidence on
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-shard-${{ matrix.shard }}
+          path: evidence/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # The three thirds put back together, then everything the single job used
+  # to do at its end: publish the screens, decide the verdict from the
+  # reports, and file the gallery on a green main.
+  report:
+    needs: smoke
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gather the thirds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: evidence-shard-*
+          merge-multiple: true
+          path: evidence/
 
       # Pushed rather than uploaded. An artifact needs a GitHub session to
       # fetch and expires in ninety days; a branch can simply be cloned, which
@@ -180,7 +227,7 @@ jobs:
             echo '- `evidence/screenshots/` — one per step of the smoke test'
             echo '- `evidence/results/` — the instrumentation report, including'
             echo '  the stack trace of anything that failed'
-            echo '- `evidence/crash.txt` — the app'"'"'s own fatal exceptions, if any'
+            echo '- `evidence/crash-shard-N.txt` — the app'"'"'s own fatal exceptions, if any'
           } > README.md
           git add -A
           git commit -q -m "Screens at ${GITHUB_SHA}"
@@ -203,10 +250,11 @@ jobs:
       - name: Did the app actually work
         if: always()
         run: |
-          if [ -f evidence/crash.txt ]; then
-            echo "The app crashed. First fatal exception:"
-            head -30 evidence/crash.txt
-          fi
+          for crash in evidence/crash-shard-*.txt; do
+            [ -f "$crash" ] || continue
+            echo "The app crashed ($crash). First fatal exception:"
+            head -30 "$crash"
+          done
           python3 - <<'PY'
           import glob, sys, xml.etree.ElementTree as ET
 
@@ -228,6 +276,12 @@ jobs:
           print(f"::notice title=Emulator::{total} tests, {failed} failed")
           if total == 0:
               print("::error::No instrumentation tests ran.")
+              sys.exit(1)
+          # Every third has to have reported: a shard whose emulator never
+          # ran anything leaves the other two looking like the whole run.
+          shards = {p.split('/')[2] for p in glob.glob('evidence/results/shard-*/**/*.xml', recursive=True)}
+          if len(shards) < 3:
+              print(f"::error::Only {len(shards)} of 3 shards reported: {sorted(shards)}")
               sys.exit(1)
           if failed:
               print("::error::The smoke test failed. See the ui-screenshots branch.")

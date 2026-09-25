@@ -1065,12 +1065,23 @@ class SmokeTest {
     private fun waitForNotification() {
         val entry = By.textContains(NOTIFYING_CHAT)
         val deadline = System.currentTimeMillis() + NOTIFICATION_TIMEOUT
+        var polls = 0
         while (System.currentTimeMillis() < deadline) {
+            // The demo chat asked to speak now, and again every other poll,
+            // rather than waited for on its twenty-five-second timer: that
+            // wait, up to twice over, was most of what these tests took.
+            if (polls++ % 2 == 0) demoSpeakNow()
             device.openNotification()
             if (device.wait(Until.hasObject(entry), SHADE_POLL)) return
         }
         screenshot("failed-waiting-for-the-notification")
         fail("no notification from $NOTIFYING_CHAT ever arrived")
+    }
+
+    /** The demo chat's next line, now; this test runs in the app's process. */
+    private fun demoSpeakNow() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+        (app as? TelegramYouApp)?.demoClient?.speakNow()
     }
 
     /**
