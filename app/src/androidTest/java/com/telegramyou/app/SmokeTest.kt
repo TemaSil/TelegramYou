@@ -506,6 +506,12 @@ class SmokeTest {
         }
         tap(logOut)
         waitFor(By.text("Your phone"), "the login screen")
+        // The proxies are reachable before signing in — where Telegram is
+        // blocked, nothing else on this screen works without one.
+        tap(By.desc("Proxy"))
+        waitFor(By.text("Use proxy"), "the proxy screen from the login screen")
+        device.pressBack()
+        waitFor(By.text("Your phone"), "the login screen again")
         tap(By.text("Log in with a QR code"))
         waitFor(By.desc("QR code to sign in"), "the QR code")
         screenshot("26-qr-login")

@@ -180,6 +180,7 @@ fun TelegramYouNavHost(
                 onResendCode = authViewModel::resendCode,
                 onChangeNumber = authViewModel::onChangeNumber,
                 onQrLogin = authViewModel::onQrLogin,
+                onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onChangeNumberCancelled = authViewModel::onChangeNumberCancelled,
                 onDefaultRegion = authViewModel::onDefaultRegion,
                 onDemoRequested = onDemoRequested

@@ -888,7 +888,8 @@ them. Ticks are only worth something if somebody moves them.
       Settings tab when there is something to get
 - [x] Proxy — SOCKS5, HTTP and MTProto through TDLib's own list
       (`addProxy`, `enableProxy`, `pingProxy`), from the chat list's overflow
-      menu. One is used at a time, so the list is a radio choice, and each
+      menu and from the login screen's top corner — before sign-in is when
+      a blocked network needs it. One is used at a time, so the list is a radio choice, and each
       row says how its proxy answered a ping. A pasted `tg://proxy` or
       `t.me/socks` link fills the form; the parsing and the form's rules are
       in `:core` with tests

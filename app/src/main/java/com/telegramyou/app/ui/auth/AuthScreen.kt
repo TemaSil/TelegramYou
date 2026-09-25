@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.auth
 
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.rounded.QrCode2
 import android.content.Context
@@ -134,6 +135,7 @@ fun AuthScreen(
     onResendCode: () -> Unit,
     onChangeNumber: () -> Unit = {},
     onQrLogin: () -> Unit = {},
+    onOpenProxy: () -> Unit = {},
     onChangeNumberCancelled: () -> Unit = {},
     onDefaultRegion: (String?) -> Unit = {},
     onDemoRequested: () -> Unit = {}
@@ -232,6 +234,16 @@ fun AuthScreen(
                         )
                     }
                 }
+            }
+            // Proxy, before there is an account: where Telegram is blocked,
+            // the phone number cannot even be sent without one. Top right,
+            // where an app bar would keep a screen's one action, and drawn
+            // after the content so nothing scrolls over it.
+            IconButton(
+                onClick = onOpenProxy,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(Icons.Rounded.VpnKey, contentDescription = "Proxy")
             }
         }
 
