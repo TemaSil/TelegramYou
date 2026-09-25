@@ -77,8 +77,9 @@ From there each step forced the next. `material3:1.5.0-alpha28` declares
 Compose core 1.12.0 → 1.12 requires compileSdk 37 and AGP 9.1 → AGP 9
 requires Gradle 9. So the stack is Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.20,
 compose-bom 2026.09.00, compileSdk 37, and `material3` pinned past the BOM to
-`1.5.0-alpha28`. targetSdk stays 35; that governs runtime behaviour, not what
-compiles.
+`1.5.0-alpha29` (from alpha28 on 25 September 2026 — the same Compose core, so
+nothing else had to move). targetSdk stays 35; that governs runtime
+behaviour, not what compiles.
 
 Three AGP 9 removals had to be worked around — the standalone Kotlin plugin,
 `kotlinOptions`, and the variant API the APK-naming block used. CLAUDE.md
