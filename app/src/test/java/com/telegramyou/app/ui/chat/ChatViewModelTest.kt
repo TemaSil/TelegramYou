@@ -172,6 +172,9 @@ class ChatViewModelTest {
         client.aroundPage = (40L..60L).map { message(it) }
 
         vm.onJumpToMessage(50)
+        // Lit at once — and, below, no longer once its moment has passed:
+        // runTest shares Main's scheduler, so advancing runs out the timer.
+        assertEquals(50L, vm.uiState.value.highlightedId)
         advanceUntilIdle()
 
         val state = vm.uiState.value
@@ -179,7 +182,7 @@ class ChatViewModelTest {
         assertTrue(state.isDetached)
         assertEquals((40L..60L).toList(), state.messages.map { it.id })
         assertEquals(50L, state.scrollTarget)
-        assertEquals(50L, state.highlightedId)
+        assertNull("the highlight fades", state.highlightedId)
     }
 
     @Test
