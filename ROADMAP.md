@@ -270,6 +270,19 @@ careful with.
 - [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
       `ui/common`; `LocalClipboardManager` is gone
 
+## Motion between screens, 25 September 2026
+
+- **A chat opens out of its row, and a story out of its circle** — Material's
+  container transform, on `SharedTransitionLayout` and `sharedBounds`
+  (`ui/motion/ContainerTransform.kt`). The bounds move on the motion
+  scheme's spatial spring and the two screens cross-fade on its effects
+  spec, so the pattern moves the way the rest of Expressive does. Back —
+  including the predictive back gesture — closes it into where it came from.
+- **Fade through between the bottom tabs**, which is what Material's motion
+  guidance gives navigation-bar destinations: they are separate places, not
+  neighbours, so nothing slides. Shared axis X stays where it belongs, on
+  the folder tabs, whose pages already move sideways under the finger.
+
 ## The schema, 25 September 2026
 
 Sending a photo failed with TDLib's "Input file is not specified", and the

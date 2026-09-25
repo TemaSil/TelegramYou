@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.chatContainerKey
+import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.update.LocalAppUpdates
 import com.telegramyou.app.update.UpdateState
 import androidx.compose.material3.BadgedBox
@@ -289,185 +297,209 @@ fun HomeScreen(
             )
         }
 
-        // Profile and Settings are their own content, not another list with
-        // a gradient behind it, so they take the padding and stop there.
-        when (tab) {
-            HomeTab.Profile -> {
-                ProfileContent(
-                    me = state.me,
-                    profile = state.profile,
-                    onDraftChange = onProfileDraftChange,
-                    onSave = onProfileSave,
-                    contentPadding = padding
-                )
-                return@Scaffold
-            }
-            HomeTab.Settings -> {
-                SettingsContent(
-                    settings = settings,
-                    me = state.me,
-                    onThemeChange = onThemeChange,
-                    onDynamicColorChange = onDynamicColorChange,
-                    onShapedAvatarsChange = onShapedAvatarsChange,
-                    onLogout = onLogout,
-                    contentPadding = padding
-                )
-                return@Scaffold
-            }
-            // Chats and Search share the list below: searching narrows what
-            // is on screen rather than replacing it with somewhere else.
-            HomeTab.Chats, HomeTab.Search -> Unit
-        }
-
-        // Expanded or hidden, the header's position is Material's own state:
-        // the one a TopAppBar keeps, driven by the enterAlways behaviour. It
-        // goes as the chats scroll down and comes back the moment they scroll
-        // up, from anywhere in the list rather than only at its top, and when
-        // the finger lifts halfway it settles to one end or the other on the
-        // motion scheme's spatial spring — the bounce Expressive gives
-        // anything that moves — so it never stops half-hidden.
-        //
-        // The whole header goes, folders included. Those were pinned while
-        // the header was only the bar, on the argument that a filter should
-        // stay in reach; they still are — one flick up, or a swipe sideways
-        // on the list itself, which is what the pager below is for.
-        val header = TopAppBarDefaults.enterAlwaysScrollBehavior(
-            snapAnimationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-        )
-        val haptics = LocalHapticFeedback.current
-        // One light tick as the header finishes going, and none as it comes
-        // back. The tick marks the screen being handed to the list — a detent,
-        // which is what the segment tick is for — and a second one on the way
-        // back would make every scroll up and down buzz twice.
-        LaunchedEffect(header.state) {
-            snapshotFlow { header.state.collapsedFraction >= 1f }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { hidden ->
-                    if (hidden) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+        // Fade through between the bottom tabs, which is what Material's
+        // motion guidance gives navigation-bar destinations: they are
+        // separate places rather than neighbours, so nothing slides — the
+        // old one fades out, and the new one fades in growing slightly into
+        // place, on the theme's springs. Chats and Search are one place here:
+        // searching opens over the same list.
+        val motion = MaterialTheme.motionScheme
+        AnimatedContent(
+            targetState = tab,
+            contentKey = { if (it == HomeTab.Search) HomeTab.Chats else it },
+            transitionSpec = {
+                (fadeIn(motion.defaultEffectsSpec()) +
+                    scaleIn(motion.defaultSpatialSpec(), initialScale = FADE_THROUGH_SCALE)) togetherWith
+                    fadeOut(motion.fastEffectsSpec())
+            },
+            label = "homeTab"
+        ) { shownTab ->
+            // Profile and Settings are their own content, not another list with
+            // a gradient behind it, so they take the padding and stop there.
+            when (shownTab) {
+                HomeTab.Profile -> {
+                    ProfileContent(
+                        me = state.me,
+                        profile = state.profile,
+                        onDraftChange = onProfileDraftChange,
+                        onSave = onProfileSave,
+                        contentPadding = padding
+                    )
+                    return@AnimatedContent
                 }
-        }
-
-        // The folders are pages. The view model still owns which one is
-        // chosen — it survives a rotation there, and it filters — so the
-        // pager starts on that page and reports each page it settles on.
-        val tabs = state.folderTabs
-        val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
-            .coerceAtLeast(0)
-        val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
-        val scope = rememberCoroutineScope()
-        LaunchedEffect(pager, tabs) {
-            snapshotFlow { pager.settledPage }.collect { page ->
-                tabs.getOrNull(page)?.let { onFolderSelected(it.id) }
+                HomeTab.Settings -> {
+                    SettingsContent(
+                        settings = settings,
+                        me = state.me,
+                        onThemeChange = onThemeChange,
+                        onDynamicColorChange = onDynamicColorChange,
+                        onShapedAvatarsChange = onShapedAvatarsChange,
+                        onLogout = onLogout,
+                        contentPadding = padding
+                    )
+                    return@AnimatedContent
+                }
+                // Chats and Search share the list below: searching narrows what
+                // is on screen rather than replacing it with somewhere else.
+                HomeTab.Chats, HomeTab.Search -> Unit
             }
-        }
-        // And the other way, for a selection that moved without the pager:
-        // a folder deleted on another device, which the view model answers
-        // by falling back to All.
-        LaunchedEffect(selectedIndex) {
-            if (!pager.isScrollInProgress && pager.settledPage != selectedIndex) {
-                pager.scrollToPage(selectedIndex)
-            }
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                // The darker of the two tones on this screen: what sits
-                // behind the header, and what shows if the list is
-                // overscrolled past its top.
-                //
-                // Before the padding, not after: a modifier chain paints
-                // where it stands, and insetting first would leave the
-                // system bars sitting over bare window colour.
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(padding)
-        ) {
-            // On the column, so the scroll of whichever page is showing
-            // reaches the header on its way up. Only the vertical half is
-            // taken: a sideways drag passes through to the pager untouched.
-            Column(
+            // Expanded or hidden, the header's position is Material's own state:
+            // the one a TopAppBar keeps, driven by the enterAlways behaviour. It
+            // goes as the chats scroll down and comes back the moment they scroll
+            // up, from anywhere in the list rather than only at its top, and when
+            // the finger lifts halfway it settles to one end or the other on the
+            // motion scheme's spatial spring — the bounce Expressive gives
+            // anything that moves — so it never stops half-hidden.
+            //
+            // The whole header goes, folders included. Those were pinned while
+            // the header was only the bar, on the argument that a filter should
+            // stay in reach; they still are — one flick up, or a swipe sideways
+            // on the list itself, which is what the pager below is for.
+            val header = TopAppBarDefaults.enterAlwaysScrollBehavior(
+                snapAnimationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+            )
+            val haptics = LocalHapticFeedback.current
+            // One light tick as the header finishes going, and none as it comes
+            // back. The tick marks the screen being handed to the list — a detent,
+            // which is what the segment tick is for — and a second one on the way
+            // back would make every scroll up and down buzz twice.
+            LaunchedEffect(header.state) {
+                snapshotFlow { header.state.collapsedFraction >= 1f }
+                    .distinctUntilChanged()
+                    .drop(1)
+                    .collect { hidden ->
+                        if (hidden) haptics.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                    }
+            }
+
+            // The folders are pages. The view model still owns which one is
+            // chosen — it survives a rotation there, and it filters — so the
+            // pager starts on that page and reports each page it settles on.
+            val tabs = state.folderTabs
+            val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
+                .coerceAtLeast(0)
+            val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
+            val scope = rememberCoroutineScope()
+            LaunchedEffect(pager, tabs) {
+                snapshotFlow { pager.settledPage }.collect { page ->
+                    tabs.getOrNull(page)?.let { onFolderSelected(it.id) }
+                }
+            }
+            // And the other way, for a selection that moved without the pager:
+            // a folder deleted on another device, which the view model answers
+            // by falling back to All.
+            LaunchedEffect(selectedIndex) {
+                if (!pager.isScrollInProgress && pager.settledPage != selectedIndex) {
+                    pager.scrollToPage(selectedIndex)
+                }
+            }
+
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .nestedScroll(header.nestedScrollConnection)
-            ) {
-                CollapsingHeader(header.state) {
-                    HomeTitleBar(
-                        windowInsets = WindowInsets(0),
-                        isDark = isDark(settings.theme, isSystemInDarkTheme()),
-                        onThemeChange = onThemeChange,
-                        onOpenProxy = onOpenProxy,
-                        onOpenSavedMessages = onOpenSavedMessages
-                    )
-                    // Stories first, then the folders: the tabs choose what
-                    // the list below shows, so they sit against it, and the
-                    // stories — which are not a filter of anything — sit
-                    // above, with the name.
+                    // The darker of the two tones on this screen: what sits
+                    // behind the header, and what shows if the list is
+                    // overscrolled past its top.
                     //
-                    // In the header rather than as the list's first item, and
-                    // that is what makes the panel below look like a panel:
-                    // as a row inside the list it painted itself back to the
-                    // header's tone across the full width, which squared off
-                    // the rounded corners it was sitting on.
-                    StoriesRail(
-                        stories = state.stories,
-                        onStoryClick = onOpenStory
-                    )
-                    FolderTabs(
-                        tabs = tabs,
-                        unread = state.folderUnread,
-                        // The page being swiped towards, not the one last
-                        // settled on: the indicator moves with the finger.
-                        selectedIndex = pager.targetPage,
-                        onSelected = { index ->
-                            scope.launch { pager.animateScrollToPage(index) }
-                        }
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
-                PullToRefreshBox(
-                    isRefreshing = state.isRefreshing,
-                    onRefresh = onRefresh,
-                    modifier = Modifier.fillMaxSize()
+                    // Before the padding, not after: a modifier chain paints
+                    // where it stands, and insetting first would leave the
+                    // system bars sitting over bare window colour.
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(padding)
+            ) {
+                // On the column, so the scroll of whichever page is showing
+                // reaches the header on its way up. Only the vertical half is
+                // taken: a sideways drag passes through to the pager untouched.
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(header.nestedScrollConnection)
                 ) {
-                    val page: @Composable (List<ChatPreview>, Int?, Boolean) -> Unit =
-                        { chats, folderId, inPager ->
-                            val isAll = folderId == null
-                            ChatListPage(
-                                chats = chats,
-                                onNearEnd = { onListEndReached(folderId) },
-                                archiveSummary = if (isAll) state.archiveSummary else null,
-                                shapedAvatars = settings.shapedAvatars,
-                                // A sideways drag is the pager's where there
-                                // is one; see ChatListRow.
-                                swipeActions = !inPager,
-                                onOpenArchive = onOpenArchive,
-                                onOpenChat = onOpenChat,
-                                onMutedChange = onMutedChange,
-                                onPinnedChange = onPinnedChange,
-                                onMarkRead = onMarkRead,
-                                onArchivedChange = onArchivedChange
-                            )
-                        }
-                    if (tabs.isEmpty()) {
-                        // No folders, nothing to page between: one list, and
-                        // the rows keep their own swipes.
-                        page(state.chats, /* folderId = */ null, /* inPager = */ false)
-                    } else {
-                        HorizontalPager(
-                            state = pager,
-                            modifier = Modifier.fillMaxSize(),
-                            // Each page is its own list with its own scroll
-                            // position, so they are told apart by folder
-                            // rather than by where they happen to sit.
-                            key = { index -> tabs.getOrNull(index)?.id ?: -1 },
-                            verticalAlignment = Alignment.Top
-                        ) { index ->
-                            page(
-                                state.folderChats.getOrElse(index) { emptyList() },
-                                /* folderId = */ tabs.getOrNull(index)?.id,
-                                /* inPager = */ true
-                            )
+                    CollapsingHeader(header.state) {
+                        HomeTitleBar(
+                            windowInsets = WindowInsets(0),
+                            isDark = isDark(settings.theme, isSystemInDarkTheme()),
+                            onThemeChange = onThemeChange,
+                            onOpenProxy = onOpenProxy,
+                            onOpenSavedMessages = onOpenSavedMessages
+                        )
+                        // Stories first, then the folders: the tabs choose what
+                        // the list below shows, so they sit against it, and the
+                        // stories — which are not a filter of anything — sit
+                        // above, with the name.
+                        //
+                        // In the header rather than as the list's first item, and
+                        // that is what makes the panel below look like a panel:
+                        // as a row inside the list it painted itself back to the
+                        // header's tone across the full width, which squared off
+                        // the rounded corners it was sitting on.
+                        StoriesRail(
+                            stories = state.stories,
+                            onStoryClick = onOpenStory
+                        )
+                        FolderTabs(
+                            tabs = tabs,
+                            unread = state.folderUnread,
+                            // The page being swiped towards, not the one last
+                            // settled on: the indicator moves with the finger.
+                            selectedIndex = pager.targetPage,
+                            onSelected = { index ->
+                                scope.launch { pager.animateScrollToPage(index) }
+                            }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                    }
+                    PullToRefreshBox(
+                        isRefreshing = state.isRefreshing,
+                        onRefresh = onRefresh,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        val page: @Composable (List<ChatPreview>, Int?, Boolean, Boolean) -> Unit =
+                            { chats, folderId, inPager, current ->
+                                val isAll = folderId == null
+                                ChatListPage(
+                                    chats = chats,
+                                    onNearEnd = { onListEndReached(folderId) },
+                                    archiveSummary = if (isAll) state.archiveSummary else null,
+                                    shapedAvatars = settings.shapedAvatars,
+                                    // A sideways drag is the pager's where there
+                                    // is one; see ChatListRow.
+                                    swipeActions = !inPager,
+                                    // Only the page on screen opens its chats
+                                    // out of their rows: the pager keeps its
+                                    // neighbours composed, and a chat in two
+                                    // folders would be two rows with one key.
+                                    opensOutOfRows = current,
+                                    onOpenArchive = onOpenArchive,
+                                    onOpenChat = onOpenChat,
+                                    onMutedChange = onMutedChange,
+                                    onPinnedChange = onPinnedChange,
+                                    onMarkRead = onMarkRead,
+                                    onArchivedChange = onArchivedChange
+                                )
+                            }
+                        if (tabs.isEmpty()) {
+                            // No folders, nothing to page between: one list, and
+                            // the rows keep their own swipes.
+                            page(state.chats, /* folderId = */ null, /* inPager = */ false, /* current = */ true)
+                        } else {
+                            HorizontalPager(
+                                state = pager,
+                                modifier = Modifier.fillMaxSize(),
+                                // Each page is its own list with its own scroll
+                                // position, so they are told apart by folder
+                                // rather than by where they happen to sit.
+                                key = { index -> tabs.getOrNull(index)?.id ?: -1 },
+                                verticalAlignment = Alignment.Top
+                            ) { index ->
+                                page(
+                                    state.folderChats.getOrElse(index) { emptyList() },
+                                    /* folderId = */ tabs.getOrNull(index)?.id,
+                                    /* inPager = */ true,
+                                    /* current = */ index == pager.currentPage
+                                )
+                            }
                         }
                     }
                 }
@@ -532,6 +564,7 @@ private fun ChatListPage(
     archiveSummary: String?,
     shapedAvatars: Boolean,
     swipeActions: Boolean,
+    opensOutOfRows: Boolean,
     onOpenArchive: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onMutedChange: (Long, Boolean) -> Unit,
@@ -627,7 +660,14 @@ private fun ChatListPage(
                     onClick = { onOpenChat(chat.id) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 12.dp)
+                        .then(
+                            if (opensOutOfRows) {
+                                Modifier.containerTransform(chatContainerKey(chat.id), ChatContainerShape)
+                            } else {
+                                Modifier
+                            }
+                        ),
                     onMutedChange = { muted -> onMutedChange(chat.id, muted) },
                     onPinnedChange = { pinned ->
                         onPinnedChange(chat.id, pinned)
@@ -1149,3 +1189,6 @@ private fun ArchiveEntryRow(
 
 /** How many rows from the end a chat list asks for its next page. */
 private const val LOAD_MORE_AHEAD = 8
+
+/** How far a tab's content grows into place as it fades in. */
+private const val FADE_THROUGH_SCALE = 0.92f

@@ -1,5 +1,15 @@
 package com.telegramyou.app.navigation
 
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.runtime.CompositionLocalProvider
+import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
+import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
+import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.chatContainerKey
+import com.telegramyou.app.ui.motion.storyContainerKey
+import com.telegramyou.app.ui.motion.ChatContainerShape
+import com.telegramyou.app.ui.motion.StoryContainerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -57,7 +67,7 @@ import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun TelegramYouNavHost(
     repository: TelegramRepository,
@@ -122,6 +132,11 @@ fun TelegramYouNavHost(
         onChatOpened()
     }
 
+    // One layout around the whole graph, so a screen can open out of an
+    // element on the one before it — a chat out of its row, a story out of
+    // its circle. See containerTransform.
+    SharedTransitionLayout {
+    CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(
         navController = navController,
         startDestination = Route.Auth.PATTERN,
@@ -168,7 +183,18 @@ fun TelegramYouNavHost(
                 onDemoRequested = onDemoRequested
             )
         }
-        composable(Route.Home.PATTERN) {
+        composable(
+            Route.Home.PATTERN,
+            // Under a chat or a story opening out of this screen, the list
+            // fades where it is rather than sliding away: the container is
+            // the movement, and a second one beside it would fight it.
+            exitTransition = {
+                if (targetState.destination.route in containerRoutes) fadeOut(spring()) else null
+            },
+            popEnterTransition = {
+                if (initialState.destination.route in containerRoutes) fadeIn(spring()) else null
+            }
+        ) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
             val state by homeViewModel.uiState.collectAsStateWithLifecycle()
             val appearanceSettings by appearance.settings.collectAsStateWithLifecycle()
@@ -183,6 +209,7 @@ fun TelegramYouNavHost(
             // tab is showing.
             var tab by rememberSaveable { mutableStateOf(HomeTab.Chats) }
 
+            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
             HomeScreen(
                 state = state,
                 tab = tab,
@@ -230,6 +257,7 @@ fun TelegramYouNavHost(
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenSavedMessages = homeViewModel::onOpenSavedMessages
             )
+            }
         }
         composable(Route.Proxy.PATTERN) {
             val proxyViewModel: ProxyViewModel = viewModel(factory = viewModelFactory)
@@ -397,8 +425,12 @@ fun TelegramYouNavHost(
 
         composable(
             route = Route.Chat.PATTERN,
-            arguments = Route.Chat.arguments
-        ) {
+            arguments = Route.Chat.arguments,
+            // The row it opened out of does the moving; see containerTransform.
+            enterTransition = { fadeIn(spring()) },
+            popExitTransition = { fadeOut(spring()) }
+        ) { entry ->
+            val openedChatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
             // chatId is not read here: ChatViewModel takes it from the saved
             // state, so the conversation survives process death with the rest
             // of its state rather than only as long as this composition.
@@ -432,6 +464,12 @@ fun TelegramYouNavHost(
                     chatViewModel.onSeen()
                 }
             }
+            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .containerTransform(chatContainerKey(openedChatId), ChatContainerShape)
+            ) {
             ChatScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
@@ -479,11 +517,16 @@ fun TelegramYouNavHost(
                 onVideoClosed = chatViewModel::onVideoClosed,
                 onErrorShown = chatViewModel::onErrorShown
             )
+            }
+            }
         }
         composable(
             route = Route.Story.PATTERN,
-            arguments = Route.Story.arguments
-        ) {
+            arguments = Route.Story.arguments,
+            enterTransition = { fadeIn(spring()) },
+            popExitTransition = { fadeOut(spring()) }
+        ) { entry ->
+            val openedStoryId = entry.arguments?.getLong(Route.Story.ARG_STORY_ID) ?: 0L
             // The story arrives as an id in the route and is looked up by its
             // state holder, not held in a variable in this graph. An argument
             // that survives recreation is the difference between a screen that
@@ -491,6 +534,12 @@ fun TelegramYouNavHost(
             val storyViewModel: StoryViewModel = viewModel(factory = viewModelFactory)
             val state by storyViewModel.uiState.collectAsStateWithLifecycle()
             val story = state.story
+            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .containerTransform(storyContainerKey(openedStoryId), StoryContainerShape)
+            ) {
             when {
                 // Closed only once the lookup has answered: the first state is
                 // "not looked up yet", and closing on that is what made every
@@ -513,6 +562,13 @@ fun TelegramYouNavHost(
                     onClose = { navController.popBackStack() }
                 )
             }
+            }
+            }
         }
     }
+    }
+    }
 }
+
+/** Destinations that open out of an element on the chat list; see containerTransform. */
+private val containerRoutes = setOf(Route.Chat.PATTERN, Route.Story.PATTERN)

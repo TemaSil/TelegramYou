@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.storyContainerKey
+import com.telegramyou.app.ui.motion.StoryContainerShape
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -77,7 +80,14 @@ private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
             size = 64.dp,
             ring = !story.isOwn,
             ringSeen = !story.hasUnseen,
-            photoPath = story.photoPath
+            photoPath = story.photoPath,
+            // The circle the viewer opens out of and closes back into. Not
+            // "My story", which opens nothing of its own.
+            modifier = if (story.isOwn) {
+                Modifier
+            } else {
+                Modifier.containerTransform(storyContainerKey(story.id), StoryContainerShape)
+            }
         )
         Spacer(Modifier.height(6.dp))
         Text(
