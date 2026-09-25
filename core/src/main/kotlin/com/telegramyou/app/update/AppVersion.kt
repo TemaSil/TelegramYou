@@ -1,7 +1,7 @@
 package com.telegramyou.app.update
 
 /**
- * A version as this project writes them: "0.2.294", the last number being
+ * A version as this project writes them: "1.0.294", the last number being
  * the build — CI's run number, so every published APK has a larger one than
  * the one before.
  */
@@ -20,7 +20,7 @@ data class AppVersion(val parts: List<Int>) : Comparable<AppVersion> {
     companion object {
         /**
          * The first dotted version inside [text] — a release is named
-         * "TelegramYou 0.2.294", and the number is what matters. Null when
+         * "TelegramYou 1.0.294", and the number is what matters. Null when
          * there is none.
          */
         fun find(text: String): AppVersion? =

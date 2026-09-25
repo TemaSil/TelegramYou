@@ -32,8 +32,14 @@ val buildNumber: Int =
             }.standardOutput.asText.get().trim().toInt()
         }.getOrDefault(1)
 
-/** Used for both versionName and the APK name, so the two cannot drift. */
-val appVersionName = "0.2.$buildNumber"
+/**
+ * Used for both versionName and the APK name, so the two cannot drift.
+ *
+ * 1.0 from 25 September 2026, on the owner's word, after 0.2. The third part
+ * is still the run number and the versionCode is still that number, so the
+ * change is only in the name: a phone on 0.2.N takes 1.0.N+1 as an upgrade.
+ */
+val appVersionName = "1.0.$buildNumber"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")

@@ -162,7 +162,7 @@ TELEGRAM_API_HASH=your_api_hash_here
 
 ## Output
 
-APK: `app\build\outputs\apk\debug\TelegramYou-0.2.<build>-debug.apk`
+APK: `app\build\outputs\apk\debug\TelegramYou-1.0.<build>-debug.apk`
 
 ## Project map
 

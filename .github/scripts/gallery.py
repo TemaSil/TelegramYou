@@ -52,7 +52,7 @@ def shrink(src, dst):
 
 
 def version_key(name):
-    # 0.2.259 after 0.2.99, which a string sort gets backwards.
+    # 1.0.259 after 1.0.99, which a string sort gets backwards.
     return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", name)]
 
 
