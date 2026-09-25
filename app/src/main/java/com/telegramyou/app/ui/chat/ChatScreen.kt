@@ -279,7 +279,7 @@ fun ChatScreen(
     // Items spring into their new places only once the chat has settled.
     // While it opens, the history arrives in pages and every page moved
     // every bubble above it — on a spring each, the whole conversation
-    // wobbling while the screen was still sliding in.
+    // wobbling while the screen was still growing out of its row.
     var itemsAnimate by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(SETTLE_MILLIS)
