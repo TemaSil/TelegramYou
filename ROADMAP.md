@@ -315,20 +315,20 @@ careful with.
 
 ## Motion between screens, 25 September 2026
 
-- **A story opens out of its circle** — Material's container transform, on
-  `SharedTransitionLayout` and `sharedBounds`
-  (`ui/motion/ContainerTransform.kt`). The two screens cross-fade on the
-  theme's effects spec. Back — including the predictive back gesture —
-  closes it into where it came from.
-- **A chat slides in from the side**, the chat list moving a quarter of the
-  way under it — how Android itself opens one screen over another. It opened
-  out of its row as a container transform at first, and on a phone that read
-  as the whole conversation wobbling: the expressive spatial spring
-  overshoots, and a container the size of the display overshooting swells
-  past its edges and back. Both full-screen movements now run on the
-  *standard* scheme's slow spatial spring — slow is Material's speed for
-  full-screen motion, and standard's spring barely overshoots. Expressive's
-  bounce stays on the things small enough to bounce.
+- **A chat opens out of its row, and a story out of its circle** — Material's
+  container transform, on `SharedTransitionLayout` and `sharedBounds`
+  (`ui/motion/ContainerTransform.kt`). Back — including the predictive back
+  gesture — closes it into where it came from. The bounds move on the
+  *standard* scheme's slow spatial spring, not the theme's expressive one:
+  that one overshoots, and a container the size of the display overshooting
+  swells past its edges and back, which on a phone read as the whole
+  conversation shaking. For a day the chat slid in from the side instead;
+  the pattern came back with the calmer spring on the owner's word. The
+  screen side is scaled, not laid out again each frame.
+  The chat's messages are fetched on the tap, before the screen exists
+  (`TelegramRepository.warmChat`, capped at 200 ms — TDLib answers from its
+  local database well inside that), so the container grows a finished
+  conversation rather than an empty one that fills in mid-flight.
 - **Fade through between the bottom tabs**, which is what Material's motion
   guidance gives navigation-bar destinations: they are separate places, not
   neighbours, so nothing slides. Shared axis X stays where it belongs, on

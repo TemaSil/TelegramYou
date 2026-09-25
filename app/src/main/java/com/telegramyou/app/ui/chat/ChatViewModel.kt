@@ -177,6 +177,11 @@ class ChatViewModel(
         // Held open for as long as this state holder lives; released in
         // onCleared. See TelegramChats.retainChat for why it is counted.
         repository.retainChat(chatId)
+        // Messages from the first frame, where the tap fetched them ahead of
+        // the screen; the reload below still replaces them with a fresh window.
+        repository.takeWarmChat(chatId)?.let { warm ->
+            _uiState.update { it.copy(detail = warm) }
+        }
         reload()
         viewModelScope.launch {
             // Forwarding needs somewhere to forward to, and the chat list is

@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.chatContainerKey
+import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.update.LocalAppUpdates
 import com.telegramyou.app.update.UpdateState
 import androidx.compose.material3.BadgedBox
@@ -465,6 +467,11 @@ fun HomeScreen(
                                     // A sideways drag is the pager's where there
                                     // is one; see ChatListRow.
                                     swipeActions = !inPager,
+                                    // Only the page on screen opens its chats
+                                    // out of their rows: the pager keeps its
+                                    // neighbours composed, and a chat in two
+                                    // folders would be two rows with one key.
+                                    opensOutOfRows = current,
                                     onOpenArchive = onOpenArchive,
                                     onOpenChat = onOpenChat,
                                     onMutedChange = onMutedChange,
@@ -558,6 +565,7 @@ private fun ChatListPage(
     archiveSummary: String?,
     shapedAvatars: Boolean,
     swipeActions: Boolean,
+    opensOutOfRows: Boolean,
     onOpenArchive: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onMutedChange: (Long, Boolean) -> Unit,
@@ -653,7 +661,14 @@ private fun ChatListPage(
                     onClick = { onOpenChat(chat.id) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 12.dp)
+                        .then(
+                            if (opensOutOfRows) {
+                                Modifier.containerTransform(chatContainerKey(chat.id), ChatContainerShape)
+                            } else {
+                                Modifier
+                            }
+                        ),
                     onMutedChange = { muted -> onMutedChange(chat.id, muted) },
                     onPinnedChange = { pinned ->
                         onPinnedChange(chat.id, pinned)
