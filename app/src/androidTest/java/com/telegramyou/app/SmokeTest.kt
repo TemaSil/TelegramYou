@@ -1270,7 +1270,9 @@ class SmokeTest {
         tap(By.text("Message details"))
         screenshot("33-for-geeks")
         device.pressBack()
-        waitFor(By.text("Appearance"), "the settings again")
+        // The row just left, not the top of the list: the settings are still
+        // scrolled down to it, with Appearance out of sight above.
+        waitFor(By.text("For geeks"), "the settings again")
 
         tap(By.text("Chats"))
         waitFor(By.text("Material Design"), "the chat list again")
