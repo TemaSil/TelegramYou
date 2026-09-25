@@ -1293,12 +1293,16 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         waitFor(By.text(Pattern.compile("\\d{2}:\\d{2}:\\d{2}")), "a time with seconds")
-        // Again if the first press lands while the conversation is still
-        // settling from opening and the menu does not come up.
+        // A message only one bubble says. "Welcome to TelegramYou" is also
+        // the pinned bar's line, which comes first in the hierarchy — and a
+        // long press on the bar opens nothing, which is what three runs of
+        // this test were pressing.
+        val bubble = By.textStartsWith("Attach files from the composer")
+        waitFor(bubble, "a message to open the menu of")
         repeat(3) {
             if (device.hasObject(By.text("Details"))) return@repeat
             try {
-                device.findObject(By.text("Welcome to TelegramYou"))?.longClick()
+                device.findObject(bubble)?.longClick()
             } catch (_: StaleObjectException) {
             }
             device.wait(Until.hasObject(By.text("Details")), SHORT_WAIT)
