@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.update.UpdateSection
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -213,6 +214,11 @@ fun SettingsContent(
                     }
                 }
             }
+
+            HorizontalDivider()
+
+            SectionHeader("About")
+            UpdateSection()
 
             HorizontalDivider()
 

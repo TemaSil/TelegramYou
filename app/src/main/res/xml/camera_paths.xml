@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Where a photo taken from the composer is written.
+    What this app shares through its file provider, one directory each.
+
+    camera/ is where a photo taken from the composer is written.
+    updates/ holds a downloaded update, which Android's installer reads from
+    there (see AppUpdates).
 
     One directory, inside the app's own cache: the camera app needs a writable
     Uri and nothing else should be reachable through the provider. A path that
@@ -9,4 +13,5 @@
 -->
 <paths>
     <cache-path name="camera" path="camera/" />
+    <cache-path name="updates" path="updates/" />
 </paths>

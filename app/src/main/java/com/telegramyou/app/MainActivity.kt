@@ -23,6 +23,7 @@ import com.telegramyou.app.navigation.TelegramYouNavHost
 import com.telegramyou.app.telegram.AppVisibility
 import com.telegramyou.app.telegram.TelegramForegroundService
 import com.telegramyou.app.ui.theme.TelegramYouTheme
+import com.telegramyou.app.update.LocalAppUpdates
 
 class MainActivity : ComponentActivity() {
 
@@ -79,7 +80,10 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two
                     // above, and every screen that draws a person reads it.
-                    CompositionLocalProvider(LocalShapedAvatars provides appearance.shapedAvatars) {
+                    CompositionLocalProvider(
+                        LocalShapedAvatars provides appearance.shapedAvatars,
+                        LocalAppUpdates provides app.updates
+                    ) {
                         TelegramYouNavHost(
                             repository = app.telegramRepository,
                             appearance = app.appearance,

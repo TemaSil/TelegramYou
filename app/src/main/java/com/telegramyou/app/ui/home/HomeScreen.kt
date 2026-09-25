@@ -1,5 +1,9 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.update.LocalAppUpdates
+import com.telegramyou.app.update.UpdateState
+import androidx.compose.material3.BadgedBox
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.FloatingActionButtonMenu
 import androidx.compose.material3.FloatingActionButtonMenuItem
@@ -216,12 +220,25 @@ fun HomeScreen(
     // itself, and the Expressive shapes are the ones it picks — a short bar
     // in compact, which is exactly what this screen already had, and a wide
     // rail when there is room. The items are declared once for both.
+    // A dot on Settings when a newer build is out — found by the quiet
+    // check at launch, and offered in the row under About.
+    val updates = LocalAppUpdates.current
+    val updateState = updates?.state?.collectAsStateWithLifecycle()?.value
+    val updateWaiting = updateState is UpdateState.Available || updateState is UpdateState.Ready
     val navigationItems: NavigationSuiteScope.() -> Unit = {
         HomeTab.entries.forEach { entry ->
             item(
                 selected = tab == entry,
                 onClick = { onTabSelected(entry) },
-                icon = { Icon(entry.icon, contentDescription = entry.label) },
+                icon = {
+                    if (entry == HomeTab.Settings && updateWaiting) {
+                        BadgedBox(badge = { Badge() }) {
+                            Icon(entry.icon, contentDescription = "${entry.label}, update available")
+                        }
+                    } else {
+                        Icon(entry.icon, contentDescription = entry.label)
+                    }
+                },
                 label = { Text(entry.label) }
             )
         }

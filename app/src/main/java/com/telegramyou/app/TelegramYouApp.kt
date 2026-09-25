@@ -11,6 +11,7 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.unmaskApiHash
 import com.telegramyou.app.telegram.demo.DemoTelegramClient
 import com.telegramyou.app.telegram.tdlib.TdLibTelegramClient
+import com.telegramyou.app.update.AppUpdates
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
@@ -22,6 +23,10 @@ class TelegramYouApp : Application() {
 
     /** Read once here so the activity does not touch disk on every recreate. */
     lateinit var appearance: AppearanceStore
+        private set
+
+    /** Checking for and installing a newer build; see AppUpdates. */
+    lateinit var updates: AppUpdates
         private set
 
     /**
@@ -36,6 +41,10 @@ class TelegramYouApp : Application() {
         super.onCreate()
         createNotificationChannels()
         appearance = AppearanceStore(this)
+        updates = AppUpdates(this)
+        // Quietly, once a launch: nothing is said unless there is a newer
+        // build, and then the Settings tab says so.
+        updates.check(quiet = true)
 
         isSwitchedToDemo = !BuildConfig.USE_DEMO_CLIENT &&
             getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_DEMO, false)
