@@ -1635,7 +1635,7 @@ class TdLibTelegramClient(
         return (0 until list.length()).mapNotNull { index ->
             val raw = list.optJSONObject(index) ?: return@mapNotNull null
             ActiveSession(
-                id = raw.optLong("id"),
+                id = raw.optInt64("id"),
                 isCurrent = raw.optBoolean("is_current"),
                 kind = deviceKindOf(raw.optJSONObject("device_type")?.optString("@type").orEmpty()),
                 applicationName = raw.optString("application_name"),
@@ -1654,7 +1654,7 @@ class TdLibTelegramClient(
 
     override suspend fun terminateSession(id: Long) {
         awaitReady()
-        requireEngine().send(JSONObject().put("@type", "terminateSession").put("session_id", id))
+        requireEngine().send(JSONObject().put("@type", "terminateSession").put("session_id", id.toString()))
     }
 
     override suspend fun terminateOtherSessions() {
@@ -1800,7 +1800,7 @@ class TdLibTelegramClient(
                 stickerFromThumbnail(thumbnail, set.optString("title"))
             } ?: set.optJSONArray("covers")?.optJSONObject(0)?.let(::stickerOf)
             StickerSetPreview(
-                id = set.optLong("id"),
+                id = set.optInt64("id"),
                 title = set.optString("title"),
                 cover = cover
             )
@@ -1810,7 +1810,7 @@ class TdLibTelegramClient(
     override suspend fun stickerSet(setId: Long): List<StickerContent> {
         awaitReady()
         val stickers = requireEngine().send(
-            JSONObject().put("@type", "getStickerSet").put("set_id", setId)
+            JSONObject().put("@type", "getStickerSet").put("set_id", setId.toString())
         ).optJSONArray("stickers") ?: return emptyList()
         return (0 until stickers.length()).mapNotNull { stickers.optJSONObject(it)?.let(::stickerOf) }
     }
@@ -1859,7 +1859,7 @@ class TdLibTelegramClient(
         val file = sticker.optJSONObject("sticker")
         val thumbnail = sticker.optJSONObject("thumbnail")?.optJSONObject("file")
         return StickerContent(
-            id = sticker.optLong("id"),
+            id = sticker.optInt64("id"),
             emoji = sticker.optString("emoji"),
             format = when (sticker.optJSONObject("format")?.optString("@type")) {
                 "stickerFormatTgs" -> StickerFormat.Tgs
@@ -2613,7 +2613,7 @@ class TdLibTelegramClient(
         positions.apply(
             chatId = chatId,
             list = kind,
-            order = position.optLong("order"),
+            order = position.optInt64("order"),
             isPinned = position.optBoolean("is_pinned")
         )
     }
@@ -3175,3 +3175,18 @@ private fun emailResetOf(state: JSONObject?): EmailReset? {
         else -> null
     }
 }
+
+/**
+ * A TDLib `int64`, which its JSON sends as a string — "5139012345678901234".
+ *
+ * `optLong` looks as if it reads one, and does not: Android's org.json turns
+ * a string into a number through a Double, which keeps about sixteen
+ * significant digits, and an int64 id has nineteen. The last three come back
+ * wrong, and the id names nothing — which is how every sticker set said "This
+ * set is empty", and how ending a session would have ended none. Read as a
+ * string and parsed exactly; a plain number, where TDLib sends one, still
+ * reads. Sent back to TDLib, an int64 goes as a string for the same reason.
+ * (int53 fields — chat, user and message ids — are numbers and exact already.)
+ */
+private fun JSONObject.optInt64(key: String): Long =
+    optString(key).toLongOrNull() ?: optLong(key)
