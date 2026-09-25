@@ -22,6 +22,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Assume.assumeTrue
@@ -126,8 +127,16 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         // And opened at its latest line, which a conversation laid out from
-        // the top and scrolled down once loaded did not reliably do.
-        waitFor(By.textStartsWith("Looks sharp"), "the newest message")
+        // the top and scrolled down once loaded did not reliably do. Not by
+        // looking for the newest message's words: this chat speaks on a
+        // timer, so which message is newest depends on how long the run has
+        // taken. The jump-to-latest button is up exactly when the list is
+        // not at its end, so its absence is the thing itself.
+        device.waitForIdle(IDLE_TIMEOUT)
+        assertFalse(
+            "the conversation opened away from its latest message",
+            device.hasObject(By.desc("Jump to latest"))
+        )
         screenshot("04-chat")
 
         // And out again, to watch a notification arrive. The demo backend has
