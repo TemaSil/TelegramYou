@@ -28,6 +28,14 @@ class TelegramYouApp : Application() {
     lateinit var appearance: AppearanceStore
         private set
 
+    /**
+     * The demo backend, where that is what runs — reached only by the UI
+     * test, which runs in this process and asks it to speak (see
+     * DemoTelegramClient.speakNow). Null in a live build.
+     */
+    var demoClient: DemoTelegramClient? = null
+        private set
+
     /** Settings → For geeks. */
     lateinit var geeks: GeekStore
         private set
@@ -70,6 +78,7 @@ class TelegramYouApp : Application() {
                 )
             )
         }
+        demoClient = client as? DemoTelegramClient
         telegramRepository = TelegramRepository(client)
         telegramRepository.start()
         // The one geek setting that is TDLib's rather than the screens': sent

@@ -322,9 +322,20 @@ git fetch origin ui-screenshots && git show FETCH_HEAD:evidence/screenshots/03-c
 ```
 
 It holds three things: `evidence/screenshots/` — one PNG per step of the smoke
-test, `evidence/results/` — the instrumentation report, which names the test,
-the assertion and the stack trace, and `evidence/crash.txt` — the app's own
-fatal exceptions when there were any.
+test, `evidence/results/shard-N/` — the instrumentation report of each third,
+which names the test, the assertion and the stack trace, and
+`evidence/crash-shard-N.txt` — the app's own fatal exceptions when there were
+any.
+
+The smoke test runs as **three shards on three emulators at once**
+(AndroidJUnitRunner's `numShards`/`shardIndex`), and a `report` job puts the
+thirds back together before publishing and judging them — a run takes about
+a third of the ten minutes one emulator needed. A test must therefore not
+rely on another having run before it on the same device: which third a test
+lands in is decided by the runner, not by the order in the file. The demo
+chat that speaks on a timer can be asked to speak at once from a test
+(`TelegramYouApp.demoClient?.speakNow()`), which is what the notification
+tests do instead of waiting for it.
 
 A second branch, **`gallery`**, is the one that is never rewritten. After a
 green run on `main` the same workflow files eight of those screens into it
