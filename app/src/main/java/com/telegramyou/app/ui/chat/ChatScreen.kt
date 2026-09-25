@@ -11,9 +11,6 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.animation.core.Animatable
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.material.icons.rounded.EmojiEmotions
 import com.telegramyou.app.telegram.model.StickerContent
@@ -133,7 +130,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -265,22 +261,12 @@ fun ChatScreen(
 ) {
     val listState = rememberLazyListState()
 
-    // The conversation rises with the keyboard. The list's box shrinks as
-    // the keyboard grows (imePadding, below), but a list holds on to its top,
-    // so the newest messages slid under the composer and stayed there. Each
-    // frame of the keyboard's own animation, the list is scrolled on by as
-    // much as the keyboard grew — back by as much as it shrank — which keeps
-    // its bottom where it was and moves the bubbles up in step with the keys.
-    val density = LocalDensity.current
-    val keyboard = WindowInsets.ime
-    LaunchedEffect(listState) {
-        var previous = keyboard.getBottom(density)
-        snapshotFlow { keyboard.getBottom(density) }.collect { bottom ->
-            val grew = bottom - previous
-            previous = bottom
-            if (grew != 0) listState.dispatchRawDelta(grew.toFloat())
-        }
-    }
+    // The list is laid out from the bottom (reverseLayout, below), so it
+    // holds on to its newest message rather than its oldest. That one choice
+    // is what opens a chat at its latest line with nothing scrolling, keeps
+    // the bubbles rising with the keyboard as imePadding shrinks the list's
+    // box, and lets older pages arrive above without moving what is on
+    // screen. Item 0 is the newest message; see listIndexOf.
 
     // When this conversation was opened, in the same seconds as a message's
     // date: what arrives after it pops into place; what was already here
@@ -376,35 +362,30 @@ fun ChatScreen(
     // also changes the count, and scrolling to the bottom because somebody
     // scrolled up is the opposite of what they asked for.
     //
-    // And only when following along: the first time the chat opens, after
-    // our own message, or when the list was already at its end. Someone
-    // reading back through the history is not pulled away from it by a new
-    // line — the jump-to-latest button is there for that — which is what
-    // every messenger does and what this did not.
-    //
-    // The target counts the loading row the list may carry above the
-    // messages; the message's own index was one short whenever it did.
-    var hasScrolledIn by rememberSaveable { mutableStateOf(false) }
+    // And only when following along: after our own message, or when the list
+    // was already at its end. Someone reading back through the history is not
+    // pulled away from it by a new line — the jump-to-latest button is there
+    // for that. There is no first scroll in: a list laid out from the bottom
+    // opens there. It used to be laid out from the top and scrolled down on
+    // a spring once the first page arrived, and the older page that loaded
+    // meanwhile moved the index it was aiming at — so opening a chat showed
+    // its history sliding past and stopping somewhere above the latest line.
     LaunchedEffect(state.messages.lastOrNull()?.id) {
         val newest = state.messages.lastOrNull() ?: return@LaunchedEffect
-        val info = listState.layoutInfo
-        val lastVisible = info.visibleItemsInfo.lastOrNull()?.index ?: -1
-        // Two from the end: the list may or may not have laid out the new
+        // One from the start: the list may or may not have laid out the new
         // item by the time this runs.
-        val following = lastVisible >= info.totalItemsCount - 2
-        if (!hasScrolledIn || newest.isOutgoing || following) {
-            val leading = if (state.isLoadingOlder) 1 else 0
-            listState.animateScrollToItem(state.messages.size - 1 + leading)
-            hasScrolledIn = true
-        }
+        val following = listState.firstVisibleItemIndex <= 1
+        if (newest.isOutgoing || following) listState.animateScrollToItem(0)
     }
 
     // derivedStateOf so this recomputes on scroll without recomposing the
     // screen on every pixel of it.
     val nearTop by remember {
         derivedStateOf {
-            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
-            first != null && first.index <= 3
+            // The oldest end is the far end of a list laid out from the bottom.
+            val info = listState.layoutInfo
+            val last = info.visibleItemsInfo.lastOrNull()
+            last != null && last.index >= info.totalItemsCount - 4
         }
     }
     LaunchedEffect(nearTop, state.hasMoreOlder) {
@@ -415,12 +396,11 @@ fun ChatScreen(
     // derivedStateOf the whole screen recomposes on every pixel of it.
     val atLatest by remember {
         derivedStateOf {
-            val info = listState.layoutInfo
-            val last = info.visibleItemsInfo.lastOrNull()
             // An empty list counts as "at the latest": there is nothing to
             // jump to, and offering the button would be a control that does
             // nothing.
-            last == null || last.index >= info.totalItemsCount - 1
+            val first = listState.layoutInfo.visibleItemsInfo.firstOrNull()
+            first == null || first.index == 0
         }
     }
 
@@ -580,9 +560,7 @@ fun ChatScreen(
                         val index = state.messages.indexOfFirst { it.id == pinned.id }
                         if (index >= 0) {
                             scope.launch {
-                                listState.animateScrollToItem(
-                                    index + if (state.isLoadingOlder) 1 else 0
-                                )
+                                listState.animateScrollToItem(listIndexOf(index, state.messages))
                             }
                         }
                     }
@@ -609,10 +587,7 @@ fun ChatScreen(
                         onSearchOpenChange(false)
                         if (index >= 0) {
                             scope.launch {
-                                // The spinner, when it is up, is item zero.
-                                listState.animateScrollToItem(
-                                    index + if (state.isLoadingOlder) 1 else 0
-                                )
+                                listState.animateScrollToItem(listIndexOf(index, state.messages))
                             }
                         }
                     }
@@ -629,7 +604,15 @@ fun ChatScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    // Ending where the capsule ends, not at the bottom of the
+                    // screen. The conversation shows around the composer's
+                    // sides and above it, which is what floating it is for,
+                    // but not in the margin beneath it: a bubble scrolled
+                    // there showed as a stray strip between the capsule and
+                    // the gesture bar.
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = COMPOSER_MARGIN),
                     // Sixteen on three sides, and room for the composer on
                     // the fourth. The list runs underneath it now, so without
                     // this the newest message would sit behind the capsule
@@ -638,31 +621,22 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 96.dp
+                        bottom = 96.dp - COMPOSER_MARGIN
                     ),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    // Bottom, as a list laid out from the bottom has by
+                    // default: a short conversation sits on the composer.
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.Bottom),
+                    reverseLayout = true
                 ) {
-                    // A spinner where the older messages will appear, so the wait
-                    // has a place on screen instead of nothing happening.
-                    if (state.isLoadingOlder) {
-                        item(key = "loading-older") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            }
-                        }
-                    }
-
                     val messages = state.messages
                     val unreadFrom = unreadDividerIndex(
                         messages,
                         detail?.chat?.unreadCount ?: 0
                     )
-                    itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
+                    // Newest first, because item 0 is the bottom of the
+                    // list; `index` stays the message's place in time.
+                    itemsIndexed(messages.asReversed(), key = { _, m -> m.id }) { fromNewest, message ->
+                        val index = messages.lastIndex - fromNewest
                         val previous = messages.getOrNull(index - 1)
                         val next = messages.getOrNull(index + 1)
 
@@ -764,6 +738,22 @@ fun ChatScreen(
                         )
                         }
                     }
+
+                    // A spinner where the older messages will appear — the
+                    // top, the far end of this list — so the wait has a place
+                    // on screen instead of nothing happening.
+                    if (state.isLoadingOlder) {
+                        item(key = "loading-older") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
+                    }
                 }
 
                 }
@@ -822,9 +812,7 @@ fun ChatScreen(
                         SmallFloatingActionButton(
                             onClick = {
                                 scope.launch {
-                                    listState.animateScrollToItem(
-                                        (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
-                                    )
+                                    listState.animateScrollToItem(0)
                                 }
                             }
                         ) {
@@ -2721,7 +2709,7 @@ private fun ComposerBar(
             // there was nothing for the inset to hold clear of. See the
             // colour below. Sixteen once the edge shows is simply the right
             // number.
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = COMPOSER_MARGIN)
     ) {
         // No shadow, and that is the correction rather than an omission. The
         // first version of this carried shadowElevation = 6.dp, inherited
@@ -3080,3 +3068,12 @@ private fun Modifier.bleed(horizontal: Dp, top: Dp): Modifier = layout { measura
 
 /** How long after opening before the conversation's items animate their moves. */
 private const val SETTLE_MILLIS = 900L
+
+/**
+ * Where the message at [index] in time sits in the conversation's list,
+ * which is laid out from the bottom with the newest message as item 0.
+ */
+private fun listIndexOf(index: Int, messages: List<ChatMessage>): Int = messages.lastIndex - index
+
+/** The composer capsule's margin above and below; the list stops at its bottom edge. */
+private val COMPOSER_MARGIN = 8.dp

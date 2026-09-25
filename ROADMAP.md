@@ -287,6 +287,15 @@ careful with.
   and the time beneath, instead of sitting framed inside it.
 - **Group avatars** are 36dp at the foot of each run; at 28 a person's
   shape read as a stray mark.
+- **A chat opens at its latest message.** The list is laid out from the
+  bottom (`reverseLayout`), newest message first. It used to be laid out from
+  the top and scrolled down on a spring once the first page arrived, and the
+  older page loading meanwhile shifted the index it aimed at — so a chat
+  opened with its history sliding past and stopping above the latest line.
+  Laid out from the bottom it also rises with the keyboard by itself, which
+  the hand-written keyboard follower it replaces did frame by frame.
+- **Nothing shows beneath the composer.** The list stops at the capsule's
+  bottom edge; a bubble scrolled into the margin under it read as a strip.
 
 ## Motion between screens, 25 September 2026
 

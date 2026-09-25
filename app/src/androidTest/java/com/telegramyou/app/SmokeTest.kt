@@ -125,6 +125,9 @@ class SmokeTest {
         // Into a conversation, which is where most of this project's code is.
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        // And opened at its latest line, which a conversation laid out from
+        // the top and scrolled down once loaded did not reliably do.
+        waitFor(By.textStartsWith("Looks sharp"), "the newest message")
         screenshot("04-chat")
 
         // And out again, to watch a notification arrive. The demo backend has
