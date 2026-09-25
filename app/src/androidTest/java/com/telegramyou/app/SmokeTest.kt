@@ -461,19 +461,26 @@ class SmokeTest {
         // leaving, and scrolled a list that was gone by the time it moved.
         waitFor(By.text("Appearance"), "the settings")
         val row = By.text("Check for updates")
+        // The quiet check at launch may already have found a newer build, in
+        // which case the row offers it instead of offering to look — as it
+        // did on CI, whose APK is numbered by the UI workflow's own runs and
+        // so is always older than the published one.
+        val offered = By.textContains(" is out")
         // Near the bottom of Settings, which may be below the fold on a
         // small screen.
         repeat(3) {
-            if (device.wait(Until.hasObject(row), SHORT_WAIT)) return@repeat
+            if (device.wait(Until.hasObject(row), SHORT_WAIT) || device.hasObject(offered)) return@repeat
             try {
                 device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
             } catch (_: StaleObjectException) {
                 // Recomposed under the finger; the next round finds it again.
             }
         }
-        tap(row)
-        val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
-        waitFor(answer, "an answer from the update check")
+        if (!device.hasObject(offered)) {
+            tap(row)
+            val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
+            waitFor(answer, "an answer from the update check")
+        }
         screenshot("25-updates")
     }
 
