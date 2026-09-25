@@ -858,8 +858,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       server's timer with a countdown, correcting the number
 - [x] Two-step password with a show/hide toggle
 - [x] Expressive medium button at the bottom, loading inside it
-- [ ] Log in with a QR code from another device — TDLib's
-      `requestQrCodeAuthentication`; Telegram's own clients offer it
+- [x] Log in with a QR code from another device — TDLib's
+      `requestQrCodeAuthentication`, from a button under the phone field.
+      Material has no QR component and Android no generator: ZXing decides
+      which modules are dark, and they are drawn in Compose as rounded
+      squares in the theme's colours — always dark on light, which is what
+      scanners read
 - [ ] Email login steps (`authorizationStateWaitEmailAddress` / `…Code`),
       which new accounts can be asked for and which still end in an error
 
@@ -897,7 +901,8 @@ them. Ticks are only worth something if somebody moves them.
       account is re-read afterwards so what is shown is what the server took
 - [ ] Notifications settings — the two channels now exist, so this is
       per-chat overrides rather than a global switch
-- [ ] Language — Russian and English
+- [ ] Language — Russian and English. Left for last, on purpose: the
+      strings are only worth extracting once the screens have stopped moving
 - [ ] Data and storage, cache size
 
 ## 4. Media

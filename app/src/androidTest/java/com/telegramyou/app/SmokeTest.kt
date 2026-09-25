@@ -485,6 +485,34 @@ class SmokeTest {
     }
 
     /**
+     * Signing in by QR code: out of the account, the phone step's other way
+     * in, the code on screen — and in, when the demo "scans" it by itself a
+     * few seconds later, the way a phone scanning it would let a live one in.
+     */
+    @Test
+    fun signsInWithAQrCode() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        val logOut = By.text("Log out")
+        repeat(3) {
+            if (device.wait(Until.hasObject(logOut), SHORT_WAIT)) return@repeat
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        tap(logOut)
+        waitFor(By.text("Your phone"), "the login screen")
+        tap(By.text("Log in with a QR code"))
+        waitFor(By.desc("QR code to sign in"), "the QR code")
+        screenshot("26-qr-login")
+        waitFor(By.text("Material Design"), "the chat list after the scan")
+    }
+
+    /**
      * Folder tabs, which are a filter and have to be seen to filter.
      *
      * The demo backend seeds three folders with overlapping membership, so

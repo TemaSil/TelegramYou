@@ -104,6 +104,7 @@ fun TelegramYouNavHost(
             AuthState.WaitPhoneNumber,
             AuthState.WaitCode,
             AuthState.WaitPassword,
+            AuthState.WaitQrScan,
             AuthState.Bootstrapping,
             AuthState.Error,
             AuthState.Closed -> {
@@ -178,6 +179,7 @@ fun TelegramYouNavHost(
                 onSubmitPassword = authViewModel::submitPassword,
                 onResendCode = authViewModel::resendCode,
                 onChangeNumber = authViewModel::onChangeNumber,
+                onQrLogin = authViewModel::onQrLogin,
                 onChangeNumberCancelled = authViewModel::onChangeNumberCancelled,
                 onDefaultRegion = authViewModel::onDefaultRegion,
                 onDemoRequested = onDemoRequested

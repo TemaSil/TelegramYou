@@ -261,6 +261,33 @@ class DemoTelegramClient(
         startDemoChatter()
     }
 
+    /**
+     * A link that only looks like Telegram's, and a "scan" that happens by
+     * itself a few seconds later — the demo has no other phone to scan with,
+     * and the screen has to be seen to finish.
+     */
+    override suspend fun requestQrLogin() {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        delay(300)
+        _authState.update {
+            it.copy(
+                state = AuthState.WaitQrScan,
+                isLoading = false,
+                qrLink = "tg://login?token=demo-" + System.currentTimeMillis()
+            )
+        }
+        delay(DEMO_QR_SCAN_MS)
+        if (_authState.value.state != AuthState.WaitQrScan) return
+        _authState.update {
+            it.copy(
+                state = AuthState.Ready,
+                qrLink = null,
+                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou")
+            )
+        }
+        startDemoChatter()
+    }
+
     override suspend fun submitPassword(password: String) {
         _authState.update { it.copy(isLoading = true, errorMessage = null) }
         delay(400)
@@ -1228,3 +1255,6 @@ private val DEMO_CHATTER_LINES = listOf(
 
 private val demoTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 }
+
+/** How long the demo's QR code waits before it counts as scanned. */
+private const val DEMO_QR_SCAN_MS = 6_000L

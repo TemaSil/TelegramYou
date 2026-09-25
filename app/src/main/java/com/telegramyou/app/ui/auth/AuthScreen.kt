@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.auth
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.rounded.QrCode2
 import android.content.Context
 import android.telephony.TelephonyManager
 import androidx.activity.compose.BackHandler
@@ -131,6 +133,7 @@ fun AuthScreen(
     onSubmitPassword: () -> Unit,
     onResendCode: () -> Unit,
     onChangeNumber: () -> Unit = {},
+    onQrLogin: () -> Unit = {},
     onChangeNumberCancelled: () -> Unit = {},
     onDefaultRegion: (String?) -> Unit = {},
     onDemoRequested: () -> Unit = {}
@@ -144,6 +147,7 @@ fun AuthScreen(
         AuthStep.Phone -> onSubmitPhone
         AuthStep.Code -> onSubmitCode
         AuthStep.Password -> onSubmitPassword
+        AuthStep.Qr -> {}
     }
 
     Column(
@@ -204,7 +208,8 @@ fun AuthScreen(
                             phone = state.phone,
                             error = auth.errorMessage,
                             onPhoneChange = onPhoneChange,
-                            onSubmit = { if (state.canSubmit) onSubmitPhone() }
+                            onSubmit = { if (state.canSubmit) onSubmitPhone() },
+                            onQrLogin = onQrLogin
                         )
                         AuthStep.Code -> CodeStep(
                             state = state,
@@ -220,16 +225,24 @@ fun AuthScreen(
                             onPasswordChange = onPasswordChange,
                             onSubmit = { if (state.canSubmit) onSubmitPassword() }
                         )
+                        AuthStep.Qr -> QrStep(
+                            link = auth.qrLink,
+                            error = auth.errorMessage,
+                            onUsePhone = onChangeNumber
+                        )
                     }
                 }
             }
         }
 
-        SubmitButton(
+        // Nothing to submit while a code is being scanned: the other phone
+        // does the confirming.
+        if (state.step != AuthStep.Qr) SubmitButton(
             label = when (state.step) {
                 AuthStep.Phone -> "Continue"
                 AuthStep.Code -> "Sign in"
                 AuthStep.Password -> "Unlock"
+                AuthStep.Qr -> ""
             },
             isLoading = auth.isLoading && auth.state != AuthState.Bootstrapping,
             enabled = state.canSubmit,
@@ -275,6 +288,37 @@ private fun BrandMark(onDemoRequested: () -> Unit) {
             tint = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.size(40.dp)
         )
+    }
+}
+
+/**
+ * Signing in by scanning: the code, and how to scan it. The steps are the
+ * ones Telegram's own apps name, because they are what the person will see
+ * on the other phone. The link changes every half minute or so and the code
+ * with it; until the first one arrives, the loading indicator.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun QrStep(
+    link: String?,
+    error: String?,
+    onUsePhone: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        StepHeader(
+            "Scan to sign in",
+            "On a phone signed in to Telegram: Settings → Devices → Link Desktop Device, then point it here"
+        )
+        Spacer(Modifier.height(16.dp))
+        Box(Modifier.size(260.dp), contentAlignment = Alignment.Center) {
+            if (link == null) LoadingIndicator() else QrCode(link, size = 220.dp)
+        }
+        if (!error.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onUsePhone) { Text("Use a phone number instead") }
     }
 }
 
@@ -327,7 +371,8 @@ private fun PhoneStep(
     phone: String,
     error: String?,
     onPhoneChange: (String) -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onQrLogin: () -> Unit
 ) {
     val focus = rememberStepFocus()
     var picking by rememberSaveable { mutableStateOf(false) }
@@ -373,6 +418,16 @@ private fun PhoneStep(
             ),
             keyboardActions = KeyboardActions(onDone = { onSubmit() })
         )
+        // The other way in, for someone already signed in on a phone:
+        // Telegram's own clients offer it on this screen too.
+        TextButton(
+            onClick = onQrLogin,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Icon(Icons.Rounded.QrCode2, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Log in with a QR code")
+        }
     }
 
     if (picking) {

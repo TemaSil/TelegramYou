@@ -267,6 +267,10 @@ dependencies {
     // because media3-ui's own player view is a View with its own look that
     // belongs to no design system this app uses.
     implementation("androidx.media3:media3-exoplayer:1.11.1")
+    // The QR code for signing in from another device. ZXing only decides
+    // which modules are dark — the drawing is Compose's, see QrCode — and it
+    // is plain Java from Maven Central.
+    implementation("com.google.zxing:core:3.5.4")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")
