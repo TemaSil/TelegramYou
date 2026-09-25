@@ -951,20 +951,6 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
 }
 
 /**
- * Who to start a conversation with.
- *
- * A `ModalBottomSheet` rather than a screen: picking one name is a step on the
- * way somewhere, and a screen would put a back stack entry between the chat
- * list and the conversation that opens.
- *
- * Contacts, not everyone ever spoken to — the chat list already is the second,
- * and this button exists as the alternative to scrolling it.
- */
-// Both opt-ins: ModalBottomSheet is ExperimentalMaterial3Api and
-// LoadingIndicator is Expressive, which are separate annotations and separate
-// mistakes to make.
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
-/**
  * The pencil, opened into what it can start: Material 3 Expressive's FAB
  * menu. A toggle FAB whose pencil turns to a close mark, and the choices
  * rising from it — where they used to be three rows at the top of a sheet
@@ -1029,6 +1015,20 @@ private fun ComposeFabMenu(
     }
 }
 
+/**
+ * Who to start a conversation with.
+ *
+ * A `ModalBottomSheet` rather than a screen: picking one name is a step on the
+ * way somewhere, and a screen would put a back stack entry between the chat
+ * list and the conversation that opens.
+ *
+ * Contacts, not everyone ever spoken to — the chat list already is the second,
+ * and this button exists as the alternative to scrolling it.
+ */
+// Both opt-ins: ModalBottomSheet is ExperimentalMaterial3Api and
+// LoadingIndicator is Expressive, which are separate annotations and separate
+// mistakes to make.
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ContactPickerSheet(
     compose: ComposeState,
