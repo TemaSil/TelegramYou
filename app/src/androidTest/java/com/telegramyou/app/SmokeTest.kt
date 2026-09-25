@@ -456,12 +456,20 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
         tap(By.text("Settings"))
+        // Settings itself before anything is looked for in it: the first
+        // run went for "the scrollable thing" while the chat list was still
+        // leaving, and scrolled a list that was gone by the time it moved.
+        waitFor(By.text("Appearance"), "the settings")
         val row = By.text("Check for updates")
         // Near the bottom of Settings, which may be below the fold on a
         // small screen.
         repeat(3) {
-            if (device.hasObject(row)) return@repeat
-            device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
+            if (device.wait(Until.hasObject(row), SHORT_WAIT)) return@repeat
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
+            } catch (_: StaleObjectException) {
+                // Recomposed under the finger; the next round finds it again.
+            }
         }
         tap(row)
         val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
@@ -1055,6 +1063,9 @@ class SmokeTest {
         // and the difference was a failure rather than a wait.
         const val LAUNCH_TIMEOUT = 30_000L
         const val STEP_TIMEOUT = 20_000L
+
+        /** A look rather than a wait: whether something is already there. */
+        const val SHORT_WAIT = 2_000L
         const val IDLE_TIMEOUT = 5_000L
 
         /**
