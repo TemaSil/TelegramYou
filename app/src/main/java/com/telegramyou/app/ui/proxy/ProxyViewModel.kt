@@ -95,7 +95,15 @@ class ProxyViewModel(
 
     fun onAddDismiss() = _uiState.update { it.copy(draft = null) }
 
-    fun onDraftChange(draft: ProxyDraft) = _uiState.update { it.copy(draft = draft) }
+    /**
+     * An edit to the form, as a change rather than a finished draft. Applied
+     * to the draft as it is now, so two fields changed before the screen has
+     * redrawn — autofill, a paste, a test typing fast — cannot each write
+     * back a copy from before the other and undo it. That happened: the
+     * smoke test filled three fields and only the last one stayed.
+     */
+    fun onDraftChange(edit: (ProxyDraft) -> ProxyDraft) =
+        _uiState.update { state -> state.copy(draft = state.draft?.let(edit)) }
 
     /** A link pasted into the sheet fills every field it names. */
     fun onLinkPasted(text: String) {
