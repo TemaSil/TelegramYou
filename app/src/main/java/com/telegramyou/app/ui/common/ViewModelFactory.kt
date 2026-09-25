@@ -12,6 +12,7 @@ import com.telegramyou.app.ui.newchat.NewChatViewModel
 import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.settings.DevicesViewModel
 import com.telegramyou.app.ui.settings.StorageViewModel
+import com.telegramyou.app.ui.settings.PrivacyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
 
 /**
@@ -36,4 +37,5 @@ fun telegramViewModelFactory(repository: TelegramRepository): ViewModelProvider.
         initializer { ProxyViewModel(repository) }
         initializer { DevicesViewModel(repository) }
         initializer { StorageViewModel(repository) }
+        initializer { PrivacyViewModel(repository) }
     }

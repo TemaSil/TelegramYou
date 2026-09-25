@@ -66,6 +66,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.settings.DevicesScreen
+import com.telegramyou.app.ui.settings.PrivacyScreen
+import com.telegramyou.app.ui.settings.PrivacyViewModel
 import com.telegramyou.app.ui.settings.DevicesViewModel
 import com.telegramyou.app.ui.settings.StorageScreen
 import com.telegramyou.app.ui.settings.StorageViewModel
@@ -293,7 +295,9 @@ fun TelegramYouNavHost(
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
-                onOpenStorage = { navController.navigateTo(Route.Storage) }
+                onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
+                onTextScaleChange = appearance::setTextScale
             )
             }
         }
@@ -399,7 +403,9 @@ fun TelegramYouNavHost(
                     homeViewModel.logout()
                 },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
-                onOpenStorage = { navController.navigateTo(Route.Storage) }
+                onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
+                onTextScaleChange = appearance::setTextScale
             )
         }
         composable(Route.Devices.PATTERN) {
@@ -414,6 +420,18 @@ fun TelegramYouNavHost(
                 onTerminateConfirmed = devicesViewModel::onTerminateConfirmed,
                 onTerminateAllConfirmed = devicesViewModel::onTerminateAllConfirmed,
                 onMessageShown = devicesViewModel::onMessageShown
+            )
+        }
+        composable(Route.Privacy.PATTERN) {
+            val privacyViewModel: PrivacyViewModel = viewModel(factory = viewModelFactory)
+            val state by privacyViewModel.uiState.collectAsStateWithLifecycle()
+            PrivacyScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onEdit = privacyViewModel::onEdit,
+                onDismiss = privacyViewModel::onDismiss,
+                onAudienceChosen = privacyViewModel::onAudienceChosen,
+                onMessageShown = privacyViewModel::onMessageShown
             )
         }
         composable(Route.Storage.PATTERN) {

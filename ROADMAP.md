@@ -942,9 +942,11 @@ against the code showed `SettingsScreen.kt` had already been carrying half of
 them. Ticks are only worth something if somebody moves them.
 
 - [x] Settings list — `Scaffold`, `ListItem`, `Switch`
-- [~] Appearance: theme, dynamic colour and shaped avatars are done —
-      the first through `SingleChoiceSegmentedButtonRow`, the others as
-      `Switch` rows; text size is not
+- [x] Appearance: theme, dynamic colour, shaped avatars and text size —
+      the first through `SingleChoiceSegmentedButtonRow`, the switches as
+      `Switch` rows, and text size as a `Slider` with four named stops that
+      multiplies the system's font scale rather than replacing it, so a
+      phone already set larger stays larger
 - [x] Devices — Settings → Privacy and data: every session this account
       has, this phone first and the rest by last use, each with its device's
       icon, its app and where it is. One ends with a tap and a confirmation,
@@ -952,8 +954,15 @@ them. Ticks are only worth something if somebody moves them.
       not Telegram's own says "(unofficial)", since a stranger's client is
       what this list is looked at for. `getActiveSessions`, `terminateSession`,
       `terminateAllOtherSessions`; naming and ordering in `:core` with tests
-- [~] Privacy: sign out and devices are in; who can see the number, the
-      last-seen time and the rest of Telegram's privacy rules are not
+- [x] Privacy rules — phone number, finding by number, last seen, profile
+      photo, bio, forwarded messages, calls, and adding to groups: each a
+      list item saying who it is set to, changed in Material's radio-button
+      dialog. Telegram's rules are an ordered list; the audience is read
+      from its whole-audience rules and everything naming particular people
+      is kept exactly as read and written back first, so exceptions made in
+      another app survive a change made here — shown as "Everybody (−2)",
+      not edited. `getUserPrivacySettingRules` / `setUserPrivacySettingRules`;
+      the reading and writing in `:core` with tests
 - [x] Updates without a store — Settings → About asks the repository's
       `latest` release for its version, and a newer one downloads with
       Expressive's wavy progress bar and opens Android's installer. The same

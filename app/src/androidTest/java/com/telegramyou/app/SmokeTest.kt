@@ -1191,6 +1191,32 @@ class SmokeTest {
         )
     }
 
+    /**
+     * Privacy: each rule says who it is set to, and choosing another audience
+     * in its dialog changes the row. The demo's last-seen rule carries two
+     * exceptions made elsewhere, which the row has to show. Text size is
+     * checked for being offered; how large is for a person to judge.
+     */
+    @Test
+    fun privacyRulesChangeAndTextSizeIsOffered() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        waitFor(By.text("Text size"), "the text size setting")
+
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        waitFor(By.text("Phone number"), "the privacy rules")
+        waitFor(By.text("Everybody (−2)"), "last seen with its exceptions")
+        tap(By.text("Phone number"))
+        waitFor(By.text("Who can see my phone number"), "the phone number dialog")
+        tap(By.text("Nobody"))
+        waitFor(By.text("Nobody"), "phone number set to nobody")
+        screenshot("32-privacy")
+    }
+
     /** Scrolls the settings down until [selector] is on screen. */
     private fun scrollSettingsTo(selector: BySelector) {
         repeat(4) {

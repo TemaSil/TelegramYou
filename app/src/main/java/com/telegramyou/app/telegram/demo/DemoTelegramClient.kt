@@ -6,6 +6,10 @@ import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.PrivacySetting
+import com.telegramyou.app.telegram.model.PrivacyRules
+import com.telegramyou.app.telegram.model.PrivacyException
+import com.telegramyou.app.telegram.model.PrivacyAudience
 import com.telegramyou.app.telegram.model.StorageUsage
 import com.telegramyou.app.telegram.model.StorageSlice
 import com.telegramyou.app.telegram.model.StorageKind
@@ -578,6 +582,37 @@ class DemoTelegramClient(
      * offline: the screen asks, gets nothing, and stops asking — which is the
      * behaviour worth checking without an account.
      */
+    // ── privacy ──────────────────────────────────────────────────────────
+
+    /**
+     * An account set up the way people's usually are: the number for
+     * contacts, most things for everybody, and one setting carrying
+     * exceptions made somewhere else — which the screen has to show and keep.
+     */
+    private val demoPrivacy = mutableMapOf(
+        PrivacySetting.PhoneNumber to PrivacyRules(PrivacyAudience.Contacts),
+        PrivacySetting.FindByNumber to PrivacyRules(PrivacyAudience.Everybody),
+        PrivacySetting.LastSeen to PrivacyRules(
+            PrivacyAudience.Everybody,
+            listOf(PrivacyException(allow = false, count = 2, raw = ""))
+        ),
+        PrivacySetting.ProfilePhoto to PrivacyRules(PrivacyAudience.Everybody),
+        PrivacySetting.Bio to PrivacyRules(PrivacyAudience.Everybody),
+        PrivacySetting.Forwards to PrivacyRules(PrivacyAudience.Everybody),
+        PrivacySetting.Calls to PrivacyRules(PrivacyAudience.Contacts),
+        PrivacySetting.Invites to PrivacyRules(PrivacyAudience.Everybody)
+    )
+
+    override suspend fun privacyRules(setting: PrivacySetting): PrivacyRules {
+        delay(120)
+        return demoPrivacy[setting] ?: PrivacyRules(PrivacyAudience.Everybody)
+    }
+
+    override suspend fun setPrivacyRules(setting: PrivacySetting, rules: PrivacyRules) {
+        delay(250)
+        demoPrivacy[setting] = rules
+    }
+
     // ── sessions and storage ─────────────────────────────────────────────
 
     /**

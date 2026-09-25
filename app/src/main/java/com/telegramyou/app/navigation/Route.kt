@@ -68,6 +68,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Who can see and reach this account; from Settings. */
+    data object Privacy : Route {
+        const val PATTERN = "settings/privacy"
+        override val path = PATTERN
+    }
+
     /** The cache on this phone, and clearing it; from Settings. */
     data object Storage : Route {
         const val PATTERN = "settings/storage"

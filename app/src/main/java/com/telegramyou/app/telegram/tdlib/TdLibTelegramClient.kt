@@ -9,6 +9,10 @@ import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.audienceRules
+import com.telegramyou.app.telegram.model.privacyRulesOf
+import com.telegramyou.app.telegram.model.PrivacySetting
+import com.telegramyou.app.telegram.model.PrivacyRules
 import com.telegramyou.app.telegram.model.storageSlices
 import com.telegramyou.app.telegram.model.deviceKindOf
 import com.telegramyou.app.telegram.model.StorageUsage
@@ -1639,6 +1643,38 @@ class TdLibTelegramClient(
     override suspend fun terminateOtherSessions() {
         awaitReady()
         requireEngine().send(JSONObject().put("@type", "terminateAllOtherSessions"))
+    }
+
+    // ── privacy ──────────────────────────────────────────────────────────
+
+    override suspend fun privacyRules(setting: PrivacySetting): PrivacyRules {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getUserPrivacySettingRules")
+                .put("setting", JSONObject().put("@type", setting.tdType))
+        )
+        val rules = answer.optJSONArray("rules") ?: JSONArray()
+        return privacyRulesOf(
+            (0 until rules.length()).mapNotNull { index ->
+                val rule = rules.optJSONObject(index) ?: return@mapNotNull null
+                val named = rule.optJSONArray("user_ids") ?: rule.optJSONArray("chat_ids")
+                Triple(rule.optString("@type"), named?.length() ?: 0, rule.toString())
+            }
+        )
+    }
+
+    override suspend fun setPrivacyRules(setting: PrivacySetting, rules: PrivacyRules) {
+        awaitReady()
+        val list = JSONArray()
+        rules.exceptions.forEach { list.put(JSONObject(it.raw)) }
+        audienceRules(rules.audience).forEach { list.put(JSONObject().put("@type", it)) }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setUserPrivacySettingRules")
+                .put("setting", JSONObject().put("@type", setting.tdType))
+                .put("rules", JSONObject().put("@type", "userPrivacySettingRules").put("rules", list))
+        )
     }
 
     // ── storage ──────────────────────────────────────────────────────────

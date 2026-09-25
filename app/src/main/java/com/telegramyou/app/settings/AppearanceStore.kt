@@ -41,6 +41,12 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_SHAPED_AVATARS, enabled).apply()
     }
 
+    fun setTextScale(scale: Float) {
+        val step = TextSize.nearest(scale)
+        _settings.update { it.copy(textScale = step) }
+        preferences.edit().putFloat(KEY_TEXT_SCALE, step).apply()
+    }
+
     private fun read(): AppearanceSettings {
         val stored = preferences.getString(KEY_THEME, null)
         return AppearanceSettings(
@@ -48,7 +54,8 @@ class AppearanceStore(context: Context) {
             // the default is a better answer than a crash on startup.
             theme = ThemeChoice.entries.firstOrNull { it.name == stored } ?: ThemeChoice.System,
             dynamicColor = preferences.getBoolean(KEY_DYNAMIC, true),
-            shapedAvatars = preferences.getBoolean(KEY_SHAPED_AVATARS, true)
+            shapedAvatars = preferences.getBoolean(KEY_SHAPED_AVATARS, true),
+            textScale = TextSize.nearest(preferences.getFloat(KEY_TEXT_SCALE, 1f))
         )
     }
 
@@ -57,5 +64,6 @@ class AppearanceStore(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_DYNAMIC = "dynamic_color"
         const val KEY_SHAPED_AVATARS = "shaped_avatars"
+        const val KEY_TEXT_SCALE = "text_scale"
     }
 }

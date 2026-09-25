@@ -11,6 +11,9 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PrivacyAudience
+import com.telegramyou.app.telegram.model.PrivacyRules
+import com.telegramyou.app.telegram.model.PrivacySetting
 import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerSetPreview
@@ -204,6 +207,10 @@ class FakeTelegramClient(
     override suspend fun activeSessions(): List<ActiveSession> = emptyList()
 
     override suspend fun terminateSession(id: Long) = Unit
+
+    override suspend fun privacyRules(setting: PrivacySetting) = PrivacyRules(PrivacyAudience.Everybody)
+
+    override suspend fun setPrivacyRules(setting: PrivacySetting, rules: PrivacyRules) = Unit
 
     override suspend fun terminateOtherSessions() = Unit
 
