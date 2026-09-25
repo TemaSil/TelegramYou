@@ -1,5 +1,16 @@
 package com.telegramyou.app.ui.home
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.LightMode
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.telegramyou.app.settings.isDark
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
@@ -145,7 +156,9 @@ fun HomeScreen(
     /** Called once a refusal in [HomeUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit = {},
     /** A list is near its end: the main one for null, else that folder. */
-    onListEndReached: (Int?) -> Unit = {}
+    onListEndReached: (Int?) -> Unit = {},
+    onOpenProxy: () -> Unit = {},
+    onOpenSavedMessages: () -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -368,7 +381,27 @@ fun HomeScreen(
                     .nestedScroll(header.nestedScrollConnection)
             ) {
                 CollapsingHeader(header.state) {
-                    HomeTitleBar(windowInsets = WindowInsets(0))
+                    HomeTitleBar(
+                        windowInsets = WindowInsets(0),
+                        isDark = isDark(settings.theme, isSystemInDarkTheme()),
+                        onThemeChange = onThemeChange,
+                        onOpenProxy = onOpenProxy,
+                        onOpenSavedMessages = onOpenSavedMessages
+                    )
+                    // Stories first, then the folders: the tabs choose what
+                    // the list below shows, so they sit against it, and the
+                    // stories — which are not a filter of anything — sit
+                    // above, with the name.
+                    //
+                    // In the header rather than as the list's first item, and
+                    // that is what makes the panel below look like a panel:
+                    // as a row inside the list it painted itself back to the
+                    // header's tone across the full width, which squared off
+                    // the rounded corners it was sitting on.
+                    StoriesRail(
+                        stories = state.stories,
+                        onStoryClick = onOpenStory
+                    )
                     FolderTabs(
                         tabs = tabs,
                         unread = state.folderUnread,
@@ -379,16 +412,7 @@ fun HomeScreen(
                             scope.launch { pager.animateScrollToPage(index) }
                         }
                     )
-                    // In the header rather than as the list's first item, and
-                    // that is what makes the panel below look like a panel:
-                    // as a row inside the list it painted itself back to the
-                    // header's tone across the full width, which squared off
-                    // the rounded corners it was sitting on.
-                    StoriesRail(
-                        stories = state.stories,
-                        onStoryClick = onOpenStory
-                    )
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(8.dp))
                 }
                 PullToRefreshBox(
                     isRefreshing = state.isRefreshing,
@@ -625,9 +649,59 @@ private fun ChatListPage(
 @Composable
 private fun HomeTitleBar(
     modifier: Modifier = Modifier,
-    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets
+    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    isDark: Boolean = false,
+    onThemeChange: (ThemeChoice) -> Unit = {},
+    onOpenProxy: () -> Unit = {},
+    onOpenSavedMessages: () -> Unit = {}
 ) {
+    var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
+        // The overflow: three things reached for from the chat list that are
+        // not chats — the light, a way round a block, and the chat with
+        // oneself. A menu rather than three icons, which would crowd the
+        // name the bar exists to carry.
+        actions = {
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = "More")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (isDark) "Light theme" else "Dark theme") },
+                        leadingIcon = {
+                            Icon(
+                                if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                                contentDescription = null
+                            )
+                        },
+                        onClick = {
+                            menuOpen = false
+                            // A choice, not "follow the system" — it is what
+                            // was asked for from here. Settings still offers
+                            // System to go back to.
+                            onThemeChange(if (isDark) ThemeChoice.Light else ThemeChoice.Dark)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Proxy") },
+                        leadingIcon = { Icon(Icons.Rounded.VpnKey, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenProxy()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Saved Messages") },
+                        leadingIcon = { Icon(Icons.Rounded.Bookmark, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenSavedMessages()
+                        }
+                    )
+                }
+            }
+        },
         title = {
             // One line, and it is the app's name. Expressive's
             // argument for type is contrast — a display size set

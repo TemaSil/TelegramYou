@@ -15,6 +15,7 @@ import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -337,6 +338,10 @@ class DemoTelegramClient(
 
     override suspend fun openPrivateChat(userId: Long): Long {
         delay(200)
+        // A chat with oneself is Saved Messages, as it is on Telegram.
+        if (userId == _authState.value.me?.id) {
+            _chats.value.firstOrNull { it.title == "Saved Messages" }?.let { return it.id }
+        }
         val contact = demoContacts.firstOrNull { it.id == userId } ?: return 1L
         // An existing conversation with that person if there is one, so the
         // picker lands where the chat list would have. Matching on the title
@@ -700,6 +705,44 @@ class DemoTelegramClient(
         _stories.update { list ->
             list.map { if (it.id == storyId) it.copy(hasUnseen = false) else it }
         }
+    }
+
+    // ── proxies ──────────────────────────────────────────────────────────
+    //
+    // Kept in memory, which is all the demo keeps. Every proxy "answers" in a
+    // time made from its address, so the screen shows a ping without the
+    // demo reaching anything.
+
+    private val demoProxies = MutableStateFlow<List<ProxyServer>>(emptyList())
+    private val proxyIds = AtomicLong(0)
+
+    override suspend fun proxies(): List<ProxyServer> = demoProxies.value
+
+    override suspend fun addProxy(proxy: ProxyServer, enable: Boolean): Int {
+        delay(150)
+        val id = proxyIds.incrementAndGet().toInt()
+        demoProxies.update { list ->
+            list.map { if (enable) it.copy(isEnabled = false) else it } +
+                proxy.copy(id = id, isEnabled = enable)
+        }
+        return id
+    }
+
+    override suspend fun enableProxy(id: Int) {
+        demoProxies.update { list -> list.map { it.copy(isEnabled = it.id == id) } }
+    }
+
+    override suspend fun disableProxy() {
+        demoProxies.update { list -> list.map { it.copy(isEnabled = false) } }
+    }
+
+    override suspend fun removeProxy(id: Int) {
+        demoProxies.update { list -> list.filterNot { it.id == id } }
+    }
+
+    override suspend fun pingProxy(proxy: ProxyServer): Long? {
+        delay(300)
+        return 40L + (proxy.server.hashCode() and 0xff)
     }
 
     override suspend fun logout() {

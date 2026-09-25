@@ -484,6 +484,16 @@ class HomeViewModel(
     }
 
     /** Called once the screen has navigated, so a rotation does not repeat it. */
+    /**
+     * Saved Messages: Telegram's chat with oneself, reached the same way as a
+     * chat with anyone — by the account's own user id — and navigated to
+     * through the compose state like any chat the picker opens.
+     */
+    fun onOpenSavedMessages() {
+        val me = repository.observeAuth().value.me ?: return
+        onContactPicked(me.id)
+    }
+
     fun onComposeNavigated() {
         compose.value = ComposeState()
     }

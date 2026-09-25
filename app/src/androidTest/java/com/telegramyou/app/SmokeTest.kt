@@ -403,6 +403,44 @@ class SmokeTest {
     }
 
     /**
+     * The chat list's overflow menu reaches Saved Messages and the proxies,
+     * and a proxy added there is listed.
+     *
+     * Saved Messages is proved by the composer: the menu item and the chat
+     * row share a name, and only the conversation has a message field.
+     */
+    @Test
+    fun theOverflowMenuOpensSavedMessagesAndProxies() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+
+        tap(By.desc("More"))
+        tap(By.text("Saved Messages"))
+        waitFor(By.text("Message"), "the Saved Messages conversation")
+        screenshot("22-saved-messages")
+        device.pressBack()
+
+        waitFor(By.text("Material Design"), "the chat list again")
+        tap(By.desc("More"))
+        tap(By.text("Proxy"))
+        waitFor(By.text("Use proxy"), "the proxy screen")
+        tap(By.text("Add proxy"))
+        waitFor(By.text("Save and connect"), "the add-proxy sheet")
+        // Server, port and secret, in that order down the sheet.
+        val fields = device.findObjects(By.clazz("android.widget.EditText"))
+        assertTrue("the sheet has ${fields.size} fields", fields.size >= 3)
+        fields[0].text = PROXY_SERVER
+        fields[1].text = "443"
+        fields[2].text = "dd" + "0123456789abcdef".repeat(2)
+        device.waitForIdle(IDLE_TIMEOUT)
+        tap(By.text("Save and connect"))
+        waitFor(By.text("$PROXY_SERVER:443"), "the added proxy")
+        waitFor(By.textContains(" ms"), "the proxy's ping")
+        screenshot("23-proxy")
+    }
+
+    /**
      * Folder tabs, which are a filter and have to be seen to filter.
      *
      * The demo backend seeds three folders with overlapping membership, so
@@ -1035,6 +1073,9 @@ class SmokeTest {
          * chat of the same name, and a tap by that name can land on the row.
          */
         const val STORY_AUTHOR = "Circle"
+
+        /** A proxy the demo pretends to reach. */
+        const val PROXY_SERVER = "proxy.example.org"
         const val STORY_CAPTION = "Palette drop"
         const val APP_TITLE = "TelegramYou"
 

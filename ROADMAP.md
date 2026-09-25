@@ -108,7 +108,7 @@ Still to spend the move on:
 - [~] Settings still uses `SingleChoiceSegmentedButtonRow` for the theme
       choice; `ButtonGroup` is the Expressive alternative, and now the most
       likely home for it
-- [ ] A bottom navigation bar on Home — `ShortNavigationBar`, not
+- [x] A bottom navigation bar on Home — `ShortNavigationBar`, not
       `ButtonGroup`: it is navigation, and Expressive has a component for
       exactly that
 
@@ -269,6 +269,31 @@ careful with.
 - Grouped lists → `SegmentedListItem`, never hand-cut corner radii
 - [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
       `ui/common`; `LocalClipboardManager` is gone
+
+## The schema, 25 September 2026
+
+Sending a photo failed with TDLib's "Input file is not specified", and the
+folder tabs were all called "Folder". Both were the same mistake: the TDLib
+this app is built with (`d1085f9`) moved fields the code still wrote and read
+at their old places. Checked against that commit's `td_api.tl`, line by line:
+
+- **Photos, files and voice notes could not be sent.** The file now sits in
+  an `inputPhoto`, `inputDocument` or `inputVoiceNote` of its own.
+- **Folder names** are `name.text.text`, a `chatFolderName` holding a
+  `formattedText`.
+- **Link previews never showed** (`link_preview`, formerly `web_page`), a
+  **reply's quote** was read as a string where it is a `formattedText`, and
+  **@usernames** were read from a list of objects where TDLib sends
+  `usernames.active_usernames`, a list of strings.
+- The proxy API is new in the same way — `addProxy` takes a `proxy` object
+  and the list is `addedProxies` — and was written against the schema from
+  the start.
+
+When TDLib is next bumped, its `td_api.tl` is the thing to diff first.
+
+Also on the chat list: the stories sit above the folder tabs now, next to
+the name, and the tabs against the list they filter. The bar gained an
+overflow menu — light or dark theme, proxy, Saved Messages.
 
 ## On a real account, 24 September 2026
 
@@ -835,6 +860,12 @@ them. Ticks are only worth something if somebody moves them.
       the first through `SingleChoiceSegmentedButtonRow`, the others as
       `Switch` rows; text size is not
 - [~] Sign out is there; the rest of privacy and active sessions is not
+- [x] Proxy — SOCKS5, HTTP and MTProto through TDLib's own list
+      (`addProxy`, `enableProxy`, `pingProxy`), from the chat list's overflow
+      menu. One is used at a time, so the list is a radio choice, and each
+      row says how its proxy answered a ping. A pasted `tg://proxy` or
+      `t.me/socks` link fills the form; the parsing and the form's rules are
+      in `:core` with tests
 - [x] Profile: name, bio and username, edited in place — the fields are the
       profile, with no pencil and no second screen behind one. What is valid
       is `:core`'s `ProfileEditing` with 22 tests, because a username Telegram
@@ -967,6 +998,6 @@ transcription, a tablet layout, markdown parser options, QR login.
 
 - [x] TDLib wired through `JsonClient`, demo backend for offline work
 - [x] Build TDLib workflow (`JSONJava`) publishing the native libraries
-- [ ] Unpack `tdlib-java-d1085f9` into `app/src/main/jniLibs/` — the release exists, nobody has used it yet
+- [x] Unpack `tdlib-java-d1085f9` into `app/src/main/jniLibs/` — `fetchTdlib` in `app/build.gradle.kts` does it for every live build
 - [x] CI that builds the APK on push
 - [x] Tests over the pure logic (message grouping); backends still untested

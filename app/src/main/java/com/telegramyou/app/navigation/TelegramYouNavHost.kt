@@ -52,6 +52,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
+import com.telegramyou.app.ui.proxy.ProxyScreen
+import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
 import com.telegramyou.app.ui.stories.StoryViewerScreen
 
@@ -224,7 +226,26 @@ fun TelegramYouNavHost(
                 onComposeNavigated = homeViewModel::onComposeNavigated,
                 onLogout = homeViewModel::logout,
                 onErrorShown = homeViewModel::onErrorShown,
-                onListEndReached = homeViewModel::onListEndReached
+                onListEndReached = homeViewModel::onListEndReached,
+                onOpenProxy = { navController.navigateTo(Route.Proxy) },
+                onOpenSavedMessages = homeViewModel::onOpenSavedMessages
+            )
+        }
+        composable(Route.Proxy.PATTERN) {
+            val proxyViewModel: ProxyViewModel = viewModel(factory = viewModelFactory)
+            val state by proxyViewModel.uiState.collectAsStateWithLifecycle()
+            ProxyScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onUseProxyChange = proxyViewModel::onUseProxyChange,
+                onSelect = proxyViewModel::onSelect,
+                onRemove = proxyViewModel::onRemove,
+                onAddOpen = proxyViewModel::onAddOpen,
+                onAddDismiss = proxyViewModel::onAddDismiss,
+                onDraftChange = proxyViewModel::onDraftChange,
+                onLinkPasted = proxyViewModel::onLinkPasted,
+                onSave = proxyViewModel::onSave,
+                onErrorShown = proxyViewModel::onErrorShown
             )
         }
         // Group and channel share a screen and a state holder; only what the

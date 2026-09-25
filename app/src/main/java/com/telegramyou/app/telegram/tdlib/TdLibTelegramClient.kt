@@ -29,6 +29,8 @@ import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.ProxyKind
+import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.SendState
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
@@ -1046,7 +1048,7 @@ class TdLibTelegramClient(
                 contents.put(
                     JSONObject()
                         .put("@type", "inputMessagePhoto")
-                        .put("photo", JSONObject().put("@type", "inputFileLocal").put("path", path))
+                        .put("photo", inputPhoto(path))
                         .put(
                             "caption",
                             JSONObject()
@@ -1075,13 +1077,18 @@ class TdLibTelegramClient(
     ) {
         val content = JSONObject()
             .put("@type", "inputMessageVoiceNote")
-            .put("voice_note", JSONObject().put("@type", "inputFileLocal").put("path", path))
-            .put("duration", durationSeconds)
-            // The bar chart Telegram draws behind a voice message: 5-bit
-            // samples packed into bytes and base64'd. Measured while
-            // recording, so every client that opens this message sees the
-            // shape of what was actually said.
-            .put("waveform", Base64.getEncoder().encodeToString(packWaveform(waveform)))
+            .put(
+                "voice_note",
+                JSONObject()
+                    .put("@type", "inputVoiceNote")
+                    .put("voice_note", localFile(path))
+                    .put("duration", durationSeconds)
+                    // The bar chart Telegram draws behind a voice message:
+                    // 5-bit samples packed into bytes and base64'd. Measured
+                    // while recording, so every client that opens this message
+                    // sees the shape of what was actually said.
+                    .put("waveform", Base64.getEncoder().encodeToString(packWaveform(waveform)))
+            )
             .put(
                 "caption",
                 JSONObject().put("@type", "formattedText").put("text", caption)
@@ -1346,6 +1353,89 @@ class TdLibTelegramClient(
         }
     }
 
+    // ── proxies ──────────────────────────────────────────────────────────
+    //
+    // No awaitReady in any of these: TDLib takes proxies before sign-in,
+    // which is exactly when someone who needs one needs it.
+
+    override suspend fun proxies(): List<ProxyServer> {
+        val list = requireEngine().send(JSONObject().put("@type", "getProxies"))
+            .optJSONArray("proxies") ?: return emptyList()
+        return (0 until list.length()).mapNotNull { index ->
+            val added = list.optJSONObject(index) ?: return@mapNotNull null
+            val proxy = added.optJSONObject("proxy") ?: return@mapNotNull null
+            val type = proxy.optJSONObject("type")
+            ProxyServer(
+                id = added.optInt("id"),
+                server = proxy.optString("server"),
+                port = proxy.optInt("port"),
+                kind = when (type?.optString("@type")) {
+                    "proxyTypeSocks5" -> ProxyKind.Socks5
+                    "proxyTypeHttp" -> ProxyKind.Http
+                    else -> ProxyKind.MtProto
+                },
+                username = type?.optString("username").orEmpty(),
+                password = type?.optString("password").orEmpty(),
+                secret = type?.optString("secret").orEmpty(),
+                isEnabled = added.optBoolean("is_enabled")
+            )
+        }
+    }
+
+    override suspend fun addProxy(proxy: ProxyServer, enable: Boolean): Int =
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "addProxy")
+                .put("proxy", proxyObject(proxy))
+                .put("enable", enable)
+                .put("comment", "")
+        ).optInt("id")
+
+    override suspend fun enableProxy(id: Int) {
+        requireEngine().send(JSONObject().put("@type", "enableProxy").put("proxy_id", id))
+    }
+
+    override suspend fun disableProxy() {
+        requireEngine().send(JSONObject().put("@type", "disableProxy"))
+    }
+
+    override suspend fun removeProxy(id: Int) {
+        requireEngine().send(JSONObject().put("@type", "removeProxy").put("proxy_id", id))
+    }
+
+    override suspend fun pingProxy(proxy: ProxyServer): Long? = try {
+        val seconds = requireEngine().send(
+            JSONObject().put("@type", "pingProxy").put("proxy", proxyObject(proxy))
+        ).optDouble("seconds")
+        (seconds * 1000).toLong().takeIf { !seconds.isNaN() }
+    } catch (e: TdLibException) {
+        Log.d(TAG, "pingProxy: ${e.message}")
+        null
+    }
+
+    /** A `proxy` — server, port and a type carrying that type's credentials. */
+    private fun proxyObject(proxy: ProxyServer): JSONObject {
+        val type = when (proxy.kind) {
+            ProxyKind.Socks5 -> JSONObject()
+                .put("@type", "proxyTypeSocks5")
+                .put("username", proxy.username)
+                .put("password", proxy.password)
+            ProxyKind.Http -> JSONObject()
+                .put("@type", "proxyTypeHttp")
+                .put("username", proxy.username)
+                .put("password", proxy.password)
+                .put("http_only", false)
+            ProxyKind.MtProto -> JSONObject()
+                .put("@type", "proxyTypeMtproto")
+                .put("secret", proxy.secret)
+        }
+        return JSONObject()
+            .put("@type", "proxy")
+            .put("server", proxy.server)
+            .put("port", proxy.port)
+            .put("type", type)
+    }
+
     override suspend fun logout() {
         try {
             requireEngine().send(JSONObject().put("@type", "logOut"))
@@ -1408,6 +1498,21 @@ class TdLibTelegramClient(
         _authState.update { it.copy(me = me) }
     }
 
+    /**
+     * A file on this device, as TDLib takes one.
+     *
+     * Photos, documents and voice notes each wrap it in an object of their
+     * own — `inputPhoto`, `inputDocument`, `inputVoiceNote` — since the TDLib
+     * this app is built with. Handing TDLib the bare file where one of those
+     * belongs is what made every photo fail with "Input file is not
+     * specified": it looked inside for a file and found none.
+     */
+    private fun localFile(path: String): JSONObject =
+        JSONObject().put("@type", "inputFileLocal").put("path", path)
+
+    private fun inputPhoto(path: String): JSONObject =
+        JSONObject().put("@type", "inputPhoto").put("photo", localFile(path))
+
     private suspend fun sendLocalFile(
         chatId: Long,
         path: String,
@@ -1418,10 +1523,7 @@ class TdLibTelegramClient(
         val content = if (photo) {
             JSONObject()
                 .put("@type", "inputMessagePhoto")
-                .put(
-                    "photo",
-                    JSONObject().put("@type", "inputFileLocal").put("path", path)
-                )
+                .put("photo", inputPhoto(path))
                 .put(
                     "caption",
                     JSONObject().put("@type", "formattedText").put("text", caption)
@@ -1431,7 +1533,9 @@ class TdLibTelegramClient(
                 .put("@type", "inputMessageDocument")
                 .put(
                     "document",
-                    JSONObject().put("@type", "inputFileLocal").put("path", path)
+                    JSONObject()
+                        .put("@type", "inputDocument")
+                        .put("document", localFile(path))
                 )
                 .put(
                     "caption",
@@ -1951,8 +2055,13 @@ class TdLibTelegramClient(
         val folders = ArrayList<ChatFolder>(array.length())
         for (i in 0 until array.length()) {
             val info = array.optJSONObject(i) ?: continue
-            val title = info.optJSONObject("title")?.optString("text")
-                ?: info.optString("title")
+            // `name` is a chatFolderName, whose text is a formattedText —
+            // two objects down. This read a `title` that TDLib no longer
+            // sends, and every folder came out called "Folder".
+            val title = info.optJSONObject("name")
+                ?.optJSONObject("text")
+                ?.optString("text")
+                .orEmpty()
             folders += ChatFolder(
                 id = info.optInt("id"),
                 title = title.ifBlank { "Folder" },
@@ -2111,7 +2220,11 @@ class TdLibTelegramClient(
      * the text is the part that says whether the link is worth opening.
      */
     private fun linkPreview(content: JSONObject?): LinkPreview? {
-        val page = content?.optJSONObject("web_page") ?: return null
+        // `link_preview` since TDLib renamed webPage; `web_page` kept for an
+        // older library.
+        val page = content?.optJSONObject("link_preview")
+            ?: content?.optJSONObject("web_page")
+            ?: return null
         val preview = LinkPreview(
             url = page.optString("url"),
             siteName = page.optString("site_name"),
@@ -2213,6 +2326,8 @@ class TdLibTelegramClient(
             // is there it is more accurate than the whole original message.
             replyToText = message.optJSONObject("reply_to")
                 ?.optJSONObject("quote")
+                // A textQuote's text is a formattedText, not a string.
+                ?.optJSONObject("text")
                 ?.optString("text")
                 ?.takeIf { it.isNotBlank() },
             // An incoming message is ours to read, not theirs; an outgoing
@@ -2380,10 +2495,12 @@ class TdLibTelegramClient(
             id = user.optLong("id"),
             firstName = user.optString("first_name"),
             lastName = user.optString("last_name"),
-            username = user.optJSONArray("usernames")
-                ?.optJSONObject(0)
-                ?.optString("username")
-                ?: user.optString("username").ifBlank { null },
+            // `usernames` is an object holding a list of plain strings, the
+            // first being the one to show.
+            username = user.optJSONObject("usernames")
+                ?.optJSONArray("active_usernames")
+                ?.optString(0)
+                ?.ifBlank { null },
             phoneNumber = user.optString("phone_number").ifBlank { null },
             avatarColor = user.optLong("id"),
             isPremium = user.optBoolean("is_premium"),

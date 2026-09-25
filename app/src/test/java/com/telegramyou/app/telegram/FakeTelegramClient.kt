@@ -9,6 +9,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -356,6 +357,13 @@ class FakeTelegramClient(
     override suspend fun availableReactions(chatId: Long): List<String> = permittedReactions
 
     override suspend fun storyFrames(storyId: Long): List<StoryFrame> = emptyList()
+
+    override suspend fun proxies(): List<ProxyServer> = emptyList()
+    override suspend fun addProxy(proxy: ProxyServer, enable: Boolean): Int = 1
+    override suspend fun enableProxy(id: Int) = Unit
+    override suspend fun disableProxy() = Unit
+    override suspend fun removeProxy(id: Int) = Unit
+    override suspend fun pingProxy(proxy: ProxyServer): Long? = null
 
     override suspend fun markStorySeen(storyId: Long, frameId: Int) = Unit
 }

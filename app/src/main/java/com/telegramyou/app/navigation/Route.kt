@@ -47,6 +47,16 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /**
+     * The proxies Telegram connects through. From the chat list's menu, since
+     * it is reached for when Telegram will not connect — not somewhere to
+     * browse settings to.
+     */
+    data object Proxy : Route {
+        const val PATTERN = "proxy"
+        override val path = PATTERN
+    }
+
     data object Settings : Route {
         const val PATTERN = "settings"
         override val path = PATTERN
