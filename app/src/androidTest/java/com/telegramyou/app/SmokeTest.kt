@@ -1293,11 +1293,12 @@ class SmokeTest {
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         waitFor(By.text(Pattern.compile("\\d{2}:\\d{2}:\\d{2}")), "a time with seconds")
-        // A message only one bubble says. "Welcome to TelegramYou" is also
-        // the pinned bar's line, which comes first in the hierarchy — and a
-        // long press on the bar opens nothing, which is what three runs of
-        // this test were pressing.
-        val bubble = By.textStartsWith("Attach files from the composer")
+        // Pressed on a time with seconds, which is inside a bubble and on
+        // screen however much the demo chat has said by now. Not on a
+        // message's words: "Welcome to TelegramYou" is also the pinned bar's
+        // line, first in the hierarchy and with no menu, and any other line
+        // may have scrolled away under the chat's own chatter.
+        val bubble = By.text(Pattern.compile("\\d{2}:\\d{2}:\\d{2}"))
         waitFor(bubble, "a message to open the menu of")
         repeat(3) {
             if (device.hasObject(By.text("Details"))) return@repeat
