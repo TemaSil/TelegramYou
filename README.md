@@ -4,6 +4,21 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 0.2.307
+
+2026-09-25 · [`be89bb7`](https://github.com/TemaSil/TelegramYou/commit/be89bb7b642e1e6c070446eefd2f031b9881805a)
+
+<p>
+  <img src="builds/0.2.307/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/0.2.307/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/0.2.307/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/0.2.307/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/0.2.307/14-video.jpg" width="160" alt="Video" title="Video">
+  <img src="builds/0.2.307/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/0.2.307/16-new-group.jpg" width="160" alt="New group" title="New group">
+  <img src="builds/0.2.307/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+</p>
+
 ## 0.2.302
 
 2026-09-25 · [`f3860d8`](https://github.com/TemaSil/TelegramYou/commit/f3860d890791392b4959f305fb3607efdc4988b0)
