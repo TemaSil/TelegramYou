@@ -4,12 +4,15 @@ import com.telegramyou.app.telegram.auth.TelegramAuth
 import com.telegramyou.app.telegram.chats.TelegramChats
 import com.telegramyou.app.telegram.messages.TelegramMessages
 import com.telegramyou.app.telegram.profile.TelegramProfile
+import com.telegramyou.app.telegram.privacy.TelegramPrivacy
 import com.telegramyou.app.telegram.proxy.TelegramProxies
+import com.telegramyou.app.telegram.sessions.TelegramSessions
 import com.telegramyou.app.telegram.stickers.TelegramStickers
+import com.telegramyou.app.telegram.storage.TelegramStorage
 import com.telegramyou.app.telegram.stories.TelegramStories
 
 /**
- * One connection to Telegram, presented as seven smaller interfaces.
+ * One connection to Telegram, presented as ten smaller interfaces.
  *
  * The split is for the callers, not for the backends: both of those still
  * implement the whole of this, because both speak to one TDLib socket — or
@@ -27,8 +30,11 @@ interface TelegramClient :
     TelegramChats,
     TelegramMessages,
     TelegramProfile,
+    TelegramPrivacy,
     TelegramProxies,
+    TelegramSessions,
     TelegramStickers,
+    TelegramStorage,
     TelegramStories {
 
     /** Opens the connection. Called once, from `TelegramYouApp`. */

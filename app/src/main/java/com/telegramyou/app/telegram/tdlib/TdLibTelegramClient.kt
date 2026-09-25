@@ -9,6 +9,15 @@ import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.audienceRules
+import com.telegramyou.app.telegram.model.privacyRulesOf
+import com.telegramyou.app.telegram.model.PrivacySetting
+import com.telegramyou.app.telegram.model.PrivacyRules
+import com.telegramyou.app.telegram.model.storageSlices
+import com.telegramyou.app.telegram.model.deviceKindOf
+import com.telegramyou.app.telegram.model.StorageUsage
+import com.telegramyou.app.telegram.model.StorageKind
+import com.telegramyou.app.telegram.model.ActiveSession
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -1617,6 +1626,140 @@ class TdLibTelegramClient(
         null
     }
 
+    // ── sessions ─────────────────────────────────────────────────────────
+
+    override suspend fun activeSessions(): List<ActiveSession> {
+        awaitReady()
+        val list = requireEngine().send(JSONObject().put("@type", "getActiveSessions"))
+            .optJSONArray("sessions") ?: return emptyList()
+        return (0 until list.length()).mapNotNull { index ->
+            val raw = list.optJSONObject(index) ?: return@mapNotNull null
+            ActiveSession(
+                id = raw.optLong("id"),
+                isCurrent = raw.optBoolean("is_current"),
+                kind = deviceKindOf(raw.optJSONObject("device_type")?.optString("@type").orEmpty()),
+                applicationName = raw.optString("application_name"),
+                applicationVersion = raw.optString("application_version"),
+                isOfficialApplication = raw.optBoolean("is_official_application"),
+                deviceModel = raw.optString("device_model"),
+                platform = raw.optString("platform"),
+                systemVersion = raw.optString("system_version"),
+                lastActiveDate = raw.optLong("last_active_date"),
+                ipAddress = raw.optString("ip_address"),
+                location = raw.optString("location"),
+                isPasswordPending = raw.optBoolean("is_password_pending")
+            )
+        }
+    }
+
+    override suspend fun terminateSession(id: Long) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "terminateSession").put("session_id", id))
+    }
+
+    override suspend fun terminateOtherSessions() {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "terminateAllOtherSessions"))
+    }
+
+    // ── privacy ──────────────────────────────────────────────────────────
+
+    override suspend fun privacyRules(setting: PrivacySetting): PrivacyRules {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getUserPrivacySettingRules")
+                .put("setting", JSONObject().put("@type", setting.tdType))
+        )
+        val rules = answer.optJSONArray("rules") ?: JSONArray()
+        return privacyRulesOf(
+            (0 until rules.length()).mapNotNull { index ->
+                val rule = rules.optJSONObject(index) ?: return@mapNotNull null
+                val named = rule.optJSONArray("user_ids") ?: rule.optJSONArray("chat_ids")
+                Triple(rule.optString("@type"), named?.length() ?: 0, rule.toString())
+            }
+        )
+    }
+
+    override suspend fun setPrivacyRules(setting: PrivacySetting, rules: PrivacyRules) {
+        awaitReady()
+        val list = JSONArray()
+        rules.exceptions.forEach { list.put(JSONObject(it.raw)) }
+        audienceRules(rules.audience).forEach { list.put(JSONObject().put("@type", it)) }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setUserPrivacySettingRules")
+                .put("setting", JSONObject().put("@type", setting.tdType))
+                .put("rules", JSONObject().put("@type", "userPrivacySettingRules").put("rules", list))
+        )
+    }
+
+    // ── storage ──────────────────────────────────────────────────────────
+
+    /**
+     * chat_limit 0 folds every chat into one entry, which is all this needs:
+     * the screen counts by kind of file, not by chat. The database's size
+     * comes from the fast statistics, which read it without walking files.
+     */
+    override suspend fun storageUsage(): StorageUsage {
+        awaitReady()
+        val stats = requireEngine().send(
+            JSONObject().put("@type", "getStorageStatistics").put("chat_limit", 0)
+        )
+        val database = try {
+            requireEngine().send(JSONObject().put("@type", "getStorageStatisticsFast"))
+                .optLong("database_size")
+        } catch (e: TdLibException) {
+            Log.d(TAG, "getStorageStatisticsFast: ${e.message}")
+            0L
+        }
+        return StorageUsage(storageSlices(byFileType(stats)), database)
+    }
+
+    /**
+     * optimizeStorage with every limit at zero deletes everything it is
+     * pointed at; file_types is what points it. Passed explicitly, the types
+     * reach profile photos and stickers too, which TDLib's default spares.
+     */
+    override suspend fun clearCache(kinds: Set<StorageKind>): StorageUsage {
+        awaitReady()
+        if (kinds.isEmpty()) return storageUsage()
+        val types = JSONArray()
+        kinds.flatMap { it.tdTypes }.forEach { types.put(JSONObject().put("@type", it)) }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "optimizeStorage")
+                .put("size", 0)
+                .put("ttl", 0)
+                .put("count", 0)
+                .put("immunity_delay", 0)
+                .put("file_types", types)
+                .put("chat_ids", JSONArray())
+                .put("exclude_chat_ids", JSONArray())
+                .put("return_deleted_file_statistics", false)
+                .put("chat_limit", 0)
+        )
+        return storageUsage()
+    }
+
+    /** Every (file type, size, count) across a `storageStatistics`'s chats. */
+    private fun byFileType(stats: JSONObject): List<Triple<String, Long, Int>> {
+        val chats = stats.optJSONArray("by_chat") ?: return emptyList()
+        val out = ArrayList<Triple<String, Long, Int>>()
+        for (c in 0 until chats.length()) {
+            val types = chats.optJSONObject(c)?.optJSONArray("by_file_type") ?: continue
+            for (t in 0 until types.length()) {
+                val entry = types.optJSONObject(t) ?: continue
+                out += Triple(
+                    entry.optJSONObject("file_type")?.optString("@type").orEmpty(),
+                    entry.optLong("size"),
+                    entry.optInt("count")
+                )
+            }
+        }
+        return out
+    }
+
     /** A `proxy` — server, port and a type carrying that type's credentials. */
     private fun proxyObject(proxy: ProxyServer): JSONObject {
         val type = when (proxy.kind) {
@@ -2559,6 +2702,8 @@ class TdLibTelegramClient(
             "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
             "messagePhoto" -> "🖼 Photo"
             "messageVideo" -> "🎬 Video"
+            "messageAnimation" -> "GIF"
+            "messageVideoNote" -> "Video message"
             "messageDocument" -> "📎 ${content.optJSONObject("document")?.optString("file_name") ?: "File"}"
             "messageVoiceNote" -> "🎤 Voice"
             "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
@@ -2654,6 +2799,8 @@ class TdLibTelegramClient(
         val contentType = when (type) {
             "messagePhoto" -> MessageContentType.Photo
             "messageVideo" -> MessageContentType.Video
+            "messageAnimation" -> MessageContentType.Animation
+            "messageVideoNote" -> MessageContentType.VideoNote
             "messageDocument" -> MessageContentType.Document
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
@@ -2760,15 +2907,24 @@ class TdLibTelegramClient(
      * which is what lets it reserve the space rather than jump when the
      * poster lands.
      */
+    /**
+     * A video, a GIF or a round video message: the same four files-and-sizes
+     * under three different names. A GIF keeps its file under `animation`,
+     * and a video message is square, with one `length` for both sides.
+     */
     private fun videoContent(content: JSONObject?): VideoContent? {
-        val video = content
-            ?.takeIf { it.optString("@type") == "messageVideo" }
-            ?.optJSONObject("video")
-            ?: return null
-        val width = video.optInt("width")
-        val height = video.optInt("height")
+        val (video, fileKey) = when (content?.optString("@type")) {
+            "messageVideo" -> content.optJSONObject("video") to "video"
+            "messageAnimation" -> content.optJSONObject("animation") to "animation"
+            "messageVideoNote" -> content.optJSONObject("video_note") to "video"
+            else -> null to ""
+        }
+        if (video == null) return null
+        val length = video.optInt("length")
+        val width = video.optInt("width").takeIf { it > 0 } ?: length
+        val height = video.optInt("height").takeIf { it > 0 } ?: length
         val thumbnail = video.optJSONObject("thumbnail")?.optJSONObject("file")
-        val file = video.optJSONObject("video")
+        val file = video.optJSONObject(fileKey)
         return VideoContent(
             durationSeconds = video.optInt("duration"),
             aspect = if (width > 0 && height > 0) width.toFloat() / height else 16f / 9f,

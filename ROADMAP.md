@@ -279,6 +279,12 @@ careful with.
   material-color-utilities. It was hand-picked before: coral secondary,
   periwinkle tertiary, so the navigation bar's pill came out brown and the
   story ring a rainbow.
+- **Unread counts and story rings in primary.** The folder tabs' counts
+  took Material's badge default, the error colour, which on dark schemes
+  reads as brown, and the unseen-story ring swept through tertiary, which
+  put a brown or orange arc on every avatar. Counts are primary on the
+  folder in view and tonal on the others, as the chat rows' are; the ring
+  is primary alone.
 - **The app's name is set expressively** — Google Sans Flex rounded (`ROND`
   100), weight 650, width 115, where it was Medium, square and normal width.
 
@@ -317,20 +323,20 @@ careful with.
 
 ## Motion between screens, 25 September 2026
 
-- **A chat opens out of its row, and a story out of its circle** — Material's
-  container transform, on `SharedTransitionLayout` and `sharedBounds`
-  (`ui/motion/ContainerTransform.kt`). Back — including the predictive back
-  gesture — closes it into where it came from. The bounds move on the
-  *standard* scheme's slow spatial spring, not the theme's expressive one:
-  that one overshoots, and a container the size of the display overshooting
-  swells past its edges and back, which on a phone read as the whole
-  conversation shaking. For a day the chat slid in from the side instead;
-  the pattern came back with the calmer spring on the owner's word. The
-  screen side is scaled, not laid out again each frame.
-  The chat's messages are fetched on the tap, before the screen exists
-  (`TelegramRepository.warmChat`, capped at 200 ms — TDLib answers from its
-  local database well inside that), so the container grows a finished
-  conversation rather than an empty one that fills in mid-flight.
+- **A story opens out of its circle** — Material's container transform, on
+  `SharedTransitionLayout` and `sharedBounds` (`ui/motion/ContainerTransform.kt`),
+  on the *standard* scheme's slow spatial spring: the expressive one
+  overshoots, and a container the size of the display overshooting swells
+  past its edges and back. Back — the predictive gesture too — closes it.
+- **A chat slides in the way every other screen does** — the graph's own fade
+  and slide on the default spring, which is what it opened with first. It
+  went through a container transform on the expressive spring, a side slide,
+  and a container transform on the calm spring, and came back here on the
+  owner's word. What made opening smooth was not any of those motions but
+  the messages being there before the screen: a tap fetches the chat's
+  opening window first (`TelegramRepository.warmChat`, capped at 200 ms —
+  TDLib answers from its local database well inside that), so the screen
+  moves in finished rather than filling in mid-flight.
 - **Fade through between the bottom tabs**, which is what Material's motion
   guidance gives navigation-bar destinations: they are separate places, not
   neighbours, so nothing slides. Shared axis X stays where it belongs, on
@@ -942,10 +948,27 @@ against the code showed `SettingsScreen.kt` had already been carrying half of
 them. Ticks are only worth something if somebody moves them.
 
 - [x] Settings list — `Scaffold`, `ListItem`, `Switch`
-- [~] Appearance: theme, dynamic colour and shaped avatars are done —
-      the first through `SingleChoiceSegmentedButtonRow`, the others as
-      `Switch` rows; text size is not
-- [~] Sign out is there; the rest of privacy and active sessions is not
+- [x] Appearance: theme, dynamic colour, shaped avatars and text size —
+      the first through `SingleChoiceSegmentedButtonRow`, the switches as
+      `Switch` rows, and text size as a `Slider` with four named stops that
+      multiplies the system's font scale rather than replacing it, so a
+      phone already set larger stays larger
+- [x] Devices — Settings → Privacy and data: every session this account
+      has, this phone first and the rest by last use, each with its device's
+      icon, its app and where it is. One ends with a tap and a confirmation,
+      all the others from the row between the two groups. A client that is
+      not Telegram's own says "(unofficial)", since a stranger's client is
+      what this list is looked at for. `getActiveSessions`, `terminateSession`,
+      `terminateAllOtherSessions`; naming and ordering in `:core` with tests
+- [x] Privacy rules — phone number, finding by number, last seen, profile
+      photo, bio, forwarded messages, calls, and adding to groups: each a
+      list item saying who it is set to, changed in Material's radio-button
+      dialog. Telegram's rules are an ordered list; the audience is read
+      from its whole-audience rules and everything naming particular people
+      is kept exactly as read and written back first, so exceptions made in
+      another app survive a change made here — shown as "Everybody (−2)",
+      not edited. `getUserPrivacySettingRules` / `setUserPrivacySettingRules`;
+      the reading and writing in `:core` with tests
 - [x] Updates without a store — Settings → About asks the repository's
       `latest` release for its version, and a newer one downloads with
       Expressive's wavy progress bar and opens Android's installer. The same
@@ -975,7 +998,15 @@ them. Ticks are only worth something if somebody moves them.
       The rules and the "Off until 18:40" line are in `:core` with tests
 - [ ] Language — Russian and English. Left for last, on purpose: the
       strings are only worth extracting once the screens have stopped moving
-- [ ] Data and storage, cache size
+- [x] Data and storage — what TDLib keeps on the phone, folded from its
+      per-chat, per-type statistics into kinds (photos, videos, voice, files,
+      stickers…), largest first, with the database named but not offered.
+      Checkbox rows choose what to clear — all but profile photos and
+      stickers to start with, since those come straight back — and
+      `optimizeStorage` pointed at those file types clears them. The folding
+      and the sizes are in `:core` with tests. Not in: keeping media for a
+      set time, which TDLib has no setting for and would need a scheduled
+      clean
 
 ## 4. Media
 
@@ -1007,7 +1038,22 @@ them. Ticks are only worth something if somebody moves them.
       Coil and animated TGS through Lottie; a sheet behind the smiley in the
       field with the recent ones and each installed set as a tab; sent as
       TDLib's `inputSticker`. Video (WEBM) stickers show their still
-      thumbnail, and custom emoji are not in yet
+      thumbnail, and custom emoji are not in yet. A video sticker with its
+      transparency needs a VP9 decoder that keeps the alpha channel, which
+      Android's own do not — played through them it would be a sticker in a
+      black square — so it waits for a native decoder
+- [x] Videos out to the bubble's edges, as photos are, with the caption
+      and time beneath — they were a smaller rounded frame inside the bubble
+- [x] GIFs — TDLib's `messageAnimation`, which used to show as a word. Out
+      to the bubble's edges, fetched on sight, and playing by themselves,
+      looping and silent, on Media3 over a TextureView; a tap opens the
+      player. A "GIF" label says it is a loop and not a video already
+      running
+- [x] Round video messages — `messageVideoNote`, also a word before. A
+      220dp circle with no bubble, fetched on sight, played in place with
+      sound on a tap and paused on another, back to the start when it ends.
+      The shared inline player crops the frame to its shape rather than
+      stretching it, and stops while the app is in the background
 
 ## 5. Notifications
 

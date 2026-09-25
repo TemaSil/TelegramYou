@@ -7,9 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
-import com.telegramyou.app.ui.motion.containerTransform
-import com.telegramyou.app.ui.motion.chatContainerKey
-import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.update.LocalAppUpdates
 import com.telegramyou.app.update.UpdateState
 import androidx.compose.material3.BadgedBox
@@ -185,6 +182,10 @@ fun HomeScreen(
     onListEndReached: (Int?) -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
@@ -340,6 +341,10 @@ fun HomeScreen(
                         onShapedAvatarsChange = onShapedAvatarsChange,
                         onLogout = onLogout,
                         contentPadding = padding,
+                        onOpenDevices = onOpenDevices,
+                        onOpenStorage = onOpenStorage,
+                        onOpenPrivacy = onOpenPrivacy,
+                        onTextScaleChange = onTextScaleChange,
                         onOpenGeeks = onOpenGeeks
                     )
                     return@AnimatedContent
@@ -478,11 +483,6 @@ fun HomeScreen(
                                     // A sideways drag is the pager's where there
                                     // is one; see ChatListRow.
                                     swipeActions = !inPager,
-                                    // Only the page on screen opens its chats
-                                    // out of their rows: the pager keeps its
-                                    // neighbours composed, and a chat in two
-                                    // folders would be two rows with one key.
-                                    opensOutOfRows = current,
                                     onOpenArchive = onOpenArchive,
                                     onOpenChat = onOpenChat,
                                     onMutedChange = onMutedChange,
@@ -576,7 +576,6 @@ private fun ChatListPage(
     archiveSummary: String?,
     shapedAvatars: Boolean,
     swipeActions: Boolean,
-    opensOutOfRows: Boolean,
     onOpenArchive: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onMutedChange: (Long, Boolean) -> Unit,
@@ -672,14 +671,7 @@ private fun ChatListPage(
                     onClick = { onOpenChat(chat.id) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                        .then(
-                            if (opensOutOfRows) {
-                                Modifier.containerTransform(chatContainerKey(chat.id), ChatContainerShape)
-                            } else {
-                                Modifier
-                            }
-                        ),
+                        .padding(horizontal = 12.dp),
                     onMutedChange = { muted -> onMutedChange(chat.id, muted) },
                     onPinnedChange = { pinned ->
                         onPinnedChange(chat.id, pinned)
@@ -867,7 +859,25 @@ private fun FolderTabs(
                             // Material's own badge rather than a number in
                             // brackets: this is the same thing the navigation
                             // bar puts on an icon, and it should look like it.
-                            Badge { Text(count.toString()) }
+                            //
+                            // In primary, not the badge's default error red:
+                            // unread is not a fault, and on the dark schemes
+                            // error's container reads as brown. Loud on the
+                            // folder being looked at, tonal on the others,
+                            // as the chat rows' own counts are.
+                            val selected = index == selectedIndex
+                            Badge(
+                                containerColor = if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                },
+                                contentColor = if (selected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                }
+                            ) { Text(count.toString()) }
                         }
                     }
                 }

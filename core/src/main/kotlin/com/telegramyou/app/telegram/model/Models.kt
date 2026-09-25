@@ -234,7 +234,11 @@ enum class MessageContentType {
     Video,
     Document,
     Voice,
-    Sticker
+    Sticker,
+    /** Telegram's "GIF": a short silent MP4 that plays on its own, looping. */
+    Animation,
+    /** A round video message, played in place. */
+    VideoNote
 }
 
 /**

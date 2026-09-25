@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
@@ -106,14 +107,14 @@ fun AvatarBubble(
                                     )
                                 )
                             } else {
-                                Brush.sweepGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.secondary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                        MaterialTheme.colorScheme.primary
-                                    )
-                                )
+                                // One colour, the scheme's primary. It swept
+                                // primary into secondary into tertiary, which
+                                // in some schemes — dynamic ones included —
+                                // puts a brown or an orange a third of the way
+                                // round every unseen story. An unseen ring is
+                                // a state, not a decoration, and one accent
+                                // says it.
+                                SolidColor(MaterialTheme.colorScheme.primary)
                             },
                             shape = outline
                         )

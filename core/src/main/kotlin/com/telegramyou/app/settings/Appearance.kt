@@ -34,8 +34,33 @@ data class AppearanceSettings(
      * rather than a rule because a list of circles is what every other
      * messenger looks like, and somebody may want that.
      */
-    val shapedAvatars: Boolean = true
+    val shapedAvatars: Boolean = true,
+    /**
+     * How much larger or smaller than the system's own text this app's is,
+     * as a multiple — on top of Android's font size, not instead of it, so
+     * somebody who has already made the whole phone larger is not put back.
+     */
+    val textScale: Float = 1f
 )
+
+/**
+ * The steps the text size slider stops at. Four rather than a continuous
+ * range: two sizes a few hundredths apart are indistinguishable on screen,
+ * and a stop with a name is one a person can come back to.
+ */
+object TextSize {
+    val steps: List<Float> = listOf(0.85f, 1f, 1.15f, 1.3f)
+
+    /** The step closest to [scale] — what a stored or dragged value settles on. */
+    fun nearest(scale: Float): Float = steps.minBy { kotlin.math.abs(it - scale) }
+
+    fun label(scale: Float): String = when (steps.indexOf(nearest(scale))) {
+        0 -> "Small"
+        1 -> "Default"
+        2 -> "Large"
+        else -> "Largest"
+    }
+}
 
 /**
  * Whether to draw dark, given the choice and what the system is doing.

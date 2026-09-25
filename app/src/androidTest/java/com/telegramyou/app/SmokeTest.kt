@@ -221,6 +221,29 @@ class SmokeTest {
     }
 
     /**
+     * A GIF and a round video message, the two kinds of video people send
+     * most, which the chat used to show as a word each. The GIF is on screen
+     * and playing by itself; the circle plays on a tap and pauses on another.
+     * What is checked is that each is there and answers — how either looks
+     * is for a person to judge.
+     */
+    @Test
+    fun gifsAndVideoMessagesPlayInPlace() {
+        signIn()
+        waitFor(By.text("Lina Park"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("GIF"), "the GIF")
+        val note = By.descStartsWith("Video message, ")
+        waitFor(note, "the round video message")
+        tap(note)
+        waitFor(By.desc("Video message, playing"), "the video message playing")
+        screenshot("31-video-note")
+        tap(By.desc("Video message, playing"))
+        waitFor(By.desc("Video message, 0:08"), "the video message paused")
+    }
+
+    /**
      * The rail, which only exists where the window is big enough for one.
      *
      * Not by turning the phone, which was the first version of this and
@@ -1149,6 +1172,86 @@ class SmokeTest {
      * no-op that reports success.
      */
     /**
+     * Settings' two places to check rather than change: the devices this
+     * account is signed in on, one of them ended; and the cache, cleared.
+     * The demo has a stranger's client among its sessions and two gigabytes
+     * of files, so both have something to act on.
+     */
+    @Test
+    fun devicesAndStorageFromSettings() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+
+        scrollSettingsTo(By.text("Devices"))
+        tap(By.text("Devices"))
+        waitFor(By.text("Galaxy S21"), "the unofficial session")
+        screenshot("29-devices")
+        tap(By.text("Galaxy S21"))
+        waitFor(By.text("End this session?"), "the confirmation")
+        tap(By.text("End session"))
+        assertTrue(
+            "the ended session should leave the list",
+            device.wait(Until.gone(By.text("Galaxy S21")), STEP_TIMEOUT)
+        )
+        device.pressBack()
+        waitFor(By.text("Appearance"), "the settings again")
+
+        scrollSettingsTo(By.text("Data and storage"))
+        tap(By.text("Data and storage"))
+        waitFor(By.text("Videos"), "the cache by kind")
+        screenshot("30-storage")
+        // The button names its size; the dialog's title ends in a question
+        // mark. One pattern: a selector takes a single text condition.
+        tap(By.text(Pattern.compile("Clear [0-9.]+ GB")))
+        tap(By.text("Clear"))
+        waitFor(By.textStartsWith("Cleared"), "the cache cleared")
+        assertTrue(
+            "the cleared videos should leave the list",
+            device.wait(Until.gone(By.text("Videos")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
+     * Privacy: each rule says who it is set to, and choosing another audience
+     * in its dialog changes the row. The demo's last-seen rule carries two
+     * exceptions made elsewhere, which the row has to show. Text size is
+     * checked for being offered; how large is for a person to judge.
+     */
+    @Test
+    fun privacyRulesChangeAndTextSizeIsOffered() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        waitFor(By.text("Text size"), "the text size setting")
+
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        waitFor(By.text("Phone number"), "the privacy rules")
+        waitFor(By.text("Everybody (−2)"), "last seen with its exceptions")
+        tap(By.text("Phone number"))
+        waitFor(By.text("Who can see my phone number"), "the phone number dialog")
+        tap(By.text("Nobody"))
+        waitFor(By.text("Nobody"), "phone number set to nobody")
+        screenshot("32-privacy")
+    }
+
+    /** Scrolls the settings down until [selector] is on screen. */
+    private fun scrollSettingsTo(selector: BySelector) {
+        repeat(4) {
+            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+    }
+
+    /**
      * Settings → For geeks: two switches turned on, and the conversation
      * showing both — times to the second, and Details in a message's menu
      * with the message's id in it.
@@ -1160,13 +1263,7 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text("Settings"))
         waitFor(By.text("Appearance"), "the settings")
-        repeat(4) {
-            if (device.wait(Until.hasObject(By.text("For geeks")), SHORT_WAIT)) return@repeat
-            try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
-            } catch (_: StaleObjectException) {
-            }
-        }
+        scrollSettingsTo(By.text("For geeks"))
         tap(By.text("For geeks"))
         waitFor(By.text("Seconds in message times"), "the geek settings")
         tap(By.text("Seconds in message times"))

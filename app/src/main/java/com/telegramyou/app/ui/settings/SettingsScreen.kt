@@ -12,6 +12,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import com.telegramyou.app.settings.TextSize
+import androidx.compose.material3.Slider
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,6 +64,10 @@ fun SettingsScreen(
     onDynamicColorChange: (Boolean) -> Unit,
     onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {}
 ) {
     Scaffold(
@@ -82,6 +93,10 @@ fun SettingsScreen(
             onShapedAvatarsChange = onShapedAvatarsChange,
             onLogout = onLogout,
             contentPadding = padding,
+            onOpenDevices = onOpenDevices,
+            onOpenStorage = onOpenStorage,
+            onOpenPrivacy = onOpenPrivacy,
+            onTextScaleChange = onTextScaleChange,
             onOpenGeeks = onOpenGeeks
         )
     }
@@ -106,6 +121,10 @@ fun SettingsContent(
     onLogout: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {}
 ) {
         Column(
@@ -195,6 +214,24 @@ fun SettingsContent(
                 }
             )
 
+            // Text size: a slider with four stops, the way Android's own
+            // display settings offer it. The whole app follows as it moves —
+            // this screen included, which is the preview.
+            ListItem(
+                headlineContent = { Text("Text size") },
+                supportingContent = { Text(TextSize.label(settings.textScale)) }
+            )
+            Slider(
+                value = TextSize.nearest(settings.textScale),
+                onValueChange = { onTextScaleChange(TextSize.nearest(it)) },
+                valueRange = TextSize.steps.first()..TextSize.steps.last(),
+                steps = TextSize.steps.size - 2,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .semantics { contentDescription = "Text size" }
+            )
+
             SectionHeader("Theme")
 
             // A segmented row rather than three rows of radio buttons: the
@@ -218,6 +255,31 @@ fun SettingsContent(
                     }
                 }
             }
+
+            HorizontalDivider()
+
+            // Where this account is signed in, and what it keeps on the phone:
+            // the two things a person comes to settings to check rather than
+            // to change.
+            SectionHeader("Privacy and data")
+            ListItem(
+                headlineContent = { Text("Privacy") },
+                supportingContent = { Text("Who can see your number, your last seen and more") },
+                leadingContent = { Icon(Icons.Rounded.Lock, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenPrivacy)
+            )
+            ListItem(
+                headlineContent = { Text("Devices") },
+                supportingContent = { Text("Where you are signed in") },
+                leadingContent = { Icon(Icons.Rounded.Devices, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenDevices)
+            )
+            ListItem(
+                headlineContent = { Text("Data and storage") },
+                supportingContent = { Text("The cache, and clearing it") },
+                leadingContent = { Icon(Icons.Rounded.Storage, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenStorage)
+            )
 
             HorizontalDivider()
 

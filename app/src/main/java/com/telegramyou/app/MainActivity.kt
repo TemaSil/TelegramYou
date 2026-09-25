@@ -4,6 +4,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.telegramyou.app.ui.components.LocalShapedAvatars
 import android.os.Build
 import com.telegramyou.app.settings.LocalGeekSettings
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.platform.LocalDensity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -82,10 +84,15 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two
                     // above, and every screen that draws a person reads it.
+                    // Text size multiplies the system's font scale rather
+                    // than replacing it: somebody who made the whole phone
+                    // larger keeps that, and this setting goes on top.
+                    val density = LocalDensity.current
                     CompositionLocalProvider(
                         LocalShapedAvatars provides appearance.shapedAvatars,
                         LocalAppUpdates provides app.updates,
-                        LocalGeekSettings provides geekSettings
+                        LocalGeekSettings provides geekSettings,
+                        LocalDensity provides Density(density.density, density.fontScale * appearance.textScale)
                     ) {
                         TelegramYouNavHost(
                             repository = app.telegramRepository,
