@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
+
 data class TelegramUser(
     val id: Long,
     val firstName: String,
@@ -72,6 +74,11 @@ data class ChatPreview(
     val unreadCount: Int = 0,
     val isPinned: Boolean = false,
     val isMuted: Boolean = false,
+    /**
+     * Everything about how this chat notifies — [isMuted] is its first
+     * question, kept as its own field because the list asks it on every row.
+     */
+    val notifications: ChatNotificationSettings = ChatNotificationSettings(),
     val isOnline: Boolean = false,
     /** Someone in it is typing right now; the avatar morphs while this holds. */
     val isTyping: Boolean = false,

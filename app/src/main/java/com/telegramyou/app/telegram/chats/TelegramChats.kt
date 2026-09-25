@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.chats
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -76,6 +77,12 @@ interface TelegramChats {
      * when two updates arrive close together.
      */
     suspend fun setChatMuted(chatId: Long, muted: Boolean)
+
+    /**
+     * All of a chat's notification settings at once — the whole object, the
+     * way TDLib takes it, so one change cannot reset the others.
+     */
+    suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings)
 
     /**
      * Pins a chat to the top of the list, or unpins it.

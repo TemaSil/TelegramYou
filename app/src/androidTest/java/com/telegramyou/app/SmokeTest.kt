@@ -379,6 +379,21 @@ class SmokeTest {
         waitFor(By.text("Members"), "the member list")
         waitFor(By.textContains("Leave"), "the way out of the group")
         screenshot("12-chat-info")
+
+        // The chat's notifications: off for an hour, and the row says until
+        // when. Scrolled to, because in a group they sit under the header.
+        val muteFor = By.text("Mute for…")
+        repeat(3) {
+            if (device.wait(Until.hasObject(muteFor), SHORT_WAIT)) return@repeat
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        tap(muteFor)
+        tap(By.text("1 hour"))
+        waitFor(By.textStartsWith("Off until"), "the chat muted for an hour")
+        screenshot("27-chat-notifications")
     }
 
     /**

@@ -420,7 +420,8 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onLeaveRequested = chatViewModel::onLeaveRequested,
                 onLeaveDismissed = chatViewModel::onLeaveDismissed,
-                onLeaveConfirmed = chatViewModel::onLeaveConfirmed
+                onLeaveConfirmed = chatViewModel::onLeaveConfirmed,
+                onNotificationsChange = chatViewModel::onNotificationsChange
             )
         }
 

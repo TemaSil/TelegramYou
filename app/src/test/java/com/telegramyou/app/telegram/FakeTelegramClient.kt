@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -313,6 +314,8 @@ class FakeTelegramClient(
         maybeFail()
         this.muted = chatId to muted
     }
+
+    override suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings) = Unit
 
     /** What downloadFile answers with; null unless a test sets it. */
     var downloadedPath: String? = null

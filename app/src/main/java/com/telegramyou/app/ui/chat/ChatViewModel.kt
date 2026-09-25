@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StickerContent
 import androidx.lifecycle.SavedStateHandle
@@ -316,6 +317,29 @@ class ChatViewModel(
     // ── composing ────────────────────────────────────────────────────────
 
     fun onDraftChange(text: String) = _uiState.update { it.copy(draft = text) }
+
+    // ── notifications ────────────────────────────────────────────────────
+
+    /**
+     * The chat's notification settings, drawn changed at once and then sent.
+     * A refusal says so; the server's own copy comes back through the chat
+     * list either way and settles the switches.
+     */
+    fun onNotificationsChange(settings: ChatNotificationSettings) {
+        val now = System.currentTimeMillis() / 1000
+        _uiState.update { state ->
+            state.copy(
+                detail = state.detail?.let { detail ->
+                    detail.copy(chat = detail.chat.copy(notifications = settings, isMuted = settings.isMuted(now)))
+                }
+            )
+        }
+        viewModelScope.launch {
+            attempt("Could not change the notifications") {
+                repository.setChatNotifications(chatId, settings)
+            }
+        }
+    }
 
     // ── stickers ─────────────────────────────────────────────────────────
 

@@ -1,5 +1,21 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.notifications.ChatNotificationSettings
+import com.telegramyou.app.notifications.MuteDuration
+import com.telegramyou.app.notifications.notificationStatusLabel
+import java.time.ZoneId
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Snooze
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
+import androidx.compose.material3.Switch
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -60,7 +76,8 @@ fun ChatInfoScreen(
     onBack: () -> Unit,
     onLeaveRequested: () -> Unit,
     onLeaveDismissed: () -> Unit,
-    onLeaveConfirmed: () -> Unit
+    onLeaveConfirmed: () -> Unit,
+    onNotificationsChange: (ChatNotificationSettings) -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -161,6 +178,15 @@ fun ChatInfoScreen(
                 }
             }
 
+            chat?.let { current ->
+                item(key = "notifications") {
+                    NotificationSettingsSection(
+                        settings = current.notifications,
+                        onChange = onNotificationsChange
+                    )
+                }
+            }
+
             // Above the members, not under them. A group with forty people
             // in it puts its own list between the header and anything else,
             // and the one action on this screen was three screens down —
@@ -218,5 +244,85 @@ fun ChatInfoScreen(
             }
 
         }
+    }
+}
+
+/**
+ * This chat's notifications: on or off, off for how long, the words in the
+ * shade or not, a sound or not — Telegram's per-chat settings, as Material
+ * list items with switches, and the durations in a menu from their row.
+ */
+@Composable
+private fun NotificationSettingsSection(
+    settings: ChatNotificationSettings,
+    onChange: (ChatNotificationSettings) -> Unit
+) {
+    val now = System.currentTimeMillis() / 1000
+    val on = !settings.isMuted(now)
+    var choosing by remember { mutableStateOf(false) }
+    Column {
+        Text(
+            "Notifications",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
+        )
+        ListItem(
+            headlineContent = { Text("Notifications") },
+            supportingContent = { Text(notificationStatusLabel(settings, now, ZoneId.systemDefault())) },
+            leadingContent = {
+                Icon(
+                    if (on) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff,
+                    contentDescription = null
+                )
+            },
+            trailingContent = {
+                Switch(
+                    checked = on,
+                    onCheckedChange = { turnOn ->
+                        onChange(settings.copy(mutedUntil = if (turnOn) 0L else ChatNotificationSettings.MUTED_FOREVER))
+                    }
+                )
+            }
+        )
+        Box {
+            ListItem(
+                headlineContent = { Text("Mute for…") },
+                leadingContent = { Icon(Icons.Rounded.Snooze, contentDescription = null) },
+                modifier = Modifier.clickable { choosing = true }
+            )
+            DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
+                MuteDuration.entries.forEach { duration ->
+                    DropdownMenuItem(
+                        text = { Text(duration.label) },
+                        onClick = {
+                            choosing = false
+                            onChange(settings.copy(mutedUntil = duration.until(System.currentTimeMillis() / 1000)))
+                        }
+                    )
+                }
+            }
+        }
+        ListItem(
+            headlineContent = { Text("Message preview") },
+            supportingContent = { Text("Show what the message says in the notification") },
+            leadingContent = { Icon(Icons.Rounded.Visibility, contentDescription = null) },
+            trailingContent = {
+                Switch(
+                    checked = settings.showPreview,
+                    onCheckedChange = { onChange(settings.copy(showPreview = it)) }
+                )
+            }
+        )
+        ListItem(
+            headlineContent = { Text("Sound") },
+            leadingContent = { Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null) },
+            trailingContent = {
+                Switch(
+                    checked = settings.sound,
+                    onCheckedChange = { onChange(settings.copy(sound = it)) }
+                )
+            }
+        )
     }
 }
