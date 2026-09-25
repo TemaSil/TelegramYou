@@ -19,5 +19,22 @@ interface TelegramAuth {
      * phone number afterwards goes back to the code route.
      */
     suspend fun requestQrLogin()
+
+    /**
+     * The login email Telegram asked for, while the state is
+     * [com.telegramyou.app.telegram.model.AuthState.WaitEmailAddress]. A code
+     * is sent to it and the state moves on to the email code.
+     */
+    suspend fun submitEmailAddress(email: String)
+
+    /** The code from the login email, while the state is `WaitEmailCode`. */
+    suspend fun submitEmailCode(code: String)
+
+    /**
+     * Give up on the login email for a code by SMS — for a mailbox that is
+     * gone. Takes effect after the server's wait; see
+     * [com.telegramyou.app.telegram.model.EmailReset].
+     */
+    suspend fun resetEmail()
     suspend fun logout()
 }

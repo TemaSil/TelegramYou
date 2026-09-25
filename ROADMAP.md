@@ -903,8 +903,16 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       which modules are dark, and they are drawn in Compose as rounded
       squares in the theme's colours — always dark on light, which is what
       scanners read
-- [ ] Email login steps (`authorizationStateWaitEmailAddress` / `…Code`),
-      which new accounts can be asked for and which still end in an error
+- [x] Login email — both of TDLib's steps. Where Telegram asks for an
+      address before any code (`authorizationStateWaitEmailAddress`) there
+      is a field for it; where the code went to the account's email
+      (`…WaitEmailCode`) it is the code step under its own title, showing
+      the masked address, resending, and "Reset email" for a mailbox that is
+      gone — the label says the server's wait, a week without Premium. The
+      wait and the address check are in `:core` with tests. The demo takes
+      this road for a number ending in 99999, which is how the UI test walks
+      it. Apple and Google sign-in, which the same steps offer, are not in:
+      both need the vendor's SDK, and the emailed code reaches the same place
 
 ## 3. Settings and profile
 

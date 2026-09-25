@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.telegram.model.AuthUiState
+import com.telegramyou.app.telegram.model.isPlausibleEmail
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,8 +13,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Which of the three steps the screen shows. */
-enum class AuthStep { Phone, Code, Password, Qr }
+/**
+ * Which step the screen shows. In the order they come, so the screen can tell
+ * forward from back: a login email, where Telegram asks for one, is set up
+ * after the number and before any code.
+ */
+enum class AuthStep { Phone, Email, EmailCode, Code, Password, Qr }
 
 /**
  * What the login screen shows, and what has been typed into it.
@@ -29,6 +34,7 @@ data class AuthFormState(
     val phone: String = "+",
     val code: String = "",
     val password: String = "",
+    val email: String = "",
     /** Back on the phone step from the code step, to fix a mistyped number. */
     val isChangingNumber: Boolean = false
 ) {
@@ -36,6 +42,8 @@ data class AuthFormState(
         get() = when {
             isChangingNumber -> AuthStep.Phone
             auth.state == AuthState.WaitCode -> AuthStep.Code
+            auth.state == AuthState.WaitEmailAddress -> AuthStep.Email
+            auth.state == AuthState.WaitEmailCode -> AuthStep.EmailCode
             auth.state == AuthState.WaitPassword -> AuthStep.Password
             auth.state == AuthState.WaitQrScan -> AuthStep.Qr
             else -> AuthStep.Phone
@@ -49,8 +57,9 @@ data class AuthFormState(
     val canSubmit: Boolean
         get() = !auth.isLoading && when (step) {
             AuthStep.Phone -> PhoneEntry.isPossible(phone)
-            AuthStep.Code -> code.isNotEmpty() &&
+            AuthStep.Code, AuthStep.EmailCode -> code.isNotEmpty() &&
                 (auth.codeLength == 0 || code.length >= auth.codeLength)
+            AuthStep.Email -> isPlausibleEmail(email)
             AuthStep.Password -> password.isNotEmpty()
             AuthStep.Qr -> false
         }
@@ -63,22 +72,20 @@ class AuthViewModel(
     private val phone = MutableStateFlow("+")
     private val code = MutableStateFlow("")
     private val password = MutableStateFlow("")
+    private val email = MutableStateFlow("")
     private val changingNumber = MutableStateFlow(false)
+
+    // What has been typed, as one form; combine takes five flows at most.
+    private val typed = combine(phone, code, password, email) { phoneValue, codeValue, passwordValue, emailValue ->
+        AuthFormState(phone = phoneValue, code = codeValue, password = passwordValue, email = emailValue)
+    }
 
     val uiState: StateFlow<AuthFormState> = combine(
         repository.observeAuth(),
-        phone,
-        code,
-        password,
+        typed,
         changingNumber
-    ) { auth, phoneValue, codeValue, passwordValue, changing ->
-        AuthFormState(
-            auth = auth,
-            phone = phoneValue,
-            code = codeValue,
-            password = passwordValue,
-            isChangingNumber = changing
-        )
+    ) { auth, form, changing ->
+        form.copy(auth = auth, isChangingNumber = changing)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -108,7 +115,36 @@ class AuthViewModel(
         val digits = value.filter(Char::isDigit).let { if (length > 0) it.take(length) else it }
         val grew = digits.length > code.value.length
         code.value = digits
-        if (grew && length > 0 && digits.length == length) submitCode()
+        if (grew && length > 0 && digits.length == length) {
+            if (uiState.value.step == AuthStep.EmailCode) submitEmailCode() else submitCode()
+        }
+    }
+
+    fun onEmailChange(value: String) {
+        email.value = value.trim()
+    }
+
+    fun submitEmail() {
+        if (!isPlausibleEmail(email.value)) return
+        viewModelScope.launch {
+            repository.submitEmailAddress(email.value)
+            // The email code arrives next, into the same field the SMS code
+            // uses; whatever was in it belonged to another step.
+            if (repository.observeAuth().value.errorMessage == null) code.value = ""
+        }
+    }
+
+    fun submitEmailCode() {
+        if (code.value.isEmpty()) return
+        viewModelScope.launch { repository.submitEmailCode(code.value) }
+    }
+
+    fun resetEmail() {
+        viewModelScope.launch {
+            repository.resetEmail()
+            // A reset that lands goes on to a code by SMS: a fresh field.
+            if (repository.observeAuth().value.state == AuthState.WaitCode) code.value = ""
+        }
     }
 
     fun onPasswordChange(value: String) {
