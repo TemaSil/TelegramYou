@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.auth
 
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import android.content.Context
 import android.telephony.TelephonyManager
 import androidx.activity.compose.BackHandler
@@ -335,11 +337,28 @@ private fun PhoneStep(
     val region = PhoneEntry.region(phone)
     val country = countries.firstOrNull { it.region == region }
 
+    // The field's own text and caret, rather than the bare string. Given a
+    // string, the field kept its caret where it was when the text changed
+    // under it — so when "+" became "+7" from the SIM's country, the caret
+    // stayed after the plus, and the first digits typed went in front of
+    // the 7: the country changed before the number had begun. Whenever the
+    // number changes from outside — the country filled in, or picked from
+    // the list — the caret goes to the end, after the code.
+    var field by remember { mutableStateOf(TextFieldValue(phone, TextRange(phone.length))) }
+    if (field.text != phone) field = TextFieldValue(phone, TextRange(phone.length))
+
     Column {
         StepHeader("Your phone", "Check the country code and enter your number")
         OutlinedTextField(
-            value = phone,
-            onValueChange = onPhoneChange,
+            value = field,
+            onValueChange = { edited ->
+                val normal = PhoneEntry.normalize(edited.text)
+                // Kept where the finger put it when the text is already a
+                // plus and digits; after a paste full of spaces the digits
+                // move, so the caret goes to the end with them.
+                field = if (normal == edited.text) edited else TextFieldValue(normal, TextRange(normal.length))
+                onPhoneChange(normal)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focus)
@@ -612,10 +631,26 @@ private object PhoneTransformation : VisualTransformation {
 private fun deviceRegion(context: Context): String? {
     val telephony = context.getSystemService(TelephonyManager::class.java)
     return listOfNotNull(
+        // The SIM's country first: the number being typed is the SIM's, and
+        // abroad the network is somewhere else.
         telephony?.simCountryIso,
+        // Then the country of the mobile network the phone is on — where it
+        // is, told by the cell towers, with no location permission to ask.
         telephony?.networkCountryIso,
+        // Then the time zone's country, for a phone with neither: a tablet
+        // on Wi-Fi, a phone with no SIM. Europe/Moscow is Russia whatever
+        // language the phone is set to, which the locale below is not.
+        timeZoneRegion(),
         Locale.getDefault().country
     ).firstOrNull { it.length == 2 }
+}
+
+/** The country the phone's time zone belongs to, or null for "UTC" and the like. */
+private fun timeZoneRegion(): String? = try {
+    android.icu.util.TimeZone.getRegion(java.util.TimeZone.getDefault().id)
+        .takeIf { it.length == 2 && it != "001" }
+} catch (_: IllegalArgumentException) {
+    null
 }
 
 /** How many taps on the mark open the demo. */
