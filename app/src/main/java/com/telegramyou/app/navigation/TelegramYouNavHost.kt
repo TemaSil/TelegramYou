@@ -476,7 +476,7 @@ fun TelegramYouNavHost(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .containerTransform(chatContainerKey(openedChatId), ChatContainerShape)
+                    .containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true)
             ) {
             ChatScreen(
                 state = state,
@@ -550,7 +550,7 @@ fun TelegramYouNavHost(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .containerTransform(storyContainerKey(openedStoryId), StoryContainerShape)
+                    .containerTransform(storyContainerKey(openedStoryId), StoryContainerShape, isScreen = true)
             ) {
             when {
                 // Closed only once the lookup has answered: the first state is

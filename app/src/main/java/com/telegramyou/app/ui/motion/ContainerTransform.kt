@@ -46,13 +46,14 @@ val StoryContainerShape: Shape = RoundedCornerShape(32.dp)
  * screens' contents fading across on its effects spec. That is what makes
  * the pattern Expressive rather than the 300 milliseconds it used to be.
  *
- * [shape] clips the container while it travels. A no-op wherever there is
+ * [shape] clips the container while it travels. [isScreen] is the
+ * full-screen side, which is scaled rather than laid out again each frame. A no-op wherever there is
  * no navigation transition to ride on — previews, tests, the tablet's two
  * panes.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-fun Modifier.containerTransform(key: Any, shape: Shape): Modifier {
+fun Modifier.containerTransform(key: Any, shape: Shape, isScreen: Boolean = false): Modifier {
     val shared = LocalSharedTransitionScope.current ?: return this
     val animated = LocalNavAnimatedScope.current ?: return this
     val bounds = MaterialTheme.motionScheme.defaultSpatialSpec<Rect>()
@@ -64,7 +65,16 @@ fun Modifier.containerTransform(key: Any, shape: Shape): Modifier {
             enter = fadeIn(fade),
             exit = fadeOut(fade),
             boundsTransform = BoundsTransform { _, _ -> bounds },
-            resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+            // The small side — a row, a circle — is laid out again at each
+            // size, which costs nothing. The screen side is not: laying out a
+            // whole conversation sixty times a second was what made opening a
+            // chat stutter. It is laid out once, at full size, and scaled
+            // into the growing container instead — a preview of itself.
+            resizeMode = if (isScreen) {
+                SharedTransitionScope.ResizeMode.scaleToBounds()
+            } else {
+                SharedTransitionScope.ResizeMode.RemeasureToBounds
+            },
             clipInOverlayDuringTransition = OverlayClip(shape)
         )
     }

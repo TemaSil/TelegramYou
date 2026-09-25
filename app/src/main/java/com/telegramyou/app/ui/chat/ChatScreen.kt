@@ -1,5 +1,9 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Badge
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -285,6 +289,16 @@ fun ChatScreen(
     // with the same words, and would otherwise bounce twice.
     val openedAt = remember { System.currentTimeMillis() / 1000 }
     val popped = remember { mutableSetOf<String>() }
+
+    // Items spring into their new places only once the chat has settled.
+    // While it opens, the history arrives in pages and every page moved
+    // every bubble above it — on a spring each, the whole conversation
+    // wobbling while the screen was still growing out of its row.
+    var itemsAnimate by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(SETTLE_MILLIS)
+        itemsAnimate = true
+    }
 
     // A refusal from the server, said once in a snackbar — a failed send
     // puts the text back in the composer as well, so the message is there
@@ -691,9 +705,9 @@ fun ChatScreen(
                         Column(
                             modifier = Modifier
                                 .animateItem(
-                                    fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                                    placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                                    fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
+                                    fadeInSpec = if (itemsAnimate) MaterialTheme.motionScheme.defaultEffectsSpec() else null,
+                                    placementSpec = if (itemsAnimate) MaterialTheme.motionScheme.defaultSpatialSpec() else null,
+                                    fadeOutSpec = if (itemsAnimate) MaterialTheme.motionScheme.fastEffectsSpec() else null
                                 )
                                 .graphicsLayer {
                                     val progress = appear.value
@@ -752,39 +766,6 @@ fun ChatScreen(
                     }
                 }
 
-                    // Shown only once the conversation has been scrolled away
-                    // from: a button that is always there is one more thing
-                    // over the messages for no reason. The Column is not
-                    // decoration either: AnimatedVisibility's overloads are
-                    // scope extensions, and inside a Box there is no receiver
-                    // for any of them to resolve against.
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(16.dp)
-                    ) {
-                        AnimatedVisibility(
-                            visible = !atLatest,
-                            enter = fadeIn(),
-                            exit = fadeOut()
-                        ) {
-                            SmallFloatingActionButton(
-                                onClick = {
-                                    scope.launch {
-                                        listState.animateScrollToItem(
-                                            (listState.layoutInfo.totalItemsCount - 1)
-                                                .coerceAtLeast(0)
-                                        )
-                                    }
-                                }
-                            ) {
-                                Icon(
-                                    Icons.Rounded.KeyboardArrowDown,
-                                    contentDescription = "Jump to latest"
-                                )
-                            }
-                        }
-                    }
                 }
             }
 
@@ -815,6 +796,43 @@ fun ChatScreen(
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
             ) {
+                // Back to the newest message, once the conversation has been
+                // scrolled away from it — with how many are unread on it,
+                // as Telegram does. Here, at the top of the composer's own
+                // column, so it always sits just above whatever the composer
+                // has grown to. It used to be anchored to the bottom corner
+                // of the list, which the floating composer now covers, and
+                // it was there and could not be seen.
+                AnimatedVisibility(
+                    visible = !atLatest,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 16.dp, bottom = 4.dp),
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                        scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()),
+                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        scaleOut(MaterialTheme.motionScheme.fastEffectsSpec())
+                ) {
+                    val unread = detail?.chat?.unreadCount ?: 0
+                    BadgedBox(
+                        badge = {
+                            if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) }
+                        }
+                    ) {
+                        SmallFloatingActionButton(
+                            onClick = {
+                                scope.launch {
+                                    listState.animateScrollToItem(
+                                        (listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)
+                                    )
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Jump to latest")
+                        }
+                    }
+                }
+
                 AnimatedVisibility(
                     visible = state.replyTo != null || state.editing != null,
                     enter = fadeIn() + slideInVertically { it / 2 },
@@ -3059,3 +3077,6 @@ private fun Modifier.bleed(horizontal: Dp, top: Dp): Modifier = layout { measura
         placeable.place(-side, -up)
     }
 }
+
+/** How long after opening before the conversation's items animate their moves. */
+private const val SETTLE_MILLIS = 900L
