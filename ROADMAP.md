@@ -279,6 +279,12 @@ careful with.
   material-color-utilities. It was hand-picked before: coral secondary,
   periwinkle tertiary, so the navigation bar's pill came out brown and the
   story ring a rainbow.
+- **Unread counts and story rings in primary.** The folder tabs' counts
+  took Material's badge default, the error colour, which on dark schemes
+  reads as brown, and the unseen-story ring swept through tertiary, which
+  put a brown or orange arc on every avatar. Counts are primary on the
+  folder in view and tonal on the others, as the chat rows' are; the ring
+  is primary alone.
 - **The app's name is set expressively** — Google Sans Flex rounded (`ROND`
   100), weight 650, width 115, where it was Medium, square and normal width.
 

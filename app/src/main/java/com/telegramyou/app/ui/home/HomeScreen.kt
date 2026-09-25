@@ -856,7 +856,25 @@ private fun FolderTabs(
                             // Material's own badge rather than a number in
                             // brackets: this is the same thing the navigation
                             // bar puts on an icon, and it should look like it.
-                            Badge { Text(count.toString()) }
+                            //
+                            // In primary, not the badge's default error red:
+                            // unread is not a fault, and on the dark schemes
+                            // error's container reads as brown. Loud on the
+                            // folder being looked at, tonal on the others,
+                            // as the chat rows' own counts are.
+                            val selected = index == selectedIndex
+                            Badge(
+                                containerColor = if (selected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.secondaryContainer
+                                },
+                                contentColor = if (selected) {
+                                    MaterialTheme.colorScheme.onPrimary
+                                } else {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                }
+                            ) { Text(count.toString()) }
                         }
                     }
                 }

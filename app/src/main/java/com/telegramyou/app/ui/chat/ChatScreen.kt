@@ -852,7 +852,14 @@ fun ChatScreen(
                     val unread = detail?.chat?.unreadCount ?: 0
                     BadgedBox(
                         badge = {
-                            if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) }
+                            // Primary, as the chat list counts: unread is not
+                            // an error, which is the badge's default colour.
+                            if (unread > 0) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) { Text(if (unread > 99) "99+" else unread.toString()) }
+                            }
                         }
                     ) {
                         SmallFloatingActionButton(
