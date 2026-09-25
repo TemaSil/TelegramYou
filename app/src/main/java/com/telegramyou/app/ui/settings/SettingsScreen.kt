@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,7 +57,9 @@ fun SettingsScreen(
     onThemeChange: (ThemeChoice) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onShapedAvatarsChange: (Boolean) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -79,7 +83,9 @@ fun SettingsScreen(
             onDynamicColorChange = onDynamicColorChange,
             onShapedAvatarsChange = onShapedAvatarsChange,
             onLogout = onLogout,
-            contentPadding = padding
+            contentPadding = padding,
+            onOpenDevices = onOpenDevices,
+            onOpenStorage = onOpenStorage
         )
     }
 }
@@ -102,7 +108,9 @@ fun SettingsContent(
     onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     contentPadding: PaddingValues,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {}
 ) {
         Column(
             modifier = modifier
@@ -217,6 +225,25 @@ fun SettingsContent(
 
             HorizontalDivider()
 
+            // Where this account is signed in, and what it keeps on the phone:
+            // the two things a person comes to settings to check rather than
+            // to change.
+            SectionHeader("Privacy and data")
+            ListItem(
+                headlineContent = { Text("Devices") },
+                supportingContent = { Text("Where you are signed in") },
+                leadingContent = { Icon(Icons.Rounded.Devices, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenDevices)
+            )
+            ListItem(
+                headlineContent = { Text("Data and storage") },
+                supportingContent = { Text("The cache, and clearing it") },
+                leadingContent = { Icon(Icons.Rounded.Storage, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onOpenStorage)
+            )
+
+            HorizontalDivider()
+
             SectionHeader("About")
             UpdateSection()
 
@@ -239,7 +266,7 @@ fun SettingsContent(
 }
 
 @Composable
-private fun SectionHeader(text: String) {
+internal fun SectionHeader(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.labelLarge,

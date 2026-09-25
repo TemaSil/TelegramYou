@@ -6,6 +6,11 @@ import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.StorageUsage
+import com.telegramyou.app.telegram.model.StorageSlice
+import com.telegramyou.app.telegram.model.StorageKind
+import com.telegramyou.app.telegram.model.DeviceKind
+import com.telegramyou.app.telegram.model.ActiveSession
 import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -573,6 +578,59 @@ class DemoTelegramClient(
      * offline: the screen asks, gets nothing, and stops asking — which is the
      * behaviour worth checking without an account.
      */
+    // ── sessions and storage ─────────────────────────────────────────────
+
+    /**
+     * Four places signed in: this phone, a desktop, a browser, and one
+     * client that is not Telegram's — the case the devices screen exists to
+     * catch, so the demo has to show what it looks like.
+     */
+    private val demoSessions: MutableList<ActiveSession> by lazy {
+        val now = System.currentTimeMillis() / 1000
+        mutableListOf(
+            ActiveSession(1, true, DeviceKind.Android, "TelegramYou", "1.0", false, "Pixel 9", "Android", "16", now, "", "Home"),
+            ActiveSession(2, false, DeviceKind.Windows, "Telegram Desktop", "5.2.3", true, "Desktop", "Windows", "11", now - 2 * 60 * 60, "", "Berlin, Germany"),
+            ActiveSession(3, false, DeviceKind.Browser, "Telegram Web", "2.1", true, "Chrome", "macOS", "15", now - 3 * 24 * 60 * 60, "", "Lisbon, Portugal"),
+            ActiveSession(4, false, DeviceKind.Android, "Nekogram", "11.1", false, "Galaxy S21", "Android", "14", now - 12 * 24 * 60 * 60, "", "Unknown")
+        )
+    }
+
+    override suspend fun activeSessions(): List<ActiveSession> {
+        delay(300)
+        return demoSessions.toList()
+    }
+
+    override suspend fun terminateSession(id: Long) {
+        delay(300)
+        demoSessions.removeAll { it.id == id && !it.isCurrent }
+    }
+
+    override suspend fun terminateOtherSessions() {
+        delay(400)
+        demoSessions.removeAll { !it.isCurrent }
+    }
+
+    /** About two gigabytes, videos first — the shape a real cache takes after a month. */
+    private val demoStorage = mutableListOf(
+        StorageSlice(StorageKind.Videos, 1_284_000_000, 96),
+        StorageSlice(StorageKind.Photos, 412_000_000, 1_830),
+        StorageSlice(StorageKind.Files, 96_400_000, 14),
+        StorageSlice(StorageKind.Stickers, 54_100_000, 620),
+        StorageSlice(StorageKind.Voice, 38_200_000, 210),
+        StorageSlice(StorageKind.ProfilePhotos, 21_300_000, 340)
+    )
+
+    override suspend fun storageUsage(): StorageUsage {
+        delay(600)
+        return StorageUsage(demoStorage.toList(), databaseBytes = 64_000_000)
+    }
+
+    override suspend fun clearCache(kinds: Set<StorageKind>): StorageUsage {
+        delay(800)
+        demoStorage.removeAll { it.kind in kinds }
+        return StorageUsage(demoStorage.toList(), databaseBytes = 64_000_000)
+    }
+
     override suspend fun loadOlderMessages(
         chatId: Long,
         beforeMessageId: Long,

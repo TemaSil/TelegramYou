@@ -10,6 +10,8 @@ import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.newchat.NewChatViewModel
 import com.telegramyou.app.ui.proxy.ProxyViewModel
+import com.telegramyou.app.ui.settings.DevicesViewModel
+import com.telegramyou.app.ui.settings.StorageViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
 
 /**
@@ -32,4 +34,6 @@ fun telegramViewModelFactory(repository: TelegramRepository): ViewModelProvider.
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
         initializer { NewChatViewModel(repository) }
         initializer { ProxyViewModel(repository) }
+        initializer { DevicesViewModel(repository) }
+        initializer { StorageViewModel(repository) }
     }

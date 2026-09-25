@@ -9,6 +9,11 @@ import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.storageSlices
+import com.telegramyou.app.telegram.model.deviceKindOf
+import com.telegramyou.app.telegram.model.StorageUsage
+import com.telegramyou.app.telegram.model.StorageKind
+import com.telegramyou.app.telegram.model.ActiveSession
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -1598,6 +1603,108 @@ class TdLibTelegramClient(
     } catch (e: TdLibException) {
         Log.d(TAG, "pingProxy: ${e.message}")
         null
+    }
+
+    // ── sessions ─────────────────────────────────────────────────────────
+
+    override suspend fun activeSessions(): List<ActiveSession> {
+        awaitReady()
+        val list = requireEngine().send(JSONObject().put("@type", "getActiveSessions"))
+            .optJSONArray("sessions") ?: return emptyList()
+        return (0 until list.length()).mapNotNull { index ->
+            val raw = list.optJSONObject(index) ?: return@mapNotNull null
+            ActiveSession(
+                id = raw.optLong("id"),
+                isCurrent = raw.optBoolean("is_current"),
+                kind = deviceKindOf(raw.optJSONObject("device_type")?.optString("@type").orEmpty()),
+                applicationName = raw.optString("application_name"),
+                applicationVersion = raw.optString("application_version"),
+                isOfficialApplication = raw.optBoolean("is_official_application"),
+                deviceModel = raw.optString("device_model"),
+                platform = raw.optString("platform"),
+                systemVersion = raw.optString("system_version"),
+                lastActiveDate = raw.optLong("last_active_date"),
+                ipAddress = raw.optString("ip_address"),
+                location = raw.optString("location"),
+                isPasswordPending = raw.optBoolean("is_password_pending")
+            )
+        }
+    }
+
+    override suspend fun terminateSession(id: Long) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "terminateSession").put("session_id", id))
+    }
+
+    override suspend fun terminateOtherSessions() {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "terminateAllOtherSessions"))
+    }
+
+    // ── storage ──────────────────────────────────────────────────────────
+
+    /**
+     * chat_limit 0 folds every chat into one entry, which is all this needs:
+     * the screen counts by kind of file, not by chat. The database's size
+     * comes from the fast statistics, which read it without walking files.
+     */
+    override suspend fun storageUsage(): StorageUsage {
+        awaitReady()
+        val stats = requireEngine().send(
+            JSONObject().put("@type", "getStorageStatistics").put("chat_limit", 0)
+        )
+        val database = try {
+            requireEngine().send(JSONObject().put("@type", "getStorageStatisticsFast"))
+                .optLong("database_size")
+        } catch (e: TdLibException) {
+            Log.d(TAG, "getStorageStatisticsFast: ${e.message}")
+            0L
+        }
+        return StorageUsage(storageSlices(byFileType(stats)), database)
+    }
+
+    /**
+     * optimizeStorage with every limit at zero deletes everything it is
+     * pointed at; file_types is what points it. Passed explicitly, the types
+     * reach profile photos and stickers too, which TDLib's default spares.
+     */
+    override suspend fun clearCache(kinds: Set<StorageKind>): StorageUsage {
+        awaitReady()
+        if (kinds.isEmpty()) return storageUsage()
+        val types = JSONArray()
+        kinds.flatMap { it.tdTypes }.forEach { types.put(JSONObject().put("@type", it)) }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "optimizeStorage")
+                .put("size", 0)
+                .put("ttl", 0)
+                .put("count", 0)
+                .put("immunity_delay", 0)
+                .put("file_types", types)
+                .put("chat_ids", JSONArray())
+                .put("exclude_chat_ids", JSONArray())
+                .put("return_deleted_file_statistics", false)
+                .put("chat_limit", 0)
+        )
+        return storageUsage()
+    }
+
+    /** Every (file type, size, count) across a `storageStatistics`'s chats. */
+    private fun byFileType(stats: JSONObject): List<Triple<String, Long, Int>> {
+        val chats = stats.optJSONArray("by_chat") ?: return emptyList()
+        val out = ArrayList<Triple<String, Long, Int>>()
+        for (c in 0 until chats.length()) {
+            val types = chats.optJSONObject(c)?.optJSONArray("by_file_type") ?: continue
+            for (t in 0 until types.length()) {
+                val entry = types.optJSONObject(t) ?: continue
+                out += Triple(
+                    entry.optJSONObject("file_type")?.optString("@type").orEmpty(),
+                    entry.optLong("size"),
+                    entry.optInt("count")
+                )
+            }
+        }
+        return out
     }
 
     /** A `proxy` — server, port and a type carrying that type's credentials. */

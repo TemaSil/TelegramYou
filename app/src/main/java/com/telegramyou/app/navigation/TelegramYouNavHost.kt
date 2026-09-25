@@ -65,6 +65,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
+import com.telegramyou.app.ui.settings.DevicesScreen
+import com.telegramyou.app.ui.settings.DevicesViewModel
+import com.telegramyou.app.ui.settings.StorageScreen
+import com.telegramyou.app.ui.settings.StorageViewModel
 import com.telegramyou.app.ui.proxy.ProxyScreen
 import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
@@ -287,7 +291,9 @@ fun TelegramYouNavHost(
                 onErrorShown = homeViewModel::onErrorShown,
                 onListEndReached = homeViewModel::onListEndReached,
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
-                onOpenSavedMessages = homeViewModel::onOpenSavedMessages
+                onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
+                onOpenDevices = { navController.navigateTo(Route.Devices) },
+                onOpenStorage = { navController.navigateTo(Route.Storage) }
             )
             }
         }
@@ -391,7 +397,36 @@ fun TelegramYouNavHost(
                     // moves the client's state, and the graph follows state
                     // rather than being navigated by hand.
                     homeViewModel.logout()
-                }
+                },
+                onOpenDevices = { navController.navigateTo(Route.Devices) },
+                onOpenStorage = { navController.navigateTo(Route.Storage) }
+            )
+        }
+        composable(Route.Devices.PATTERN) {
+            val devicesViewModel: DevicesViewModel = viewModel(factory = viewModelFactory)
+            val state by devicesViewModel.uiState.collectAsStateWithLifecycle()
+            DevicesScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onSessionSelected = devicesViewModel::onSessionSelected,
+                onTerminateAllRequested = devicesViewModel::onTerminateAllRequested,
+                onDismiss = devicesViewModel::onDismiss,
+                onTerminateConfirmed = devicesViewModel::onTerminateConfirmed,
+                onTerminateAllConfirmed = devicesViewModel::onTerminateAllConfirmed,
+                onMessageShown = devicesViewModel::onMessageShown
+            )
+        }
+        composable(Route.Storage.PATTERN) {
+            val storageViewModel: StorageViewModel = viewModel(factory = viewModelFactory)
+            val state by storageViewModel.uiState.collectAsStateWithLifecycle()
+            StorageScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onKindToggle = storageViewModel::onKindToggle,
+                onClearRequested = storageViewModel::onClearRequested,
+                onDismiss = storageViewModel::onDismiss,
+                onClearConfirmed = storageViewModel::onClearConfirmed,
+                onMessageShown = storageViewModel::onMessageShown
             )
         }
         composable(
