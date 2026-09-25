@@ -149,7 +149,9 @@ fun AuthScreen(
         AuthStep.Phone -> onSubmitPhone
         AuthStep.Code -> onSubmitCode
         AuthStep.Password -> onSubmitPassword
-        AuthStep.Qr -> {}
+        // A lambda, not an empty block: `-> {}` alone is a block that returns
+        // nothing, and the when would no longer be a function.
+        AuthStep.Qr -> ({ })
     }
 
     Column(
