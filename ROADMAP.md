@@ -862,6 +862,12 @@ them. Ticks are only worth something if somebody moves them.
       the first through `SingleChoiceSegmentedButtonRow`, the others as
       `Switch` rows; text size is not
 - [~] Sign out is there; the rest of privacy and active sessions is not
+- [x] Updates without a store — Settings → About asks the repository's
+      `latest` release for its version, and a newer one downloads with
+      Expressive's wavy progress bar and opens Android's installer. The same
+      tracked debug key signs every build, which is what lets it install
+      over the one running. A quiet check at launch puts a badge on the
+      Settings tab when there is something to get
 - [x] Proxy — SOCKS5, HTTP and MTProto through TDLib's own list
       (`addProxy`, `enableProxy`, `pingProxy`), from the chat list's overflow
       menu. One is used at a time, so the list is a radio choice, and each

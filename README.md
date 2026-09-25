@@ -14,6 +14,10 @@ If you would rather have the file itself:
 The file name stays the same on every build so this link keeps working; the
 release title says which build it is.
 
+Installed once, it updates itself: **Settings → About → Check for updates**
+fetches the newest build from the same release and hands it to Android's
+installer, and a dot on the Settings tab says when there is one.
+
 > Clicked one of these before the first release existed and got **Page not
 > found**? The browser cached that 404. Reload the page ignoring the cache
 > (Ctrl+Shift+R, or ⌘+Shift+R on a Mac), or open it in a private window.

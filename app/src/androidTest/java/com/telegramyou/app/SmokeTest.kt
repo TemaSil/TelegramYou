@@ -445,6 +445,31 @@ class SmokeTest {
     }
 
     /**
+     * Settings → About → Check for updates asks GitHub and comes back with
+     * an answer. Which answer depends on the release page and on whether the
+     * emulator is online, so any of the three is a pass — what fails is the
+     * row never getting past "Checking", or the app falling over on the way.
+     */
+    @Test
+    fun checkingForUpdatesComesBackWithAnAnswer() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        val row = By.text("Check for updates")
+        // Near the bottom of Settings, which may be below the fold on a
+        // small screen.
+        repeat(3) {
+            if (device.hasObject(row)) return@repeat
+            device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
+        }
+        tap(row)
+        val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
+        waitFor(answer, "an answer from the update check")
+        screenshot("25-updates")
+    }
+
+    /**
      * Folder tabs, which are a filter and have to be seen to filter.
      *
      * The demo backend seeds three folders with overlapping membership, so
