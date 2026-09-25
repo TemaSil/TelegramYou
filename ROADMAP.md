@@ -323,20 +323,22 @@ careful with.
 
 ## Motion between screens, 25 September 2026
 
-- **A story opens out of its circle** — Material's container transform, on
-  `SharedTransitionLayout` and `sharedBounds` (`ui/motion/ContainerTransform.kt`),
-  on the *standard* scheme's slow spatial spring: the expressive one
-  overshoots, and a container the size of the display overshooting swells
-  past its edges and back. Back — the predictive gesture too — closes it.
-- **A chat slides in the way every other screen does** — the graph's own fade
-  and slide on the default spring, which is what it opened with first. It
-  went through a container transform on the expressive spring, a side slide,
-  and a container transform on the calm spring, and came back here on the
-  owner's word. What made opening smooth was not any of those motions but
-  the messages being there before the screen: a tap fetches the chat's
-  opening window first (`TelegramRepository.warmChat`, capped at 200 ms —
-  TDLib answers from its local database well inside that), so the screen
-  moves in finished rather than filling in mid-flight.
+- **A chat opens out of its row, and a story out of its circle** — Material's
+  container transform, on `SharedTransitionLayout` and `sharedBounds`
+  (`ui/motion/ContainerTransform.kt`). Back — including the predictive back
+  gesture — closes it into where it came from.
+  The chat's went round the houses — the theme's bouncy spring, a calmer
+  one, a plain slide — and settled on the first version's pace (stiffness
+  380) with the bounce taken out (`ChatContainerSpring`), on the owner's
+  word. What made the first version shake was not its motion but two
+  things under it, both gone: the screen was laid out again at every frame's
+  size, re-wrapping every line, and it arrived empty with its messages
+  landing mid-flight. Now it is laid out once, at full size, with its
+  messages fetched on the tap first (`TelegramRepository.warmChat`, capped
+  at 200 ms — TDLib answers from its local database well inside that), and
+  scaled into the growing container from its top, so the row shows the
+  chat's own header at the start. A story keeps the standard scheme's slow
+  spatial spring.
 - **Fade through between the bottom tabs**, which is what Material's motion
   guidance gives navigation-bar destinations: they are separate places, not
   neighbours, so nothing slides. Shared axis X stays where it belongs, on
