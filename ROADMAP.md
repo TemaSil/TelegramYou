@@ -351,6 +351,11 @@ folder tabs were all called "Folder". Both were the same mistake: the TDLib
 this app is built with (`d1085f9`) moved fields the code still wrote and read
 at their old places. Checked against that commit's `td_api.tl`, line by line:
 
+- **Every sticker set said "This set is empty".** TDLib sends `int64`
+  values as strings, and `optLong` reads a string through a Double, which
+  keeps sixteen digits of an id's nineteen — so the set asked for was not
+  the one tapped. `optInt64` reads them exactly and they go back as strings;
+  the same fix reaches session ids (ending a device) and chat order.
 - **Photos, files and voice notes could not be sent.** The file now sits in
   an `inputPhoto`, `inputDocument` or `inputVoiceNote` of its own.
 - **Folder names** are `name.text.text`, a `chatFolderName` holding a
