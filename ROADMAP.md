@@ -1007,7 +1007,22 @@ them. Ticks are only worth something if somebody moves them.
       Coil and animated TGS through Lottie; a sheet behind the smiley in the
       field with the recent ones and each installed set as a tab; sent as
       TDLib's `inputSticker`. Video (WEBM) stickers show their still
-      thumbnail, and custom emoji are not in yet
+      thumbnail, and custom emoji are not in yet. A video sticker with its
+      transparency needs a VP9 decoder that keeps the alpha channel, which
+      Android's own do not — played through them it would be a sticker in a
+      black square — so it waits for a native decoder
+- [x] Videos out to the bubble's edges, as photos are, with the caption
+      and time beneath — they were a smaller rounded frame inside the bubble
+- [x] GIFs — TDLib's `messageAnimation`, which used to show as a word. Out
+      to the bubble's edges, fetched on sight, and playing by themselves,
+      looping and silent, on Media3 over a TextureView; a tap opens the
+      player. A "GIF" label says it is a loop and not a video already
+      running
+- [x] Round video messages — `messageVideoNote`, also a word before. A
+      220dp circle with no bubble, fetched on sight, played in place with
+      sound on a tap and paused on another, back to the start when it ends.
+      The shared inline player crops the frame to its shape rather than
+      stretching it, and stops while the app is in the background
 
 ## 5. Notifications
 

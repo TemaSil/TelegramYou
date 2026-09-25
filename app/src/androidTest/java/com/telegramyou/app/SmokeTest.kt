@@ -221,6 +221,29 @@ class SmokeTest {
     }
 
     /**
+     * A GIF and a round video message, the two kinds of video people send
+     * most, which the chat used to show as a word each. The GIF is on screen
+     * and playing by itself; the circle plays on a tap and pauses on another.
+     * What is checked is that each is there and answers — how either looks
+     * is for a person to judge.
+     */
+    @Test
+    fun gifsAndVideoMessagesPlayInPlace() {
+        signIn()
+        waitFor(By.text("Lina Park"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("GIF"), "the GIF")
+        val note = By.descStartsWith("Video message, ")
+        waitFor(note, "the round video message")
+        tap(note)
+        waitFor(By.desc("Video message, playing"), "the video message playing")
+        screenshot("31-video-note")
+        tap(By.desc("Video message, playing"))
+        waitFor(By.desc("Video message, 0:08"), "the video message paused")
+    }
+
+    /**
      * The rail, which only exists where the window is big enough for one.
      *
      * Not by turning the phone, which was the first version of this and

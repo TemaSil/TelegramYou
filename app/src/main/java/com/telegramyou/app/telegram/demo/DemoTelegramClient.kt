@@ -1263,6 +1263,29 @@ class DemoTelegramClient(
         chatMessages[2] = mutableListOf(
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
+            // A GIF and a round video message, the two kinds of video people
+            // send most. The demo's one clip stands in for both; the circle
+            // crops it square, as it would a real one.
+            demoMessage(
+                13, 2, "GIF", false, yesterday + 240, "Lina Park",
+                contentType = MessageContentType.Animation,
+                video = VideoContent(
+                    durationSeconds = 8,
+                    aspect = 360f / 202f,
+                    thumbPath = DEMO_VIDEO_POSTER,
+                    path = DEMO_VIDEO
+                )
+            ),
+            demoMessage(
+                14, 2, "Video message", false, today + 200, "Lina Park",
+                contentType = MessageContentType.VideoNote,
+                video = VideoContent(
+                    durationSeconds = 8,
+                    aspect = 1f,
+                    thumbPath = DEMO_VIDEO_POSTER,
+                    path = DEMO_VIDEO
+                )
+            ),
             demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park")
         )
         // A group that behaves like one: several people, because the header

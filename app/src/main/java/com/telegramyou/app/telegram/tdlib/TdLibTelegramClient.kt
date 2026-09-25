@@ -2539,6 +2539,8 @@ class TdLibTelegramClient(
             "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
             "messagePhoto" -> "🖼 Photo"
             "messageVideo" -> "🎬 Video"
+            "messageAnimation" -> "GIF"
+            "messageVideoNote" -> "Video message"
             "messageDocument" -> "📎 ${content.optJSONObject("document")?.optString("file_name") ?: "File"}"
             "messageVoiceNote" -> "🎤 Voice"
             "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
@@ -2634,6 +2636,8 @@ class TdLibTelegramClient(
         val contentType = when (type) {
             "messagePhoto" -> MessageContentType.Photo
             "messageVideo" -> MessageContentType.Video
+            "messageAnimation" -> MessageContentType.Animation
+            "messageVideoNote" -> MessageContentType.VideoNote
             "messageDocument" -> MessageContentType.Document
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
@@ -2740,15 +2744,24 @@ class TdLibTelegramClient(
      * which is what lets it reserve the space rather than jump when the
      * poster lands.
      */
+    /**
+     * A video, a GIF or a round video message: the same four files-and-sizes
+     * under three different names. A GIF keeps its file under `animation`,
+     * and a video message is square, with one `length` for both sides.
+     */
     private fun videoContent(content: JSONObject?): VideoContent? {
-        val video = content
-            ?.takeIf { it.optString("@type") == "messageVideo" }
-            ?.optJSONObject("video")
-            ?: return null
-        val width = video.optInt("width")
-        val height = video.optInt("height")
+        val (video, fileKey) = when (content?.optString("@type")) {
+            "messageVideo" -> content.optJSONObject("video") to "video"
+            "messageAnimation" -> content.optJSONObject("animation") to "animation"
+            "messageVideoNote" -> content.optJSONObject("video_note") to "video"
+            else -> null to ""
+        }
+        if (video == null) return null
+        val length = video.optInt("length")
+        val width = video.optInt("width").takeIf { it > 0 } ?: length
+        val height = video.optInt("height").takeIf { it > 0 } ?: length
         val thumbnail = video.optJSONObject("thumbnail")?.optJSONObject("file")
-        val file = video.optJSONObject("video")
+        val file = video.optJSONObject(fileKey)
         return VideoContent(
             durationSeconds = video.optInt("duration"),
             aspect = if (width > 0 && height > 0) width.toFloat() / height else 16f / 9f,
