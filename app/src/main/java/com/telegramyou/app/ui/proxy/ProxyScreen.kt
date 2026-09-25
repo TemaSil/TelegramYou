@@ -81,7 +81,7 @@ fun ProxyScreen(
     onRemove: (Int) -> Unit,
     onAddOpen: () -> Unit,
     onAddDismiss: () -> Unit,
-    onDraftChange: (ProxyDraft) -> Unit,
+    onDraftChange: ((ProxyDraft) -> ProxyDraft) -> Unit,
     onLinkPasted: (String) -> Unit,
     onSave: () -> Unit,
     onErrorShown: () -> Unit
@@ -227,7 +227,7 @@ private fun ProxyRow(
 private fun AddProxySheet(
     draft: ProxyDraft,
     isSaving: Boolean,
-    onDraftChange: (ProxyDraft) -> Unit,
+    onDraftChange: ((ProxyDraft) -> ProxyDraft) -> Unit,
     onLinkPasted: (String) -> Unit,
     onSave: () -> Unit
 ) {
@@ -264,7 +264,7 @@ private fun AddProxySheet(
             kinds.forEachIndexed { index, kind ->
                 SegmentedButton(
                     selected = draft.kind == kind,
-                    onClick = { onDraftChange(draft.copy(kind = kind)) },
+                    onClick = { onDraftChange { it.copy(kind = kind) } },
                     shape = SegmentedButtonDefaults.itemShape(index, kinds.size),
                     label = {
                         Text(
@@ -280,7 +280,7 @@ private fun AddProxySheet(
         }
         OutlinedTextField(
             value = draft.server,
-            onValueChange = { onDraftChange(draft.copy(server = it)) },
+            onValueChange = { value -> onDraftChange { it.copy(server = value) } },
             label = { Text("Server") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
@@ -288,7 +288,7 @@ private fun AddProxySheet(
         )
         OutlinedTextField(
             value = draft.port,
-            onValueChange = { value -> onDraftChange(draft.copy(port = value.filter(Char::isDigit).take(5))) },
+            onValueChange = { value -> onDraftChange { it.copy(port = value.filter(Char::isDigit).take(5)) } },
             label = { Text("Port") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -297,7 +297,7 @@ private fun AddProxySheet(
         if (draft.kind == ProxyKind.MtProto) {
             OutlinedTextField(
                 value = draft.secret,
-                onValueChange = { onDraftChange(draft.copy(secret = it.trim())) },
+                onValueChange = { value -> onDraftChange { it.copy(secret = value.trim()) } },
                 label = { Text("Secret") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
@@ -305,14 +305,14 @@ private fun AddProxySheet(
         } else {
             OutlinedTextField(
                 value = draft.username,
-                onValueChange = { onDraftChange(draft.copy(username = it)) },
+                onValueChange = { value -> onDraftChange { it.copy(username = value) } },
                 label = { Text("Username (optional)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = draft.password,
-                onValueChange = { onDraftChange(draft.copy(password = it)) },
+                onValueChange = { value -> onDraftChange { it.copy(password = value) } },
                 label = { Text("Password (optional)") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),

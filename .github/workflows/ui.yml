@@ -13,10 +13,13 @@
 name: UI
 
 on:
-  # Not on every push: an emulator takes minutes where the Build workflow
-  # takes one, and the fast loop is worth keeping fast.
+  # Every branch, alongside Build rather than after it: waiting for Build to
+  # go green and then starting this added its minutes to every round. A
+  # newer push to the same branch cancels the run in progress (see
+  # concurrency). The branches this workflow and Live write screenshots to
+  # are left out — they hold no code, and a run on them would test nothing.
   push:
-    branches: [main]
+    branches-ignore: [ui-screenshots, live-screenshots, gallery]
   workflow_dispatch:
 
 permissions:
@@ -57,6 +60,34 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The emulator, booted once and kept. A cold boot of a fresh AVD is two
+      # to three minutes of every run; restored from this cache with its
+      # snapshot, it starts in seconds. The key names everything that would
+      # make a different device — change any of them and it is rebuilt.
+      - name: Restore the emulator
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34-default-x86_64-pixel_6-v1
+
+      - name: Create the emulator and its snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          force-avd-creation: false
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          disable-animations: false
+          script: echo "Emulator snapshot made for the cache."
+
       - name: Run the app on an emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -64,10 +95,14 @@ jobs:
           target: default
           arch: x86_64
           profile: pixel_6
+          # The cached device, not a new one.
+          force-avd-creation: false
           # Everything that would otherwise be drawn over the app, or would
-          # slow the boot to no purpose.
+          # slow the boot to no purpose. Booted from the cached snapshot and
+          # never saved back: what one run leaves on the device must not be
+          # where the next one starts.
           emulator-options: >-
-            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim
             -camera-back none -camera-front none
           disable-animations: true
           script: |
