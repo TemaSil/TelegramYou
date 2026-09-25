@@ -917,7 +917,6 @@ them. Ticks are only worth something if somebody moves them.
       screen would have nothing to point at. Only the changed fields are sent,
       the username last because it is the one that gets refused, and the
       account is re-read afterwards so what is shown is what the server took
-<<<<<<< HEAD
 - [x] Notifications per chat — on chat info: on or off, "Mute for…" (an
       hour, eight, two days, until turned back on), message preview and
       sound, as list items with switches. Read the way TDLib keeps them: a
@@ -925,13 +924,8 @@ them. Ticks are only worth something if somebody moves them.
       channel) where it says "default" — which is most chats. The shade
       honours them: no preview says "New message", no sound posts silently.
       The rules and the "Off until 18:40" line are in `:core` with tests
-- [ ] Language — Russian and English
-=======
-- [ ] Notifications settings — the two channels now exist, so this is
-      per-chat overrides rather than a global switch
 - [ ] Language — Russian and English. Left for last, on purpose: the
       strings are only worth extracting once the screens have stopped moving
->>>>>>> origin/feat/chat-feel
 - [ ] Data and storage, cache size
 
 ## 4. Media
