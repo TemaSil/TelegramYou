@@ -129,6 +129,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -187,7 +188,6 @@ import com.telegramyou.app.ui.media.zoomAfterGesture
 import com.telegramyou.app.ui.media.zoomToggled
 import com.telegramyou.app.ui.components.AvatarCluster
 import com.telegramyou.app.ui.components.TypingIndicator
-import com.telegramyou.app.ui.theme.ComposerShape
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
@@ -2699,6 +2699,37 @@ private fun ComposerBar(
     // this replaced, where it went unnoticed: that bar was painted to the
     // bottom of the screen, so a doubled inset only made it look tall. Give
     // it a shape and lift it off the edges and the gap becomes a hole.
+    // Round on one line, and only rounded once the text grows — with a
+    // spring between the two, so the ends flatten as the second line
+    // arrives and come back round when it goes.
+    //
+    // A fixed 28.dp was the answer before this, and it was round on paper
+    // only: the capsule is not 56dp on one line but closer to 76, the field
+    // plus the room around it, so 28 left it a rounded rectangle at rest.
+    // Half the height, measured, is round whatever the field and the font
+    // come to. The height at rest is the smallest seen while the field is
+    // showing; recording swaps the field for a shorter row and is left out.
+    val density = LocalDensity.current
+    var restingHeight by remember { mutableIntStateOf(0) }
+    var height by remember { mutableIntStateOf(0) }
+    val grown = recordingSince == null && restingHeight > 0 &&
+        height - restingHeight > with(density) { COMPOSER_GROWN_SLACK.roundToPx() }
+    val corner by animateDpAsState(
+        targetValue = when {
+            grown -> COMPOSER_GROWN_CORNER
+            // Before the first measure: anything past half the height draws
+            // as a full round end, since a shape clamps its corners to fit.
+            restingHeight == 0 -> COMPOSER_PILL_CORNER
+            else -> with(density) { (restingHeight / 2).toDp() }
+        },
+        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "composer corner"
+    )
+    val capsuleShape = RoundedCornerShape(corner)
+    // Concentric with the capsule: the field sits eight in from its edge, so
+    // its corners are eight less. On one line that still clamps to a round
+    // end; grown, it is the capsule's curve followed inwards.
+    val fieldShape = RoundedCornerShape((corner - COMPOSER_FIELD_INSET).coerceAtLeast(0.dp))
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -2748,9 +2779,16 @@ private fun ComposerBar(
         // tones swap ends by construction, so the arrangement holds without
         // a second branch.
         Surface(
-            shape = ComposerShape,
+            shape = capsuleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onSizeChanged {
+                    height = it.height
+                    if (recordingSince == null && (restingHeight == 0 || it.height < restingHeight)) {
+                        restingHeight = it.height
+                    }
+                }
         ) {
             Row(
                 // Eight rather than four, so the field inside has room to
@@ -2830,7 +2868,7 @@ private fun ComposerBar(
                                 Icon(Icons.Rounded.EmojiEmotions, contentDescription = "Stickers")
                             }
                         },
-                        shape = ComposerShape,
+                        shape = fieldShape,
                         // The field carries its own fill, at the opposite
                         // end of the container ladder from the capsule
                         // around it. An earlier version made every
@@ -3077,3 +3115,15 @@ private fun listIndexOf(index: Int, messages: List<ChatMessage>): Int = messages
 
 /** The composer capsule's margin above and below; the list stops at its bottom edge. */
 private val COMPOSER_MARGIN = 8.dp
+
+/** The composer capsule's corners once its text has grown past one line. */
+private val COMPOSER_GROWN_CORNER = 28.dp
+
+/** Past any half-height the composer reaches on one line: a round end. */
+private val COMPOSER_PILL_CORNER = 64.dp
+
+/** Taller than at rest by more than this, and the composer has grown a line. */
+private val COMPOSER_GROWN_SLACK = 12.dp
+
+/** How far the field sits in from the capsule's edge, for concentric corners. */
+private val COMPOSER_FIELD_INSET = 8.dp

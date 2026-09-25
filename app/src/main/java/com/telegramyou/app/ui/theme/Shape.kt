@@ -17,11 +17,6 @@ val TelegramYouShapes = Shapes(
 // MessageBubble builds its own RoundedCornerShape per message. A pair of
 // fixed shapes alongside that would be a second answer to the same question,
 // and the wrong one.
-// A fixed radius, which is the reverse of the decision before it, and on the
-// owner's word from a phone. Fifty percent of the shorter side kept the
-// capsule a capsule at any height — but at five lines its ends were half-discs
-// five lines tall, and they cut into the buttons sitting in its corners.
-// 28.dp is fully round on one line (the composer is 56dp there; the field
-// inside, shorter, clamps to its own half-height) and a rounded rectangle as
-// the text grows, so the curve gets proportionally smaller the taller it is.
-val ComposerShape = RoundedCornerShape(28.dp)
+// The composer's shape is not here either: it is round on one line and
+// rounded once the text grows, animated between the two from its measured
+// height — see ComposerBar.

@@ -294,6 +294,11 @@ careful with.
   opened with its history sliding past and stopping above the latest line.
   Laid out from the bottom it also rises with the keyboard by itself, which
   the hand-written keyboard follower it replaces did frame by frame.
+- **The composer is round on one line** and rounded once it grows, on a
+  spring between the two. Its corner is half its measured height at rest —
+  the fixed 28dp before it was round on paper only, the capsule being nearer
+  76dp tall than 56 — and 28dp from the second line on; the field inside
+  follows concentrically, 8dp less.
 - **Nothing shows beneath the composer.** The list stops at the capsule's
   bottom edge; a bubble scrolled into the margin under it read as a strip.
 
