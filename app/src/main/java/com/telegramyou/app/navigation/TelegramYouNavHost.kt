@@ -7,9 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
 import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
 import com.telegramyou.app.ui.motion.containerTransform
-import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.storyContainerKey
-import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.ui.motion.StoryContainerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -21,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
+import androidx.compose.material3.MotionScheme
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
@@ -135,8 +135,8 @@ fun TelegramYouNavHost(
     }
 
     // One layout around the whole graph, so a screen can open out of an
-    // element on the one before it — a chat out of its row, a story out of
-    // its circle. See containerTransform.
+    // element on the one before it — a story out of its circle. See
+    // containerTransform; a chat slides in instead, see ScreenSlide.
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(
@@ -189,14 +189,31 @@ fun TelegramYouNavHost(
         }
         composable(
             Route.Home.PATTERN,
-            // Under a chat or a story opening out of this screen, the list
-            // fades where it is rather than sliding away: the container is
-            // the movement, and a second one beside it would fight it.
+            // Under a story opening out of its circle, the list fades where it
+            // is rather than sliding away: the container is the movement, and
+            // a second one beside it would fight it. Under a chat it moves a
+            // quarter of the way along with it; see ScreenSlide.
             exitTransition = {
-                if (targetState.destination.route in containerRoutes) fadeOut(spring()) else null
+                when (targetState.destination.route) {
+                    Route.Story.PATTERN -> fadeOut(spring())
+                    Route.Chat.PATTERN -> slideOutOfContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                        animationSpec = ScreenSlide,
+                        targetOffset = { it / UNDERNEATH_SHARE }
+                    )
+                    else -> null
+                }
             },
             popEnterTransition = {
-                if (initialState.destination.route in containerRoutes) fadeIn(spring()) else null
+                when (initialState.destination.route) {
+                    Route.Story.PATTERN -> fadeIn(spring())
+                    Route.Chat.PATTERN -> slideIntoContainer(
+                        towards = AnimatedContentTransitionScope.SlideDirection.End,
+                        animationSpec = ScreenSlide,
+                        initialOffset = { it / UNDERNEATH_SHARE }
+                    )
+                    else -> null
+                }
             }
         ) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
@@ -430,9 +447,19 @@ fun TelegramYouNavHost(
         composable(
             route = Route.Chat.PATTERN,
             arguments = Route.Chat.arguments,
-            // The row it opened out of does the moving; see containerTransform.
-            enterTransition = { fadeIn(spring()) },
-            popExitTransition = { fadeOut(spring()) }
+            // In from the side, the whole screen at once; see ScreenSlide.
+            enterTransition = {
+                slideIntoContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.Start,
+                    animationSpec = ScreenSlide
+                )
+            },
+            popExitTransition = {
+                slideOutOfContainer(
+                    towards = AnimatedContentTransitionScope.SlideDirection.End,
+                    animationSpec = ScreenSlide
+                )
+            }
         ) { entry ->
             val openedChatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
             // chatId is not read here: ChatViewModel takes it from the saved
@@ -473,11 +500,7 @@ fun TelegramYouNavHost(
                 // Stickers fetch their own files; see StickerView.
                 LocalFileLoader provides chatViewModel::loadFile
             ) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true)
-            ) {
+            Box(Modifier.fillMaxSize()) {
             ChatScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
@@ -582,5 +605,27 @@ fun TelegramYouNavHost(
     }
 }
 
-/** Destinations that open out of an element on the chat list; see containerTransform. */
-private val containerRoutes = setOf(Route.Chat.PATTERN, Route.Story.PATTERN)
+/**
+ * How a conversation comes in over the chat list, and goes back out.
+ *
+ * It used to open out of its row as a container transform on the theme's
+ * expressive spring, and on a phone that read as the whole conversation
+ * wobbling: a spring that overshoots carries a full-screen container past
+ * the edges of the display and back, and there is nothing beyond a screen
+ * for it to settle into. A conversation is a place gone into, not a card
+ * grown — which is how Android itself opens one screen over another: in
+ * from the side, the one underneath drawn a little way along with it, the
+ * reverse on the way back, and a predictive back gesture scrubbing it.
+ *
+ * On the standard scheme's slow spatial spring: slow because Material
+ * gives full-screen movement the slow speed, standard because its spring
+ * all but does not overshoot, which is the one thing a moving edge of the
+ * screen must not do. The story viewer keeps its container transform —
+ * a circle opening into a picture is an element growing — on the same
+ * spring; see containerTransform.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private val ScreenSlide = MotionScheme.standard().slowSpatialSpec<IntOffset>()
+
+/** How far the chat list moves under a conversation coming in: a quarter. */
+private const val UNDERNEATH_SHARE = 4
