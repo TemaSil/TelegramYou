@@ -1180,8 +1180,9 @@ class SmokeTest {
         tap(By.text("Data and storage"))
         waitFor(By.text("Videos"), "the cache by kind")
         screenshot("30-storage")
-        // The button names its size; the dialog's title ends in a question mark.
-        tap(By.textStartsWith("Clear ").textEndsWith(" GB"))
+        // The button names its size; the dialog's title ends in a question
+        // mark. One pattern: a selector takes a single text condition.
+        tap(By.text(Pattern.compile("Clear [0-9.]+ GB")))
         tap(By.text("Clear"))
         waitFor(By.textStartsWith("Cleared"), "the cache cleared")
         assertTrue(
