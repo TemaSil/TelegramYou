@@ -62,6 +62,24 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Where this account is signed in; from Settings. */
+    data object Devices : Route {
+        const val PATTERN = "settings/devices"
+        override val path = PATTERN
+    }
+
+    /** Who can see and reach this account; from Settings. */
+    data object Privacy : Route {
+        const val PATTERN = "settings/privacy"
+        override val path = PATTERN
+    }
+
+    /** The cache on this phone, and clearing it; from Settings. */
+    data object Storage : Route {
+        const val PATTERN = "settings/storage"
+        override val path = PATTERN
+    }
+
     /**
      * Making a group or a channel. Routes rather than sheets: each is a form
      * with a keyboard up and a list under it, and a sheet would be fighting

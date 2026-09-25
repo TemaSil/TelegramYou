@@ -1171,6 +1171,86 @@ class SmokeTest {
      * node that happens to carry the words, and setting text on that is a
      * no-op that reports success.
      */
+    /**
+     * Settings' two places to check rather than change: the devices this
+     * account is signed in on, one of them ended; and the cache, cleared.
+     * The demo has a stranger's client among its sessions and two gigabytes
+     * of files, so both have something to act on.
+     */
+    @Test
+    fun devicesAndStorageFromSettings() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+
+        scrollSettingsTo(By.text("Devices"))
+        tap(By.text("Devices"))
+        waitFor(By.text("Galaxy S21"), "the unofficial session")
+        screenshot("29-devices")
+        tap(By.text("Galaxy S21"))
+        waitFor(By.text("End this session?"), "the confirmation")
+        tap(By.text("End session"))
+        assertTrue(
+            "the ended session should leave the list",
+            device.wait(Until.gone(By.text("Galaxy S21")), STEP_TIMEOUT)
+        )
+        device.pressBack()
+        waitFor(By.text("Appearance"), "the settings again")
+
+        scrollSettingsTo(By.text("Data and storage"))
+        tap(By.text("Data and storage"))
+        waitFor(By.text("Videos"), "the cache by kind")
+        screenshot("30-storage")
+        // The button names its size; the dialog's title ends in a question
+        // mark. One pattern: a selector takes a single text condition.
+        tap(By.text(Pattern.compile("Clear [0-9.]+ GB")))
+        tap(By.text("Clear"))
+        waitFor(By.textStartsWith("Cleared"), "the cache cleared")
+        assertTrue(
+            "the cleared videos should leave the list",
+            device.wait(Until.gone(By.text("Videos")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
+     * Privacy: each rule says who it is set to, and choosing another audience
+     * in its dialog changes the row. The demo's last-seen rule carries two
+     * exceptions made elsewhere, which the row has to show. Text size is
+     * checked for being offered; how large is for a person to judge.
+     */
+    @Test
+    fun privacyRulesChangeAndTextSizeIsOffered() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        waitFor(By.text("Text size"), "the text size setting")
+
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        waitFor(By.text("Phone number"), "the privacy rules")
+        waitFor(By.text("Everybody (−2)"), "last seen with its exceptions")
+        tap(By.text("Phone number"))
+        waitFor(By.text("Who can see my phone number"), "the phone number dialog")
+        tap(By.text("Nobody"))
+        waitFor(By.text("Nobody"), "phone number set to nobody")
+        screenshot("32-privacy")
+    }
+
+    /** Scrolls the settings down until [selector] is on screen. */
+    private fun scrollSettingsTo(selector: BySelector) {
+        repeat(4) {
+            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+    }
+
     /** From the chat list to the login screen, through Settings. */
     private fun logOut() {
         waitFor(By.text("Material Design"), "the chat list")

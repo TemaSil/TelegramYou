@@ -179,7 +179,11 @@ fun HomeScreen(
     /** A list is near its end: the main one for null, else that folder. */
     onListEndReached: (Int?) -> Unit = {},
     onOpenProxy: () -> Unit = {},
-    onOpenSavedMessages: () -> Unit = {}
+    onOpenSavedMessages: () -> Unit = {},
+    onOpenDevices: () -> Unit = {},
+    onOpenStorage: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onTextScaleChange: (Float) -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -333,7 +337,11 @@ fun HomeScreen(
                         onDynamicColorChange = onDynamicColorChange,
                         onShapedAvatarsChange = onShapedAvatarsChange,
                         onLogout = onLogout,
-                        contentPadding = padding
+                        contentPadding = padding,
+                        onOpenDevices = onOpenDevices,
+                        onOpenStorage = onOpenStorage,
+                        onOpenPrivacy = onOpenPrivacy,
+                        onTextScaleChange = onTextScaleChange
                     )
                     return@AnimatedContent
                 }

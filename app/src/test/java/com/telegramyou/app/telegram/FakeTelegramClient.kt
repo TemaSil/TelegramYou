@@ -1,6 +1,7 @@
 package com.telegramyou.app.telegram
 
 import com.telegramyou.app.notifications.ChatNotificationSettings
+import com.telegramyou.app.telegram.model.ActiveSession
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -10,9 +11,14 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PrivacyAudience
+import com.telegramyou.app.telegram.model.PrivacyRules
+import com.telegramyou.app.telegram.model.PrivacySetting
 import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerSetPreview
+import com.telegramyou.app.telegram.model.StorageKind
+import com.telegramyou.app.telegram.model.StorageUsage
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -197,6 +203,21 @@ class FakeTelegramClient(
     override suspend fun submitCode(code: String) = Unit
     override suspend fun submitPassword(password: String) = Unit
     override suspend fun requestQrLogin() = Unit
+
+    override suspend fun activeSessions(): List<ActiveSession> = emptyList()
+
+    override suspend fun terminateSession(id: Long) = Unit
+
+    override suspend fun privacyRules(setting: PrivacySetting) = PrivacyRules(PrivacyAudience.Everybody)
+
+    override suspend fun setPrivacyRules(setting: PrivacySetting, rules: PrivacyRules) = Unit
+
+    override suspend fun terminateOtherSessions() = Unit
+
+    override suspend fun storageUsage() = StorageUsage(emptyList())
+
+    override suspend fun clearCache(kinds: Set<StorageKind>) =
+        StorageUsage(emptyList())
 
     override suspend fun submitEmailAddress(email: String) = Unit
 

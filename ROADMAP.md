@@ -948,10 +948,27 @@ against the code showed `SettingsScreen.kt` had already been carrying half of
 them. Ticks are only worth something if somebody moves them.
 
 - [x] Settings list — `Scaffold`, `ListItem`, `Switch`
-- [~] Appearance: theme, dynamic colour and shaped avatars are done —
-      the first through `SingleChoiceSegmentedButtonRow`, the others as
-      `Switch` rows; text size is not
-- [~] Sign out is there; the rest of privacy and active sessions is not
+- [x] Appearance: theme, dynamic colour, shaped avatars and text size —
+      the first through `SingleChoiceSegmentedButtonRow`, the switches as
+      `Switch` rows, and text size as a `Slider` with four named stops that
+      multiplies the system's font scale rather than replacing it, so a
+      phone already set larger stays larger
+- [x] Devices — Settings → Privacy and data: every session this account
+      has, this phone first and the rest by last use, each with its device's
+      icon, its app and where it is. One ends with a tap and a confirmation,
+      all the others from the row between the two groups. A client that is
+      not Telegram's own says "(unofficial)", since a stranger's client is
+      what this list is looked at for. `getActiveSessions`, `terminateSession`,
+      `terminateAllOtherSessions`; naming and ordering in `:core` with tests
+- [x] Privacy rules — phone number, finding by number, last seen, profile
+      photo, bio, forwarded messages, calls, and adding to groups: each a
+      list item saying who it is set to, changed in Material's radio-button
+      dialog. Telegram's rules are an ordered list; the audience is read
+      from its whole-audience rules and everything naming particular people
+      is kept exactly as read and written back first, so exceptions made in
+      another app survive a change made here — shown as "Everybody (−2)",
+      not edited. `getUserPrivacySettingRules` / `setUserPrivacySettingRules`;
+      the reading and writing in `:core` with tests
 - [x] Updates without a store — Settings → About asks the repository's
       `latest` release for its version, and a newer one downloads with
       Expressive's wavy progress bar and opens Android's installer. The same
@@ -981,7 +998,15 @@ them. Ticks are only worth something if somebody moves them.
       The rules and the "Off until 18:40" line are in `:core` with tests
 - [ ] Language — Russian and English. Left for last, on purpose: the
       strings are only worth extracting once the screens have stopped moving
-- [ ] Data and storage, cache size
+- [x] Data and storage — what TDLib keeps on the phone, folded from its
+      per-chat, per-type statistics into kinds (photos, videos, voice, files,
+      stickers…), largest first, with the database named but not offered.
+      Checkbox rows choose what to clear — all but profile photos and
+      stickers to start with, since those come straight back — and
+      `optimizeStorage` pointed at those file types clears them. The folding
+      and the sizes are in `:core` with tests. Not in: keeping media for a
+      set time, which TDLib has no setting for and would need a scheduled
+      clean
 
 ## 4. Media
 
