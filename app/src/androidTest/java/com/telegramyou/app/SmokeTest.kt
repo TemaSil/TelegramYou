@@ -188,6 +188,39 @@ class SmokeTest {
     }
 
     /**
+     * A search hit far older than anything opening the chat loads: tapped,
+     * the history around it replaces the latest messages and the hit is on
+     * screen; the jump button then brings the latest back. The demo group
+     * carries months of history before its visible conversation for this,
+     * and its very first line is the one searched for.
+     */
+    @Test
+    fun anOldSearchHitOpensWhereItIs() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        tap(By.desc("Search in chat"))
+        val field = By.clazz("android.widget.EditText").focused(true)
+        waitFor(field, "the search field")
+        device.findObject(field).text = OLD_HIT_QUERY
+        // The result row; the words are bold inside it, so by containment.
+        waitFor(By.textContains("first sketches"), "the old search hit")
+        tap(By.textContains("first sketches"))
+        // The results close first, so the line found after that is the
+        // message in the conversation and not its row in the results.
+        device.wait(Until.gone(field), STEP_TIMEOUT)
+        waitFor(By.textContains("first sketches"), "the old message in the conversation")
+        assertFalse(
+            "the latest messages should have given way to the history around the hit",
+            device.hasObject(By.textContains("Reviewing tonight"))
+        )
+        screenshot("28-old-search-hit")
+        tap(By.desc("Jump to latest"))
+        waitFor(By.textContains("Reviewing tonight"), "the latest messages again")
+    }
+
+    /**
      * The rail, which only exists where the window is big enough for one.
      *
      * Not by turning the phone, which was the first version of this and
@@ -1205,6 +1238,9 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+
+        /** The start of the demo group's oldest line; see DEMO_ARCHIVE_FIRST_LINE. */
+        const val OLD_HIT_QUERY = "Kickoff"
 
         /**
          * A circle in the demo's stories rail, and its story's caption.

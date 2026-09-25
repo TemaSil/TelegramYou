@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.material3.BadgedBox
@@ -227,6 +228,11 @@ fun ChatScreen(
     onComposerBannerCancelled: () -> Unit,
     onSend: () -> Unit,
     onLoadOlder: () -> Unit,
+    /** A search hit or the pinned message; see ChatViewModel.onJumpToMessage. */
+    onJumpToMessage: (Long) -> Unit = {},
+    onJumpToLatest: () -> Unit = {},
+    onLoadNewer: () -> Unit = {},
+    onScrollTargetReached: () -> Unit = {},
     onDeleteRequested: (ChatMessage) -> Unit,
     onDeleteDismissed: () -> Unit,
     onDeleteConfirmed: (ChatMessage, Boolean) -> Unit,
@@ -373,8 +379,29 @@ fun ChatScreen(
         val newest = state.messages.lastOrNull() ?: return@LaunchedEffect
         // One from the start: the list may or may not have laid out the new
         // item by the time this runs.
-        val following = listState.firstVisibleItemIndex <= 1
+        // Not while in a stretch of the past: its newest message changes as
+        // newer pages load under the finger, and that is not following along.
+        val following = !state.isDetached && listState.firstVisibleItemIndex <= 1
         if (newest.isOutgoing || following) listState.animateScrollToItem(0)
+    }
+
+    // A jump: the list goes to the message once it is in the list. Straight
+    // there rather than animated — from a stretch of the past there is no
+    // path between here and there to animate along.
+    LaunchedEffect(state.scrollTarget, state.messages) {
+        val target = state.scrollTarget ?: return@LaunchedEffect
+        val index = state.messages.indexOfFirst { it.id == target }
+        if (index < 0) return@LaunchedEffect
+        listState.scrollToItem(listIndexOf(index, state.messages))
+        onScrollTargetReached()
+    }
+
+    // The near end of a stretch of the past, for the page after it.
+    val nearNewest by remember {
+        derivedStateOf { listState.firstVisibleItemIndex <= 3 }
+    }
+    LaunchedEffect(nearNewest, state.isDetached) {
+        if (nearNewest && state.isDetached) onLoadNewer()
     }
 
     // derivedStateOf so this recomputes on scroll without recomposing the
@@ -402,6 +429,9 @@ fun ChatScreen(
             first == null || first.index == 0
         }
     }
+    // Away from the latest messages altogether, however the list is
+    // scrolled: the bottom of a stretch of the past is not the latest.
+    val showJump = !atLatest || state.isDetached
 
     val detail = state.detail
     val chat = detail?.chat
@@ -555,14 +585,9 @@ fun ChatScreen(
             detail?.pinnedMessage?.let { pinned ->
                 PinnedMessageBar(
                     message = pinned,
-                    onClick = {
-                        val index = state.messages.indexOfFirst { it.id == pinned.id }
-                        if (index >= 0) {
-                            scope.launch {
-                                listState.animateScrollToItem(listIndexOf(index, state.messages))
-                            }
-                        }
-                    }
+                    // Loaded or not: an old pinned message is fetched with the
+                    // history around it, the same way a search hit is.
+                    onClick = { onJumpToMessage(pinned.id) }
                 )
             }
 
@@ -581,14 +606,11 @@ fun ChatScreen(
                 ChatSearchResults(
                     search = state.search,
                     modifier = Modifier.fillMaxSize(),
+                    // Any hit, however old. One older than what is loaded used
+                    // to do nothing at all when tapped.
                     onOpen = { hit ->
-                        val index = state.messages.indexOfFirst { it.id == hit.id }
                         onSearchOpenChange(false)
-                        if (index >= 0) {
-                            scope.launch {
-                                listState.animateScrollToItem(listIndexOf(index, state.messages))
-                            }
-                        }
+                        onJumpToMessage(hit.id)
                     }
                 )
             } else {
@@ -674,6 +696,17 @@ fun ChatScreen(
                         }
                         val pop = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
                         LaunchedEffect(appear) { if (appear.value < 1f) appear.animateTo(1f, pop) }
+                        // The message a jump landed on, lit and let fade —
+                        // on a list of look-alike bubbles, where the eye
+                        // would otherwise have to hunt for it.
+                        val flash = remember(message.id) { Animatable(0f) }
+                        val lit = state.highlightedId == message.id
+                        val flashIn = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+                        val flashOut = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+                        LaunchedEffect(lit) {
+                            if (lit) flash.animateTo(1f, flashIn) else flash.animateTo(0f, flashOut)
+                        }
+                        val flashColor = MaterialTheme.colorScheme.primary
                         val outgoing = message.isOutgoing
                         Column(
                             modifier = Modifier
@@ -689,6 +722,15 @@ fun ChatScreen(
                                     scaleY = scaleX
                                     translationY = (1f - progress) * POP_RISE.toPx()
                                     transformOrigin = TransformOrigin(if (outgoing) 1f else 0f, 1f)
+                                }
+                                .drawBehind {
+                                    val strength = flash.value
+                                    if (strength > 0f) {
+                                        drawRoundRect(
+                                            color = flashColor.copy(alpha = HIGHLIGHT_ALPHA * strength),
+                                            cornerRadius = CornerRadius(HIGHLIGHT_CORNER.toPx())
+                                        )
+                                    }
                                 }
                         ) {
                         if (startsNewDay(previous, message)) {
@@ -793,7 +835,7 @@ fun ChatScreen(
                 // of the list, which the floating composer now covers, and
                 // it was there and could not be seen.
                 AnimatedVisibility(
-                    visible = !atLatest,
+                    visible = showJump,
                     modifier = Modifier
                         .align(Alignment.End)
                         .padding(end = 16.dp, bottom = 4.dp),
@@ -810,8 +852,15 @@ fun ChatScreen(
                     ) {
                         SmallFloatingActionButton(
                             onClick = {
-                                scope.launch {
-                                    listState.animateScrollToItem(0)
+                                if (state.isDetached) {
+                                    // The latest messages replace the stretch
+                                    // on screen, and the list starts at their
+                                    // end; there is nothing between to glide
+                                    // through.
+                                    onJumpToLatest()
+                                    scope.launch { listState.scrollToItem(0) }
+                                } else {
+                                    scope.launch { listState.animateScrollToItem(0) }
                                 }
                             }
                         ) {
@@ -3117,3 +3166,8 @@ private val COMPOSER_PILL_CORNER = 64.dp
 
 /** How far the field sits in from the capsule's edge, for concentric corners. */
 private val COMPOSER_FIELD_INSET = 8.dp
+
+/** How strongly a jumped-to message is lit: a state layer's weight, not a fill. */
+private const val HIGHLIGHT_ALPHA = 0.16f
+
+private val HIGHLIGHT_CORNER = 20.dp

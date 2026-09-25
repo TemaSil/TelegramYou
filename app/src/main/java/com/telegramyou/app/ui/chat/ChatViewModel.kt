@@ -66,6 +66,22 @@ data class ChatUiState(
      */
     val hasMoreOlder: Boolean = true,
     /**
+     * A stretch of history away from the latest messages — where a jump to a
+     * search hit or a pinned message older than anything loaded lands. While
+     * it is set, it is what is on screen instead of [ChatDetail.messages],
+     * with [olderMessages] paging above it as usual and newer pages below it
+     * until it meets the latest ones again and is folded back in.
+     */
+    val detachedWindow: List<ChatMessage>? = null,
+    val isLoadingNewer: Boolean = false,
+    /**
+     * A message the list should bring on screen, once it is there — set by a
+     * jump and cleared by the screen when it has scrolled.
+     */
+    val scrollTarget: Long? = null,
+    /** The message a jump landed on, lit for a moment so the eye finds it. */
+    val highlightedId: Long? = null,
+    /**
      * Files moving right now, by file id — see `TelegramMessages`.
      *
      * Handed to the bubbles whole rather than matched to messages here: a
@@ -144,7 +160,11 @@ data class ChatUiState(
     /** The sticker sheet, while it is up. */
     val stickerPicker: StickerPickerState? = null
 ) {
-    val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
+    val messages: List<ChatMessage>
+        get() = olderMessages + (detachedWindow ?: detail?.messages.orEmpty())
+
+    /** Whether what is on screen is away from the latest messages. */
+    val isDetached: Boolean get() = detachedWindow != null
 
     val selectedMessages: List<ChatMessage> get() = messages.filter { it.id in selection }
 
@@ -240,7 +260,10 @@ class ChatViewModel(
         val detail = state.detail ?: return@update state
         val patched = state.copy(
             detail = detail.copy(messages = detail.messages.applying(update)),
-            olderMessages = state.olderMessages.applying(update, appendNew = false)
+            olderMessages = state.olderMessages.applying(update, appendNew = false),
+            // New messages belong to the latest window, not to a stretch of
+            // the past; edits and deletions reach wherever the message is.
+            detachedWindow = state.detachedWindow?.applying(update, appendNew = false)
         )
         when (update) {
             is MessageUpdate.Deleted -> patched.copy(
@@ -461,6 +484,9 @@ class ChatViewModel(
         _uiState.update {
             it.copy(draft = "", pendingAttachment = null, replyTo = null, editing = null)
         }
+        // A new message goes at the end of the conversation, so that is where
+        // the list has to be to show it — not in a stretch of the past.
+        if (amending == null) onJumpToLatest()
         if (amending != null) applyUpdate(MessageUpdate.Edited(chatId, amending.id, text))
 
         viewModelScope.launch {
@@ -545,6 +571,7 @@ class ChatViewModel(
             )
         },
         olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it },
+        detachedWindow = detachedWindow?.map { if (it.id == messageId) transform(it) else it },
         // The grid's copy too, so a file fetched from one screen is not
         // fetched again from the other.
         media = media.map { if (it.id == messageId) transform(it) else it }
@@ -984,7 +1011,126 @@ class ChatViewModel(
         }
     }
 
+    // ── jumping ──────────────────────────────────────────────────────────
+
+    private var jumpJob: Job? = null
+
+    /**
+     * Brings [messageId] on screen — a search hit, the pinned message. Where
+     * it is loaded already that is a scroll. Where it is older than anything
+     * loaded, the page around it is fetched and shown in place of the latest
+     * messages, which is the only way to reach it without paging back through
+     * everything in between.
+     */
+    fun onJumpToMessage(messageId: Long) {
+        if (_uiState.value.messages.any { it.id == messageId }) {
+            _uiState.update { it.copy(scrollTarget = messageId) }
+            highlight(messageId)
+            return
+        }
+        jumpJob?.cancel()
+        jumpJob = viewModelScope.launch {
+            var around = emptyList<ChatMessage>()
+            val done = attempt("Could not open that message") {
+                around = repository.loadMessagesAround(chatId, messageId)
+            }
+            if (!done || around.none { it.id == messageId }) return@launch
+            _uiState.update {
+                it.copy(
+                    olderMessages = emptyList(),
+                    hasMoreOlder = true,
+                    detachedWindow = around,
+                    isLoadingNewer = false,
+                    scrollTarget = messageId
+                ).joinedIfCaughtUp()
+            }
+            highlight(messageId)
+        }
+    }
+
+    /** The list has scrolled to [ChatUiState.scrollTarget]. */
+    fun onScrollTargetReached() {
+        _uiState.update { it.copy(scrollTarget = null) }
+    }
+
+    /**
+     * Back to the latest messages. From a stretch of the past that means
+     * dropping it rather than paging forward through everything after it.
+     */
+    fun onJumpToLatest() {
+        jumpJob?.cancel()
+        _uiState.update {
+            if (!it.isDetached) it
+            else it.copy(
+                detachedWindow = null,
+                olderMessages = emptyList(),
+                hasMoreOlder = true,
+                isLoadingNewer = false
+            )
+        }
+    }
+
+    /** The page after the newest message of a detached stretch. */
+    fun onLoadNewer() {
+        val state = _uiState.value
+        val window = state.detachedWindow ?: return
+        if (state.isLoadingNewer) return
+        val newest = window.lastOrNull() ?: return
+        _uiState.update { it.copy(isLoadingNewer = true) }
+        viewModelScope.launch {
+            var newer = emptyList<ChatMessage>()
+            val done = attempt("Could not load newer messages") {
+                newer = repository.loadNewerMessages(chatId, newest.id)
+            }
+            _uiState.update { current ->
+                val detached = current.detachedWindow
+                when {
+                    !done || detached == null -> current.copy(isLoadingNewer = false)
+                    // Nothing newer: this stretch runs to the end of the
+                    // conversation, and so into the latest window.
+                    newer.isEmpty() -> current.copy(isLoadingNewer = false).joined()
+                    else -> current.copy(
+                        detachedWindow = detached + newer.filter { m -> detached.none { it.id == m.id } },
+                        isLoadingNewer = false
+                    ).joinedIfCaughtUp()
+                }
+            }
+        }
+    }
+
+    /** Folds a detached stretch back in once it reaches the latest messages. */
+    private fun ChatUiState.joinedIfCaughtUp(): ChatUiState {
+        val window = detachedWindow ?: return this
+        val latest = detail?.messages.orEmpty().mapTo(HashSet()) { it.id }
+        return if (window.any { it.id in latest }) joined() else this
+    }
+
+    /**
+     * The stretch becomes history above the latest window: everything in it
+     * that the latest window does not already hold goes on the end of
+     * [ChatUiState.olderMessages], and the list is one conversation again.
+     */
+    private fun ChatUiState.joined(): ChatUiState {
+        val window = detachedWindow ?: return this
+        val latest = detail?.messages.orEmpty().mapTo(HashSet()) { it.id }
+        return copy(
+            olderMessages = olderMessages + window.takeWhile { it.id !in latest },
+            detachedWindow = null
+        )
+    }
+
+    private fun highlight(messageId: Long) {
+        _uiState.update { it.copy(highlightedId = messageId) }
+        viewModelScope.launch {
+            delay(HIGHLIGHT_MS)
+            _uiState.update { if (it.highlightedId == messageId) it.copy(highlightedId = null) else it }
+        }
+    }
+
     private companion object {
+        /** Long enough to find, short enough not to linger. */
+        const val HIGHLIGHT_MS = 1_600L
+
         const val SEARCH_DEBOUNCE_MS = 250L
 
         /** Ten position reads a second, which is smooth at a hundred pixels. */
@@ -1009,6 +1155,7 @@ class ChatViewModel(
                 val reloaded = it.copy(
                     detail = detail,
                     olderMessages = emptyList(),
+                    detachedWindow = null,
                     hasMoreOlder = true,
                     availableReactions = reactions
                 )

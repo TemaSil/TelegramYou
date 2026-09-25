@@ -534,7 +534,9 @@ class DemoTelegramClient(
         val messages = chatMessages.getOrPut(chatId) { mutableListOf() }
         return ChatDetail(
             chat = chat,
-            messages = messages.toList(),
+            // The latest window, the way TDLib opens a chat; the rest pages
+            // in on scrolling, or around a search hit.
+            messages = messages.takeLast(DEMO_WINDOW),
             memberCountLabel = when {
                 chat.isChannel -> "128K subscribers"
                 chat.isGroup -> "42 members"
@@ -577,7 +579,35 @@ class DemoTelegramClient(
         limit: Int
     ): List<ChatMessage> {
         delay(220)
-        return emptyList()
+        val all = chatMessages[chatId].orEmpty()
+        val at = all.indexOfFirst { it.id == beforeMessageId }
+        if (at <= 0) return emptyList()
+        return all.subList((at - limit).coerceAtLeast(0), at).toList()
+    }
+
+    override suspend fun loadMessagesAround(
+        chatId: Long,
+        messageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(220)
+        val all = chatMessages[chatId].orEmpty()
+        val at = all.indexOfFirst { it.id == messageId }
+        if (at < 0) return emptyList()
+        val from = (at - limit / 2).coerceAtLeast(0)
+        return all.subList(from, (from + limit).coerceAtMost(all.size)).toList()
+    }
+
+    override suspend fun loadNewerMessages(
+        chatId: Long,
+        afterMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(220)
+        val all = chatMessages[chatId].orEmpty()
+        val at = all.indexOfFirst { it.id == afterMessageId }
+        if (at < 0) return emptyList()
+        return all.subList(at + 1, (at + 1 + limit).coerceAtMost(all.size)).toList()
     }
 
     override suspend fun searchChatMessages(
@@ -1241,7 +1271,7 @@ class DemoTelegramClient(
         // shows nothing of what a group looks like. Demo mode exists to make
         // the interface visible without an account, and that has to include
         // the parts which only appear with more than one person in the room.
-        chatMessages[3] = mutableListOf(
+        chatMessages[3] = (designCircleArchive(now, day) + listOf(
             demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
             demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB"),
             demoMessage(22, 3, "Got them. The tonal palette is the part I want to steal.", false, now - day - 4 * 60 * 60, "Ivan"),
@@ -1249,7 +1279,34 @@ class DemoTelegramClient(
             demoMessage(24, 3, "That is the shape library doing its job.", true, now - day - 2 * 60 * 60, isRead = true),
             demoMessage(25, 3, "Figma dump is in #files now", false, today - 90 * 60, "Sasha"),
             demoMessage(26, 3, "Reviewing tonight 👀", false, today - 40 * 60, "Ivan")
+        )).toMutableList()
+    }
+
+    /**
+     * Months of the group before the conversation above — far more than
+     * opening a chat loads — so there is history to page back through, and a
+     * search hit older than anything on screen. That hit is the first line,
+     * which the UI test searches for and jumps to.
+     */
+    private fun designCircleArchive(now: Long, day: Long): List<ChatMessage> {
+        val people = listOf("Maya", "Ivan", "Noor", "Sasha")
+        val start = now - 90 * day
+        val lines = listOf(
+            "Pushed a new round of the chat list.",
+            "The tonal steps read better on the darker panel.",
+            "Can we try the rail on the tablet build?",
+            "Motion feels calmer with the standard springs.",
+            "Filed the spacing issues in the tracker.",
+            "Avatars look sharp with the shape set."
         )
+        return listOf(
+            demoMessage(3000, 3, DEMO_ARCHIVE_FIRST_LINE, false, start, "Maya")
+        ) + (1 until DEMO_ARCHIVE_SIZE).map { n ->
+            demoMessage(
+                3000L + n, 3, lines[n % lines.size], false,
+                start + n * (80 * day / DEMO_ARCHIVE_SIZE), people[n % people.size]
+            )
+        }
     }
 
     private fun demoMessage(
@@ -1373,3 +1430,12 @@ private fun maskedEmail(email: String): String {
     if (at <= 0) return email
     return email.take(1) + "***" + email.substring(at)
 }
+
+/** How many of a chat's latest messages opening it loads, as TDLib's first page. */
+private const val DEMO_WINDOW = 40
+
+/** How long Design Circle's history is before its visible conversation. */
+private const val DEMO_ARCHIVE_SIZE = 120
+
+/** The oldest line in Design Circle — well outside what opening it loads. */
+const val DEMO_ARCHIVE_FIRST_LINE = "Kickoff: first sketches of the floating composer"
