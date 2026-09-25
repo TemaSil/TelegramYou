@@ -77,8 +77,9 @@ From there each step forced the next. `material3:1.5.0-alpha28` declares
 Compose core 1.12.0 → 1.12 requires compileSdk 37 and AGP 9.1 → AGP 9
 requires Gradle 9. So the stack is Gradle 9.7.1, AGP 9.4.0, Kotlin 2.4.20,
 compose-bom 2026.09.00, compileSdk 37, and `material3` pinned past the BOM to
-`1.5.0-alpha28`. targetSdk stays 35; that governs runtime behaviour, not what
-compiles.
+`1.5.0-alpha29` (from alpha28 on 25 September 2026 — the same Compose core, so
+nothing else had to move). targetSdk stays 35; that governs runtime
+behaviour, not what compiles.
 
 Three AGP 9 removals had to be worked around — the standalone Kotlin plugin,
 `kotlinOptions`, and the variant API the APK-naming block used. CLAUDE.md
@@ -874,8 +875,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       server's timer with a countdown, correcting the number
 - [x] Two-step password with a show/hide toggle
 - [x] Expressive medium button at the bottom, loading inside it
-- [ ] Log in with a QR code from another device — TDLib's
-      `requestQrCodeAuthentication`; Telegram's own clients offer it
+- [x] Log in with a QR code from another device — TDLib's
+      `requestQrCodeAuthentication`, from a button under the phone field.
+      Material has no QR component and Android no generator: ZXing decides
+      which modules are dark, and they are drawn in Compose as rounded
+      squares in the theme's colours — always dark on light, which is what
+      scanners read
 - [ ] Email login steps (`authorizationStateWaitEmailAddress` / `…Code`),
       which new accounts can be asked for and which still end in an error
 
@@ -900,7 +905,8 @@ them. Ticks are only worth something if somebody moves them.
       Settings tab when there is something to get
 - [x] Proxy — SOCKS5, HTTP and MTProto through TDLib's own list
       (`addProxy`, `enableProxy`, `pingProxy`), from the chat list's overflow
-      menu. One is used at a time, so the list is a radio choice, and each
+      menu and from the login screen's top corner — before sign-in is when
+      a blocked network needs it. One is used at a time, so the list is a radio choice, and each
       row says how its proxy answered a ping. A pasted `tg://proxy` or
       `t.me/socks` link fills the form; the parsing and the form's rules are
       in `:core` with tests
@@ -911,6 +917,7 @@ them. Ticks are only worth something if somebody moves them.
       screen would have nothing to point at. Only the changed fields are sent,
       the username last because it is the one that gets refused, and the
       account is re-read afterwards so what is shown is what the server took
+<<<<<<< HEAD
 - [x] Notifications per chat — on chat info: on or off, "Mute for…" (an
       hour, eight, two days, until turned back on), message preview and
       sound, as list items with switches. Read the way TDLib keeps them: a
@@ -919,6 +926,12 @@ them. Ticks are only worth something if somebody moves them.
       honours them: no preview says "New message", no sound posts silently.
       The rules and the "Off until 18:40" line are in `:core` with tests
 - [ ] Language — Russian and English
+=======
+- [ ] Notifications settings — the two channels now exist, so this is
+      per-chat overrides rather than a global switch
+- [ ] Language — Russian and English. Left for last, on purpose: the
+      strings are only worth extracting once the screens have stopped moving
+>>>>>>> origin/feat/chat-feel
 - [ ] Data and storage, cache size
 
 ## 4. Media

@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.auth
 
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import android.content.Context
 import android.telephony.TelephonyManager
 import androidx.activity.compose.BackHandler
@@ -131,6 +136,8 @@ fun AuthScreen(
     onSubmitPassword: () -> Unit,
     onResendCode: () -> Unit,
     onChangeNumber: () -> Unit = {},
+    onQrLogin: () -> Unit = {},
+    onOpenProxy: () -> Unit = {},
     onChangeNumberCancelled: () -> Unit = {},
     onDefaultRegion: (String?) -> Unit = {},
     onDemoRequested: () -> Unit = {}
@@ -144,6 +151,9 @@ fun AuthScreen(
         AuthStep.Phone -> onSubmitPhone
         AuthStep.Code -> onSubmitCode
         AuthStep.Password -> onSubmitPassword
+        // A lambda, not an empty block: `-> {}` alone is a block that returns
+        // nothing, and the when would no longer be a function.
+        AuthStep.Qr -> ({ })
     }
 
     Column(
@@ -204,7 +214,8 @@ fun AuthScreen(
                             phone = state.phone,
                             error = auth.errorMessage,
                             onPhoneChange = onPhoneChange,
-                            onSubmit = { if (state.canSubmit) onSubmitPhone() }
+                            onSubmit = { if (state.canSubmit) onSubmitPhone() },
+                            onQrLogin = onQrLogin
                         )
                         AuthStep.Code -> CodeStep(
                             state = state,
@@ -220,16 +231,34 @@ fun AuthScreen(
                             onPasswordChange = onPasswordChange,
                             onSubmit = { if (state.canSubmit) onSubmitPassword() }
                         )
+                        AuthStep.Qr -> QrStep(
+                            link = auth.qrLink,
+                            error = auth.errorMessage,
+                            onUsePhone = onChangeNumber
+                        )
                     }
                 }
             }
+            // Proxy, before there is an account: where Telegram is blocked,
+            // the phone number cannot even be sent without one. Top right,
+            // where an app bar would keep a screen's one action, and drawn
+            // after the content so nothing scrolls over it.
+            IconButton(
+                onClick = onOpenProxy,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(Icons.Rounded.VpnKey, contentDescription = "Proxy")
+            }
         }
 
-        SubmitButton(
+        // Nothing to submit while a code is being scanned: the other phone
+        // does the confirming.
+        if (state.step != AuthStep.Qr) SubmitButton(
             label = when (state.step) {
                 AuthStep.Phone -> "Continue"
                 AuthStep.Code -> "Sign in"
                 AuthStep.Password -> "Unlock"
+                AuthStep.Qr -> ""
             },
             isLoading = auth.isLoading && auth.state != AuthState.Bootstrapping,
             enabled = state.canSubmit,
@@ -275,6 +304,37 @@ private fun BrandMark(onDemoRequested: () -> Unit) {
             tint = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.size(40.dp)
         )
+    }
+}
+
+/**
+ * Signing in by scanning: the code, and how to scan it. The steps are the
+ * ones Telegram's own apps name, because they are what the person will see
+ * on the other phone. The link changes every half minute or so and the code
+ * with it; until the first one arrives, the loading indicator.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun QrStep(
+    link: String?,
+    error: String?,
+    onUsePhone: () -> Unit
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        StepHeader(
+            "Scan to sign in",
+            "On a phone signed in to Telegram: Settings → Devices → Link Desktop Device, then point it here"
+        )
+        Spacer(Modifier.height(16.dp))
+        Box(Modifier.size(260.dp), contentAlignment = Alignment.Center) {
+            if (link == null) LoadingIndicator() else QrCode(link, size = 220.dp)
+        }
+        if (!error.isNullOrBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(Modifier.height(8.dp))
+        TextButton(onClick = onUsePhone) { Text("Use a phone number instead") }
     }
 }
 
@@ -327,7 +387,8 @@ private fun PhoneStep(
     phone: String,
     error: String?,
     onPhoneChange: (String) -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: () -> Unit,
+    onQrLogin: () -> Unit
 ) {
     val focus = rememberStepFocus()
     var picking by rememberSaveable { mutableStateOf(false) }
@@ -335,11 +396,28 @@ private fun PhoneStep(
     val region = PhoneEntry.region(phone)
     val country = countries.firstOrNull { it.region == region }
 
+    // The field's own text and caret, rather than the bare string. Given a
+    // string, the field kept its caret where it was when the text changed
+    // under it — so when "+" became "+7" from the SIM's country, the caret
+    // stayed after the plus, and the first digits typed went in front of
+    // the 7: the country changed before the number had begun. Whenever the
+    // number changes from outside — the country filled in, or picked from
+    // the list — the caret goes to the end, after the code.
+    var field by remember { mutableStateOf(TextFieldValue(phone, TextRange(phone.length))) }
+    if (field.text != phone) field = TextFieldValue(phone, TextRange(phone.length))
+
     Column {
         StepHeader("Your phone", "Check the country code and enter your number")
         OutlinedTextField(
-            value = phone,
-            onValueChange = onPhoneChange,
+            value = field,
+            onValueChange = { edited ->
+                val normal = PhoneEntry.normalize(edited.text)
+                // Kept where the finger put it when the text is already a
+                // plus and digits; after a paste full of spaces the digits
+                // move, so the caret goes to the end with them.
+                field = if (normal == edited.text) edited else TextFieldValue(normal, TextRange(normal.length))
+                onPhoneChange(normal)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focus)
@@ -373,6 +451,16 @@ private fun PhoneStep(
             ),
             keyboardActions = KeyboardActions(onDone = { onSubmit() })
         )
+        // The other way in, for someone already signed in on a phone:
+        // Telegram's own clients offer it on this screen too.
+        TextButton(
+            onClick = onQrLogin,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        ) {
+            Icon(Icons.Rounded.QrCode2, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Log in with a QR code")
+        }
     }
 
     if (picking) {
@@ -612,10 +700,26 @@ private object PhoneTransformation : VisualTransformation {
 private fun deviceRegion(context: Context): String? {
     val telephony = context.getSystemService(TelephonyManager::class.java)
     return listOfNotNull(
+        // The SIM's country first: the number being typed is the SIM's, and
+        // abroad the network is somewhere else.
         telephony?.simCountryIso,
+        // Then the country of the mobile network the phone is on — where it
+        // is, told by the cell towers, with no location permission to ask.
         telephony?.networkCountryIso,
+        // Then the time zone's country, for a phone with neither: a tablet
+        // on Wi-Fi, a phone with no SIM. Europe/Moscow is Russia whatever
+        // language the phone is set to, which the locale below is not.
+        timeZoneRegion(),
         Locale.getDefault().country
     ).firstOrNull { it.length == 2 }
+}
+
+/** The country the phone's time zone belongs to, or null for "UTC" and the like. */
+private fun timeZoneRegion(): String? = try {
+    android.icu.util.TimeZone.getRegion(java.util.TimeZone.getDefault().id)
+        .takeIf { it.length == 2 && it != "001" }
+} catch (_: IllegalArgumentException) {
+    null
 }
 
 /** How many taps on the mark open the demo. */

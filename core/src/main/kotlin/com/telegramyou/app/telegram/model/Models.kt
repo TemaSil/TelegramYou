@@ -42,6 +42,8 @@ enum class AuthState {
     WaitPhoneNumber,
     WaitCode,
     WaitPassword,
+    /** Showing a QR code for a phone already signed in to scan. */
+    WaitQrScan,
     Ready,
     Closed,
     Error
@@ -63,7 +65,13 @@ data class AuthUiState(
     val canResend: Boolean = false,
     /** Seconds after [codeSentAtMillis] before asking again is allowed. */
     val resendAfterSeconds: Int = 0,
-    val codeSentAtMillis: Long = 0L
+    val codeSentAtMillis: Long = 0L,
+    /**
+     * The `tg://login?token=…` link a signed-in phone scans, while
+     * [state] is [AuthState.WaitQrScan]. Telegram replaces it every half
+     * minute or so, and each replacement arrives here.
+     */
+    val qrLink: String? = null
 )
 
 data class ChatPreview(

@@ -222,7 +222,7 @@ dependencies {
     // Expressive is not public in any stable material3 — MaterialExpressiveTheme,
     // MotionScheme and LoadingIndicator are all `internal` in 1.4.0, the newest
     // stable there is. It is public only from the 1.5.0 alphas, and material3
-    // 1.5.0-alpha28 declares Compose core 1.12.0, which is what this BOM pins.
+    // 1.5.0-alpha29 declares Compose core 1.12.0, which is what this BOM pins.
     // Hence compileSdk 37, AGP 9 and Gradle 9 as well: the whole stack moves
     // together or not at all.
     val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
@@ -253,12 +253,12 @@ dependencies {
     // this is the only way to reach Expressive at all. It is an alpha, and
     // the theme every screen is built on, so it is worth knowing that is a
     // deliberate trade and not an oversight.
-    implementation("androidx.compose.material3:material3:1.5.0-alpha28")
+    implementation("androidx.compose.material3:material3:1.5.0-alpha29")
     // The navigation suite, for a rail where there is width for one. Its
     // version moves with material3 rather than with the BOM, so it is pinned
     // to the same alpha — a mismatch here is two copies of the same internal
     // API and a link error, not a warning.
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha28")
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha29")
     // The player behind video messages. Media3 is androidx's own — there is
     // no Material component for playback, and the alternative was MediaPlayer
     // with a SurfaceView and every format quirk handled by hand.
@@ -271,6 +271,10 @@ dependencies {
     // is what draws Lottie: Airbnb's library, from Maven Central, with a
     // Compose entry point. There is no Material or androidx equivalent.
     implementation("com.airbnb.android:lottie-compose:6.7.1")
+    // The QR code for signing in from another device. ZXing only decides
+    // which modules are dark — the drawing is Compose's, see QrCode — and it
+    // is plain Java from Maven Central.
+    implementation("com.google.zxing:core:3.5.4")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")

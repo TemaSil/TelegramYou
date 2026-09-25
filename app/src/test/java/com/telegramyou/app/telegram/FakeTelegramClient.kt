@@ -170,6 +170,8 @@ class FakeTelegramClient(
     override suspend fun submitPhoneNumber(phone: String) = Unit
     override suspend fun submitCode(code: String) = Unit
     override suspend fun submitPassword(password: String) = Unit
+    override suspend fun requestQrLogin() = Unit
+
     override suspend fun resendCode() = Unit
     /** Chat actions, in order, kept apart from the profile's own calls. */
     val chatCalls = mutableListOf<String>()
