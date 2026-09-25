@@ -323,20 +323,20 @@ careful with.
 
 ## Motion between screens, 25 September 2026
 
-- **A chat opens out of its row, and a story out of its circle** — Material's
-  container transform, on `SharedTransitionLayout` and `sharedBounds`
-  (`ui/motion/ContainerTransform.kt`). Back — including the predictive back
-  gesture — closes it into where it came from. The bounds move on the
-  *standard* scheme's slow spatial spring, not the theme's expressive one:
-  that one overshoots, and a container the size of the display overshooting
-  swells past its edges and back, which on a phone read as the whole
-  conversation shaking. For a day the chat slid in from the side instead;
-  the pattern came back with the calmer spring on the owner's word. The
-  screen side is scaled, not laid out again each frame.
-  The chat's messages are fetched on the tap, before the screen exists
-  (`TelegramRepository.warmChat`, capped at 200 ms — TDLib answers from its
-  local database well inside that), so the container grows a finished
-  conversation rather than an empty one that fills in mid-flight.
+- **A story opens out of its circle** — Material's container transform, on
+  `SharedTransitionLayout` and `sharedBounds` (`ui/motion/ContainerTransform.kt`),
+  on the *standard* scheme's slow spatial spring: the expressive one
+  overshoots, and a container the size of the display overshooting swells
+  past its edges and back. Back — the predictive gesture too — closes it.
+- **A chat slides in the way every other screen does** — the graph's own fade
+  and slide on the default spring, which is what it opened with first. It
+  went through a container transform on the expressive spring, a side slide,
+  and a container transform on the calm spring, and came back here on the
+  owner's word. What made opening smooth was not any of those motions but
+  the messages being there before the screen: a tap fetches the chat's
+  opening window first (`TelegramRepository.warmChat`, capped at 200 ms —
+  TDLib answers from its local database well inside that), so the screen
+  moves in finished rather than filling in mid-flight.
 - **Fade through between the bottom tabs**, which is what Material's motion
   guidance gives navigation-bar destinations: they are separate places, not
   neighbours, so nothing slides. Shared axis X stays where it belongs, on
