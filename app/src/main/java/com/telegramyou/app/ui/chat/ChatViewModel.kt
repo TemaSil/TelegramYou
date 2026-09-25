@@ -1055,7 +1055,8 @@ class ChatViewModel(
 
     /**
      * Back to the latest messages. From a stretch of the past that means
-     * dropping it rather than paging forward through everything after it.
+     * dropping it rather than paging forward through everything after it —
+     * a cut like the jump that led there, landing on the newest message.
      */
     fun onJumpToLatest() {
         jumpJob?.cancel()
@@ -1065,7 +1066,8 @@ class ChatViewModel(
                 detachedWindow = null,
                 olderMessages = emptyList(),
                 hasMoreOlder = true,
-                isLoadingNewer = false
+                isLoadingNewer = false,
+                scrollTarget = it.detail?.messages?.lastOrNull()?.id
             )
         }
     }

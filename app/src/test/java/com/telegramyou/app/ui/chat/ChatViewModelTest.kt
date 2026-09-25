@@ -223,6 +223,7 @@ class ChatViewModelTest {
         assertFalse(state.isDetached)
         assertEquals((100L..110L).toList(), state.messages.map { it.id })
         assertTrue(state.hasMoreOlder)
+        assertEquals("landing on the newest message", 110L, state.scrollTarget)
     }
 
     @Test

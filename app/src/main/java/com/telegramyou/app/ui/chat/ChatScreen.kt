@@ -286,6 +286,11 @@ fun ChatScreen(
     // every bubble above it — on a spring each, the whole conversation
     // wobbling while the screen was still growing out of its row.
     var itemsAnimate by remember { mutableStateOf(false) }
+    // Nor while a jump is landing. A jump swaps the whole window, and with
+    // item animations on, the messages leaving faded and slid out over the
+    // ones arriving — two conversations on top of each other for a third of
+    // a second. A jump is a cut, not a move, so it happens at once.
+    val animateItems = itemsAnimate && state.scrollTarget == null
     LaunchedEffect(Unit) {
         delay(SETTLE_MILLIS)
         itemsAnimate = true
@@ -711,9 +716,9 @@ fun ChatScreen(
                         Column(
                             modifier = Modifier
                                 .animateItem(
-                                    fadeInSpec = if (itemsAnimate) MaterialTheme.motionScheme.defaultEffectsSpec() else null,
-                                    placementSpec = if (itemsAnimate) MaterialTheme.motionScheme.defaultSpatialSpec() else null,
-                                    fadeOutSpec = if (itemsAnimate) MaterialTheme.motionScheme.fastEffectsSpec() else null
+                                    fadeInSpec = if (animateItems) MaterialTheme.motionScheme.defaultEffectsSpec() else null,
+                                    placementSpec = if (animateItems) MaterialTheme.motionScheme.defaultSpatialSpec() else null,
+                                    fadeOutSpec = if (animateItems) MaterialTheme.motionScheme.fastEffectsSpec() else null
                                 )
                                 .graphicsLayer {
                                     val progress = appear.value
@@ -858,7 +863,6 @@ fun ChatScreen(
                                     // end; there is nothing between to glide
                                     // through.
                                     onJumpToLatest()
-                                    scope.launch { listState.scrollToItem(0) }
                                 } else {
                                     scope.launch { listState.animateScrollToItem(0) }
                                 }
