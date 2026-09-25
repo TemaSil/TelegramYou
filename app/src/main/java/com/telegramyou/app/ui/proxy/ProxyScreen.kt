@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -31,6 +33,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -167,7 +170,13 @@ fun ProxyScreen(
     }
 
     state.draft?.let { draft ->
-        ModalBottomSheet(onDismissRequest = onAddDismiss) {
+        // Straight to full height: it is a form, and at half height its
+        // button sat below the fold — the smoke test could not find it, and
+        // a thumb would have had to drag the sheet up to save.
+        ModalBottomSheet(
+            onDismissRequest = onAddDismiss,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
             AddProxySheet(
                 draft = draft,
                 isSaving = state.isSaving,
@@ -227,6 +236,7 @@ private fun AddProxySheet(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .navigationBarsPadding()
             .imePadding()
             .padding(horizontal = 24.dp)
