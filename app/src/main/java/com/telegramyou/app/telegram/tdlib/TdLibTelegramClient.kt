@@ -248,6 +248,24 @@ class TdLibTelegramClient(
         engine = null
     }
 
+    /**
+     * TDLib's QR sign-in: it answers with
+     * `authorizationStateWaitOtherDeviceConfirmation`, whose link is what the
+     * code encodes, and renews the link on its own while the screen shows it.
+     */
+    override suspend fun requestQrLogin() {
+        _authState.update { it.copy(isLoading = true, errorMessage = null) }
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "requestQrCodeAuthentication")
+                    .put("other_user_ids", JSONArray())
+            )
+        } catch (e: TdLibException) {
+            _authState.update { it.copy(isLoading = false, errorMessage = e.message) }
+        }
+    }
+
     override suspend fun submitPhoneNumber(phone: String) {
         _authState.update { it.copy(isLoading = true, errorMessage = null, phoneNumber = phone) }
         try {
@@ -1977,9 +1995,18 @@ class TdLibTelegramClient(
                     }
                 }
             }
-            "authorizationStateWaitEmailAddress",
-            "authorizationStateWaitEmailCode",
             "authorizationStateWaitOtherDeviceConfirmation" -> {
+                _authState.update {
+                    it.copy(
+                        state = AuthState.WaitQrScan,
+                        isLoading = false,
+                        errorMessage = null,
+                        qrLink = state.optString("link").takeIf { link -> link.isNotBlank() }
+                    )
+                }
+            }
+            "authorizationStateWaitEmailAddress",
+            "authorizationStateWaitEmailCode" -> {
                 _authState.update {
                     it.copy(
                         state = AuthState.Error,

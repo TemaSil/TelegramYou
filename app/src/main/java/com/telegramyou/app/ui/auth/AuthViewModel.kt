@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** Which of the three steps the screen shows. */
-enum class AuthStep { Phone, Code, Password }
+enum class AuthStep { Phone, Code, Password, Qr }
 
 /**
  * What the login screen shows, and what has been typed into it.
@@ -37,6 +37,7 @@ data class AuthFormState(
             isChangingNumber -> AuthStep.Phone
             auth.state == AuthState.WaitCode -> AuthStep.Code
             auth.state == AuthState.WaitPassword -> AuthStep.Password
+            auth.state == AuthState.WaitQrScan -> AuthStep.Qr
             else -> AuthStep.Phone
         }
 
@@ -51,6 +52,7 @@ data class AuthFormState(
             AuthStep.Code -> code.isNotEmpty() &&
                 (auth.codeLength == 0 || code.length >= auth.codeLength)
             AuthStep.Password -> password.isNotEmpty()
+            AuthStep.Qr -> false
         }
 }
 
@@ -139,6 +141,16 @@ class AuthViewModel(
 
     fun resendCode() {
         viewModelScope.launch { repository.resendCode() }
+    }
+
+    /**
+     * Sign in by scanning instead: the phone step's other way in. Back from
+     * it is [onChangeNumber] — the same "not this way, the number" that the
+     * code step has, and TDLib takes a phone number from the QR state too.
+     */
+    fun onQrLogin() {
+        changingNumber.value = false
+        viewModelScope.launch { repository.requestQrLogin() }
     }
 
     /** From the code step back to the number, which stays as typed. */
