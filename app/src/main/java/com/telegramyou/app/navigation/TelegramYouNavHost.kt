@@ -1,5 +1,6 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.ui.chat.LocalFileLoader
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
@@ -464,7 +465,11 @@ fun TelegramYouNavHost(
                     chatViewModel.onSeen()
                 }
             }
-            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
+            CompositionLocalProvider(
+                LocalNavAnimatedScope provides this@composable,
+                // Stickers fetch their own files; see StickerView.
+                LocalFileLoader provides chatViewModel::loadFile
+            ) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -515,7 +520,11 @@ fun TelegramYouNavHost(
                 onPhotoClosed = chatViewModel::onPhotoClosed,
                 onVideoOpened = chatViewModel::onVideoOpened,
                 onVideoClosed = chatViewModel::onVideoClosed,
-                onErrorShown = chatViewModel::onErrorShown
+                onErrorShown = chatViewModel::onErrorShown,
+                onStickerPickerOpen = chatViewModel::onStickerPickerOpen,
+                onStickerSetSelected = chatViewModel::onStickerSetSelected,
+                onStickerPicked = chatViewModel::onStickerPicked,
+                onStickerPickerDismiss = chatViewModel::onStickerPickerDismiss
             )
             }
             }

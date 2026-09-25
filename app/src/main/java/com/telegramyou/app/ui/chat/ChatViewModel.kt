@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.StickerSetPreview
+import com.telegramyou.app.telegram.model.StickerContent
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -137,7 +139,9 @@ data class ChatUiState(
      * flood wait — and every one of those used to escape the view model's
      * scope and take the app down with it.
      */
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    /** The sticker sheet, while it is up. */
+    val stickerPicker: StickerPickerState? = null
 ) {
     val messages: List<ChatMessage> get() = olderMessages + detail?.messages.orEmpty()
 
@@ -312,6 +316,75 @@ class ChatViewModel(
     // ── composing ────────────────────────────────────────────────────────
 
     fun onDraftChange(text: String) = _uiState.update { it.copy(draft = text) }
+
+    // ── stickers ─────────────────────────────────────────────────────────
+
+    /**
+     * The sticker sheet, opening on what was sent lately — or on the first
+     * set, for an account that has sent none yet, rather than on an empty
+     * tab explaining why it is empty.
+     */
+    fun onStickerPickerOpen() {
+        _uiState.update { it.copy(stickerPicker = StickerPickerState()) }
+        viewModelScope.launch {
+            var sets = emptyList<StickerSetPreview>()
+            var recent = emptyList<StickerContent>()
+            attempt("Could not load stickers") {
+                sets = repository.stickerSets()
+                recent = repository.recentStickers()
+            }
+            val first = if (recent.isEmpty()) sets.firstOrNull()?.id else null
+            _uiState.update { state ->
+                state.copy(
+                    stickerPicker = state.stickerPicker?.copy(
+                        sets = sets,
+                        selected = first ?: RECENT_STICKERS,
+                        stickers = recent,
+                        isLoading = first != null
+                    )
+                )
+            }
+            if (first != null) onStickerSetSelected(first)
+        }
+    }
+
+    fun onStickerSetSelected(setId: Long) {
+        _uiState.update { state ->
+            state.copy(stickerPicker = state.stickerPicker?.copy(selected = setId, isLoading = true))
+        }
+        viewModelScope.launch {
+            var stickers = emptyList<StickerContent>()
+            attempt("Could not load stickers") {
+                stickers = if (setId == RECENT_STICKERS) {
+                    repository.recentStickers()
+                } else {
+                    repository.stickerSet(setId)
+                }
+            }
+            _uiState.update { state ->
+                // Only if that is still the tab: a quick run across the tabs
+                // must not end on the stickers of the one passed through.
+                if (state.stickerPicker?.selected != setId) state
+                else state.copy(stickerPicker = state.stickerPicker.copy(stickers = stickers, isLoading = false))
+            }
+        }
+    }
+
+    fun onStickerPickerDismiss() = _uiState.update { it.copy(stickerPicker = null) }
+
+    /** Sent at once, answering the message being replied to, if any. */
+    fun onStickerPicked(sticker: StickerContent) {
+        val answering = _uiState.value.replyTo
+        _uiState.update { it.copy(stickerPicker = null, replyTo = null) }
+        viewModelScope.launch {
+            attempt("Could not send the sticker") {
+                repository.sendSticker(chatId, sticker, answering?.id)
+            }
+        }
+    }
+
+    /** A file by TDLib's id, for what draws one without a state holder; see LocalFileLoader. */
+    suspend fun loadFile(fileId: Int): String? = repository.downloadFile(fileId)
 
     fun onAttachmentSheetOpenChange(open: Boolean) =
         _uiState.update { it.copy(attachmentSheetOpen = open) }

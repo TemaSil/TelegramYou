@@ -16,6 +16,8 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.ProxyServer
+import com.telegramyou.app.telegram.model.StickerContent
+import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -745,6 +747,46 @@ class DemoTelegramClient(
         return 40L + (proxy.server.hashCode() and 0xff)
     }
 
+    // ── stickers ─────────────────────────────────────────────────────────
+    //
+    // Emoji rather than pictures: the demo has no sticker files to ship, and
+    // Telegram's are not this repository's to copy. A sticker with no file is
+    // drawn as its emoji, large, which exercises the picker and the bubble
+    // the same way.
+
+    private val demoStickerSets = listOf(
+        StickerSetPreview(1, "Faces", StickerContent(emoji = "😀")),
+        StickerSetPreview(2, "Animals", StickerContent(emoji = "🐱")),
+        StickerSetPreview(3, "Things", StickerContent(emoji = "🚀"))
+    )
+    private val demoStickers = mapOf(
+        1L to "😀 😂 🥹 😍 😎 🤔 😴 🤯 🥳 😭 😡 🤗",
+        2L to "🐱 🐶 🦊 🐼 🐨 🐸 🐧 🦉 🐙 🦋 🐢 🦄",
+        3L to "🚀 ☕ 🎧 📷 🎨 💡 🔥 🌈 🎉 ⚡ 🌙 ⭐"
+    )
+    private val sentStickers = MutableStateFlow<List<StickerContent>>(emptyList())
+
+    override suspend fun stickerSets(): List<StickerSetPreview> = demoStickerSets
+
+    override suspend fun stickerSet(setId: Long): List<StickerContent> =
+        demoStickers[setId].orEmpty().split(' ').mapIndexed { index, emoji ->
+            StickerContent(id = setId * 100 + index, emoji = emoji)
+        }
+
+    override suspend fun recentStickers(): List<StickerContent> = sentStickers.value
+
+    override suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long?) {
+        delay(150)
+        sentStickers.update { list -> (listOf(sticker) + list.filterNot { it.id == sticker.id }).take(20) }
+        appendOutgoing(
+            chatId = chatId,
+            text = "${sticker.emoji} Sticker",
+            type = MessageContentType.Sticker,
+            replyToId = replyToId,
+            sticker = sticker
+        )
+    }
+
     override suspend fun logout() {
         delay(200)
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber)
@@ -799,7 +841,8 @@ class DemoTelegramClient(
         voicePath: String? = null,
         waveform: List<Int> = emptyList(),
         photoPath: String? = null,
-        photoFileId: Int? = null
+        photoFileId: Int? = null,
+        sticker: StickerContent? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -825,7 +868,8 @@ class DemoTelegramClient(
             voicePath = voicePath,
             waveform = waveform,
             photoPath = photoPath,
-            photoFileId = photoFileId
+            photoFileId = photoFileId,
+            sticker = sticker
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

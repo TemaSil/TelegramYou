@@ -267,6 +267,10 @@ dependencies {
     // because media3-ui's own player view is a View with its own look that
     // belongs to no design system this app uses.
     implementation("androidx.media3:media3-exoplayer:1.11.1")
+    // Animated stickers. A Telegram `.tgs` is a gzipped Lottie file, and Lottie
+    // is what draws Lottie: Airbnb's library, from Maven Central, with a
+    // Compose entry point. There is no Material or androidx equivalent.
+    implementation("com.airbnb.android:lottie-compose:6.7.1")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.ui:ui-graphics")

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.material.icons.rounded.EmojiEmotions
+import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.ui.components.personShape
 import android.Manifest
 import android.content.Context
@@ -240,7 +242,11 @@ fun ChatScreen(
     onVideoOpened: (ChatMessage) -> Unit,
     onVideoClosed: () -> Unit,
     /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
-    onErrorShown: () -> Unit
+    onErrorShown: () -> Unit,
+    onStickerPickerOpen: () -> Unit = {},
+    onStickerSetSelected: (Long) -> Unit = {},
+    onStickerPicked: (StickerContent) -> Unit = {},
+    onStickerPickerDismiss: () -> Unit = {}
 ) {
     val listState = rememberLazyListState()
 
@@ -802,6 +808,14 @@ fun ChatScreen(
                         onClear = onSelectionCleared
                     )
                 } else {
+                    state.stickerPicker?.let { picker ->
+                        StickerPickerSheet(
+                            state = picker,
+                            onSetSelected = onStickerSetSelected,
+                            onPick = onStickerPicked,
+                            onDismiss = onStickerPickerDismiss
+                        )
+                    }
                     if (state.attachmentSheetOpen) {
                         AttachmentSheet(
                             onDismiss = { onAttachmentSheetOpenChange(false) },
@@ -823,6 +837,7 @@ fun ChatScreen(
                         value = state.draft,
                         onValueChange = onDraftChange,
                         onAttach = { onAttachmentSheetOpenChange(true) },
+                        onStickers = onStickerPickerOpen,
                         onCamera = {
                             // The same launch the sheet's camera entry makes. Kept
                             // as one expression rather than shared with it: this
@@ -1039,6 +1054,7 @@ private fun MessageBubble(
             }
             Spacer(Modifier.width(4.dp))
         }
+        val isSticker = message.contentType == MessageContentType.Sticker && message.sticker != null
         Box {
             Surface(
             shape = shape,
@@ -1048,10 +1064,18 @@ private fun MessageBubble(
                 // and on an outgoing bubble the ordinary primary fill is
                 // already the loudest thing on screen.
                 isSelected -> MaterialTheme.colorScheme.tertiaryContainer
+                // A sticker stands on the conversation itself, as it does in
+                // every Telegram client: it is its own shape, and a bubble
+                // around it would be a frame round a picture of a frame.
+                isSticker -> Color.Transparent
                 outgoing -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             },
-            shadowElevation = 1.dp,
+            // No shadow. Material 3 gives depth by tone — the bubble's fill
+            // against the conversation — and the composer below dropped its
+            // shadow for the same reason; a bubble casting one read as a
+            // card lifted off the page, which a message is not.
+            shadowElevation = 0.dp,
             modifier = Modifier
                 .widthIn(max = 320.dp)
                 .combinedClickable(
@@ -1087,6 +1111,14 @@ private fun MessageBubble(
                     Spacer(Modifier.height(2.dp))
                 }
                 when (message.contentType) {
+                    MessageContentType.Sticker -> {
+                        val sticker = message.sticker
+                        if (sticker != null) {
+                            StickerView(sticker, size = STICKER_SIZE)
+                        } else {
+                            Text(message.text)
+                        }
+                    }
                     MessageContentType.Document -> {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Rounded.Description, contentDescription = null)
@@ -1174,7 +1206,7 @@ private fun MessageBubble(
                 }
                 Spacer(Modifier.height(4.dp))
                 val footnote = (
-                    if (outgoing) MaterialTheme.colorScheme.onPrimary
+                    if (outgoing && !isSticker) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurface
                 )
                     .copy(alpha = 0.55f)
@@ -2547,6 +2579,8 @@ private fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAttach: () -> Unit,
+    /** The sticker sheet, from the smiley at the end of the field. */
+    onStickers: () -> Unit,
     /** The camera, straight from the composer rather than through the sheet. */
     onCamera: () -> Unit,
     onSend: () -> Unit,
@@ -2710,6 +2744,13 @@ private fun ComposerBar(
                             .padding(vertical = 2.dp)
                             .focusRequester(focusRequester),
                         placeholder = { Text("Message") },
+                        // Where Telegram keeps it, and every messenger since:
+                        // inside the field, at its end.
+                        trailingIcon = {
+                            IconButton(onClick = onStickers) {
+                                Icon(Icons.Rounded.EmojiEmotions, contentDescription = "Stickers")
+                            }
+                        },
                         shape = ComposerShape,
                         // The field carries its own fill, at the opposite
                         // end of the container ladder from the capsule
@@ -2905,3 +2946,6 @@ private fun LinkPreviewCard(preview: LinkPreview, outgoing: Boolean) {
         }
     }
 }
+
+/** How big a sticker is drawn in the conversation. */
+private val STICKER_SIZE = 160.dp

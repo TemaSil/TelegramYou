@@ -32,6 +32,9 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.ProxyKind
 import com.telegramyou.app.telegram.model.ProxyServer
 import com.telegramyou.app.telegram.model.SendState
+import com.telegramyou.app.telegram.model.StickerContent
+import com.telegramyou.app.telegram.model.StickerFormat
+import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -1436,6 +1439,119 @@ class TdLibTelegramClient(
             .put("type", type)
     }
 
+    // ── stickers ─────────────────────────────────────────────────────────
+
+    override suspend fun stickerSets(): List<StickerSetPreview> {
+        awaitReady()
+        val sets = requireEngine().send(
+            JSONObject()
+                .put("@type", "getInstalledStickerSets")
+                .put("sticker_type", JSONObject().put("@type", "stickerTypeRegular"))
+        ).optJSONArray("sets") ?: return emptyList()
+        return (0 until sets.length()).mapNotNull { index ->
+            val set = sets.optJSONObject(index) ?: return@mapNotNull null
+            // The set's own picture where it has one, else its first sticker —
+            // `covers` holds a few of them for exactly this.
+            val cover = set.optJSONObject("thumbnail")?.let { thumbnail ->
+                stickerFromThumbnail(thumbnail, set.optString("title"))
+            } ?: set.optJSONArray("covers")?.optJSONObject(0)?.let(::stickerOf)
+            StickerSetPreview(
+                id = set.optLong("id"),
+                title = set.optString("title"),
+                cover = cover
+            )
+        }
+    }
+
+    override suspend fun stickerSet(setId: Long): List<StickerContent> {
+        awaitReady()
+        val stickers = requireEngine().send(
+            JSONObject().put("@type", "getStickerSet").put("set_id", setId)
+        ).optJSONArray("stickers") ?: return emptyList()
+        return (0 until stickers.length()).mapNotNull { stickers.optJSONObject(it)?.let(::stickerOf) }
+    }
+
+    override suspend fun recentStickers(): List<StickerContent> {
+        awaitReady()
+        val stickers = requireEngine().send(
+            JSONObject().put("@type", "getRecentStickers").put("is_attached", false)
+        ).optJSONArray("stickers") ?: return emptyList()
+        return (0 until stickers.length()).mapNotNull { stickers.optJSONObject(it)?.let(::stickerOf) }
+    }
+
+    /**
+     * By the file TDLib already has: a sticker from a set is on Telegram's
+     * servers, and naming its file id sends it without uploading anything.
+     * The file goes inside an `inputSticker` — the same wrapping photos
+     * needed, which unwrapped is "Input file is not specified".
+     */
+    override suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long?) {
+        awaitReady()
+        val fileId = sticker.fileId ?: error("This sticker has no file to send")
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .withReplyTo(replyToId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageSticker")
+                        .put(
+                            "sticker",
+                            JSONObject()
+                                .put("@type", "inputSticker")
+                                .put("sticker", JSONObject().put("@type", "inputFileId").put("id", fileId))
+                                .put("width", sticker.width)
+                                .put("height", sticker.height)
+                        )
+                        .put("emoji", sticker.emoji)
+                )
+        )
+    }
+
+    /** A TDLib `sticker`, read into the model the screens draw. */
+    private fun stickerOf(sticker: JSONObject): StickerContent {
+        val file = sticker.optJSONObject("sticker")
+        val thumbnail = sticker.optJSONObject("thumbnail")?.optJSONObject("file")
+        return StickerContent(
+            id = sticker.optLong("id"),
+            emoji = sticker.optString("emoji"),
+            format = when (sticker.optJSONObject("format")?.optString("@type")) {
+                "stickerFormatTgs" -> StickerFormat.Tgs
+                "stickerFormatWebm" -> StickerFormat.Webm
+                else -> StickerFormat.Webp
+            },
+            width = sticker.optInt("width", 512),
+            height = sticker.optInt("height", 512),
+            fileId = file?.optInt("id")?.takeIf { it != 0 },
+            path = file?.localPathIfDownloaded(),
+            thumbFileId = thumbnail?.optInt("id")?.takeIf { it != 0 },
+            thumbPath = thumbnail?.localPathIfDownloaded()
+        )
+    }
+
+    /** A set's own picture, drawn the way a sticker of the same format is. */
+    private fun stickerFromThumbnail(thumbnail: JSONObject, title: String): StickerContent? {
+        val file = thumbnail.optJSONObject("file") ?: return null
+        val fileId = file.optInt("id").takeIf { it != 0 } ?: return null
+        return StickerContent(
+            emoji = title.take(1),
+            format = when (thumbnail.optJSONObject("format")?.optString("@type")) {
+                "thumbnailFormatTgs" -> StickerFormat.Tgs
+                "thumbnailFormatWebm" -> StickerFormat.Webm
+                else -> StickerFormat.Webp
+            },
+            width = thumbnail.optInt("width"),
+            height = thumbnail.optInt("height"),
+            fileId = fileId,
+            path = file.localPathIfDownloaded(),
+            // A webm cover has no still of its own; drawn as its title's
+            // first letter until this client plays video stickers.
+            thumbFileId = null
+        )
+    }
+
     override suspend fun logout() {
         try {
             requireEngine().send(JSONObject().put("@type", "logOut"))
@@ -2202,7 +2318,8 @@ class TdLibTelegramClient(
             "messageVideo" -> "🎬 Video"
             "messageDocument" -> "📎 ${content.optJSONObject("document")?.optString("file_name") ?: "File"}"
             "messageVoiceNote" -> "🎤 Voice"
-            "messageSticker" -> "Sticker"
+            "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
+                ?.takeIf { it.isNotBlank() }?.let { "$it Sticker" } ?: "Sticker"
             else -> content.optString("@type").removePrefix("message")
         }
     }
@@ -2344,6 +2461,9 @@ class TdLibTelegramClient(
                 else -> SendState.Sent
             },
             contentType = contentType,
+            sticker = content?.takeIf { type == "messageSticker" }
+                ?.optJSONObject("sticker")
+                ?.let(::stickerOf),
             fileName = content?.optJSONObject("document")?.optString("file_name"),
             fileSizeLabel = null,
             mediaEmoji = when (contentType) {

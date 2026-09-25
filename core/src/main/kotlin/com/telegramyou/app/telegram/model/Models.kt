@@ -312,6 +312,8 @@ data class ChatMessage(
      */
     val sendState: SendState = SendState.Sent,
     val contentType: MessageContentType = MessageContentType.Text,
+    /** The sticker, when this message is one; drawn without a bubble. */
+    val sticker: StickerContent? = null,
     val fileName: String? = null,
     val fileSizeLabel: String? = null,
     val mediaEmoji: String? = null,
