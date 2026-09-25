@@ -271,6 +271,17 @@ careful with.
 - [x] Copying goes through `LocalClipboard` — `rememberTextCopier` in
       `ui/common`; `LocalClipboardManager` is gone
 
+## Colour and type, 25 September 2026
+
+- **The fallback palette is generated, not picked.** Below Android 12, and
+  wherever dynamic colour is off, the scheme is the one Android would build
+  from a teal wallpaper — tonal spot, 2021 spec, from `TealSeed` with
+  material-color-utilities. It was hand-picked before: coral secondary,
+  periwinkle tertiary, so the navigation bar's pill came out brown and the
+  story ring a rainbow.
+- **The app's name is set expressively** — Google Sans Flex rounded (`ROND`
+  100), weight 650, width 115, where it was Medium, square and normal width.
+
 ## The conversation, 25 September 2026
 
 - **It rises with the keyboard.** The list's box shrank as the keyboard

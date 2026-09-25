@@ -93,6 +93,7 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.components.ExpressiveLoadingOverlay
 import com.telegramyou.app.ui.components.cyclingShape
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
+import com.telegramyou.app.ui.theme.AppTitleWeight
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -186,6 +187,7 @@ fun AuthScreen(
                     text = "TelegramYou",
                     style = MaterialTheme.typography.displaySmall.copy(
                         fontFamily = AppTitleFontFamily,
+                        fontWeight = AppTitleWeight,
                         fontSize = 32.sp,
                         letterSpacing = (-0.5).sp
                     ),

@@ -132,6 +132,7 @@ import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
+import com.telegramyou.app.ui.theme.AppTitleWeight
 import com.telegramyou.app.ui.theme.AppTitleSize
 
 /**
@@ -766,11 +767,10 @@ private fun HomeTitleBar(
                     // one's display cut is already drawn tight, and
                     // pulling it in as far again ran the letters together.
                     letterSpacing = (-0.5).sp,
-                    // Medium, not the scale's ExtraBold. At display
-                    // size the weight does not have to carry the
-                    // emphasis — the size already does, and the
-                    // heavier cut read as shouting.
-                    fontWeight = FontWeight.Medium
+                    // Not the scale's ExtraBold, which read as shouting;
+                    // the face's own title weight, which with its round
+                    // ends and extra width is expressive rather than loud.
+                    fontWeight = AppTitleWeight
                 ),
                 maxLines = 1
             )
