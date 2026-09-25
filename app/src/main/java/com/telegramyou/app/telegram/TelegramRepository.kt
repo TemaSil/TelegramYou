@@ -26,11 +26,12 @@ class TelegramRepository(
 
     /**
      * Fetches a chat's opening window before its screen exists, so the
-     * container transform opens onto a conversation that is already there.
+     * screen moves in with its conversation already there.
      *
-     * Without it the screen grew out of its row empty and the messages
-     * arrived partway through, and the list laying itself out under a moving
-     * container was the rest of the shake. TDLib answers this from its local
+     * Without it the screen arrived empty and the messages landed partway
+     * through its transition, and the list laying itself out while the
+     * screen moved was what made opening a chat shake — whichever motion it
+     * opened with. It stays for that reason whatever the motion is. TDLib answers this from its local
      * database in milliseconds; [waitMillis] caps the wait for when it has to
      * ask the server, and past it the chat opens as before and loads itself.
      * Only a read — the chat is held open by its screen, not by this.

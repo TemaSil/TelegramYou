@@ -9,9 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
 import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
 import com.telegramyou.app.ui.motion.containerTransform
-import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.storyContainerKey
-import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.ui.motion.StoryContainerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -88,10 +86,10 @@ fun TelegramYouNavHost(
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
     val viewModelFactory = remember(repository) { telegramViewModelFactory(repository) }
 
-    // A chat opened from a list: its messages first, then the screen — so the
-    // container transform grows a finished conversation out of the row
-    // instead of an empty one that fills in mid-flight. See warmChat. One at
-    // a time, or a second tap during the wait would open the chat twice.
+    // A chat opened from a list: its messages first, then the screen — so it
+    // slides in as a finished conversation instead of an empty one that fills
+    // in mid-flight. See warmChat. One at a time, or a second tap during the
+    // wait would open the chat twice.
     val openScope = rememberCoroutineScope()
     var opening by remember { mutableStateOf(false) }
     val openChat: (Long) -> Unit = { id ->
@@ -159,8 +157,8 @@ fun TelegramYouNavHost(
     }
 
     // One layout around the whole graph, so a screen can open out of an
-    // element on the one before it — a chat out of its row, a story out of
-    // its circle. See containerTransform.
+    // element on the one before it — a story out of its circle. See
+    // containerTransform.
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(
@@ -458,12 +456,13 @@ fun TelegramYouNavHost(
 
         composable(
             route = Route.Chat.PATTERN,
-            arguments = Route.Chat.arguments,
-            // The row it opened out of does the moving; see containerTransform.
-            enterTransition = { fadeIn(spring()) },
-            popExitTransition = { fadeOut(spring()) }
-        ) { entry ->
-            val openedChatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
+            // The graph's own transition — faded and slid in from the side on
+            // the default spring — which is what the chat opened with first
+            // and what the owner came back to after container transforms on
+            // two different springs. What made opening smooth was not the
+            // motion but the messages being there before it: see warmChat.
+            arguments = Route.Chat.arguments
+        ) {
             // chatId is not read here: ChatViewModel takes it from the saved
             // state, so the conversation survives process death with the rest
             // of its state rather than only as long as this composition.
@@ -505,7 +504,6 @@ fun TelegramYouNavHost(
             Box(
                 Modifier
                     .fillMaxSize()
-                    .containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true)
             ) {
             ChatScreen(
                 state = state,
@@ -616,4 +614,4 @@ fun TelegramYouNavHost(
 }
 
 /** Destinations that open out of an element on the chat list; see containerTransform. */
-private val containerRoutes = setOf(Route.Chat.PATTERN, Route.Story.PATTERN)
+private val containerRoutes = setOf(Route.Story.PATTERN)
