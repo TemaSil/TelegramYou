@@ -2414,15 +2414,21 @@ private fun VideoNoteMessage(
                     CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
                 }
             }
-            !playing -> Surface(
-                shape = CircleShape,
-                color = Color.Black.copy(alpha = 0.45f),
-                contentColor = Color.White,
-                modifier = Modifier.size(52.dp)
+            // A Box, not a Surface: Material's Surface swallows touches so
+            // nothing behind it gets them, and this one sits exactly where a
+            // thumb aims — a tap on the play mark did nothing at all.
+            !playing -> Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.PlayArrow, contentDescription = null, modifier = Modifier.size(30.dp))
-                }
+                Icon(
+                    Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(30.dp)
+                )
             }
         }
         if (!playing && note.durationSeconds > 0) {
