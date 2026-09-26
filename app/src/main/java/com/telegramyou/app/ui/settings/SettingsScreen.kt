@@ -1,6 +1,18 @@
 package com.telegramyou.app.ui.settings
 
-import com.telegramyou.app.update.UpdateSection
+import androidx.compose.material3.TopAppBarDefaults
+import com.telegramyou.app.update.LocalAppUpdates
+import com.telegramyou.app.update.UpdateState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.background
+import androidx.compose.material3.Badge
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Face
+import androidx.compose.material.icons.rounded.FormatSize
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.runtime.getValue
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -68,9 +80,12 @@ fun SettingsScreen(
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onTextScaleChange: (Float) -> Unit = {},
-    onOpenGeeks: () -> Unit = {}
+    onOpenGeeks: () -> Unit = {},
+    onOpenProxy: () -> Unit = {},
+    onOpenUpdates: () -> Unit = {}
 ) {
     Scaffold(
+        containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },
@@ -81,7 +96,8 @@ fun SettingsScreen(
                             contentDescription = "Back"
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
         }
     ) { padding ->
@@ -97,7 +113,9 @@ fun SettingsScreen(
             onOpenStorage = onOpenStorage,
             onOpenPrivacy = onOpenPrivacy,
             onTextScaleChange = onTextScaleChange,
-            onOpenGeeks = onOpenGeeks
+            onOpenGeeks = onOpenGeeks,
+            onOpenProxy = onOpenProxy,
+            onOpenUpdates = onOpenUpdates
         )
     }
 }
@@ -125,194 +143,215 @@ fun SettingsContent(
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onTextScaleChange: (Float) -> Unit = {},
-    onOpenGeeks: () -> Unit = {}
+    onOpenGeeks: () -> Unit = {},
+    onOpenProxy: () -> Unit = {},
+    onOpenUpdates: () -> Unit = {},
+    onOpenProfile: () -> Unit = {}
 ) {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(contentPadding)
-                .verticalScroll(rememberScrollState())
-        ) {
-            if (me != null) {
-                ListItem(
-                    headlineContent = { Text(me.displayName) },
-                    supportingContent = {
-                        Text(me.username?.let { "@$it" } ?: me.phoneNumber.orEmpty())
-                    },
-                    leadingContent = {
-                        AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 48.dp, photoPath = me.photoPath)
-                    }
-                )
-                HorizontalDivider()
+    // In the order Android's own Settings uses: who you are, then how it
+    // looks, then who can see what, then data and the network, then the
+    // things most people never open, then the app itself, and leaving last.
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(settingsBackground())
+            .padding(contentPadding)
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp)
+    ) {
+        if (me != null) {
+            SettingsGroup {
+                custom { index, count ->
+                    SettingsItem(
+                        index = index,
+                        count = count,
+                        title = me.displayName,
+                        summary = me.username?.let { "@$it" } ?: me.phoneNumber.orEmpty(),
+                        leading = {
+                            AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 56.dp, photoPath = me.photoPath)
+                        },
+                        onClick = onOpenProfile
+                    )
+                }
             }
+        }
 
-            SectionHeader("Appearance")
-
+        SettingsGroup("Appearance") {
             // The switch this client exists for, so it says what it does.
             val available = dynamicColorAvailable(Build.VERSION.SDK_INT)
-            ListItem(
-                headlineContent = { Text("Colour from your wallpaper") },
-                supportingContent = {
-                    Text(
-                        if (available) {
-                            "Material You: the app takes its palette from the " +
-                                "system, so it looks like this phone rather " +
-                                "than like Telegram."
+            switch(
+                title = "Colour from your wallpaper",
+                summary = if (available) {
+                    "Material You: the palette comes from your wallpaper"
+                } else {
+                    // Shown rather than hidden: hiding it would leave the
+                    // client's own premise unexplained where it does not apply.
+                    "Needs Android 12 or newer"
+                },
+                checked = settings.dynamicColor && available,
+                enabled = available,
+                icon = Icons.Rounded.Palette,
+                onChange = onDynamicColorChange
+            )
+            // Three short choices side by side: exactly what a segmented
+            // button row is for, set under the row's title.
+            custom { index, count ->
+                SettingsItem(
+                    index = index,
+                    count = count,
+                    title = "Theme",
+                    leading = { SettingsIcon(Icons.Rounded.DarkMode) },
+                    onClick = {},
+                    below = {
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        ) {
+                            ThemeChoice.entries.forEachIndexed { choiceIndex, choice ->
+                                SegmentedButton(
+                                    selected = settings.theme == choice,
+                                    onClick = { onThemeChange(choice) },
+                                    shape = SegmentedButtonDefaults.itemShape(
+                                        index = choiceIndex,
+                                        count = ThemeChoice.entries.size
+                                    )
+                                ) {
+                                    Text(choice.name)
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            // The other half of what an avatar carries, shown on the
+            // account's own avatar changing shape as the switch moves.
+            val avatarPreview: @Composable () -> Unit = if (me != null) {
+                {
+                    AvatarBubble(
+                        title = me.displayName,
+                        seed = me.avatarColor,
+                        size = 40.dp,
+                        shape = if (settings.shapedAvatars) {
+                            val shapes = materialShapeSet()
+                            shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
                         } else {
-                            // Shown rather than hidden: hiding it would leave
-                            // the client's own premise unexplained on the
-                            // phones where it does not apply.
-                            "Needs Android 12 or newer. Below that the app " +
-                                "uses its own palette."
+                            CircleShape
                         }
                     )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = settings.dynamicColor && available,
-                        onCheckedChange = onDynamicColorChange,
-                        enabled = available
-                    )
                 }
-            )
-
-            // The other half of what an avatar carries. A person's shape is
-            // derived from the same seed as their colour, so they keep it
-            // wherever they appear — which is the argument Material makes for
-            // the shape library, and the reason this is on by default.
-            ListItem(
-                headlineContent = { Text("Shaped avatars") },
-                supportingContent = {
-                    Text(
-                        "Give each person one of Material's shapes as well as " +
-                            "a colour, so they are recognisable before their " +
-                            "name is read. Off, avatars are circles."
-                    )
-                },
-                trailingContent = {
-                    Switch(
-                        checked = settings.shapedAvatars,
-                        onCheckedChange = onShapedAvatarsChange
-                    )
-                },
-                // The setting is about avatars, so it shows one: the same
-                // account's own, changing shape as the switch moves.
-                leadingContent = me?.let { account ->
-                    {
-                        AvatarBubble(
-                            title = account.displayName,
-                            seed = account.avatarColor,
-                            size = 40.dp,
-                            shape = if (settings.shapedAvatars) {
-                                val shapes = materialShapeSet()
-                                shapes[avatarShapeIndex(account.avatarColor, shapes.size)]
-                            } else {
-                                CircleShape
-                            }
-                        )
-                    }
-                }
-            )
-
-            // Text size: a slider with four stops, the way Android's own
-            // display settings offer it. The whole app follows as it moves —
-            // this screen included, which is the preview.
-            ListItem(
-                headlineContent = { Text("Text size") },
-                supportingContent = { Text(TextSize.label(settings.textScale)) }
-            )
-            Slider(
-                value = TextSize.nearest(settings.textScale),
-                onValueChange = { onTextScaleChange(TextSize.nearest(it)) },
-                valueRange = TextSize.steps.first()..TextSize.steps.last(),
-                steps = TextSize.steps.size - 2,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .semantics { contentDescription = "Text size" }
-            )
-
-            SectionHeader("Theme")
-
-            // A segmented row rather than three rows of radio buttons: the
-            // choice is one of three and they are short enough to sit side by
-            // side, which is exactly what the component is for.
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                ThemeChoice.entries.forEachIndexed { index, choice ->
-                    SegmentedButton(
-                        selected = settings.theme == choice,
-                        onClick = { onThemeChange(choice) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = ThemeChoice.entries.size
-                        )
-                    ) {
-                        Text(choice.name)
-                    }
-                }
+            } else {
+                { SettingsIcon(Icons.Rounded.Face) }
             }
-
-            HorizontalDivider()
-
-            // Where this account is signed in, and what it keeps on the phone:
-            // the two things a person comes to settings to check rather than
-            // to change.
-            SectionHeader("Privacy and data")
-            ListItem(
-                headlineContent = { Text("Privacy") },
-                supportingContent = { Text("Who can see your number, your last seen and more") },
-                leadingContent = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onOpenPrivacy)
+            switch(
+                title = "Shaped avatars",
+                summary = "Everyone gets one of Material's shapes as well as a colour",
+                checked = settings.shapedAvatars,
+                leading = avatarPreview,
+                onChange = onShapedAvatarsChange
             )
-            ListItem(
-                headlineContent = { Text("Devices") },
-                supportingContent = { Text("Where you are signed in") },
-                leadingContent = { Icon(Icons.Rounded.Devices, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onOpenDevices)
+            // Four stops, the way Android's own display settings offer it.
+            // The whole app follows as it moves — this screen included.
+            custom { index, count ->
+                SettingsItem(
+                    index = index,
+                    count = count,
+                    title = "Text size",
+                    summary = TextSize.label(settings.textScale),
+                    leading = { SettingsIcon(Icons.Rounded.FormatSize) },
+                    onClick = {},
+                    below = {
+                        Slider(
+                            value = TextSize.nearest(settings.textScale),
+                            onValueChange = { onTextScaleChange(TextSize.nearest(it)) },
+                            valueRange = TextSize.steps.first()..TextSize.steps.last(),
+                            steps = TextSize.steps.size - 2,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "Text size" }
+                        )
+                    }
+                )
+            }
+        }
+
+        SettingsGroup("Privacy and security") {
+            link(
+                title = "Privacy",
+                summary = "Who can see your number, your last seen and more",
+                icon = Icons.Rounded.Lock,
+                tone = IconTone.Secondary,
+                onClick = onOpenPrivacy
             )
-            ListItem(
-                headlineContent = { Text("Data and storage") },
-                supportingContent = { Text("The cache, and clearing it") },
-                leadingContent = { Icon(Icons.Rounded.Storage, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onOpenStorage)
-            )
-
-            HorizontalDivider()
-
-            // One row, and everything behind it off until turned on: the
-            // settings most people never need, kept out of their way.
-            ListItem(
-                headlineContent = { Text("For geeks") },
-                supportingContent = { Text("Small things for people who like to tinker") },
-                leadingContent = { Icon(Icons.Rounded.Science, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onOpenGeeks)
-            )
-
-            HorizontalDivider()
-
-            SectionHeader("About")
-            UpdateSection()
-
-            HorizontalDivider()
-
-            ListItem(
-                headlineContent = {
-                    Text("Log out", color = MaterialTheme.colorScheme.error)
-                },
-                leadingContent = {
-                    Icon(
-                        Icons.AutoMirrored.Rounded.Logout,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                },
-                modifier = Modifier.clickable(onClick = onLogout)
+            link(
+                title = "Devices",
+                summary = "Where you are signed in",
+                icon = Icons.Rounded.Devices,
+                tone = IconTone.Secondary,
+                onClick = onOpenDevices
             )
         }
+
+        SettingsGroup("Data and network") {
+            link(
+                title = "Data and storage",
+                summary = "The cache, and clearing it",
+                icon = Icons.Rounded.Storage,
+                tone = IconTone.Tertiary,
+                onClick = onOpenStorage
+            )
+            link(
+                title = "Proxy",
+                summary = "Connect through SOCKS5, HTTP or MTProto",
+                icon = Icons.Rounded.VpnKey,
+                tone = IconTone.Tertiary,
+                onClick = onOpenProxy
+            )
+        }
+
+        // One row, and everything behind it off until turned on: the
+        // settings most people never need, kept out of their way.
+        SettingsGroup {
+            link(
+                title = "For geeks",
+                summary = "Small things for people who like to tinker",
+                icon = Icons.Rounded.Science,
+                onClick = onOpenGeeks
+            )
+        }
+
+        // Where Android puts "System update": its own screen, with the
+        // version here and a dot when a newer one is out.
+        SettingsGroup {
+            val updates = LocalAppUpdates.current
+            val state = updates?.state?.collectAsStateWithLifecycle()?.value
+            val waiting = state is UpdateState.Available || state is UpdateState.Ready
+            val dot: (@Composable () -> Unit)? = if (waiting) {
+                { Badge() }
+            } else null
+            link(
+                title = "App update",
+                summary = when (state) {
+                    is UpdateState.Available -> "Version ${state.release.version} is out"
+                    is UpdateState.Ready -> "Version ${state.release.version} is ready to install"
+                    else -> updates?.let { "Version ${it.installed} · what's new" } ?: "What's new"
+                },
+                icon = Icons.Rounded.SystemUpdate,
+                tone = if (waiting) IconTone.Tertiary else IconTone.Primary,
+                trailing = dot,
+                onClick = onOpenUpdates
+            )
+        }
+
+        SettingsGroup {
+            val error = MaterialTheme.colorScheme.error
+            link(
+                title = "Log out",
+                icon = Icons.AutoMirrored.Rounded.Logout,
+                tone = IconTone.Error,
+                titleColor = error,
+                onClick = onLogout
+            )
+        }
+    }
 }
 
 @Composable

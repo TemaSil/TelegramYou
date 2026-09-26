@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -111,6 +112,7 @@ fun DevicesScreen(
     }
 
     Scaffold(
+        containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -119,7 +121,8 @@ fun DevicesScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
         }
     ) { padding ->
@@ -134,33 +137,42 @@ fun DevicesScreen(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             state.current?.let { current ->
-                item(key = "this-heading") { SectionHeader("This device") }
-                item(key = "this") { SessionRow(current, current.activityLabel(now, timeLabel), onClick = null) }
+                item(key = "this") {
+                    SettingsGroup("This device") {
+                        custom { index, count -> SessionRow(index, count, current, current.activityLabel(now, timeLabel), onClick = null) }
+                    }
+                }
             }
             if (state.others.isNotEmpty()) {
                 // Between this phone and the others, where it reads as what it
                 // is: everything below goes, everything above stays.
                 item(key = "end-all") {
-                    ListItem(
-                        headlineContent = { Text("End all other sessions") },
-                        supportingContent = { Text("Signs out every device but this one") },
-                        leadingContent = {
-                            Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null)
-                        },
-                        colors = ListItemDefaults.colors(
-                            headlineColor = MaterialTheme.colorScheme.error,
-                            leadingIconColor = MaterialTheme.colorScheme.error
-                        ),
-                        modifier = Modifier.clickable(enabled = !state.isWorking, onClick = onTerminateAllRequested)
-                    )
+                    SettingsGroup {
+                        val error = MaterialTheme.colorScheme.error
+                        link(
+                            title = "End all other sessions",
+                            summary = "Signs out every device but this one",
+                            icon = Icons.AutoMirrored.Rounded.Logout,
+                            tone = IconTone.Error,
+                            titleColor = error,
+                            onClick = { if (!state.isWorking) onTerminateAllRequested() }
+                        )
+                    }
                 }
-                item(key = "others-heading") { SectionHeader("Active sessions") }
-                items(state.others, key = { it.id }) { session ->
-                    SessionRow(
-                        session,
-                        session.activityLabel(now, timeLabel),
-                        onClick = if (state.isWorking) null else ({ onSessionSelected(session) })
-                    )
+                item(key = "others") {
+                    SettingsGroup("Active sessions") {
+                        state.others.forEach { session ->
+                            custom { index, count ->
+                                SessionRow(
+                                    index,
+                                    count,
+                                    session,
+                                    session.activityLabel(now, timeLabel),
+                                    onClick = if (state.isWorking) null else ({ onSessionSelected(session) })
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -168,29 +180,18 @@ fun DevicesScreen(
 }
 
 @Composable
-private fun SessionRow(session: ActiveSession, activity: String, onClick: (() -> Unit)?) {
-    ListItem(
-        headlineContent = { Text(session.title()) },
-        supportingContent = {
-            Column {
-                session.appLine().takeIf { it.isNotBlank() }?.let { Text(it) }
-                if (session.isPasswordPending) Text("Waiting for the two-step password")
-            }
-        },
-        leadingContent = {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(deviceIcon(session.kind), contentDescription = null)
-                }
-            }
-        },
-        trailingContent = { Text(activity, style = MaterialTheme.typography.labelMedium) },
-        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+private fun SessionRow(index: Int, count: Int, session: ActiveSession, activity: String, onClick: (() -> Unit)?) {
+    SettingsItem(
+        index = index,
+        count = count,
+        title = session.title(),
+        summary = listOfNotNull(
+            session.appLine().takeIf { it.isNotBlank() },
+            "Waiting for the two-step password".takeIf { session.isPasswordPending }
+        ).joinToString("\n").ifBlank { null },
+        leading = { SettingsIcon(deviceIcon(session.kind), IconTone.Secondary) },
+        trailing = { Text(activity, style = MaterialTheme.typography.labelMedium) },
+        onClick = { onClick?.invoke() }
     )
 }
 

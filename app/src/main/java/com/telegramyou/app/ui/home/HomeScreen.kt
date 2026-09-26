@@ -192,7 +192,8 @@ fun HomeScreen(
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onTextScaleChange: (Float) -> Unit = {},
-    onOpenGeeks: () -> Unit = {}
+    onOpenGeeks: () -> Unit = {},
+    onOpenUpdates: () -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -353,7 +354,10 @@ fun HomeScreen(
                         onOpenStorage = onOpenStorage,
                         onOpenPrivacy = onOpenPrivacy,
                         onTextScaleChange = onTextScaleChange,
-                        onOpenGeeks = onOpenGeeks
+                        onOpenGeeks = onOpenGeeks,
+                        onOpenProxy = onOpenProxy,
+                        onOpenUpdates = onOpenUpdates,
+                        onOpenProfile = { onTabSelected(HomeTab.Profile) }
                     )
                     return@AnimatedContent
                 }

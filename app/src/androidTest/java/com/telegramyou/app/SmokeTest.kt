@@ -528,7 +528,7 @@ class SmokeTest {
     }
 
     /**
-     * Settings → About → Check for updates asks GitHub and comes back with
+     * Settings → App update → Check for updates asks GitHub and comes back with
      * an answer. Which answer depends on the release page and on whether the
      * emulator is online, so any of the three is a pass — what fails is the
      * row never getting past "Checking", or the app falling over on the way.
@@ -543,31 +543,21 @@ class SmokeTest {
         // run went for "the scrollable thing" while the chat list was still
         // leaving, and scrolled a list that was gone by the time it moved.
         waitFor(By.text("Appearance"), "the settings")
-        val row = By.text("Check for updates")
-        // The quiet check at launch may already have found a newer build, in
-        // which case the row offers it instead of offering to look — as it
-        // did on CI, whose APK is numbered by the UI workflow's own runs and
-        // so is always older than the published one.
-        val offered = By.textContains(" is out")
-        // Near the bottom of Settings, which may be below the fold on a
-        // small screen.
-        repeat(3) {
-            if (device.wait(Until.hasObject(row), SHORT_WAIT) || device.hasObject(offered)) return@repeat
+        screenshot("41-settings")
+        // Its own screen now, as Android's System update is: the row near the
+        // bottom of Settings, which may be below the fold on a small screen.
+        scrollSettingsTo(By.text("App update"))
+        tap(By.text("App update"))
+        waitFor(By.text("What's new"), "the update screen and its changelog")
+        // The quiet check at launch may already have found a newer build —
+        // on CI it usually has, since the published APK outnumbers the UI
+        // workflow's own — in which case the screen offers it and there is
+        // nothing to press. Otherwise the button asks, and either outcome is
+        // an answer.
+        val answer = By.text(Pattern.compile(".*(up to date|is out|is ready|Could not reach GitHub).*"))
+        if (!device.wait(Until.hasObject(answer), SHORT_WAIT)) {
             try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.8f)
-            } catch (_: StaleObjectException) {
-                // Recomposed under the finger; the next round finds it again.
-            }
-        }
-        // The quiet check can also land between looking and tapping, and turn
-        // the row into the offer under the finger — since 1.0, when the
-        // published build began to outnumber CI's own. So the row is clicked
-        // only if it is still there, and either outcome is an answer.
-        val answer = By.text(Pattern.compile(".*(newest there is|is out|Could not reach GitHub).*"))
-        if (!device.hasObject(offered)) {
-            device.wait(Until.hasObject(By.text(Pattern.compile("Check for updates|.* is out"))), STEP_TIMEOUT)
-            try {
-                device.findObject(row)?.click()
+                device.findObject(By.text("Check for updates"))?.click()
             } catch (_: StaleObjectException) {
             }
         }
@@ -1238,7 +1228,9 @@ class SmokeTest {
             device.wait(Until.gone(By.text("Galaxy S21")), STEP_TIMEOUT)
         )
         device.pressBack()
-        waitFor(By.text("Appearance"), "the settings again")
+        // The row just left rather than the top: Settings is still scrolled
+        // to where Devices was, and Appearance may be above the fold.
+        waitFor(By.text("Devices"), "the settings again")
 
         scrollSettingsTo(By.text("Data and storage"))
         tap(By.text("Data and storage"))

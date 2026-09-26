@@ -67,6 +67,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.settings.GeeksScreen
+import com.telegramyou.app.update.AppUpdateScreen
 import com.telegramyou.app.settings.GeekStore
 import com.telegramyou.app.settings.InMemoryQueryHistory
 import com.telegramyou.app.settings.QueryHistory
@@ -322,7 +323,8 @@ fun TelegramYouNavHost(
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onTextScaleChange = appearance::setTextScale,
-                onOpenGeeks = { navController.navigateTo(Route.Geeks) }
+                onOpenGeeks = { navController.navigateTo(Route.Geeks) },
+                onOpenUpdates = { navController.navigateTo(Route.Updates) }
             )
             }
         }
@@ -431,8 +433,13 @@ fun TelegramYouNavHost(
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onTextScaleChange = appearance::setTextScale,
-                onOpenGeeks = { navController.navigateTo(Route.Geeks) }
+                onOpenGeeks = { navController.navigateTo(Route.Geeks) },
+                onOpenProxy = { navController.navigateTo(Route.Proxy) },
+                onOpenUpdates = { navController.navigateTo(Route.Updates) }
             )
+        }
+        composable(Route.Updates.PATTERN) {
+            AppUpdateScreen(onBack = { navController.popBackStack() })
         }
         composable(Route.Geeks.PATTERN) {
             val store = geeks ?: return@composable

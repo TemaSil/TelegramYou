@@ -49,6 +49,49 @@ are misleading — `ChatActivity` alone is tens of thousands of lines. Most of
 the work in a client sits in very few places, which is why the order below
 starts where it does.
 
+## Where it stands, 26 September 2026
+
+A review against what a complete client contains — the inventory above,
+with Nekogram read as a list of behaviour. Checked against the code rather
+than against this file: each "missing" below was grepped for in the TDLib
+client and is not there.
+
+**Still missing, and basic** — what someone coming from the official app
+notices within a day. Roughly in the order to do them:
+
+1. **Formatted text.** Messages arrive as plain strings: no bold or italic,
+   and links, @mentions and #hashtags are not tappable. TDLib sends
+   `entities` with every text; none are read. Composing with formatting
+   (Material's text-selection toolbar) comes with it.
+2. **Forwarded messages say where they came from.** `forward_info` is not
+   read, so a forward looks like the sender's own words.
+3. **Albums.** Photos sent together (`media_album_id`) draw as separate
+   bubbles instead of one grid. Sending albums already works.
+4. **Pin and unpin** a message from its menu; the pinned bar only shows.
+5. **Drafts** — `draft_message`, kept per chat and synced across devices;
+   leaving a chat now loses what was typed.
+6. **Someone else's profile** — tapping a person opens their info: photo,
+   bio, username, phone, shared media, mute, **block** (no block list
+   exists anywhere yet).
+7. **Delete a chat, clear its history** — from the list's long-press menu.
+8. **Contacts** — a screen of them, and adding one by phone number; today
+   they are only reachable from New message.
+9. **Your own profile, properly** — see Profile under section 3.
+10. **Editing folders** — see section 2.
+11. **Posting a story** — they can be watched, not made.
+12. **App lock** — a passcode or the fingerprint in front of the app.
+
+**Later, polish rather than basics:** forum topics in supergroups; admins
+and permissions; invite-link management; video stickers; video playback
+speed and picture-in-picture; recording round video messages; a photo
+editor; chat wallpapers and themes; global notification settings (sounds,
+per type); location and contacts in messages; inline bots and Mini Apps;
+translation; languages (last, on purpose).
+
+From Nekogram's list, the ones worth taking next once the basics hold:
+the user's id on their profile, "delete all my messages" in a group, hide
+the keyboard while scrolling, and sending a sticker as an image.
+
 ## Stack
 
 Kotlin + Jetpack Compose + Material 3. These are not alternatives to one
@@ -1038,7 +1081,16 @@ them. Ticks are only worth something if somebody moves them.
       another app survive a change made here — shown as "Everybody (−2)",
       not edited. `getUserPrivacySettingRules` / `setUserPrivacySettingRules`;
       the reading and writing in `:core` with tests
-- [x] Updates without a store — Settings → About asks the repository's
+- [x] Settings laid out as Android's own Settings app: `SegmentedListItem`
+      rows in rounded groups (`ListItemDefaults.segmentedShapes`), an icon
+      in a tonal circle on each, the account on top, then Appearance,
+      Privacy and security, Data and network, For geeks, App update and Log
+      out — the same building blocks on For geeks. Privacy, Devices and
+      Storage still use plain rows
+- [x] App update as its own screen, like Android's System update: the
+      version and one button that does the next thing, then a "What's new"
+      card for every update from `CHANGELOG` in `:core`
+- [x] Updates without a store — Settings → App update asks the repository's
       `latest` release for its version, and a newer one downloads with
       Expressive's wavy progress bar and opens Android's installer. The same
       tracked debug key signs every build, which is what lets it install
@@ -1051,6 +1103,10 @@ them. Ticks are only worth something if somebody moves them.
       row says how its proxy answered a ping. A pasted `tg://proxy` or
       `t.me/socks` link fills the form; the parsing and the form's rules are
       in `:core` with tests
+- [ ] Profile, as the official app has it — a large photo with the name and
+      status under it, Set photo / Edit / Settings as an Expressive
+      `ButtonGroup`, the phone and username as a segmented list, a QR code
+      to share, and the account's stories. Editing moves behind Edit
 - [x] Profile: name, bio and username, edited in place — the fields are the
       profile, with no pencil and no second screen behind one. What is valid
       is `:core`'s `ProfileEditing` with 22 tests, because a username Telegram

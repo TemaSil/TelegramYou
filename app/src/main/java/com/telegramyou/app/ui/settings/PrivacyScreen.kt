@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -103,6 +104,7 @@ fun PrivacyScreen(
     }
 
     Scaffold(
+        containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -111,7 +113,8 @@ fun PrivacyScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
         }
     ) { padding ->
@@ -125,22 +128,30 @@ fun PrivacyScreen(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            item(key = "seen") { SectionHeader("Who can see") }
-            items(SEEN, key = { it.name }) { setting -> PrivacyRow(setting, state.rules[setting], onEdit) }
-            item(key = "reach") { SectionHeader("Who can reach me") }
-            items(REACH, key = { it.name }) { setting -> PrivacyRow(setting, state.rules[setting], onEdit) }
+            // Two groups, as Android's Settings would draw them.
+            item(key = "seen") {
+                SettingsGroup("Who can see") {
+                    SEEN.forEach { setting -> privacyRow(setting, state.rules[setting], onEdit) }
+                }
+            }
+            item(key = "reach") {
+                SettingsGroup("Who can reach me") {
+                    REACH.forEach { setting -> privacyRow(setting, state.rules[setting], onEdit) }
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun PrivacyRow(setting: PrivacySetting, rules: PrivacyRules?, onEdit: (PrivacySetting) -> Unit) {
-    ListItem(
-        headlineContent = { Text(setting.title) },
-        supportingContent = { Text(rules?.summary ?: "Could not be read") },
-        modifier = Modifier.clickable(enabled = rules != null) { onEdit(setting) }
-    )
-}
+private fun SettingsGroupScope.privacyRow(
+    setting: PrivacySetting,
+    rules: PrivacyRules?,
+    onEdit: (PrivacySetting) -> Unit
+) = link(
+    title = setting.title,
+    summary = rules?.summary ?: "Could not be read",
+    onClick = { if (rules != null) onEdit(setting) }
+)
 
 private val SEEN = listOf(
     PrivacySetting.PhoneNumber,

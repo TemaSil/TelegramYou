@@ -55,6 +55,10 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 |---|---|---|---|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/26-qr-login.jpg" width="180" alt="QR login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/27-email-code.jpg" width="180" alt="Email login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/23-proxy.jpg" width="180" alt="Proxy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
 
+| Settings | App update | | |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="180" alt="Settings"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/25-updates.jpg" width="180" alt="App update"> | | |
+
 | Polls | Bot buttons | Post search | Search in chat |
 |---|---|---|---|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="180" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/35-bot.jpg" width="180" alt="Bot buttons"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/37-post-search.jpg" width="180" alt="Post search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/28-old-search-hit.jpg" width="180" alt="Search in chat"> |
@@ -99,10 +103,12 @@ seen without an account:
   waveform, stickers (still and animated), a full-screen viewer and a grid
   of a chat's media.
 - **Stories** — a viewer with the rail's own segments and timing.
-- **Settings** — theme, dynamic colour, shaped avatars and text size;
-  per-chat notifications; **privacy** rules; the **devices** signed in, each
-  one endable; **data and storage** with the cache cleared by kind; proxies;
-  and updates checked for and installed from inside the app.
+- **Settings** — laid out like Android's own, in rounded groups with an
+  icon in a tonal circle on each row: theme, dynamic colour, shaped avatars
+  and text size; per-chat notifications; **privacy** rules; the **devices**
+  signed in, each one endable; **data and storage** with the cache cleared
+  by kind; proxies; and an **App update** screen, like Android's System
+  update, with a changelog of every update.
 - **For geeks** — double-tap actions, seconds in message times, message
   details, save and copy media, forwarding without quoting, hiding stories
   or the All tab, search without the keyboard, and IPv6 — all off until turned on.

@@ -290,6 +290,16 @@ right about attachment types. These three are not types: they are the three
 things people reach for, and the attachment sheet is still behind the plus
 for everything else.
 
+## The changelog
+
+Settings → App update shows every update's "What's new", from `CHANGELOG`
+in `core/.../update/Changelog.kt`. **Add an entry with every merge to main
+that a person would notice**, newest first, one per day — merges on the same
+day extend that day's entry. The owner asked for its voice: upbeat, casual,
+a person talking rather than a release note — short lines, an emoji where
+it earns one. English, like the rest of the interface, until the languages
+arrive.
+
 ## Who checks what
 
 Split deliberately, because the two halves need different things.

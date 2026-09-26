@@ -62,6 +62,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → App update: the version, the button, and what's new. */
+    data object Updates : Route {
+        const val PATTERN = "settings/update"
+        override val path = PATTERN
+    }
+
     /** Settings → For geeks. */
     data object Geeks : Route {
         const val PATTERN = "settings/geeks"

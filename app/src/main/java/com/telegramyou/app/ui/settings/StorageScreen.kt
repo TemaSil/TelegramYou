@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.settings
 
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -83,6 +86,7 @@ fun StorageScreen(
     }
 
     Scaffold(
+        containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
@@ -91,7 +95,8 @@ fun StorageScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
         },
         bottomBar = {
@@ -157,24 +162,29 @@ fun StorageScreen(
                     )
                 }
             } else {
-                item(key = "heading") { SectionHeader("Clear from this phone") }
-                items(usage.slices, key = { it.kind }) { slice ->
-                    val checked = slice.kind in state.selected
-                    ListItem(
-                        headlineContent = { Text(slice.kind.label) },
-                        supportingContent = { Text(filesLabel(slice.count)) },
-                        leadingContent = { Checkbox(checked = checked, onCheckedChange = null) },
-                        trailingContent = { Text(bytesLabel(slice.bytes)) },
-                        // The whole row toggles, as a checkbox row does in every
-                        // Android settings screen; the box itself takes no
-                        // separate tap.
-                        modifier = Modifier.toggleable(
-                            value = checked,
-                            enabled = !state.isClearing,
-                            role = Role.Checkbox,
-                            onValueChange = { onKindToggle(slice.kind) }
-                        )
-                    )
+                item(key = "kinds") {
+                    SettingsGroup("Clear from this phone") {
+                        usage.slices.forEach { slice ->
+                            val checked = slice.kind in state.selected
+                            custom { index, count ->
+                                // The whole row toggles, as a checkbox row does
+                                // in every Android settings screen; the box
+                                // itself takes no separate tap.
+                                SettingsItem(
+                                    index = index,
+                                    count = count,
+                                    title = slice.kind.label,
+                                    summary = filesLabel(slice.count),
+                                    leading = { Checkbox(checked = checked, onCheckedChange = null) },
+                                    trailing = { Text(bytesLabel(slice.bytes)) },
+                                    modifier = Modifier.semantics {
+                                        stateDescription = if (checked) "Selected" else "Not selected"
+                                    },
+                                    onClick = { if (!state.isClearing) onKindToggle(slice.kind) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

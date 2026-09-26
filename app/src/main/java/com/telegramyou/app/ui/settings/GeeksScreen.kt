@@ -1,5 +1,16 @@
 package com.telegramyou.app.ui.settings
 
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Schedule
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.automirrored.rounded.Forward
+import androidx.compose.material.icons.rounded.VisibilityOff
+import androidx.compose.material.icons.rounded.Tab
+import androidx.compose.material.icons.rounded.KeyboardHide
+import androidx.compose.material.icons.rounded.Lan
+import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -82,6 +93,7 @@ fun GeeksScreen(
     }
 
     Scaffold(
+        containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
                 title = { Text("For geeks") },
@@ -89,7 +101,8 @@ fun GeeksScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
         }
     ) { padding ->
@@ -98,70 +111,74 @@ fun GeeksScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp)
         ) {
-            SectionHeader("In chats")
-            ListItem(
-                headlineContent = { Text("Double tap a message") },
-                supportingContent = { Text(settings.doubleTap.label) },
-                modifier = Modifier.clickable { choosingDoubleTap = true }
-            )
-            GeekSwitch(
-                title = "Seconds in message times",
-                summary = "14:03:27 rather than 14:03",
-                checked = settings.showSeconds
-            ) { on -> onChange { it.copy(showSeconds = on) } }
-            GeekSwitch(
-                title = "Message details",
-                summary = "Its exact time and the ids of the message, its sender and the chat, in the menu",
-                checked = settings.messageDetails
-            ) { on -> onChange { it.copy(messageDetails = on) } }
-            GeekSwitch(
-                title = "Save and copy media",
-                summary = "Save to Downloads, and copy a photo, from a message's menu",
-                checked = settings.saveMedia
-            ) { on -> onChange { it.copy(saveMedia = on) } }
-            GeekSwitch(
-                title = "Forward without quoting",
-                summary = "Forwarded messages arrive as yours, without \"Forwarded from\"",
-                checked = settings.forwardWithoutQuote
-            ) { on -> onChange { it.copy(forwardWithoutQuote = on) } }
+            SettingsGroup("In chats") {
+                link(
+                    title = "Double tap a message",
+                    summary = settings.doubleTap.label,
+                    icon = Icons.Rounded.TouchApp,
+                    onClick = { choosingDoubleTap = true }
+                )
+                switch(
+                    title = "Seconds in message times",
+                    summary = "14:03:27 rather than 14:03",
+                    checked = settings.showSeconds,
+                    icon = Icons.Rounded.Schedule
+                ) { on -> onChange { it.copy(showSeconds = on) } }
+                switch(
+                    title = "Message details",
+                    summary = "Its exact time and the ids of the message, its sender and the chat, in the menu",
+                    checked = settings.messageDetails,
+                    icon = Icons.Rounded.Info
+                ) { on -> onChange { it.copy(messageDetails = on) } }
+                switch(
+                    title = "Save and copy media",
+                    summary = "Save to Downloads, and copy a photo, from a message's menu",
+                    checked = settings.saveMedia,
+                    icon = Icons.Rounded.Download
+                ) { on -> onChange { it.copy(saveMedia = on) } }
+                switch(
+                    title = "Forward without quoting",
+                    summary = "Forwarded messages arrive as yours, without \"Forwarded from\"",
+                    checked = settings.forwardWithoutQuote,
+                    icon = Icons.AutoMirrored.Rounded.Forward
+                ) { on -> onChange { it.copy(forwardWithoutQuote = on) } }
+            }
 
-            SectionHeader("Chat list")
-            GeekSwitch(
-                title = "Hide stories",
-                summary = "No stories above the folders",
-                checked = settings.hideStories
-            ) { on -> onChange { it.copy(hideStories = on) } }
-            GeekSwitch(
-                title = "Hide the All tab",
-                summary = "Start on your first folder, when you have folders",
-                checked = settings.hideAllChatsTab
-            ) { on -> onChange { it.copy(hideAllChatsTab = on) } }
-            GeekSwitch(
-                title = "Open search without the keyboard",
-                summary = "Show recent chats and people first; tap the field to type",
-                checked = settings.searchWithoutKeyboard
-            ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
+            SettingsGroup("Chat list and search") {
+                switch(
+                    title = "Hide stories",
+                    summary = "No stories above the folders",
+                    checked = settings.hideStories,
+                    icon = Icons.Rounded.VisibilityOff,
+                    tone = IconTone.Secondary
+                ) { on -> onChange { it.copy(hideStories = on) } }
+                switch(
+                    title = "Hide the All tab",
+                    summary = "Start on your first folder, when you have folders",
+                    checked = settings.hideAllChatsTab,
+                    icon = Icons.Rounded.Tab,
+                    tone = IconTone.Secondary
+                ) { on -> onChange { it.copy(hideAllChatsTab = on) } }
+                switch(
+                    title = "Open search without the keyboard",
+                    summary = "Show recent chats and people first; tap the field to type",
+                    checked = settings.searchWithoutKeyboard,
+                    icon = Icons.Rounded.KeyboardHide,
+                    tone = IconTone.Secondary
+                ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
+            }
 
-            SectionHeader("Connection")
-            GeekSwitch(
-                title = "Prefer IPv6",
-                summary = "Reach Telegram over IPv6 where the network offers both",
-                checked = settings.preferIpv6
-            ) { on -> onChange { it.copy(preferIpv6 = on) } }
+            SettingsGroup("Connection") {
+                switch(
+                    title = "Prefer IPv6",
+                    summary = "Reach Telegram over IPv6 where the network offers both",
+                    checked = settings.preferIpv6,
+                    icon = Icons.Rounded.Lan,
+                    tone = IconTone.Tertiary
+                ) { on -> onChange { it.copy(preferIpv6 = on) } }
+            }
         }
     }
-}
-
-/** A switch row whose whole width toggles, as every Android settings screen does. */
-@Composable
-private fun GeekSwitch(title: String, summary: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    ListItem(
-        headlineContent = { Text(title) },
-        supportingContent = {
-            Text(summary, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
-        modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onChange)
-    )
 }
