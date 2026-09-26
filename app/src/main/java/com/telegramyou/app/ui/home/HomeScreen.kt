@@ -193,7 +193,8 @@ fun HomeScreen(
     onOpenPrivacy: () -> Unit = {},
     onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {},
-    onOpenUpdates: () -> Unit = {}
+    onOpenUpdates: () -> Unit = {},
+    onProfilePhotoPicked: (String) -> Unit = {}
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -337,7 +338,9 @@ fun HomeScreen(
                         profile = state.profile,
                         onDraftChange = onProfileDraftChange,
                         onSave = onProfileSave,
-                        contentPadding = padding
+                        contentPadding = padding,
+                        onPhotoPicked = onProfilePhotoPicked,
+                        onOpenSettings = { onTabSelected(HomeTab.Settings) }
                     )
                     return@AnimatedContent
                 }

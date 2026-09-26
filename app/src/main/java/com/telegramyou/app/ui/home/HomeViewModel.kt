@@ -540,6 +540,13 @@ class HomeViewModel(
         }
     }
 
+    /** A new profile photo, picked from the gallery. */
+    fun onProfilePhotoPicked(uri: String) {
+        viewModelScope.launch {
+            attempt("Could not change the photo") { repository.setProfilePhoto(uri) }
+        }
+    }
+
     /** Called once the screen has shown the failure, so it is not shown twice. */
     fun onProfileErrorShown() {
         profileEditing.update { it.copy(errorMessage = null) }

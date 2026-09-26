@@ -33,6 +33,12 @@ interface TelegramProfile {
     suspend fun setUsername(username: String)
 
     /**
+     * A new profile photo, from a picked image's Uri. The account is re-read
+     * afterwards, so the new picture arrives the way every other change does.
+     */
+    suspend fun setProfilePhoto(uri: String)
+
+    /**
      * Re-reads the signed-in account and publishes it.
      *
      * Called after a save so that what the screen shows is what the server

@@ -76,7 +76,7 @@ notices within a day. Roughly in the order to do them:
 7. **Delete a chat, clear its history** — from the list's long-press menu.
 8. **Contacts** — a screen of them, and adding one by phone number; today
    they are only reachable from New message.
-9. **Your own profile, properly** — see Profile under section 3.
+9. ~~Your own profile, properly~~ — done the same day; see section 3.
 10. **Editing folders** — see section 2.
 11. **Posting a story** — they can be watched, not made.
 12. **App lock** — a passcode or the fingerprint in front of the app.
@@ -143,7 +143,8 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [ ] `ButtonGroup` somewhere it belongs. It was tried in the chat composer
+- [x] `ButtonGroup` somewhere it belongs — the profile's Set photo / Edit /
+      Settings. Before that: It was tried in the chat composer
       and taken out again: grouped beside the field it read as a split button
       next to a text box — three things in a row rather than one control, and
       the person who asked for it said so. The composer is a floating capsule
@@ -1103,10 +1104,14 @@ them. Ticks are only worth something if somebody moves them.
       row says how its proxy answered a ping. A pasted `tg://proxy` or
       `t.me/socks` link fills the form; the parsing and the form's rules are
       in `:core` with tests
-- [ ] Profile, as the official app has it — a large photo with the name and
+- [x] Profile, as the official app has it — a large photo with the name and
       status under it, Set photo / Edit / Settings as an Expressive
-      `ButtonGroup`, the phone and username as a segmented list, a QR code
-      to share, and the account's stories. Editing moves behind Edit
+      `ButtonGroup` (its first real home), the phone, username and bio as a
+      segmented list that copies on a tap, a QR code of the t.me link with
+      Share, and Change username / Copy link in the overflow. A new photo
+      goes through the system photo picker to `setProfilePhoto`. Editing is
+      Material's full-screen dialog behind Edit. The account's own stories
+      as a grid are still to come
 - [x] Profile: name, bio and username, edited in place — the fields are the
       profile, with no pencil and no second screen behind one. What is valid
       is `:core`'s `ProfileEditing` with 22 tests, because a username Telegram

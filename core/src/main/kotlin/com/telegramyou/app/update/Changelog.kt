@@ -42,6 +42,7 @@ val CHANGELOG: List<ChangelogEntry> = listOf(
             "Tap Search and the keyboard is already up, ready to type (not your vibe? turn it off in For geeks)",
             "Settings look like bare Android now: tidy groups, icons in little circles, everything where you'd look for it ✨",
             "Updates got a screen of their own — this one, with the changelog you're reading 👋",
+            "Your profile got a glow-up 💫 Big photo, Set photo / Edit / Settings right under your name, and a QR code to share yourself in one tap",
             "Channels are finally channels, not \"groups\" — filters and labels stopped mixing them up"
         )
     ),

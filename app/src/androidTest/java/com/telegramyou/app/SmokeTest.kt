@@ -1440,6 +1440,34 @@ class SmokeTest {
         screenshot("40-audio")
     }
 
+    /**
+     * The profile tab: the photo, the name and the three actions; Edit opens
+     * the form and a saved bio comes back on the page; the QR code offers to
+     * share the demo account's link.
+     */
+    @Test
+    fun theProfileEditsAndSharesItself() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the profile's actions")
+        waitFor(By.text("@telegramyou"), "the username")
+        screenshot("42-profile")
+
+        tap(By.text("Edit"))
+        waitFor(By.text("Edit profile"), "the profile form")
+        waitFor(By.desc("Bio"), "the bio field")
+        device.findObject(By.desc("Bio")).text = "Built with M3 Expressive"
+        device.waitForIdle(IDLE_TIMEOUT)
+        tap(By.text("Save"))
+        waitFor(By.text("Built with M3 Expressive"), "the saved bio on the profile")
+
+        tap(By.desc("QR code"))
+        waitFor(By.text("Share QR code"), "the QR code")
+        screenshot("43-profile-qr")
+    }
+
     /** Drags the chat list up until [selector] is on screen. */
     private fun scrollChatsTo(selector: BySelector) {
         repeat(8) {

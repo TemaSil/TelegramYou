@@ -301,6 +301,12 @@ class FakeTelegramClient(
         me = me?.copy(firstName = firstName, lastName = lastName)
     }
 
+    override suspend fun setProfilePhoto(uri: String) {
+        profileError?.let { throw IllegalStateException(it) }
+        profileCalls += "setProfilePhoto:$uri"
+        me = me?.copy(photoPath = uri)
+    }
+
     override suspend fun setBio(bio: String) {
         profileError?.let { throw IllegalStateException(it) }
         profileCalls += "setBio:$bio"

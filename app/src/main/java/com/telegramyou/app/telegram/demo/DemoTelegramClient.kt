@@ -1232,6 +1232,13 @@ class DemoTelegramClient(
         updateMe { it.copy(bio = bio) }
     }
 
+    override suspend fun setProfilePhoto(uri: String) {
+        delay(300)
+        // The picked image itself: Coil reads a content Uri as readily as a
+        // file, and the demo has no server to upload it to.
+        updateMe { it.copy(photoPath = uri) }
+    }
+
     override suspend fun setUsername(username: String) {
         delay(250)
         // The one refusal worth having offline: a username has to be unique

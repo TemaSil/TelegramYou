@@ -2207,6 +2207,21 @@ class TdLibTelegramClient(
         requireEngine().send(JSONObject().put("@type", "setBio").put("bio", bio))
     }
 
+    override suspend fun setProfilePhoto(uri: String) {
+        awaitReady()
+        val path = copyUriToCache(uri, "profile_${System.currentTimeMillis()}.jpg")
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setProfilePhoto")
+                .put(
+                    "photo",
+                    JSONObject().put("@type", "inputChatPhotoStatic").put("photo", localFile(path))
+                )
+                .put("is_public", false)
+        )
+        refreshMe()
+    }
+
     override suspend fun setUsername(username: String) {
         awaitReady()
         // An empty string is how TDLib is told to give the username up; there

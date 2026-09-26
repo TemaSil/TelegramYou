@@ -1,8 +1,15 @@
 package com.telegramyou.app.ui.profile
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,45 +18,86 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddAPhoto
+import androidx.compose.material.icons.rounded.AlternateEmail
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Phone
+import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.ui.auth.QrCode
+import com.telegramyou.app.ui.common.rememberTextCopier
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.home.ProfileUiState
+import com.telegramyou.app.ui.settings.IconTone
+import com.telegramyou.app.ui.settings.SettingsGroup
+import com.telegramyou.app.ui.settings.SettingsIcon
+import com.telegramyou.app.ui.settings.SettingsItem
+import com.telegramyou.app.ui.settings.settingsBackground
 
 /**
- * The account this app is signed in as, and the three things about it that can
- * be changed: the name, the bio and the username.
+ * The account this app is signed in as, as the official client shows it:
+ * the photo large with the name and status under it, the three things done
+ * from here as one Expressive [ButtonGroup] — a new photo, editing, Settings
+ * — and what people can find you by as a segmented list. A QR code to share
+ * the profile is in the corner, and the less common actions are in the
+ * overflow menu.
  *
- * There is no "edit" button and no second screen behind one. The fields *are*
- * the profile — they open filled with what the account says, and the save
- * button turns on the moment something differs from it. A read-only screen
- * with a pencil that opens an editable copy of itself is two screens to draw
- * and two to keep in step, for a form of four fields.
+ * Editing is a full-screen dialog behind Edit rather than the fields on the
+ * page itself, which is what this used to be: a profile that is a form reads
+ * as a settings screen, not as you.
  *
- * Nothing here decides what is valid or whether saving is worth offering. That
- * lives in `:core` with tests, because a username rule is the kind of thing
- * that fails quietly — the server returns a generic error with no field
- * attached — and arrives as [ProfileUiState] already answered.
+ * Nothing here decides what is valid or whether saving is worth offering —
+ * that lives in `:core` with tests, and arrives as [ProfileUiState].
  *
- * Content rather than a screen of its own, because it is a tab inside Home:
- * the bar and the window insets belong to the host.
+ * Content rather than a screen of its own, because it is a tab inside Home.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ProfileContent(
     me: TelegramUser?,
@@ -57,139 +105,348 @@ fun ProfileContent(
     onDraftChange: (ProfileDraft) -> Unit,
     onSave: () -> Unit,
     contentPadding: PaddingValues,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPhotoPicked: (String) -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
+    if (me == null) {
+        // Before the client has answered. Not an error and not an empty
+        // state: the account is on its way.
+        Box(modifier.fillMaxSize().padding(contentPadding), contentAlignment = Alignment.Center) {
+            Text("Loading your account…")
+        }
+        return
+    }
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var showingQr by rememberSaveable { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val copy = rememberTextCopier()
+    val link = me.username?.takeIf { it.isNotBlank() }?.let { "https://t.me/$it" }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { onPhotoPicked(it.toString()) }
+    }
+    val pickPhoto: () -> Unit = {
+        picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+
+    // A save that went through closes the editor; the snackbar says so.
+    LaunchedEffect(profile.savedCount) {
+        if (profile.savedCount > 0) editing = false
+    }
+    if (editing) {
+        ProfileEditor(
+            profile = profile,
+            onDraftChange = onDraftChange,
+            onSave = onSave,
+            onDismiss = { editing = false }
+        )
+    }
+    if (showingQr) {
+        ProfileQr(
+            me = me,
+            link = link,
+            onSetUsername = {
+                showingQr = false
+                editing = true
+            },
+            onDismiss = { showingQr = false }
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(contentPadding)
-            // The bio is the last field and the keyboard is tall. Without this
-            // the thing being typed into sits behind it.
-            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp)
     ) {
-        if (me == null) {
-            // Before the client has answered. Not an error and not an empty
-            // state: the account is on its way.
-            ListItem(headlineContent = { Text("Loading your account…") })
-            return@Column
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
+            IconButton(onClick = { showingQr = true }) {
+                Icon(Icons.Rounded.QrCode2, contentDescription = "QR code")
+            }
+            Spacer(Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(Icons.Rounded.MoreVert, contentDescription = "More")
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(if (link == null) "Set a username" else "Change username") },
+                        leadingIcon = { Icon(Icons.Rounded.AlternateEmail, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            editing = true
+                        }
+                    )
+                    if (link != null) {
+                        DropdownMenuItem(
+                            text = { Text("Copy link to profile") },
+                            leadingIcon = { Icon(Icons.Rounded.Link, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                copy(link)
+                            }
+                        )
+                    }
+                }
+            }
         }
 
-        val draft = profile.draft
-
-        Spacer(Modifier.height(24.dp))
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 96.dp, photoPath = me.photoPath)
-            // The account's name, not the draft's. This is what Telegram
-            // currently thinks you are called, and it changing is the
-            // confirmation that a save went through.
-            Text(
-                me.displayName,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
+            AvatarBubble(
+                title = me.displayName,
+                seed = me.avatarColor,
+                size = 120.dp,
+                photoPath = me.photoPath,
+                modifier = Modifier.clip(CircleShape).clickable(onClick = pickPhoto)
             )
+            Spacer(Modifier.height(16.dp))
+            // The account's name, not the draft's: what Telegram currently
+            // thinks you are called, so it changing is the proof of a save.
+            Text(me.displayName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
+            Text("online", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
         }
-        Spacer(Modifier.height(24.dp))
-
-        SectionHeader("Your name")
-        ProfileTextField(
-            value = draft.firstName,
-            onValueChange = { onDraftChange(draft.copy(firstName = it)) },
-            label = "First name",
-            error = profile.problemFor(ProfileField.FirstName),
-            enabled = !profile.isSaving
-        )
-        ProfileTextField(
-            value = draft.lastName,
-            onValueChange = { onDraftChange(draft.copy(lastName = it)) },
-            label = "Last name",
-            error = profile.problemFor(ProfileField.LastName),
-            enabled = !profile.isSaving
-        )
-
-        SectionHeader("About")
-        ProfileTextField(
-            value = draft.bio,
-            onValueChange = { onDraftChange(draft.copy(bio = it)) },
-            label = "Bio",
-            error = profile.problemFor(ProfileField.Bio),
-            enabled = !profile.isSaving,
-            singleLine = false,
-            // A counter rather than silence. Seventy characters is short
-            // enough that running out is a normal thing to do, and a limit
-            // discovered by being refused is a limit badly explained.
-            counter = "${draft.bio.trim().length}/$MAX_BIO_LENGTH"
-        )
-
-        SectionHeader("Username")
-        ProfileTextField(
-            value = draft.username,
-            onValueChange = { onDraftChange(draft.copy(username = it)) },
-            label = "Username",
-            error = profile.problemFor(ProfileField.Username),
-            enabled = !profile.isSaving,
-            prefix = "@",
-            counter = if (draft.username.isBlank()) {
-                "People can find you by username. Leave it empty to have none"
-            } else {
-                null
-            }
-        )
-
         Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onSave,
-            enabled = profile.canSave,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(56.dp)
-        ) {
-            if (profile.isSaving) {
-                // Inside the button rather than over the screen: one field is
-                // being sent, and an overlay would suggest the whole app is
-                // busy.
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("Save", style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-        HorizontalDivider()
 
-        // What cannot be changed from here. The phone number needs a code sent
-        // to the new one, which is its own flow, and Premium is a purchase.
-        me.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
-            ListItem(
-                headlineContent = { Text(phone) },
-                supportingContent = { Text("Phone") },
-                leadingContent = {
-                    Icon(Icons.Rounded.Phone, contentDescription = null)
-                }
+        // Three actions that belong together, which is what a button group
+        // is for — and pressing one widens it, Expressive's own motion.
+        ButtonGroup(
+            overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState = menuState) },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            clickableItem(
+                onClick = pickPhoto,
+                label = "Set photo",
+                icon = { Icon(Icons.Rounded.AddAPhoto, contentDescription = null) }
+            )
+            clickableItem(
+                onClick = { editing = true },
+                label = "Edit",
+                icon = { Icon(Icons.Rounded.Edit, contentDescription = null) }
+            )
+            clickableItem(
+                onClick = onOpenSettings,
+                label = "Settings",
+                icon = { Icon(Icons.Rounded.Settings, contentDescription = null) }
             )
         }
 
-        if (me.isPremium) {
-            ListItem(
-                headlineContent = { Text("Telegram Premium") },
-                leadingContent = {
-                    Icon(
-                        Icons.Rounded.WorkspacePremium,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+        // What people find you by, the value first and what it is under it,
+        // as the official client and Android's contact card both put it.
+        SettingsGroup {
+            me.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
+                custom { index, count ->
+                    SettingsItem(
+                        index = index,
+                        count = count,
+                        title = phone,
+                        summary = "Mobile",
+                        leading = { SettingsIcon(Icons.Rounded.Phone) },
+                        onClick = { copy(phone) }
                     )
                 }
-            )
+            }
+            custom { index, count ->
+                SettingsItem(
+                    index = index,
+                    count = count,
+                    title = me.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No username",
+                    summary = if (link != null) "Username · tap to copy the link" else "Username · set one so people can find you",
+                    leading = { SettingsIcon(Icons.Rounded.AlternateEmail) },
+                    onClick = { if (link != null) copy(link) else editing = true }
+                )
+            }
+            custom { index, count ->
+                SettingsItem(
+                    index = index,
+                    count = count,
+                    title = me.bio.ifBlank { "Add a few words about yourself" },
+                    summary = "Bio",
+                    leading = { SettingsIcon(Icons.Rounded.Info) },
+                    onClick = { editing = true }
+                )
+            }
         }
-        Spacer(Modifier.height(24.dp))
+        if (me.isPremium) {
+            SettingsGroup {
+                custom { index, count ->
+                    SettingsItem(
+                        index = index,
+                        count = count,
+                        title = "Telegram Premium",
+                        leading = { SettingsIcon(Icons.Rounded.WorkspacePremium, IconTone.Tertiary) },
+                        onClick = {}
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Name, bio and username in Material's full-screen dialog, Save in its bar.
+ * The rules for what can be saved are `:core`'s, arriving in [profile].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileEditor(
+    profile: ProfileUiState,
+    onDraftChange: (ProfileDraft) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val draft = profile.draft
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Scaffold(
+            containerColor = settingsBackground(),
+            topBar = {
+                TopAppBar(
+                    title = { Text("Edit profile") },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Close") }
+                    },
+                    actions = {
+                        if (profile.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(end = 16.dp).size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            TextButton(onClick = onSave, enabled = profile.canSave) { Text("Save") }
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    // The bio is the last field and the keyboard is tall.
+                    .imePadding()
+                    .padding(vertical = 8.dp)
+            ) {
+                ProfileTextField(
+                    value = draft.firstName,
+                    onValueChange = { onDraftChange(draft.copy(firstName = it)) },
+                    label = "First name",
+                    error = profile.problemFor(ProfileField.FirstName),
+                    enabled = !profile.isSaving
+                )
+                ProfileTextField(
+                    value = draft.lastName,
+                    onValueChange = { onDraftChange(draft.copy(lastName = it)) },
+                    label = "Last name",
+                    error = profile.problemFor(ProfileField.LastName),
+                    enabled = !profile.isSaving
+                )
+                ProfileTextField(
+                    value = draft.bio,
+                    onValueChange = { onDraftChange(draft.copy(bio = it)) },
+                    label = "Bio",
+                    error = profile.problemFor(ProfileField.Bio),
+                    enabled = !profile.isSaving,
+                    singleLine = false,
+                    // A counter rather than silence: seventy characters is
+                    // short enough that running out is a normal thing to do.
+                    counter = "${draft.bio.trim().length}/$MAX_BIO_LENGTH"
+                )
+                ProfileTextField(
+                    value = draft.username,
+                    onValueChange = { onDraftChange(draft.copy(username = it)) },
+                    label = "Username",
+                    error = profile.problemFor(ProfileField.Username),
+                    enabled = !profile.isSaving,
+                    prefix = "@",
+                    counter = if (draft.username.isBlank()) {
+                        "People can find you by username. Leave it empty to have none"
+                    } else {
+                        null
+                    }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The profile as a QR code: the photo, the code for its t.me link and the
+ * username under it, and Share. Without a username there is no link to
+ * encode, and the screen says so and offers to set one.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            topBar = {
+                TopAppBar(
+                    title = { Text("QR code") },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Close") }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp)
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+                    shape = MaterialTheme.shapes.extraLarge
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
+                    ) {
+                        AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 72.dp, photoPath = me.photoPath)
+                        Spacer(Modifier.height(16.dp))
+                        if (link != null) {
+                            QrCode(content = link, size = 220.dp)
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                "@${me.username.orEmpty().uppercase()}",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                "Set a username, and your QR code will open your profile for anyone who scans it",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(24.dp))
+                if (link != null) {
+                    Button(
+                        onClick = {
+                            val send = Intent(Intent.ACTION_SEND)
+                                .setType("text/plain")
+                                .putExtra(Intent.EXTRA_TEXT, link)
+                            context.startActivity(Intent.createChooser(send, null))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Rounded.Share, contentDescription = null)
+                        Spacer(Modifier.size(8.dp))
+                        Text("Share QR code")
+                    }
+                } else {
+                    Button(onClick = onSetUsername, modifier = Modifier.fillMaxWidth()) { Text("Set a username") }
+                }
+            }
+        }
     }
 }
 
@@ -220,7 +477,9 @@ private fun ProfileTextField(
         onValueChange = onValueChange,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            // Named after its label, for TalkBack and the UI test alike.
+            .semantics { contentDescription = label },
         label = { Text(label) },
         enabled = enabled,
         singleLine = singleLine,
@@ -230,15 +489,5 @@ private fun ProfileTextField(
         isError = error != null,
         supportingText = supporting?.let { { Text(it) } },
         prefix = prefix?.let { { Text(it) } }
-    )
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
     )
 }
