@@ -147,8 +147,8 @@ fun DevicesScreen(
                 // Between this phone and the others, where it reads as what it
                 // is: everything below goes, everything above stays.
                 item(key = "end-all") {
+                    val error = MaterialTheme.colorScheme.error
                     SettingsGroup {
-                        val error = MaterialTheme.colorScheme.error
                         link(
                             title = "End all other sessions",
                             summary = "Signs out every device but this one",
@@ -175,7 +175,6 @@ fun DevicesScreen(
     }
 }
 
-@Composable
 private fun SettingsGroupScope.sessionRow(session: ActiveSession, activity: String, onClick: (() -> Unit)?) {
     item(
         title = session.title(),

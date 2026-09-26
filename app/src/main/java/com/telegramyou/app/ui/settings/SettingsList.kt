@@ -63,7 +63,6 @@ class SettingsGroupScope internal constructor() {
     }
 
     /** A row that opens somewhere else. */
-    @Composable
     fun link(
         title: String,
         summary: String? = null,
@@ -82,7 +81,6 @@ class SettingsGroupScope internal constructor() {
     )
 
     /** A row that is a switch — the whole row toggles it, as on Android. */
-    @Composable
     fun switch(
         title: String,
         checked: Boolean,
@@ -119,11 +117,14 @@ internal class SettingsRow(
  * Android's Settings heads its sections.
  */
 @Composable
-fun SettingsGroup(title: String? = null, build: @Composable SettingsGroupScope.() -> Unit) {
-    // Called, not applied: apply takes a plain lambda and this one reads
-    // composition state.
-    val scope = SettingsGroupScope()
-    scope.build()
+fun SettingsGroup(title: String? = null, build: SettingsGroupScope.() -> Unit) {
+    // A plain lambda, run here, on purpose. As a composable one it had a
+    // recompose scope of its own: a change to what it read re-ran only the
+    // builder, which added rows to a list this function had already drawn,
+    // and the group never redrew — rows went on showing their old values.
+    // Anything the builder needs from the theme or from state is read by
+    // the caller, before the group.
+    val scope = SettingsGroupScope().apply(build)
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         if (title != null) {
             Text(

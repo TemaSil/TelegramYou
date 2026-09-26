@@ -308,9 +308,9 @@ fun SettingsContent(
 
         // Where Android puts "System update": its own screen, with the
         // version here and a dot when a newer one is out.
+        val updates = LocalAppUpdates.current
+        val state = updates?.state?.collectAsStateWithLifecycle()?.value
         SettingsGroup {
-            val updates = LocalAppUpdates.current
-            val state = updates?.state?.collectAsStateWithLifecycle()?.value
             val waiting = state is UpdateState.Available || state is UpdateState.Ready
             val dot: (@Composable () -> Unit)? = if (waiting) {
                 { Badge() }
@@ -329,8 +329,8 @@ fun SettingsContent(
             )
         }
 
+        val error = MaterialTheme.colorScheme.error
         SettingsGroup {
-            val error = MaterialTheme.colorScheme.error
             link(
                 title = "Log out",
                 icon = Icons.AutoMirrored.Rounded.Logout,

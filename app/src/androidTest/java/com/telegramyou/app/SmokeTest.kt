@@ -1434,7 +1434,13 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.text("See you at the review"), "the message sent into the group")
 
-        device.pressBack()
+        // The composer still has the keyboard up from typing, and the
+        // first back only puts it away; press until the list is there.
+        repeat(3) {
+            if (device.hasObject(By.text("Saved Messages"))) return@repeat
+            device.pressBack()
+            device.wait(Until.hasObject(By.text("Saved Messages")), 2_000)
+        }
         waitFor(By.text("Saved Messages"), "the chat list again")
         tap(By.text("Saved Messages"))
         waitFor(By.text("Expressive Motion"), "the music file")
