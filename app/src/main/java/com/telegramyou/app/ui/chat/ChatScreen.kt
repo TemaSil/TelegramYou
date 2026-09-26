@@ -2668,7 +2668,10 @@ private fun AttachmentSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState()
+        // Open all the way: with the recent photos on top, the half-open
+        // sheet cut its rows off at the bottom of the screen — the file row
+        // half-hidden, the poll row under the edge entirely.
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
         // The pictures somebody is most likely to send are the ones they just
         // took, and reaching them through a row called "Photo or video" is a
