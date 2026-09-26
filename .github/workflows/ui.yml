@@ -161,6 +161,10 @@ jobs:
           mkdir -p evidence/hierarchy
           find app/build/outputs -name 'hierarchy-*.xml' \
             -exec cp {} evidence/hierarchy/ \; 2>/dev/null || true
+          # Frame timings a test measured — see SmokeTest.frameStats.
+          mkdir -p evidence/frames
+          find app/build/outputs -name 'frames-*.txt' \
+            -exec cp {} evidence/frames/ \; 2>/dev/null || true
           # A fatal exception and the forty lines under it, which is the trace.
           if [ -f logcat-full.txt ]; then
             crash="evidence/crash-shard-${{ matrix.shard }}.txt"

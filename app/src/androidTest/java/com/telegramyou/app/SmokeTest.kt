@@ -1481,6 +1481,53 @@ class SmokeTest {
      * arrives formatted with its markers gone, and a message pins and unpins
      * from its menu.
      */
+    /**
+     * Not a pass or a fail: a measurement. The same chat opened out of its
+     * row and closed back into it, three times, with Android's own frame
+     * statistics taken over each, written to `evidence/frames/`.
+     *
+     * Home is disposed while a chat is open and composed again in the first
+     * frames of the close, which the opening does not pay; whether that is
+     * what makes the close feel rougher is what these numbers are for. An
+     * emulator's absolute times mean little — the open against the close,
+     * on the same machine in the same minute, is the comparison.
+     */
+    @Test
+    fun openingAndClosingAChatIsTimed() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val report = StringBuilder()
+        repeat(3) { round ->
+            frameStats(reset = true)
+            // A chat with nothing playing in it: a looping GIF would draw
+            // frames of its own and be counted with the transition's.
+            tap(By.text(GROUP_CHAT))
+            waitFor(By.textContains("Figma dump"), "the group")
+            SystemClock.sleep(1_500)
+            report.append("open #$round\n").append(frameStats(reset = false)).append('\n')
+            frameStats(reset = true)
+            device.pressBack()
+            waitFor(By.text("Material Design"), "the chat list again")
+            SystemClock.sleep(1_500)
+            report.append("close #$round\n").append(frameStats(reset = false)).append('\n')
+        }
+        TestStorage().openOutputFile("frames-chat.txt").use { it.write(report.toString().toByteArray()) }
+    }
+
+    /** `dumpsys gfxinfo` for this app: reset it, or read the summary lines. */
+    private fun frameStats(reset: Boolean): String {
+        val pkg = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        val out = device.executeShellCommand("dumpsys gfxinfo $pkg" + if (reset) " reset" else "")
+        return out.lines()
+            .filter { line ->
+                listOf("Total frames", "Janky frames", "percentile", "Number Slow UI", "Number Frame deadline")
+                    .any { line.contains(it) }
+            }
+            .distinct()
+            .joinToString("\n")
+    }
+
     @Test
     fun formattingForwardsAndPins() {
         signIn()
