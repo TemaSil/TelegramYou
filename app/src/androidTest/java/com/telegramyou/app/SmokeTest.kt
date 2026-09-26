@@ -670,6 +670,12 @@ class SmokeTest {
         if (!device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT) && device.hasObject(By.text(GROUP_CHAT))) {
             swipeListLeft()
         }
+        // And back one if that retry overshot: a second swipe that did move,
+        // only slowly, plus the retry, lands on News — which has neither Mom
+        // nor the group, and is where this test failed once.
+        if (!device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT) && !device.hasObject(By.text(GROUP_CHAT))) {
+            swipeListRight()
+        }
         waitFor(By.text("Mom"), "Mom, in People")
         // Waited for rather than looked up once. Mom arrives with the first
         // pixels of People, while Work is still sliding out beside her — a
@@ -1140,6 +1146,16 @@ class SmokeTest {
      * Right to left across the lower half, over the chats rather than the
      * tabs — the swipe being tested is the one on the list.
      */
+    private fun swipeListRight() {
+        val y = (device.displayHeight * 0.65).toInt()
+        device.swipe(
+            (device.displayWidth * 0.15).toInt(), y,
+            (device.displayWidth * 0.85).toInt(), y,
+            15
+        )
+        device.waitForIdle(IDLE_TIMEOUT)
+    }
+
     private fun swipeListLeft() {
         val y = (device.displayHeight * 0.65).toInt()
         device.swipe(

@@ -335,10 +335,14 @@ private fun InlineKeyboard(rows: List<List<InlineButton>>, onPress: (InlineButto
  * conversation off the screen.
  */
 @Composable
-internal fun ReplyKeyboardPanel(keyboard: ReplyKeyboard, onKey: (String) -> Unit) {
+internal fun ReplyKeyboardPanel(
+    keyboard: ReplyKeyboard,
+    onKey: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainer,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Box(modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
             Column(

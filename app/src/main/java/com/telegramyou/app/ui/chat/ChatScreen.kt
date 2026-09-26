@@ -377,6 +377,17 @@ fun ChatScreen(
     // new one per press would race the previous one's release.
     val recorder = remember(context) { VoiceRecorder(context) }
     var recordingSince by remember { mutableStateOf<Long?>(null) }
+
+    // The bot's keyboard, when this chat has one: whether it is up, and how
+    // tall it drew. Held here rather than beside the composer, because the
+    // list needs its height — it sits over the conversation like the
+    // composer does, and without room made for it the newest message and the
+    // buttons under it were hidden behind the keys.
+    val botKeyboard = state.replyKeyboard
+    var botKeyboardShown by remember(botKeyboard) { mutableStateOf(true) }
+    var botPanelHeight by remember { mutableIntStateOf(0) }
+    val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
+    val botPanelPadding = if (botPanelVisible) with(LocalDensity.current) { botPanelHeight.toDp() } else 0.dp
     val microphone = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -684,7 +695,7 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 96.dp - COMPOSER_MARGIN
+                        bottom = 96.dp - COMPOSER_MARGIN + botPanelPadding
                     ),
                     // Bottom, as a list laid out from the bottom has by
                     // default: a short conversation sits on the composer.
@@ -1008,10 +1019,9 @@ fun ChatScreen(
                         )
                     }
 
-                    val botKeyboard = state.replyKeyboard
-                    var botKeyboardShown by remember(botKeyboard) { mutableStateOf(true) }
-                    if (botKeyboard != null && botKeyboardShown && recordingSince == null) {
+                    if (botKeyboard != null && botPanelVisible) {
                         ReplyKeyboardPanel(
+                            modifier = Modifier.onSizeChanged { botPanelHeight = it.height },
                             keyboard = botKeyboard,
                             onKey = { key ->
                                 onReplyKey(key)
