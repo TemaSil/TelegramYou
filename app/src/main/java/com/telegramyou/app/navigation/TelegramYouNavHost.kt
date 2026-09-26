@@ -683,7 +683,8 @@ fun TelegramYouNavHost(
                 onPinToggled = chatViewModel::onPinToggled,
                 onMention = { username ->
                     openScope.launch {
-                        repository.chatByUsername(username)?.let(openChat)
+                        val found = repository.chatByUsername(username)
+                        if (found != null) openChat(found)
                     }
                 }
             )

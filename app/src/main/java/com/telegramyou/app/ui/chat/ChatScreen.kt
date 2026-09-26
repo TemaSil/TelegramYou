@@ -767,12 +767,12 @@ fun ChatScreen(
                     // list; `index` stays the message's place in time.
                     // Photos sent together draw once, as a grid, where the
                     // album's first photo is; the others draw nothing.
-                    val albums = remember(messages) {
-                        messages
-                            .filter { it.albumId != null && it.contentType == MessageContentType.Photo }
-                            .groupBy { it.albumId }
-                            .filterValues { it.size > 1 }
-                    }
+                    // Not remembered: this is the list's builder, not a
+                    // composition, and the pass over the window is cheap.
+                    val albums = messages
+                        .filter { it.albumId != null && it.contentType == MessageContentType.Photo }
+                        .groupBy { it.albumId }
+                        .filterValues { it.size > 1 }
                     itemsIndexed(messages.asReversed(), key = { _, m -> m.id }) { fromNewest, message ->
                         val album = message.albumId?.let { albums[it] }
                         if (album != null && album.first().id != message.id) return@itemsIndexed
