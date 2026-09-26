@@ -20,7 +20,8 @@ import kotlin.coroutines.suspendCoroutine
 class TdJsonEngine(
     private val onUpdate: (JSONObject) -> Unit
 ) {
-    private val clientId: Int
+    // Replaced by [reopen]; read from any thread that sends.
+    @Volatile private var clientId: Int
     private val extraSeq = AtomicLong(1)
     private val pending = ConcurrentHashMap<String, Continuation<JSONObject>>()
     @Volatile private var running = false
@@ -48,6 +49,16 @@ class TdJsonEngine(
             isDaemon = true
             start()
         }
+    }
+
+    /**
+     * A fresh TDLib instance in place of one that has closed — after a
+     * log-out TDLib closes the instance for good, and anything sent to it
+     * answers "Request aborted". The receiver thread stays: `receive` serves
+     * every instance, and two threads may not call it at once.
+     */
+    fun reopen() {
+        clientId = JsonClient.createClientId()
     }
 
     fun stop() {
@@ -97,6 +108,10 @@ class TdJsonEngine(
                 return
             }
         }
+        // An update still arriving from an instance that was replaced. Only
+        // updates: an answer to a request is delivered whichever instance
+        // it came from, so nothing waiting on one hangs.
+        if (obj.has("@client_id") && obj.optInt("@client_id") != clientId) return
         onUpdate(obj)
     }
 

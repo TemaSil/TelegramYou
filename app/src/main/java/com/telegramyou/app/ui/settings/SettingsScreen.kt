@@ -13,6 +13,11 @@ import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -330,13 +335,33 @@ fun SettingsContent(
         }
 
         val error = MaterialTheme.colorScheme.error
+        // Asked first, as Android asks before anything it cannot undo: one
+        // stray tap on this row used to sign the account out.
+        var confirmLogout by remember { mutableStateOf(false) }
         SettingsGroup {
             link(
                 title = "Log out",
                 icon = Icons.AutoMirrored.Rounded.Logout,
                 tone = IconTone.Error,
                 titleColor = error,
-                onClick = onLogout
+                onClick = { confirmLogout = true }
+            )
+        }
+        if (confirmLogout) {
+            AlertDialog(
+                onDismissRequest = { confirmLogout = false },
+                icon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null) },
+                title = { Text("Log out of Telegram?") },
+                text = { Text("Your chats stay on Telegram. You can sign back in with your phone number.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmLogout = false
+                        onLogout()
+                    }) { Text("Log out") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmLogout = false }) { Text("Cancel") }
+                }
             )
         }
     }

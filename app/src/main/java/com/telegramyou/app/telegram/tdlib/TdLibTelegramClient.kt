@@ -295,7 +295,12 @@ class TdLibTelegramClient(
         )
     }
 
+    /** Set by [shutdown], so the close it causes is not taken for a log-out. */
+    @Volatile
+    private var shuttingDown = false
+
     override fun shutdown() {
+        shuttingDown = true
         engine?.stop()
         engine = null
     }
@@ -2169,7 +2174,10 @@ class TdLibTelegramClient(
         } catch (_: Throwable) {
             // ignore
         }
-        _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber)
+        // Not the phone screen yet: TDLib is closing this instance, and
+        // the new one it gets replaced with says when it wants a number —
+        // a number typed before then went to the closed one and was lost.
+        _authState.value = AuthUiState(state = AuthState.Bootstrapping, isLoading = true)
         // Everything the last account left behind: the next one to sign in
         // must not see its folders, its archive or its cached messages.
         chatsById.clear()
@@ -2738,8 +2746,23 @@ class TdLibTelegramClient(
             "authorizationStateClosing" -> {
                 _authState.update { it.copy(state = AuthState.Bootstrapping, isLoading = true) }
             }
+            // A closed TDLib instance is finished for good: every request
+            // sent to it after this answers "Request aborted", which is
+            // what signing in again after a log-out used to show. TDLib's
+            // own rule is to make a new instance, and it reopens the same
+            // database, so the next account starts at the phone number.
+            // Only a shutdown this client asked for stays closed.
             "authorizationStateClosed" -> {
-                _authState.update { it.copy(state = AuthState.Closed, isLoading = false) }
+                if (shuttingDown) {
+                    _authState.update { it.copy(state = AuthState.Closed, isLoading = false) }
+                } else {
+                    engine?.let { eng ->
+                        eng.reopen()
+                        // Kicked as at start: the first request is what
+                        // makes the new instance ask for its parameters.
+                        eng.sendFireAndForget(JSONObject().put("@type", "getOption").put("name", "version"))
+                    }
+                }
             }
         }
     }

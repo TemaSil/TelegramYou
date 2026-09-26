@@ -45,7 +45,9 @@ val CHANGELOG: List<ChangelogEntry> = listOf(
             "Messages got **bold**, __italic__, ~~strikethrough~~ and ||spoilers|| — just type the markers, they vanish on send ✍️ Links, @mentions and #hashtags are tappable now",
             "Forwards say where they came from, photos sent together land as one neat grid, and you can pin a message right from its menu 📌",
             "Your profile got a glow-up 💫 Big photo, Set photo / Edit / Settings right under your name, and a QR code to share yourself in one tap",
-            "Channels are finally channels, not \"groups\" — filters and labels stopped mixing them up"
+            "Channels are finally channels, not \"groups\" — filters and labels stopped mixing them up",
+            "Log out and sign back in without the app yelling \"Request aborted\" at you 🙃 And Log out asks first now, so no more oops-taps",
+            "Round video messages start when you tap the ▶ itself (it used to swallow the tap, lol)"
         )
     ),
     ChangelogEntry(

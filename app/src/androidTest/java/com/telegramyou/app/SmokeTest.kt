@@ -1555,6 +1555,11 @@ class SmokeTest {
             }
         }
         tap(logOut)
+        // The row asks first. Its dialog's button has the row's own words,
+        // so it is picked as the one further right: a dialog's buttons sit
+        // at the end, the row's title just after its icon.
+        waitFor(By.text("Log out of Telegram?"), "the log-out question")
+        device.findObjects(logOut).maxByOrNull { it.visibleBounds.centerX() }!!.click()
         waitFor(By.text("Your phone"), "the login screen")
     }
 
