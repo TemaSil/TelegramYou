@@ -35,6 +35,9 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -83,7 +86,7 @@ import com.telegramyou.app.ui.settings.settingsBackground
 /**
  * The account this app is signed in as, as the official client shows it:
  * the photo large with the name and status under it, the three things done
- * from here as a row of tonal buttons — a new photo, editing, Settings
+ * from here as one Expressive [ButtonGroup] — a new photo, editing, Settings
  * — and what people can find you by as a segmented list. A QR code to share
  * the profile is in the corner, and the less common actions are in the
  * overflow menu.
@@ -211,18 +214,46 @@ fun ProfileContent(
         }
         Spacer(Modifier.height(20.dp))
 
-        // Three tonal buttons of equal width, each an icon over its label.
-        // This was Expressive's ButtonGroup for a day, and the alpha's
-        // ButtonGroup threw while measuring three labelled items on a phone
-        // — a crash the moment the tab opened — so it is plain buttons until
-        // a later alpha measures itself.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // Three actions that belong together — an Expressive ButtonGroup,
+        // where the button under the finger widens and its neighbours give
+        // way. Every item carries weight 1: without it the group sizes
+        // each button to its label, three labelled buttons overflow a phone,
+        // and the alpha's overflow path (ButtonGroup.kt:712) builds
+        // constraints narrower than fillMaxWidth's minimum and throws. With
+        // weights the row is divided, everything fits, and that path is
+        // never taken. See ROADMAP, "ButtonGroup".
+        val actions = listOf(
+            Triple("Set photo", Icons.Rounded.AddAPhoto, pickPhoto),
+            Triple("Edit", Icons.Rounded.Edit, { editing = true }),
+            Triple("Settings", Icons.Rounded.Settings, onOpenSettings)
+        )
+        ButtonGroup(
+            overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState = menuState) },
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         ) {
-            ProfileAction("Set photo", Icons.Rounded.AddAPhoto, pickPhoto, Modifier.weight(1f))
-            ProfileAction("Edit", Icons.Rounded.Edit, { editing = true }, Modifier.weight(1f))
-            ProfileAction("Settings", Icons.Rounded.Settings, onOpenSettings, Modifier.weight(1f))
+            actions.forEach { (label, icon, onClick) ->
+                customItem(
+                    buttonGroupContent = {
+                        val source = remember { MutableInteractionSource() }
+                        ProfileAction(
+                            label = label,
+                            icon = icon,
+                            onClick = onClick,
+                            interactionSource = source,
+                            modifier = Modifier.weight(1f).animateWidth(source)
+                        )
+                    },
+                    // Only if the row ever cannot fit them; with the weights
+                    // above it always can.
+                    menuContent = {
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            leadingIcon = { Icon(icon, contentDescription = null) },
+                            onClick = onClick
+                        )
+                    }
+                )
+            }
         }
 
         // What people find you by, the value first and what it is under it,
@@ -278,11 +309,18 @@ fun ProfileContent(
 }
 
 @Composable
-private fun ProfileAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
+private fun ProfileAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    interactionSource: MutableInteractionSource,
+    modifier: Modifier
+) {
     FilledTonalButton(
         onClick = onClick,
         shape = MaterialTheme.shapes.large,
         contentPadding = PaddingValues(vertical = 12.dp),
+        interactionSource = interactionSource,
         modifier = modifier
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

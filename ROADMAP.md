@@ -143,10 +143,9 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [ ] `ButtonGroup` somewhere it belongs. The profile's three actions were
-      the second try, and the alpha's ButtonGroup threw on measuring three
-      labelled items on a phone (`maxWidth must be >= minWidth`), so they are
-      plain tonal buttons. Before that: It was tried in the chat composer
+- [x] `ButtonGroup` somewhere it belongs — the profile's Set photo / Edit /
+      Settings, with every item at weight 1 (see "Second attempt" below for
+      the crash that taught that). Before that: It was tried in the chat composer
       and taken out again: grouped beside the field it read as a split button
       next to a text box — three things in a row rather than one control, and
       the person who asked for it said so. The composer is a floating capsule
@@ -234,6 +233,23 @@ the overflow logic deciding items do not fit (the labelled buttons' minimum
 width times three plus the gaps, against the padded width) and computing a
 negative remainder; the lookahead pass handing it constraints the main pass
 would not; `expandedRatio` pushing a pressed item past the row.
+
+**Found, from the library's own source** (a probe branch printed
+`ButtonGroup.kt` out of `material3-android-1.5.0-alpha29-sources.jar`):
+an item without weight is given its `maxIntrinsicWidth`. Three labelled
+buttons add up to more than a phone's row, so the group takes its overflow
+path, and line 712 measures the overflow indicator with
+`constraints.copy(maxWidth = remainingSpace + overflowWidth)` — keeping the
+incoming `minWidth`, which `fillMaxWidth()` had set to the whole row. The
+new maximum is below that minimum, and `Constraints` throws. A library bug
+(the copy should clear `minWidth`), and it only bites a group that both
+overflows and is forced wide. **The fix used: `Modifier.weight(1f)` on every
+item** (through `customItem`, with `animateWidth` for the press motion) —
+weighted items divide the row exactly, nothing overflows, and line 712 is
+never reached. Keep the weights, or drop `fillMaxWidth`, wherever a
+ButtonGroup goes next.
+
+The notes below were written before the source was read:
 
 To bring it back: try a newer `material3` alpha first — this is the
 library's arithmetic, not ours — with the three items in the profile and a
