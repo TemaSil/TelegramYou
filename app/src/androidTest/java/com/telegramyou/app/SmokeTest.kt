@@ -1,5 +1,6 @@
 package com.telegramyou.app
 
+import android.os.Build
 import android.app.NotificationManager
 import android.content.ContentValues
 import androidx.core.app.NotificationCompat
@@ -684,7 +685,7 @@ class SmokeTest {
         var left = false
         for ((attempt, height) in listOf(0.65, 0.35).withIndex()) {
             swipeListLeft(height)
-            left = device.wait(Until.gone(By.text(GROUP_CHAT)), STEP_TIMEOUT / 2)
+            left = goneAfterFreshLooks(By.text(GROUP_CHAT), STEP_TIMEOUT / 2)
             tries.append("swipe ${attempt + 1} at ${(height * 100).toInt()}% of the height: ")
                 .append(if (left) "left Work" else "stayed on Work").append('\n')
             if (left) break
@@ -1544,6 +1545,28 @@ class SmokeTest {
             report.append("close #$round\n").append(frameStats(reset = false)).append('\n')
         }
         TestStorage().openOutputFile("frames-chat.txt").use { it.write(report.toString().toByteArray()) }
+    }
+
+    /**
+     * Whether [selector] leaves the screen, looking at a fresh tree each time.
+     *
+     * UiAutomator reads through the accessibility cache, and after the folder
+     * pager changed page the cache went on holding the old page's rows — the
+     * dumps showed Work's chats while the screenshot showed News — until
+     * something else on screen changed. Clearing it before each look tells
+     * the two apart: if the rows still come back, the app is what reports
+     * them, and that would be a bug for TalkBack as well.
+     */
+    private fun goneAfterFreshLooks(selector: BySelector, timeout: Long): Boolean {
+        val deadline = SystemClock.uptimeMillis() + timeout
+        do {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            if (!device.hasObject(selector)) return true
+            SystemClock.sleep(500)
+        } while (SystemClock.uptimeMillis() < deadline)
+        return false
     }
 
     /** `dumpsys gfxinfo` for this app: reset it, or read the summary lines. */
