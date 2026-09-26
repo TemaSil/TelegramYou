@@ -570,7 +570,6 @@ internal fun VideoNoteMessage(
             .size(VIDEO_NOTE_SIZE)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable { playing = !playing }
             .semantics(mergeDescendants = true) {
                 contentDescription =
                     if (playing && note.path != null) "Video message, playing" else "Video message, $duration"
@@ -637,6 +636,16 @@ internal fun VideoNoteMessage(
                 )
             }
         }
+        // The tap catcher, over everything else in the circle. Once the
+        // video is loaded its picture is an Android TextureView, and a real
+        // View inside Compose takes the touches that land on it — so a tap
+        // on a loaded circle did nothing, and only one made before the file
+        // arrived ever started it. Drawn last, this sees the tap first.
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable { playing = !playing }
+        )
     }
 }
 

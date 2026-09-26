@@ -548,7 +548,8 @@ class SmokeTest {
         // bottom of Settings, which may be below the fold on a small screen.
         scrollSettingsTo(By.text("App update"))
         tap(By.text("App update"))
-        waitFor(By.text("What's new"), "the update screen and its changelog")
+        // One card now, headed for this version or for the one waiting.
+        waitFor(By.textStartsWith("What's new in"), "the update screen and its notes")
         // The quiet check at launch may already have found a newer build —
         // on CI it usually has, since the published APK outnumbers the UI
         // workflow's own — in which case the screen offers it and there is
@@ -660,10 +661,24 @@ class SmokeTest {
         // People to News; each look decides the next swipe from what is on
         // screen, so either way it arrives. News is the page with the
         // channel on it and without the group.
-        repeat(4) {
-            if (device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT)) return@repeat
+        //
+        // Which page it is on is read from the tab strip — the selected tab —
+        // rather than guessed from the rows: the guess missed News once and
+        // swiped on past it until the attempts ran out. And each look waits
+        // longer, because on the emulator a page takes seconds to settle.
+        val order = listOf("All", "Work", "People", "News")
+        repeat(6) {
+            if (device.wait(Until.hasObject(By.text("Mom")), PAGE_WAIT)) return@repeat
             device.waitForIdle(IDLE_TIMEOUT)
-            val pastPeople = device.hasObject(By.text("TelegramYou News")) && !device.hasObject(By.text(GROUP_CHAT))
+            val current = order.indexOfFirst { name ->
+                device.hasObject(By.selected(true).hasDescendant(By.text(name))) ||
+                    device.hasObject(By.selected(true).text(name))
+            }
+            val pastPeople = if (current >= 0) {
+                current > order.indexOf("People")
+            } else {
+                device.hasObject(By.text("TelegramYou News")) && !device.hasObject(By.text(GROUP_CHAT))
+            }
             if (pastPeople) swipeListRight() else swipeListLeft()
         }
         waitFor(By.text("Mom"), "Mom, in People")
@@ -1642,6 +1657,9 @@ class SmokeTest {
 
         /** A look rather than a wait: whether something is already there. */
         const val SHORT_WAIT = 2_000L
+
+        /** A folder page settling after a swipe, which takes seconds on the emulator. */
+        const val PAGE_WAIT = 5_000L
         const val IDLE_TIMEOUT = 5_000L
 
         /**
