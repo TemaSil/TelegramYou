@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.components
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.Icons
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -61,6 +64,11 @@ fun AvatarBubble(
      * loads and for everyone who never set one.
      */
     photoPath: String? = null,
+    /**
+     * Saved Messages: a bookmark on the theme's primary instead of initials,
+     * the way every Telegram client marks the chat with oneself.
+     */
+    savedMessages: Boolean = false,
     onClick: (() -> Unit)? = null
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -75,7 +83,7 @@ fun AvatarBubble(
     )
     // Always through typingShape, so stopping has somewhere to animate from.
     val outline = typingShape(seed, typing, shape)
-    val base = avatarColor(seed)
+    val base = if (savedMessages) MaterialTheme.colorScheme.primary else avatarColor(seed)
     val initials = title
         .split(" ")
         .filter { it.isNotBlank() }
@@ -139,13 +147,22 @@ fun AvatarBubble(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = initials,
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = (size.value / 3.2f).sp
-            )
-            if (photoPath != null) {
+            if (savedMessages) {
+                Icon(
+                    Icons.Rounded.Bookmark,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(size * 0.5f)
+                )
+            } else {
+                Text(
+                    text = initials,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = (size.value / 3.2f).sp
+                )
+            }
+            if (photoPath != null && !savedMessages) {
                 AsyncImage(
                     model = File(photoPath),
                     contentDescription = null,

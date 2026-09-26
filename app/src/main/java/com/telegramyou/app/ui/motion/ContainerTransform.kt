@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.motion
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -74,8 +75,17 @@ fun Modifier.containerTransform(
         this@containerTransform.sharedBounds(
             sharedContentState = rememberSharedContentState(key),
             animatedVisibilityScope = animated,
-            enter = fadeIn(fade),
-            exit = fadeOut(fade),
+            // The crossfade happens at the small end, both ways. Opening,
+            // the row gives way at once and the screen's picture does the
+            // growing. Closing has to be the mirror of that: the screen's
+            // picture shrinks whole and the row only shows through as it
+            // lands. With one quick fade both ways the screen vanished in
+            // the first fifth of a second, and what shrank for the rest of
+            // the way was the row, laid out again at every size — avatar and
+            // name sliding about in a box the height of the display. That
+            // was the close that still read as jerky.
+            enter = if (isScreen) fadeIn(fade) else fadeIn(LateFade),
+            exit = if (isScreen) fadeOut(LateFade) else fadeOut(fade),
             boundsTransform = BoundsTransform { _, _ -> bounds },
             // The small side — a row, a circle — is laid out again at each
             // size, which costs nothing. The screen side is not: laid out
@@ -110,6 +120,13 @@ val ChatContainerSpring: FiniteAnimationSpec<Rect> =
 /** The standard scheme's slow spatial spring: barely overshoots. The story viewer's. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private val ContainerSpring = MotionScheme.standard().slowSpatialSpec<Rect>()
+
+/**
+ * The crossfade at the end of a close: held until the container has all
+ * but reached the row or circle, then quick. A tween because a spring has no
+ * delay; the bounds spring has settled to within a few percent by then.
+ */
+private val LateFade: FiniteAnimationSpec<Float> = tween(durationMillis = 120, delayMillis = 200)
 
 /** The key a chat's row and its conversation share. */
 fun chatContainerKey(chatId: Long): String = "chat-$chatId"

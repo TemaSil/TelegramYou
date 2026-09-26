@@ -1,5 +1,7 @@
 package com.telegramyou.app.update
 
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +15,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -58,7 +59,7 @@ val LocalAppUpdates = staticCompositionLocalOf<AppUpdates?> { null }
 /**
  * Settings → App update, laid out as Android's own System update screen: the
  * version and what is happening with it at the top, one button that does the
- * next thing, and below it everything each update brought.
+ * next thing, and below it what the update brings.
  *
  * The state lives in [AppUpdates], so leaving this screen mid-download loses
  * nothing and coming back finds it where it was.
@@ -69,6 +70,13 @@ fun AppUpdateScreen(onBack: () -> Unit) {
     val updates = LocalAppUpdates.current
     val state = updates?.state?.collectAsStateWithLifecycle()?.value ?: UpdateState.Idle
     val installed = updates?.installed?.toString() ?: "—"
+    // This build's own notes, shipped in its assets.
+    val context = LocalContext.current
+    val installedNotes = remember {
+        runCatching {
+            context.assets.open("whats-new.md").bufferedReader().use { parseWhatsNew(it.readText()) }
+        }.getOrNull()
+    }
     Scaffold(
         containerColor = settingsBackground(),
         topBar = {
@@ -182,38 +190,43 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                     }
                 }
             }
-            item(key = "whats-new") {
-                Text(
-                    "What's new",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 8.dp, top = 12.dp)
-                )
+            // One card: what the incoming update brings when there is one
+            // waiting and its release carries notes, otherwise what this
+            // version brought. Never the history — see WhatsNew.
+            val incoming = when (state) {
+                is UpdateState.Available -> state.release
+                is UpdateState.Downloading -> state.release
+                is UpdateState.Ready -> state.release
+                else -> null
             }
-            items(CHANGELOG, key = { it.date.toString() }) { entry ->
-                ChangelogCard(entry)
+            val notes = incoming?.notes ?: installedNotes
+            if (notes != null) {
+                item(key = "whats-new") {
+                    WhatsNewCard(
+                        heading = if (incoming?.notes != null) "What's new in ${incoming.version}"
+                        else "What's new in this version",
+                        notes = notes
+                    )
+                }
             }
         }
     }
 }
 
-/** One update: what it was called, when, and a line for each thing in it. */
+/** An update's notes: a heading, its title, a line for each thing. */
 @Composable
-private fun ChangelogCard(entry: ChangelogEntry) {
+private fun WhatsNewCard(heading: String, notes: WhatsNew) {
     Card(
         colors = CardDefaults.cardColors(containerColor = settingsRowColor()),
         shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-            Text(entry.title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                entry.dateLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text(heading, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(4.dp))
+            Text(notes.title, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                entry.items.forEach { line ->
+                notes.items.forEach { line ->
                     Row {
                         Text("•", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = 8.dp))
                         Text(line, style = MaterialTheme.typography.bodyMedium)

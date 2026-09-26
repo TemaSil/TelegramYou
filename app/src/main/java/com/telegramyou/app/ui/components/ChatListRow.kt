@@ -160,32 +160,12 @@ fun ChatListRow(
                     },
                     showOnline = chat.isOnline && !chat.isChannel && !chat.isGroup,
                     typing = chat.isTyping,
-                    photoPath = chat.photoPath
+                    photoPath = chat.photoPath,
+                    savedMessages = chat.isSavedMessages
                 )
             },
             supportingContent = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Pinned and muted are states of the chat, so they sit
-                    // with the preview text rather than competing with the
-                    // title.
-                    if (chat.isPinned) {
-                        Icon(
-                            Icons.Outlined.PushPin,
-                            contentDescription = "Pinned",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.width(4.dp))
-                    }
-                    if (chat.isMuted) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.VolumeOff,
-                            contentDescription = "Muted",
-                            modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(Modifier.width(4.dp))
-                    }
                     // What every Telegram client does while someone writes:
                     // the preview gives way to the fact of it.
                     if (chat.isTyping) {
@@ -211,7 +191,7 @@ fun ChatListRow(
                     Text(
                         text = chat.timestampLabel,
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (chat.unreadCount > 0) {
+                        color = if (chat.unreadCount > 0 && !chat.isMuted) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -235,16 +215,41 @@ fun ChatListRow(
                         ) {
                             Text(chat.unreadCount.toString())
                         }
+                    } else if (chat.isPinned) {
+                        // Where Telegram keeps it: in the corner, in the
+                        // badge's place. Before the preview text it read as
+                        // though the last message were the pinned one.
+                        Icon(
+                            Icons.Outlined.PushPin,
+                            contentDescription = "Pinned",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             },
             content = {
-                Text(
-                    text = chat.title,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Muted is a state of the chat, so it sits with the chat's
+                // name, as in every Telegram client — not in front of the
+                // last message, which it says nothing about.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = chat.title,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (chat.isMuted) {
+                        Spacer(Modifier.width(4.dp))
+                        Icon(
+                            Icons.AutoMirrored.Outlined.VolumeOff,
+                            contentDescription = "Muted",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         )
     }

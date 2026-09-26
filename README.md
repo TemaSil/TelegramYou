@@ -103,12 +103,12 @@ seen without an account:
   waveform, stickers (still and animated), a full-screen viewer and a grid
   of a chat's media.
 - **Stories** — a viewer with the rail's own segments and timing.
-- **Settings** — laid out like Android's own, in rounded groups with an
-  icon in a tonal circle on each row: theme, dynamic colour, shaped avatars
+- **Settings** — laid out like Android's own, in rounded groups, icons
+  only where a row opens another screen: theme, dynamic colour, shaped avatars
   and text size; per-chat notifications; **privacy** rules; the **devices**
   signed in, each one endable; **data and storage** with the cache cleared
   by kind; proxies; and an **App update** screen, like Android's System
-  update, with a changelog of every update.
+  update, saying in a few lines what the incoming update brings.
 - **For geeks** — double-tap actions, seconds in message times, message
   details, save and copy media, forwarding without quoting, hiding stories
   or the All tab, search without the keyboard, and IPv6 — all off until turned on.

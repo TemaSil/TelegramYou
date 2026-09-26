@@ -665,6 +665,7 @@ class DemoTelegramClient(
             memberCountLabel = when {
                 chat.isChannel -> "128K subscribers"
                 chat.isGroup -> "42 members"
+                chat.isSavedMessages -> null
                 else -> if (chat.isOnline) "online" else "last seen recently"
             },
             isTyping = chatId == 2L,
@@ -1375,7 +1376,7 @@ class DemoTelegramClient(
             5, "Artem", "Send me the apk?", "Sun", avatarColor = 55,
             folderIds = setOf(FOLDER_PEOPLE)
         ),
-        ChatPreview(6, "Saved Messages", "Color tokens & springs", "Sat", isPinned = true, avatarColor = 66),
+        ChatPreview(6, "Saved Messages", "Color tokens & springs", "Sat", isPinned = true, avatarColor = 66, isSavedMessages = true),
         ChatPreview(
             7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true,
             avatarColor = 77, folderIds = setOf(FOLDER_WORK, FOLDER_NEWS)

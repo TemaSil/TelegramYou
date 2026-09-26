@@ -112,6 +112,11 @@ data class ChatPreview(
     val isGroup: Boolean = false,
     /** A private chat with a bot rather than a person. */
     val isBot: Boolean = false,
+    /**
+     * The account's chat with itself. Drawn with a bookmark instead of
+     * initials and without a "last seen", as every Telegram client draws it.
+     */
+    val isSavedMessages: Boolean = false,
     /** Messages are waiting to be sent here later; the header shows a clock. */
     val hasScheduledMessages: Boolean = false,
     val avatarColor: Long = id,

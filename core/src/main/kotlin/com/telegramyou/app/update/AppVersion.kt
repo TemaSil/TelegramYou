@@ -38,7 +38,9 @@ data class Release(
     /** In bytes; 0 when the page did not say. */
     val size: Long,
     /** The commit it was built from, when the release says. */
-    val commit: String? = null
+    val commit: String? = null,
+    /** What it brings, when the release carries notes; see [WhatsNew]. */
+    val notes: WhatsNew? = null
 )
 
 /**
@@ -55,7 +57,7 @@ fun releaseOf(
     val version = AppVersion.find(name) ?: return null
     val (url, size) = assets[assetName] ?: return null
     val commit = Regex("""\b[0-9a-f]{40}\b""").find(body)?.value
-    return Release(version, url, size, commit)
+    return Release(version, url, size, commit, whatsNewIn(body))
 }
 
 /** Whether [release] is worth offering to an app at [installed]. */

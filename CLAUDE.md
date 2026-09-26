@@ -290,15 +290,24 @@ right about attachment types. These three are not types: they are the three
 things people reach for, and the attachment sheet is still behind the plus
 for everything else.
 
-## The changelog
+## What's new
 
-Settings → App update shows every update's "What's new", from `CHANGELOG`
-in `core/.../update/Changelog.kt`. **Add an entry with every merge to main
-that a person would notice**, newest first, one per day — merges on the same
-day extend that day's entry. The owner asked for its voice: upbeat, casual,
-a person talking rather than a release note — short lines, an emoji where
-it earns one. English, like the rest of the interface, until the languages
-arrive.
+Settings → App update shows **one** card: what the incoming update brings, or
+— when none is waiting — what the installed one brought. The text lives in
+`app/src/main/assets/whats-new.md` (`# Title`, then `- line`s); the app ships
+it, and the Build workflow copies it into the `latest` release's description
+between `<!-- whats-new -->` markers, which is how an older app reads the
+notes of the update it is about to download (`WhatsNew` in `:core`).
+
+The owner's rules, both given after a first version got them wrong:
+
+- **Only the update itself.** Rewrite the file with each merge to main a
+  person would notice; do not append. What was done before is history for
+  the people building this, and it lives in git — nobody installing an update
+  reads it.
+- **Short.** A title and at most four lines, one short sentence each —
+  `WhatsNewTest` fails the build on more. Walls of text go unread. The voice
+  stays upbeat and casual, English until the languages arrive.
 
 ## Who checks what
 

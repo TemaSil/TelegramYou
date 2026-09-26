@@ -27,8 +27,13 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Settings the way Android's own Settings app draws them since Material 3
- * Expressive: rows in rounded groups with a hairline gap between them, an
- * icon in a tonal circle at the start of each, a title and a line under it.
+ * Expressive: rows in rounded groups with a hairline gap between them, a
+ * title and a line under it.
+ *
+ * Icons, in a tonal circle, only where Android's own Settings puts them: on
+ * a row that leads to another screen, or where the picture says something —
+ * a device's kind, a storage category. A switch, a slider or a choice goes
+ * without; an icon on every row was the owner's "too many".
  *
  * Built from [SegmentedListItem] and `ListItemDefaults.segmentedShapes` —
  * Material's list, which is what the chat list already uses — rather than

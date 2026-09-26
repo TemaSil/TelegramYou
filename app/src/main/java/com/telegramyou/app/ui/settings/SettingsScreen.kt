@@ -6,10 +6,6 @@ import com.telegramyou.app.update.UpdateState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.material3.Badge
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.Face
-import androidx.compose.material.icons.rounded.FormatSize
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.runtime.getValue
@@ -19,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import android.os.Build
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,16 +34,13 @@ import androidx.compose.material.icons.rounded.Devices
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -170,7 +162,21 @@ fun SettingsContent(
                         title = me.displayName,
                         summary = me.username?.let { "@$it" } ?: me.phoneNumber.orEmpty(),
                         leading = {
-                            AvatarBubble(title = me.displayName, seed = me.avatarColor, size = 56.dp, photoPath = me.photoPath)
+                            // In its shape when shapes are on, as it is
+                            // everywhere else — which also makes it the
+                            // preview for that switch, a little further down.
+                            val shapes = materialShapeSet()
+                            AvatarBubble(
+                                title = me.displayName,
+                                seed = me.avatarColor,
+                                size = 56.dp,
+                                photoPath = me.photoPath,
+                                shape = if (settings.shapedAvatars) {
+                                    shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
+                                } else {
+                                    CircleShape
+                                }
+                            )
                         },
                         onClick = onOpenProfile
                     )
@@ -191,14 +197,12 @@ fun SettingsContent(
                 },
                 checked = settings.dynamicColor && available,
                 enabled = available,
-                icon = Icons.Rounded.Palette,
                 onChange = onDynamicColorChange
             )
             // Three short choices side by side: exactly what a segmented
             // button row is for, set under the row's title.
             item(
                     title = "Theme",
-                    leading = { SettingsIcon(Icons.Rounded.DarkMode) },
                     onClick = {},
                     below = {
                         SingleChoiceSegmentedButtonRow(
@@ -219,30 +223,13 @@ fun SettingsContent(
                         }
                     }
                 )
-            // The other half of what an avatar carries, shown on the
-            // account's own avatar changing shape as the switch moves.
-            val avatarPreview: @Composable () -> Unit = if (me != null) {
-                {
-                    AvatarBubble(
-                        title = me.displayName,
-                        seed = me.avatarColor,
-                        size = 40.dp,
-                        shape = if (settings.shapedAvatars) {
-                            val shapes = materialShapeSet()
-                            shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
-                        } else {
-                            CircleShape
-                        }
-                    )
-                }
-            } else {
-                { SettingsIcon(Icons.Rounded.Face) }
-            }
+            // No preview of its own: the account's avatar at the top of this
+            // screen changes shape as the switch moves, and a second one here
+            // was the only thing leading a row in a group of plain controls.
             switch(
                 title = "Shaped avatars",
                 summary = "Everyone gets one of Material's shapes as well as a colour",
                 checked = settings.shapedAvatars,
-                leading = avatarPreview,
                 onChange = onShapedAvatarsChange
             )
             // Four stops, the way Android's own display settings offer it.
@@ -250,7 +237,6 @@ fun SettingsContent(
             item(
                     title = "Text size",
                     summary = TextSize.label(settings.textScale),
-                    leading = { SettingsIcon(Icons.Rounded.FormatSize) },
                     onClick = {},
                     below = {
                         Slider(
@@ -341,8 +327,6 @@ fun SettingsContent(
         SettingsGroup {
             link(
                 title = "Log out",
-                icon = Icons.AutoMirrored.Rounded.Logout,
-                tone = IconTone.Error,
                 titleColor = error,
                 onClick = { confirmLogout = true }
             )

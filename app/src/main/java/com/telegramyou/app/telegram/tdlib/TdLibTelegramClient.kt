@@ -2996,9 +2996,10 @@ class TdLibTelegramClient(
         val last = chat.optJSONObject("last_message")
         val type = chat.optJSONObject("type")?.optString("@type").orEmpty()
         val notif = chat.optJSONObject("notification_settings")
+        val saved = isSavedMessages(chat)
         return ChatPreview(
             id = id,
-            title = chat.optString("title").ifBlank { "Chat" },
+            title = if (saved) "Saved Messages" else chat.optString("title").ifBlank { "Chat" },
             lastMessage = previewText(last),
             timestampLabel = chatListTimeLabel(
                 epochSeconds = last?.optLong("date") ?: 0L,
@@ -3020,11 +3021,19 @@ class TdLibTelegramClient(
             isGroup = type == "chatTypeBasicGroup" ||
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
             isBot = privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot",
+            isSavedMessages = saved,
             hasScheduledMessages = chat.optBoolean("has_scheduled_messages"),
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
             isArchived = positions.isArchived(id)
         )
+    }
+
+    /** A private chat whose other person is the account itself. */
+    private fun isSavedMessages(chat: JSONObject): Boolean {
+        val type = chat.optJSONObject("type") ?: return false
+        val me = _authState.value.me?.id ?: return false
+        return type.optString("@type") == "chatTypePrivate" && type.optLong("user_id") == me
     }
 
     /** The other person in a private chat, if this client has heard of them. */
@@ -3054,7 +3063,8 @@ class TdLibTelegramClient(
         return when (chat.optJSONObject("type")?.optString("@type")) {
             // Where the person is, the way the header of every messenger
             // says it — this used to be the words "private chat".
-            "chatTypePrivate" -> privateChatUser(chat)
+            // Nobody to be online: it is the account talking to itself.
+            "chatTypePrivate" -> if (isSavedMessages(chat)) null else privateChatUser(chat)
                 ?.let { presenceLabel(presenceOf(it), nowSeconds(), ZoneId.systemDefault()) }
             // How many are in it, from the group objects TDLib keeps current;
             // this used to say "group" for groups and channels alike.

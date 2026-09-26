@@ -425,7 +425,8 @@ private fun SearchChatRow(
                 seed = chat.avatarColor,
                 size = 40.dp,
                 shape = personShape(chat.avatarColor),
-                photoPath = chat.photoPath
+                photoPath = chat.photoPath,
+                savedMessages = chat.isSavedMessages
             )
         },
         headlineContent = { Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -465,7 +466,8 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
                 seed = hit.chat.avatarColor,
                 size = 40.dp,
                 shape = personShape(hit.chat.avatarColor),
-                photoPath = hit.chat.photoPath
+                photoPath = hit.chat.photoPath,
+                savedMessages = hit.chat.isSavedMessages
             )
         },
         headlineContent = {

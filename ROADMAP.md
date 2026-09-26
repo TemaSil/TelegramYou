@@ -1149,13 +1149,14 @@ them. Ticks are only worth something if somebody moves them.
       the reading and writing in `:core` with tests
 - [x] Settings laid out as Android's own Settings app: `SegmentedListItem`
       rows in rounded groups (`ListItemDefaults.segmentedShapes`), an icon
-      in a tonal circle on each, the account on top, then Appearance,
+      in a tonal circle only on rows that open a screen, the account on top, then Appearance,
       Privacy and security, Data and network, For geeks, App update and Log
       out — the same building blocks on For geeks. Privacy, Devices and
       Storage still use plain rows
 - [x] App update as its own screen, like Android's System update: the
-      version and one button that does the next thing, then a "What's new"
-      card for every update from `CHANGELOG` in `:core`
+      version and one button that does the next thing, then one short
+      "What's new" card for the incoming update — `whats-new.md`, carried
+      in the release description (see CLAUDE.md)
 - [x] Updates without a store — Settings → App update asks the repository's
       `latest` release for its version, and a newer one downloads with
       Expressive's wavy progress bar and opens Android's installer. The same

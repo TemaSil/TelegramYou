@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.ui.auth.PhoneEntry
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -261,7 +262,10 @@ fun ProfileContent(
         SettingsGroup {
             me.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
                 item(
-                        title = phone,
+                        // Grouped as the country writes it — "+7 912 345-67-89"
+                        // — with libphonenumber, the formatter the login
+                        // screen types through; TDLib sends bare digits.
+                        title = PhoneEntry.format(phone),
                         summary = "Mobile",
                         leading = { SettingsIcon(Icons.Rounded.Phone) },
                         onClick = { copy(phone) }

@@ -1,17 +1,7 @@
 package com.telegramyou.app.ui.settings
 
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material.icons.rounded.TouchApp
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.automirrored.rounded.Forward
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material.icons.rounded.Tab
-import androidx.compose.material.icons.rounded.KeyboardHide
-import androidx.compose.material.icons.rounded.Lan
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -27,11 +16,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -117,32 +103,27 @@ fun GeeksScreen(
                 link(
                     title = "Double tap a message",
                     summary = settings.doubleTap.label,
-                    icon = Icons.Rounded.TouchApp,
                     onClick = { choosingDoubleTap = true }
                 )
                 switch(
                     title = "Seconds in message times",
                     summary = "14:03:27 rather than 14:03",
-                    checked = settings.showSeconds,
-                    icon = Icons.Rounded.Schedule
+                    checked = settings.showSeconds
                 ) { on -> onChange { it.copy(showSeconds = on) } }
                 switch(
                     title = "Message details",
                     summary = "Its exact time and the ids of the message, its sender and the chat, in the menu",
-                    checked = settings.messageDetails,
-                    icon = Icons.Rounded.Info
+                    checked = settings.messageDetails
                 ) { on -> onChange { it.copy(messageDetails = on) } }
                 switch(
                     title = "Save and copy media",
                     summary = "Save to Downloads, and copy a photo, from a message's menu",
-                    checked = settings.saveMedia,
-                    icon = Icons.Rounded.Download
+                    checked = settings.saveMedia
                 ) { on -> onChange { it.copy(saveMedia = on) } }
                 switch(
                     title = "Forward without quoting",
                     summary = "Forwarded messages arrive as yours, without \"Forwarded from\"",
-                    checked = settings.forwardWithoutQuote,
-                    icon = Icons.AutoMirrored.Rounded.Forward
+                    checked = settings.forwardWithoutQuote
                 ) { on -> onChange { it.copy(forwardWithoutQuote = on) } }
             }
 
@@ -150,23 +131,17 @@ fun GeeksScreen(
                 switch(
                     title = "Hide stories",
                     summary = "No stories above the folders",
-                    checked = settings.hideStories,
-                    icon = Icons.Rounded.VisibilityOff,
-                    tone = IconTone.Secondary
+                    checked = settings.hideStories
                 ) { on -> onChange { it.copy(hideStories = on) } }
                 switch(
                     title = "Hide the All tab",
                     summary = "Start on your first folder, when you have folders",
-                    checked = settings.hideAllChatsTab,
-                    icon = Icons.Rounded.Tab,
-                    tone = IconTone.Secondary
+                    checked = settings.hideAllChatsTab
                 ) { on -> onChange { it.copy(hideAllChatsTab = on) } }
                 switch(
                     title = "Open search without the keyboard",
                     summary = "Show recent chats and people first; tap the field to type",
-                    checked = settings.searchWithoutKeyboard,
-                    icon = Icons.Rounded.KeyboardHide,
-                    tone = IconTone.Secondary
+                    checked = settings.searchWithoutKeyboard
                 ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
             }
 
@@ -174,9 +149,7 @@ fun GeeksScreen(
                 switch(
                     title = "Prefer IPv6",
                     summary = "Reach Telegram over IPv6 where the network offers both",
-                    checked = settings.preferIpv6,
-                    icon = Icons.Rounded.Lan,
-                    tone = IconTone.Tertiary
+                    checked = settings.preferIpv6
                 ) { on -> onChange { it.copy(preferIpv6 = on) } }
             }
         }

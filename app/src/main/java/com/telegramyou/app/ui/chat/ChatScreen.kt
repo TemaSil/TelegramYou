@@ -327,10 +327,20 @@ fun ChatScreen(
     // item animations on, the messages leaving faded and slid out over the
     // ones arriving — two conversations on top of each other for a third of
     // a second. A jump is a cut, not a move, so it happens at once.
+    //
+    // And not straight after one, either: the pages either side of the hit
+    // arrive once it has landed, and with placement springs back on every
+    // bubble flew to its new place at once — date chips and messages drawn
+    // across each other, caught that way in the search screenshot. After a
+    // jump the list waits to settle exactly as it does after opening.
     val animateItems = itemsAnimate && state.scrollTarget == null
-    LaunchedEffect(Unit) {
-        delay(SETTLE_MILLIS)
-        itemsAnimate = true
+    LaunchedEffect(state.scrollTarget) {
+        if (state.scrollTarget != null) {
+            itemsAnimate = false
+        } else {
+            delay(SETTLE_MILLIS)
+            itemsAnimate = true
+        }
     }
 
     // A refusal from the server, said once in a snackbar — a failed send
@@ -599,7 +609,8 @@ fun ChatScreen(
                                         // morphing while they type here too.
                                         shape = personShape(chat.avatarColor),
                                         typing = detail?.isTyping == true,
-                                        photoPath = chat.photoPath
+                                        photoPath = chat.photoPath,
+                                        savedMessages = chat.isSavedMessages
                                     )
                                 }
                                 Spacer(Modifier.width(10.dp))
@@ -619,11 +630,16 @@ fun ChatScreen(
                                             )
                                         }
                                     } else {
-                                        Text(
-                                            text = detail?.memberCountLabel ?: "",
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        // No line at all when there is nothing
+                                        // to say — Saved Messages — so the name
+                                        // sits centred rather than over a gap.
+                                        detail?.memberCountLabel?.let { label ->
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }

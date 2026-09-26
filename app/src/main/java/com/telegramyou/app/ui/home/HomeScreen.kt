@@ -70,7 +70,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -115,6 +114,8 @@ import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.LargeTopAppBar
+import com.telegramyou.app.ui.settings.settingsBackground
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -134,6 +135,9 @@ import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
+import com.telegramyou.app.ui.components.materialShapeSet
+import com.telegramyou.app.ui.avatars.avatarShapeIndex
+import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
 import com.telegramyou.app.ui.theme.AppTitleFontFamily
@@ -252,7 +256,26 @@ fun HomeScreen(
                 selected = tab == entry,
                 onClick = { onTabSelected(entry) },
                 icon = {
-                    if (entry == HomeTab.Settings && updateWaiting) {
+                    val me = state.me
+                    if (entry == HomeTab.Profile && me != null) {
+                        // Whose account this is, at a glance, as the
+                        // official client shows it: the avatar where the
+                        // tab's icon would be, in its shape when shapes are
+                        // on. The indicator behind it still says selected.
+                        val shapes = materialShapeSet()
+                        AvatarBubble(
+                            title = me.displayName,
+                            seed = me.avatarColor,
+                            size = 26.dp,
+                            photoPath = me.photoPath,
+                            shape = if (settings.shapedAvatars) {
+                                shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
+                            } else {
+                                CircleShape
+                            },
+                            modifier = Modifier.semantics { contentDescription = entry.label }
+                        )
+                    } else if (entry == HomeTab.Settings && updateWaiting) {
                         BadgedBox(badge = { Badge() }) {
                             Icon(entry.icon, contentDescription = "${entry.label}, update available")
                         }
@@ -266,7 +289,11 @@ fun HomeScreen(
     }
 
     NavigationSuiteScaffold(navigationItems) {
+    // Settings' large title folds into a small one as the page scrolls, the
+    // way Android's own Settings does.
+    val settingsBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
+        modifier = if (tab == HomeTab.Settings) Modifier.nestedScroll(settingsBar.nestedScrollConnection) else Modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             // Expanded, the SearchBar takes the whole screen and its own
@@ -287,10 +314,26 @@ fun HomeScreen(
                 return@Scaffold
             }
             // On the chat list the bar is the top of a header that scrolls
-            // away with the chats, so it is drawn with them, below. The other
-            // tabs have nothing to scroll it away and keep it fixed here.
-            if (tab == HomeTab.Chats || tab == HomeTab.Search) return@Scaffold
-            HomeTitleBar(modifier = Modifier.statusBarsPadding())
+            // away with the chats, so it is drawn with them, below.
+            //
+            // It is the chat list's alone. Profile and Settings used to hang
+            // from the same grey "TelegramYou" bar, which said nothing there
+            // and on Profile stacked a second overflow over the profile's own.
+            // Profile has no bar: its header — QR, avatar, name — is the top
+            // of the screen, as in the official client. Settings has what
+            // Android's Settings has: its name, large, on its own background,
+            // folding away as the groups scroll up.
+            when (tab) {
+                HomeTab.Chats, HomeTab.Search, HomeTab.Profile -> return@Scaffold
+                HomeTab.Settings -> LargeTopAppBar(
+                    title = { Text("Settings") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = settingsBackground(),
+                        scrolledContainerColor = settingsBackground()
+                    ),
+                    scrollBehavior = settingsBar
+                )
+            }
         },
         floatingActionButton = {
             // Only where composing means anything. On Profile or Settings a
@@ -1082,12 +1125,22 @@ private fun ArchiveEntryRow(
         colors = ListItemDefaults.segmentedColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
+        // In a circle the size of an avatar, as Telegram draws it: a bare
+        // icon left "Archived" starting a good way left of every chat's
+        // name under it.
         leadingContent = {
-            Icon(
-                Icons.Rounded.Archive,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
+            ) {
+                Icon(
+                    Icons.Rounded.Archive,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
         },
         supportingContent = { Text(summary) },
         content = { Text("Archived", fontWeight = FontWeight.Bold) }

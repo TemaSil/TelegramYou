@@ -399,6 +399,36 @@ jobs:
               "$api/releases/assets/$id" || true
           done
 
+      # The description, written to a file so this update's notes can go
+      # into it: the app reads them back from between the markers to say
+      # what an update brings before it is downloaded (WhatsNew in :core).
+      - name: Write the release description
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          LIVE: ${{ env.TELEGRAM_API_ID != '' && 'yes' || '' }}
+        run: |
+          {
+            echo "The newest build of \`main\`, rebuilt on every push."
+            echo
+            echo "<!-- whats-new -->"
+            cat app/src/main/assets/whats-new.md
+            echo "<!-- /whats-new -->"
+            echo
+            if [ -n "$LIVE" ]; then
+              echo "Sign in with your own Telegram account: this is the live client."
+            else
+              echo "**This is the demo build.** The login code is \`12345\` and nothing leaves the phone; the repository has no Telegram credentials configured."
+            fi
+            echo
+            echo "Debug-signed, so Android will ask you to allow installing from"
+            echo "this source. Version \`$VERSION\`, built from"
+            echo "$GITHUB_SHA."
+            echo
+            echo "The file name is the same every build so the link above keeps"
+            echo "working; which build it is shows in the release title and in the"
+            echo "app's own entry under Android settings."
+          } > release-body.md
+
       - name: Publish the APK
         if: success() && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -410,18 +440,7 @@ jobs:
           # and that path is the entire point.
           prerelease: false
           make_latest: true
-          body: |
-            The newest build of `main`, rebuilt on every push.
-
-            ${{ env.TELEGRAM_API_ID != '' && 'Sign in with your own Telegram account: this is the live client.' || '**This is the demo build.** The login code is `12345` and nothing leaves the phone; the repository has no Telegram credentials configured.' }}
-
-            Debug-signed, so Android will ask you to allow installing from
-            this source. Version `${{ env.VERSION }}`, built from
-            ${{ github.sha }}.
-
-            The file name is the same every build so the link above keeps
-            working; which build it is shows in the release title and in the
-            app's own entry under Android settings.
+          body_path: release-body.md
 
       # The task that puts TDLib's libraries in place, run here so it cannot
       # rot unnoticed. With the credentials configured the live build above
