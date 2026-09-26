@@ -196,6 +196,7 @@ class TdLibTelegramClient(
     private val requestedPhotos = ConcurrentHashMap.newKeySet<Int>()
     private val downloadedPhotos = ConcurrentHashMap<Int, String>()
     private val photoRepublishPending = AtomicBoolean(false)
+    private val chatsRepublishPending = AtomicBoolean(false)
 
     private val _authState = MutableStateFlow(
         AuthUiState(state = AuthState.Bootstrapping, isLoading = true)
@@ -2352,17 +2353,17 @@ class TdLibTelegramClient(
                     // Redrawn once it has lapsed, in case no cancel comes.
                     scope.launch {
                         delay(TYPING_MILLIS + 100)
-                        withContext(updateDispatcher) { publishChats() }
+                        requestPublishChats()
                     }
                 }
-                publishChats()
+                requestPublishChats()
             }
             "updateUserStatus" -> {
                 // Someone came online or went away. Only the status changes,
                 // and the chat list redraws for the dot beside their avatar.
                 val user = usersById[update.optLong("user_id")] ?: return
                 user.put("status", update.optJSONObject("status"))
-                publishChats()
+                requestPublishChats()
             }
             "updateFile" -> {
                 // The only place progress comes from. TDLib does not answer
@@ -2414,7 +2415,7 @@ class TdLibTelegramClient(
                 // A new chat arrives with its positions inside it; nothing
                 // else will announce them.
                 chat.optJSONArray("positions")?.let { applyPositions(chatId, it) }
-                publishChats()
+                requestPublishChats()
             }
             "updateChatTitle", "updateChatPhoto", "updateChatLastMessage",
             "updateChatReadInbox", "updateChatReadOutbox", "updateChatNotificationSettings",
@@ -2909,6 +2910,27 @@ class TdLibTelegramClient(
      * Called on updateDispatcher, so the chats cannot change while this
      * reads them.
      */
+    /**
+     * [publishChats], soon, once for however many asked in the meantime.
+     *
+     * For the updates that come in floods and change little each: a contact
+     * going online or away, someone typing, and the hundreds of
+     * `updateNewChat` a sign-in starts with. Each used to rebuild every row
+     * of the list — every chat's preview, time and notification state read
+     * back out of its JSON, then a sort — so an account with a few hundred
+     * chats did that a few hundred times over while it loaded, and once
+     * more for every status change after. The window is shorter than a
+     * frame is noticeable; a message still publishes at once.
+     */
+    private fun requestPublishChats() {
+        if (!chatsRepublishPending.compareAndSet(false, true)) return
+        scope.launch {
+            delay(CHATS_REPUBLISH_MILLIS)
+            chatsRepublishPending.set(false)
+            withContext(updateDispatcher) { publishChats() }
+        }
+    }
+
     private suspend fun publishChats() = chatMutex.withLock {
         _chats.value = positions.listed(chatsById.keys)
             .mapNotNull { id -> chatsById[id]?.let { toPreview(it) } }
@@ -3712,6 +3734,7 @@ class TdLibTelegramClient(
 
         /** How long arriving avatars are gathered before one redraw. */
         private const val PHOTO_REPUBLISH_MILLIS = 300L
+        private const val CHATS_REPUBLISH_MILLIS = 50L
 
         /** How many messages a conversation opens with. */
         private const val HISTORY_PAGE = 50

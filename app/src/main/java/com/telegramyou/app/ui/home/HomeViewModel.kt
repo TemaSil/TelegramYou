@@ -29,6 +29,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -186,7 +189,14 @@ data class SearchState(
 class HomeViewModel(
     private val repository: TelegramRepository,
     /** What was typed into search before; this device's, not the account's. */
-    private val queryHistory: QueryHistory = InMemoryQueryHistory()
+    private val queryHistory: QueryHistory = InMemoryQueryHistory(),
+    /**
+     * Where the list is filtered, split into folders and counted. Off the
+     * main thread: it runs on every change to any chat, over every chat,
+     * once per folder tab, and the frame being drawn should not wait on it.
+     * Tests hand in their own dispatcher so they stay in step.
+     */
+    private val work: CoroutineDispatcher = Dispatchers.Default
 ) : ViewModel() {
 
     /** Set here rather than in the screen, so a rotation mid-refresh keeps it. */
@@ -260,7 +270,7 @@ class HomeViewModel(
         home.copy(compose = composeState)
     }.combine(failure) { home, message ->
         home.copy(errorMessage = message)
-    }.stateIn(
+    }.flowOn(work).stateIn(
         scope = viewModelScope,
         // Kept briefly past the last subscriber: a rotation unsubscribes and
         // resubscribes, and rebuilding the list for that is wasted work.

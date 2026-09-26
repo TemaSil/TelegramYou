@@ -121,11 +121,26 @@ fun AvatarCluster(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun materialShapeSet(): List<Shape> = SHAPE_SPECS.indices.map { index ->
-    if (SHAPE_SPECS[index] is ShapeSpec.Circle) {
-        CircleShape
-    } else {
-        remember(index) { materialPolygon(index) }.toShape()
+internal fun materialShapeSet(): List<Shape> = SHAPE_SPECS.indices.map { materialShapeAt(it) }
+
+/**
+ * One entry of [materialShapeSet], for a caller that needs only the one —
+ * which is every avatar.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun materialShapeAt(index: Int): Shape = POLYGONS[index]?.toShape() ?: CircleShape
+
+/**
+ * The set's polygons, built once for the process. They are pure functions of
+ * their index, and they used to be built — rounded, normalised — inside every
+ * composable that asked for the set: every row of the chat list and every
+ * avatar beside a message made the whole set on first appearing, to keep
+ * one shape of it. Null where the entry is the plain circle.
+ */
+private val POLYGONS: List<RoundedPolygon?> by lazy {
+    SHAPE_SPECS.indices.map { index ->
+        if (SHAPE_SPECS[index] is ShapeSpec.Circle) null else materialPolygon(index)
     }
 }
 
@@ -241,6 +256,5 @@ val LocalShapedAvatars = staticCompositionLocalOf { true }
 @Composable
 fun personShape(seed: Long): Shape {
     if (!LocalShapedAvatars.current) return CircleShape
-    val shapes = materialShapeSet()
-    return shapes[avatarShapeIndex(seed, shapes.size)]
+    return materialShapeAt(avatarShapeIndex(seed, SHAPE_COUNT))
 }

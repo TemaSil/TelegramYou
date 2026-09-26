@@ -153,8 +153,7 @@ fun ChatListRow(
                     title = chat.title,
                     seed = chat.avatarColor,
                     shape = if (shapedAvatar) {
-                        val shapes = materialShapeSet()
-                        shapes[avatarShapeIndex(chat.avatarColor, shapes.size)]
+                        materialShapeAt(avatarShapeIndex(chat.avatarColor, SHAPE_COUNT))
                     } else {
                         CircleShape
                     },

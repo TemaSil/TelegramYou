@@ -65,7 +65,7 @@ class HomeViewModelTest {
                 MessageHit(chat(3, "Design crit"), message(11, "nothing to see"))
             )
         )
-        val vm = HomeViewModel(TelegramRepository(client))
+        val vm = HomeViewModel(TelegramRepository(client), work = dispatcher)
         // uiState is stateIn(WhileSubscribed): with nothing collecting it, it
         // reports its initial value forever, so reading .value in a test
         // measures the placeholder rather than the view model. The screen
@@ -389,7 +389,7 @@ class HomeViewModelTest {
     fun `only the fields that changed are sent, and the username goes last`() = runTest(dispatcher) {
         val client = FakeTelegramClient()
         signedIn(client)
-        val viewModel = HomeViewModel(TelegramRepository(client))
+        val viewModel = HomeViewModel(TelegramRepository(client), work = dispatcher)
         val collector = launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
@@ -419,7 +419,7 @@ class HomeViewModelTest {
         val client = FakeTelegramClient()
         signedIn(client)
         client.profileError = "Username is already taken"
-        val viewModel = HomeViewModel(TelegramRepository(client))
+        val viewModel = HomeViewModel(TelegramRepository(client), work = dispatcher)
         val collector = launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 
@@ -441,7 +441,7 @@ class HomeViewModelTest {
     fun `an untouched form cannot be saved`() = runTest(dispatcher) {
         val client = FakeTelegramClient()
         signedIn(client)
-        val viewModel = HomeViewModel(TelegramRepository(client))
+        val viewModel = HomeViewModel(TelegramRepository(client), work = dispatcher)
         val collector = launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
 

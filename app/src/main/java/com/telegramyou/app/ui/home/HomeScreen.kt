@@ -135,7 +135,8 @@ import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
-import com.telegramyou.app.ui.components.materialShapeSet
+import com.telegramyou.app.ui.components.materialShapeAt
+import com.telegramyou.app.ui.components.SHAPE_COUNT
 import com.telegramyou.app.ui.avatars.avatarShapeIndex
 import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.components.ChatListRow
@@ -262,14 +263,13 @@ fun HomeScreen(
                         // official client shows it: the avatar where the
                         // tab's icon would be, in its shape when shapes are
                         // on. The indicator behind it still says selected.
-                        val shapes = materialShapeSet()
                         AvatarBubble(
                             title = me.displayName,
                             seed = me.avatarColor,
                             size = 26.dp,
                             photoPath = me.photoPath,
                             shape = if (settings.shapedAvatars) {
-                                shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
+                                materialShapeAt(avatarShapeIndex(me.avatarColor, SHAPE_COUNT))
                             } else {
                                 CircleShape
                             },

@@ -52,7 +52,8 @@ import com.telegramyou.app.settings.dynamicColorAvailable
 import com.telegramyou.app.telegram.model.TelegramUser
 import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.avatars.avatarShapeIndex
-import com.telegramyou.app.ui.components.materialShapeSet
+import com.telegramyou.app.ui.components.materialShapeAt
+import com.telegramyou.app.ui.components.SHAPE_COUNT
 import com.telegramyou.app.ui.components.AvatarBubble
 
 /**
@@ -165,14 +166,13 @@ fun SettingsContent(
                             // In its shape when shapes are on, as it is
                             // everywhere else — which also makes it the
                             // preview for that switch, a little further down.
-                            val shapes = materialShapeSet()
                             AvatarBubble(
                                 title = me.displayName,
                                 seed = me.avatarColor,
                                 size = 56.dp,
                                 photoPath = me.photoPath,
                                 shape = if (settings.shapedAvatars) {
-                                    shapes[avatarShapeIndex(me.avatarColor, shapes.size)]
+                                    materialShapeAt(avatarShapeIndex(me.avatarColor, SHAPE_COUNT))
                                 } else {
                                     CircleShape
                                 }
