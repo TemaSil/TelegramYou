@@ -565,15 +565,16 @@ internal fun VideoNoteMessage(
     // circle starts as soon as there is something to play.
     var playing by remember { mutableStateOf(false) }
     val duration = formatDuration(note.durationSeconds.toLong())
+    val description = if (playing && note.path != null) "Video message, playing" else "Video message, $duration"
     Box(
         modifier = Modifier
             .size(VIDEO_NOTE_SIZE)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .semantics(mergeDescendants = true) {
-                contentDescription =
-                    if (playing && note.path != null) "Video message, playing" else "Video message, $duration"
-            },
+            // Read here, in composition, and handed over as a value: a state
+            // read inside the semantics block does not bring it up to date,
+            // so the circle played while TalkBack still heard its length.
+            .semantics(mergeDescendants = true) { contentDescription = description },
         contentAlignment = Alignment.Center
     ) {
         note.thumbPath?.let { poster ->

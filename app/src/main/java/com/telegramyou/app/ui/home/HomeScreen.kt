@@ -560,11 +560,15 @@ fun HomeScreen(
                         // swipe between folders slid the whole rounded card
                         // sideways. The panel stays put and only the rows move
                         // across it, clipped to its corners.
+                        //
+                        // Painted in its shape, not clipped to it: a clip here,
+                        // around the pager, left the accessibility tree
+                        // reporting the All page's rows over whichever folder
+                        // was on screen. Each page clips itself, as before.
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow, PanelShape)
                         ) {
                         if (tabs.isEmpty()) {
                             // No folders, nothing to page between: one list, and
@@ -680,8 +684,11 @@ private fun ChatListPage(
         // for emphasis": rows lightest, the panel a step darker, the header
         // darker still — is drawn around the pager rather than here, so it
         // stays still while pages swipe across it. The list stays lazy
-        // either way.
-        modifier = Modifier.fillMaxSize(),
+        // either way. The list still clips to the panel's corners itself, so
+        // rows pass under the rounded top rather than over it.
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(PanelShape),
         // Twenty above, so the first row sits inside the panel
         // rather than wedged into its rounded corner. Below, room for
         // the floating button and only for it: the navigation bar is
@@ -1145,6 +1152,9 @@ private fun ArchiveEntryRow(
         content = { Text("Archived", fontWeight = FontWeight.Bold) }
     )
 }
+
+/** The chat panel's outline: rounded where it meets the header. */
+private val PanelShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
 
 /** How many rows from the end a chat list asks for its next page. */
 private const val LOAD_MORE_AHEAD = 8
