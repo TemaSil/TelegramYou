@@ -8,6 +8,14 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.ButtonAction
+import com.telegramyou.app.telegram.model.CallbackAnswer
+import com.telegramyou.app.telegram.model.InlineButton
+import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.PollContent
+import com.telegramyou.app.telegram.model.PollOption
+import com.telegramyou.app.telegram.model.ReplyKey
+import com.telegramyou.app.telegram.model.ReplyKeyboard
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -564,6 +572,59 @@ class ChatViewModelTest {
         assertEquals(null, client.downloadedPath)
         assertEquals(null, vm.uiState.value.loadingVoiceId)
         assertEquals(null, vm.uiState.value.playingVoiceId)
+    }
+
+    @Test
+    fun `a vote is drawn at once and sent by position`() = runTest {
+        val poll = PollContent(
+            id = 5, question = "Which?",
+            options = listOf(PollOption("A", voterCount = 1, percentage = 100), PollOption("B")),
+            totalVoters = 1
+        )
+        val asked = message(10).copy(contentType = MessageContentType.Poll, poll = poll)
+        val (vm, client) = viewModel(listOf(asked))
+        advanceUntilIdle()
+
+        vm.onVote(asked, setOf(1))
+        advanceUntilIdle()
+
+        val drawn = vm.uiState.value.messages.single().poll!!
+        assertEquals(listOf(1, 1), drawn.options.map { it.voterCount })
+        assertTrue(drawn.options[1].isChosen)
+        assertEquals(listOf(Triple(CHAT_ID, 10L, listOf(1))), client.votes)
+    }
+
+    @Test
+    fun `a bot's answer to a button is kept until shown`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.callbackAnswer = CallbackAnswer(text = "Done")
+        advanceUntilIdle()
+
+        vm.onBotButton(message(10), InlineButton("Go", ButtonAction.Callback("Z28=")))
+        advanceUntilIdle()
+        assertEquals("Done", vm.uiState.value.botAnswer?.text)
+
+        vm.onBotAnswerShown()
+        assertNull(vm.uiState.value.botAnswer)
+    }
+
+    @Test
+    fun `the chat's bot keyboard follows the client, and a key sends its text`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+        val keyboard = ReplyKeyboard(rows = listOf(listOf(ReplyKey("Status"))))
+
+        client.mutableReplyKeyboards.value = mapOf(CHAT_ID to keyboard, CHAT_ID + 1 to ReplyKeyboard(emptyList()))
+        advanceUntilIdle()
+        assertEquals(keyboard, vm.uiState.value.replyKeyboard)
+
+        vm.onReplyKey("Status")
+        advanceUntilIdle()
+        assertEquals(listOf("Status"), client.sentTexts)
+
+        client.mutableReplyKeyboards.value = emptyMap()
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.replyKeyboard)
     }
 
     private companion object {

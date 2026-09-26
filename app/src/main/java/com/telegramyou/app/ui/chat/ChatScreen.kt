@@ -22,6 +22,10 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.KeyboardHide
+import com.telegramyou.app.telegram.model.ButtonAction
+import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.ui.components.personShape
 import android.Manifest
@@ -270,9 +274,16 @@ fun ChatScreen(
     onStickerPickerOpen: () -> Unit = {},
     onStickerSetSelected: (Long) -> Unit = {},
     onStickerPicked: (StickerContent) -> Unit = {},
-    onStickerPickerDismiss: () -> Unit = {}
+    onStickerPickerDismiss: () -> Unit = {},
+    onVote: (ChatMessage, Set<Int>) -> Unit = { _, _ -> },
+    /** A bot button that talks to the bot or fills the composer. */
+    onBotButton: (ChatMessage, InlineButton) -> Unit = { _, _ -> },
+    /** A key of the bot's keyboard under the composer. */
+    onReplyKey: (String) -> Unit = {},
+    onBotAnswerShown: () -> Unit = {}
 ) {
     val listState = rememberLazyListState()
+    val uriHandler = LocalUriHandler.current
 
     // The list is laid out from the bottom (reverseLayout, below), so it
     // holds on to its newest message rather than its oldest. That one choice
@@ -312,6 +323,24 @@ fun ChatScreen(
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             onErrorShown()
+        }
+    }
+    // What a bot said back to a pressed button: a snackbar, unless the bot
+    // asked for it to be dismissed by hand — then a dialog, which is what
+    // Telegram's show_alert means. A link in the answer opens as it arrives.
+    state.botAnswer?.let { answer ->
+        if (answer.showAlert) {
+            AlertDialog(
+                onDismissRequest = onBotAnswerShown,
+                confirmButton = { TextButton(onClick = onBotAnswerShown) { Text("OK") } },
+                text = { Text(answer.text) }
+            )
+        } else {
+            LaunchedEffect(answer) {
+                if (answer.url.isNotBlank()) runCatching { uriHandler.openUri(answer.url) }
+                if (answer.text.isNotBlank()) snackbarHostState.showSnackbar(answer.text)
+                onBotAnswerShown()
+            }
         }
     }
 
@@ -788,7 +817,21 @@ fun ChatScreen(
                             onPhotoVisible = { onPhotoVisible(message) },
                             onPhotoOpened = { onPhotoOpened(message) },
                             onVideoOpened = { onVideoOpened(message) },
-                            transfers = state.transfers
+                            transfers = state.transfers,
+                            onVote = { chosen -> onVote(message, chosen) },
+                            onButton = { button ->
+                                when (val action = button.action) {
+                                    // Done here, not in the view model: both
+                                    // are the platform's, and neither talks
+                                    // to Telegram.
+                                    is ButtonAction.OpenUrl -> runCatching { uriHandler.openUri(action.url) }
+                                    is ButtonAction.CopyText -> {
+                                        copyToClipboard(action.text)
+                                        scope.launch { snackbarHostState.showSnackbar("Copied") }
+                                    }
+                                    else -> onBotButton(message, button)
+                                }
+                            }
                         )
                         }
                     }
@@ -965,7 +1008,26 @@ fun ChatScreen(
                         )
                     }
 
+                    val botKeyboard = state.replyKeyboard
+                    var botKeyboardShown by remember(botKeyboard) { mutableStateOf(true) }
+                    if (botKeyboard != null && botKeyboardShown && recordingSince == null) {
+                        ReplyKeyboardPanel(
+                            keyboard = botKeyboard,
+                            onKey = { key ->
+                                onReplyKey(key)
+                                if (botKeyboard.oneTime) botKeyboardShown = false
+                            }
+                        )
+                    }
                     ComposerBar(
+                        placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: "Message",
+                        botKeyboardShown = botKeyboard?.let { botKeyboardShown },
+                        onBotKeyboardToggle = {
+                            botKeyboardShown = !botKeyboardShown
+                            // One keyboard at a time: the bot's comes up as
+                            // the system one goes down, and the other way.
+                            if (botKeyboardShown) keyboardController?.hide()
+                        },
                         value = state.draft,
                         onValueChange = onDraftChange,
                         onAttach = { onAttachmentSheetOpenChange(true) },
@@ -1111,7 +1173,11 @@ private fun MessageBubble(
     onPhotoOpened: () -> Unit,
     onVideoOpened: () -> Unit,
     /** Files in flight, by id — usually empty. See ChatUiState.transfers. */
-    transfers: Map<Int, FileTransfer>
+    transfers: Map<Int, FileTransfer>,
+    /** Our answer to a poll, by the options' positions; empty takes it back. */
+    onVote: (Set<Int>) -> Unit = {},
+    /** One of a bot's buttons under this message. */
+    onButton: (InlineButton) -> Unit = {}
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -1203,6 +1269,7 @@ private fun MessageBubble(
         // What stands on the conversation with no bubble round it.
         val standsAlone = isSticker || isVideoNote
         Box {
+            WithInlineKeyboard(rows = message.inlineKeyboard, outgoing = outgoing, onPress = onButton) {
             Surface(
             shape = shape,
             color = when {
@@ -1374,6 +1441,14 @@ private fun MessageBubble(
                             )
                         }
                     }
+                    MessageContentType.Poll -> {
+                        val poll = message.poll
+                        if (poll != null) {
+                            PollMessage(poll = poll, outgoing = outgoing, onVote = onVote)
+                        } else {
+                            Text(message.text)
+                        }
+                    }
                     MessageContentType.Voice -> {
                         VoiceMessage(
                             label = message.text.ifBlank { "Voice message" },
@@ -1459,6 +1534,7 @@ private fun MessageBubble(
                         )
                     }
                 }
+            }
             }
             }
             DropdownMenu(
@@ -3092,7 +3168,15 @@ private fun ComposerBar(
      */
     hasAttachment: Boolean,
     /** Held by the screen, so replying can put the caret in the field. */
-    focusRequester: FocusRequester
+    focusRequester: FocusRequester,
+    /** The bot's placeholder, when it set one. */
+    placeholder: String = "Message",
+    /**
+     * Null in a chat with no bot keyboard; otherwise whether it is up, and
+     * the field grows a button to raise or lower it.
+     */
+    botKeyboardShown: Boolean? = null,
+    onBotKeyboardToggle: () -> Unit = {}
 ) {
     // Floating, not a bar. It used to be a full-width surface welded to the
     // bottom of the screen with the buttons outside the field; this is one
@@ -3270,12 +3354,24 @@ private fun ComposerBar(
                             .weight(1f)
                             .padding(vertical = 2.dp)
                             .focusRequester(focusRequester),
-                        placeholder = { Text("Message") },
+                        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         // Where Telegram keeps it, and every messenger since:
                         // inside the field, at its end.
                         trailingIcon = {
-                            IconButton(onClick = onStickers) {
-                                Icon(Icons.Rounded.EmojiEmotions, contentDescription = "Stickers")
+                            Row {
+                                if (botKeyboardShown != null) {
+                                    IconButton(onClick = onBotKeyboardToggle) {
+                                        Icon(
+                                            if (botKeyboardShown) Icons.Rounded.KeyboardHide
+                                            else Icons.Rounded.Keyboard,
+                                            contentDescription = if (botKeyboardShown) "Hide bot keyboard"
+                                            else "Bot keyboard"
+                                        )
+                                    }
+                                }
+                                IconButton(onClick = onStickers) {
+                                    Icon(Icons.Rounded.EmojiEmotions, contentDescription = "Stickers")
+                                }
                             }
                         },
                         shape = fieldShape,

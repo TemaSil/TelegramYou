@@ -1,6 +1,8 @@
 package com.telegramyou.app.telegram.messages
 
 import com.telegramyou.app.telegram.model.AttachmentDraft
+import com.telegramyou.app.telegram.model.CallbackAnswer
+import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageUpdate
@@ -178,4 +180,31 @@ interface TelegramMessages {
      * allowed here and refused there.
      */
     suspend fun chatMedia(chatId: Long, limit: Int = 60): List<ChatMessage>
+
+    /**
+     * Votes in a poll, by the options' positions. An empty list takes our
+     * vote back, which is how TDLib spells retracting.
+     *
+     * Returns nothing: the new counts arrive as [MessageUpdate.PollChanged],
+     * and the screen has already drawn its own guess at them.
+     */
+    suspend fun votePoll(chatId: Long, messageId: Long, optionIds: List<Int>)
+
+    /**
+     * Presses a bot's callback button and waits for the bot's answer.
+     *
+     * [data] is the button's payload exactly as it came, base64. A bot that
+     * does not answer in time is an error from the server, not a null — the
+     * null is a bot that answered with nothing to say.
+     */
+    suspend fun pressButton(chatId: Long, messageId: Long, data: String): CallbackAnswer?
+
+    /**
+     * The bot keyboard each chat currently shows under its composer, by chat.
+     *
+     * Chat state rather than message state: a bot sets one and it stays until
+     * it sends another or removes it, however many messages come between.
+     * Most chats have none, so the map is usually empty.
+     */
+    val replyKeyboards: StateFlow<Map<Long, ReplyKeyboard>>
 }

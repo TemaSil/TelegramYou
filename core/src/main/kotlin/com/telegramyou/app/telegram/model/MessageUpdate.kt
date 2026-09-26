@@ -70,4 +70,23 @@ sealed interface MessageUpdate {
      * watermark per chat, and every outgoing message at or below it is read.
      */
     data class ReadUpTo(override val chatId: Long, val lastReadId: Long) : MessageUpdate
+
+    /**
+     * New votes on a poll — ours from another device, or anyone's.
+     *
+     * Its own case rather than an [Edited]: a vote changes no words, and a
+     * poll marked "edited" every time someone answered would be wrong.
+     */
+    data class PollChanged(
+        override val chatId: Long,
+        val messageId: Long,
+        val poll: PollContent
+    ) : MessageUpdate
+
+    /** A bot replaced the buttons under one of its messages. */
+    data class ButtonsChanged(
+        override val chatId: Long,
+        val messageId: Long,
+        val buttons: List<List<InlineButton>>
+    ) : MessageUpdate
 }

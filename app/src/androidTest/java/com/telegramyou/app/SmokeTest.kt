@@ -1323,6 +1323,47 @@ class SmokeTest {
         waitFor(By.text("Message ID"), "the message details")
     }
 
+    /**
+     * A poll answered with one tap, and a bot's two kinds of buttons: one
+     * under its message that asks the bot and shows its answer, and a key of
+     * its keyboard under the composer that sends a message it replies to.
+     * The demo seeds both, in the chats below the fold, so the list scrolls.
+     */
+    @Test
+    fun aPollIsAnsweredAndABotAnswersItsButtons() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("Kotlin Night"))
+        tap(By.text("Kotlin Night"))
+        waitFor(By.text("What do you reach for first?"), "the poll")
+        tap(By.text("SharedTransitionLayout"))
+        // The vote counted: one more voter, and it can be taken back.
+        waitFor(By.text("31 votes"), "the poll's results")
+        waitFor(By.text("Retract vote"), "the retract button")
+        screenshot("34-poll")
+
+        device.pressBack()
+        waitFor(By.text("Kotlin Night"), "the chat list again")
+        scrollChatsTo(By.text("Build Bot"))
+        tap(By.text("Build Bot"))
+        waitFor(By.text("Changelog"), "the bot's buttons")
+        tap(By.text("Changelog"))
+        waitFor(By.text("Polls and bot buttons landed"), "the bot's answer")
+        tap(By.text("Status"))
+        waitFor(By.text("All green ✅"), "the bot's reply to a key")
+        screenshot("35-bot")
+    }
+
+    /** Drags the chat list up until [selector] is on screen. */
+    private fun scrollChatsTo(selector: BySelector) {
+        repeat(8) {
+            if (device.hasObject(selector)) return
+            dragList(0.8, 0.45)
+        }
+        waitFor(selector, selector.toString().filter { it.isLetterOrDigit() })
+    }
+
     /** From the chat list to the login screen, through Settings. */
     private fun logOut() {
         waitFor(By.text("Material Design"), "the chat list")

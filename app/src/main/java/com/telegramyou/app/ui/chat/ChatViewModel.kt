@@ -15,6 +15,12 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.telegram.model.ButtonAction
+import com.telegramyou.app.telegram.model.CallbackAnswer
+import com.telegramyou.app.telegram.model.InlineButton
+import com.telegramyou.app.telegram.model.ReplyKeyboard
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.telegramyou.app.telegram.model.toggleReaction
 import com.telegramyou.app.ui.failureText
 import kotlinx.coroutines.CancellationException
@@ -159,7 +165,11 @@ data class ChatUiState(
      */
     val errorMessage: String? = null,
     /** The sticker sheet, while it is up. */
-    val stickerPicker: StickerPickerState? = null
+    val stickerPicker: StickerPickerState? = null,
+    /** The bot's keyboard under the composer, in a chat that has one. */
+    val replyKeyboard: ReplyKeyboard? = null,
+    /** What a bot said back to a pressed button, until it has been shown. */
+    val botAnswer: CallbackAnswer? = null
 ) {
     val messages: List<ChatMessage>
         get() = olderMessages + (detachedWindow ?: detail?.messages.orEmpty())
@@ -236,6 +246,14 @@ class ChatViewModel(
             repository.messageUpdates
                 .filter { it.chatId == chatId }
                 .collect { update -> applyUpdate(update) }
+        }
+        viewModelScope.launch {
+            // The bot keyboard is chat state and changes on the bot's say-so,
+            // so it is followed rather than read once.
+            repository.replyKeyboards
+                .map { it[chatId] }
+                .distinctUntilChanged()
+                .collect { keyboard -> _uiState.update { it.copy(replyKeyboard = keyboard) } }
         }
         viewModelScope.launch {
             // Every file in flight, for every bubble that has one. The map is
@@ -577,6 +595,55 @@ class ChatViewModel(
         // fetched again from the other.
         media = media.map { if (it.id == messageId) transform(it) else it }
     )
+
+    // ── polls and bots ───────────────────────────────────────────────────
+
+    /**
+     * Votes, drawing the result at once the way a reaction is drawn. A
+     * refusal puts the poll back as it was; an acceptance needs nothing,
+     * since the server's counts arrive as a [MessageUpdate.PollChanged].
+     */
+    fun onVote(message: ChatMessage, chosen: Set<Int>) {
+        val before = message.poll ?: return
+        _uiState.update { state ->
+            state.mapMessage(message.id) { it.copy(poll = before.withVote(chosen)) }
+        }
+        viewModelScope.launch {
+            val done = attempt(if (chosen.isEmpty()) "Could not retract the vote" else "Could not vote") {
+                repository.votePoll(chatId, message.id, chosen.sorted())
+            }
+            if (!done) _uiState.update { state ->
+                state.mapMessage(message.id) { it.copy(poll = before) }
+            }
+        }
+    }
+
+    /**
+     * A bot button that needs the bot. Links and copying never reach here —
+     * the screen does those itself.
+     */
+    fun onBotButton(message: ChatMessage, button: InlineButton) {
+        when (val action = button.action) {
+            is ButtonAction.Callback -> viewModelScope.launch {
+                attempt("The bot did not answer") {
+                    val answer = repository.pressButton(chatId, message.id, action.data)
+                    if (answer != null) _uiState.update { it.copy(botAnswer = answer) }
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    fun onBotAnswerShown() = _uiState.update { it.copy(botAnswer = null) }
+
+    /** A key of the bot's keyboard: its text goes out as a message. */
+    fun onReplyKey(text: String) {
+        if (text.isBlank()) return
+        onJumpToLatest()
+        viewModelScope.launch {
+            attempt("Could not send") { repository.sendMessage(chatId, text) }
+        }
+    }
 
     // ── voice ────────────────────────────────────────────────────────────
 

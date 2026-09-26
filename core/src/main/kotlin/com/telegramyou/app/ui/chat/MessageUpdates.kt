@@ -43,6 +43,14 @@ fun List<ChatMessage>.applying(
         it.copy(reactions = update.reactions)
     }
 
+    is MessageUpdate.PollChanged -> mapMessage(update.messageId) {
+        if (it.poll == update.poll) it else it.copy(poll = update.poll)
+    }
+
+    is MessageUpdate.ButtonsChanged -> mapMessage(update.messageId) {
+        if (it.inlineKeyboard == update.buttons) it else it.copy(inlineKeyboard = update.buttons)
+    }
+
     is MessageUpdate.ReadUpTo -> map {
         if (it.isOutgoing && !it.isRead && it.id <= update.lastReadId) it.copy(isRead = true)
         else it

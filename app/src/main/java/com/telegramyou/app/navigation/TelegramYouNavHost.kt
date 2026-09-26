@@ -633,7 +633,11 @@ fun TelegramYouNavHost(
                 onStickerPickerOpen = chatViewModel::onStickerPickerOpen,
                 onStickerSetSelected = chatViewModel::onStickerSetSelected,
                 onStickerPicked = chatViewModel::onStickerPicked,
-                onStickerPickerDismiss = chatViewModel::onStickerPickerDismiss
+                onStickerPickerDismiss = chatViewModel::onStickerPickerDismiss,
+                onVote = chatViewModel::onVote,
+                onBotButton = chatViewModel::onBotButton,
+                onReplyKey = chatViewModel::onReplyKey,
+                onBotAnswerShown = chatViewModel::onBotAnswerShown
             )
             }
             }

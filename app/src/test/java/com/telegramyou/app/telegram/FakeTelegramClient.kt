@@ -4,7 +4,9 @@ import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ActiveSession
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
+import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatFolder
@@ -416,6 +418,19 @@ class FakeTelegramClient(
     }
 
     override suspend fun availableReactions(chatId: Long): List<String> = permittedReactions
+
+    /** Votes, in the order they were cast: chat, message, options. */
+    val votes = mutableListOf<Triple<Long, Long, List<Int>>>()
+    override suspend fun votePoll(chatId: Long, messageId: Long, optionIds: List<Int>) {
+        votes += Triple(chatId, messageId, optionIds)
+    }
+
+    var callbackAnswer: CallbackAnswer? = null
+    override suspend fun pressButton(chatId: Long, messageId: Long, data: String): CallbackAnswer? =
+        callbackAnswer
+
+    val mutableReplyKeyboards = MutableStateFlow<Map<Long, ReplyKeyboard>>(emptyMap())
+    override val replyKeyboards: StateFlow<Map<Long, ReplyKeyboard>> = mutableReplyKeyboards
 
     override suspend fun storyFrames(storyId: Long): List<StoryFrame> = emptyList()
 

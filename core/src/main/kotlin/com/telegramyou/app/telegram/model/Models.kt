@@ -238,7 +238,9 @@ enum class MessageContentType {
     /** Telegram's "GIF": a short silent MP4 that plays on its own, looping. */
     Animation,
     /** A round video message, played in place. */
-    VideoNote
+    VideoNote,
+    /** A poll or a quiz; [ChatMessage.poll] holds it. */
+    Poll
 }
 
 /**
@@ -408,7 +410,17 @@ data class ChatMessage(
      * Null for everything else, which is almost every message — see
      * [VideoContent] for why it is a type of its own.
      */
-    val video: VideoContent? = null
+    val video: VideoContent? = null,
+    /** The poll, when this message is one. */
+    val poll: PollContent? = null,
+    /**
+     * A bot's buttons under the message, row by row.
+     *
+     * Empty for every message a person sent. A bot can change them later
+     * without touching the text — a "Next page" button that pages in place
+     * — which arrives as [MessageUpdate.ButtonsChanged].
+     */
+    val inlineKeyboard: List<List<InlineButton>> = emptyList()
 )
 
 /**

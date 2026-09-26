@@ -55,6 +55,10 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 |---|---|---|---|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/26-qr-login.jpg" width="180" alt="QR login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/27-email-code.jpg" width="180" alt="Email login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/23-proxy.jpg" width="180" alt="Proxy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
 
+| Polls | Bot buttons |
+|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="180" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/35-bot.jpg" width="180" alt="Bot buttons"> |
+
 Not drawn for this page: they are taken by the **UI** workflow, which drives
 the demo client on an emulator after every push to `main`, and they change
 the moment a screen does. The same screens from **every** build, newest
@@ -82,6 +86,9 @@ seen without an account:
   there; replies, edits, forwarding, selection, reactions, a pinned-message
   bar, an unread divider, and search that jumps to any message however old.
   A floating composer with the camera, the microphone and a sticker sheet.
+- **Polls and bots** — polls and quizzes answered in the bubble with the
+  results drawn as they land, bots' buttons under their messages, and a
+  bot's own keyboard above the composer.
 - **Media** — photos and videos out to the bubble's edges, GIFs that play by
   themselves, round video messages played in place, voice messages with a
   waveform, stickers (still and animated), a full-screen viewer and a grid

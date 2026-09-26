@@ -854,6 +854,26 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       line, 120 messages before what opening it loads
 - [x] Load older messages on scroll — `loadOlderMessages`, guarded against
       the request-per-frame a list sitting at the top would otherwise make
+- [x] Polls and quizzes — `RadioButton` rows, one tap votes; `Checkbox` rows
+      and a Vote `Button` where several answers are allowed; results as
+      Material's `LinearProgressIndicator`, growing on the theme's spring.
+      A quiz marks the right answer and a wrong one of ours, and shows its
+      explanation. The vote is drawn at once and corrected by the server's
+      counts (`updateMessageContent`); retracting where the poll allows it.
+      Percentages use the largest-remainder rounding, in `:core` with tests.
+      Creating a poll is not in yet
+- [x] Bot inline buttons — `FilledTonalButton` rows under the bubble, as wide
+      as the bubble or the buttons, whichever is more. Callback buttons ask
+      the bot (`getCallbackQueryAnswer`) and its answer is a snackbar, or a
+      dialog when the bot asks for one; links open in the browser, copy
+      buttons copy. A bot rewriting its buttons in place
+      (`updateMessageEdited`) is followed. Games, payments, inline queries
+      and Mini Apps are drawn disabled until there is a platform for them
+- [x] Bot keyboard under the composer — tonal keys above the field, a
+      button in the field to raise and lower it, the bot's placeholder, gone
+      after one press when the bot asks. Keys that share a phone number or
+      a location are shown disabled. Kept per chat from
+      `updateChatReplyMarkup`
 
 ## 2. Chat list
 
@@ -1160,7 +1180,8 @@ never opens that screen. The settings are in `:core` with tests
       failures already reach a snackbar with the server's words
 
 Blocked on a base we do not have: translation and auto-translate, voice
-transcription, a tablet layout, markdown parser options, QR login.
+transcription, markdown parser options. (A tablet layout and QR login were on
+this list; both are done — see Home and Login.)
 
 ## Infrastructure
 

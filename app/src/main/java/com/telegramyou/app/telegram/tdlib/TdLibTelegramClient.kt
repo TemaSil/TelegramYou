@@ -24,6 +24,13 @@ import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPositions
 import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.telegram.model.ButtonAction
+import com.telegramyou.app.telegram.model.CallbackAnswer
+import com.telegramyou.app.telegram.model.InlineButton
+import com.telegramyou.app.telegram.model.PollContent
+import com.telegramyou.app.telegram.model.PollOption
+import com.telegramyou.app.telegram.model.ReplyKey
+import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.ui.auth.codeDeliveryText
 import com.telegramyou.app.ui.chat.applying
 import com.telegramyou.app.ui.format.Presence
@@ -207,6 +214,9 @@ class TdLibTelegramClient(
     // Same buffering, for the same reason: emitted from the update handler.
     private val _messageUpdates = MutableSharedFlow<MessageUpdate>(extraBufferCapacity = 256)
     override val messageUpdates: SharedFlow<MessageUpdate> = _messageUpdates.asSharedFlow()
+
+    private val _replyKeyboards = MutableStateFlow<Map<Long, ReplyKeyboard>>(emptyMap())
+    override val replyKeyboards: StateFlow<Map<Long, ReplyKeyboard>> = _replyKeyboards.asStateFlow()
 
     private val _stories = MutableStateFlow<List<StoryItem>>(emptyList())
     override val stories: StateFlow<List<StoryItem>> = _stories.asStateFlow()
@@ -811,6 +821,10 @@ class TdLibTelegramClient(
         val chat = chatsById[chatId]
         val preview = chat?.let { toPreview(it) }
             ?: ChatPreview(chatId, "Chat $chatId", "", "")
+        // The keyboard a bot left up, if TDLib has not announced it yet.
+        chat?.optLong("reply_markup_message_id")?.takeIf { it != 0L }?.let { markupId ->
+            if (chatId !in _replyKeyboards.value) scope.launch { loadReplyKeyboard(chatId, markupId) }
+        }
         return ChatDetail(
             chat = preview,
             messages = mapped,
@@ -1415,6 +1429,66 @@ class TdLibTelegramClient(
                 bucket[index] = bucket[index]
                     .copy(reactions = applyReaction(bucket[index].reactions, emoji))
             }
+        }
+    }
+
+    override suspend fun votePoll(chatId: Long, messageId: Long, optionIds: List<Int>) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setPollAnswer")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put("option_ids", JSONArray(optionIds))
+        )
+        // The same guess the screen drew, so a reload before
+        // updateMessageContent arrives does not undo the vote.
+        messagesByChat[chatId]?.let { bucket ->
+            val index = bucket.indexOfFirst { it.id == messageId }
+            val poll = bucket.getOrNull(index)?.poll ?: return@let
+            bucket[index] = bucket[index].copy(poll = poll.withVote(optionIds.toSet()))
+        }
+    }
+
+    override suspend fun pressButton(chatId: Long, messageId: Long, data: String): CallbackAnswer? {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getCallbackQueryAnswer")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put(
+                    "payload",
+                    // bytes travel as base64 in TDLib's JSON, which is the
+                    // form the button's data arrived in; it goes back as is.
+                    JSONObject().put("@type", "callbackQueryPayloadData").put("data", data)
+                )
+        )
+        return CallbackAnswer(
+            text = answer.optString("text"),
+            showAlert = answer.optBoolean("show_alert"),
+            url = answer.optString("url")
+        ).takeIf { it.text.isNotBlank() || it.url.isNotBlank() }
+    }
+
+    /** Fetches the message a chat's bot keyboard lives on and reads it. */
+    private suspend fun loadReplyKeyboard(chatId: Long, messageId: Long) {
+        val message = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessage")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+            )
+        } catch (e: TdLibException) {
+            return
+        }
+        setReplyKeyboard(chatId, replyKeyboardOf(message.optJSONObject("reply_markup")))
+    }
+
+    private fun setReplyKeyboard(chatId: Long, keyboard: ReplyKeyboard?) {
+        _replyKeyboards.update {
+            if (keyboard == null || keyboard.isEmpty) it - chatId else it + (chatId to keyboard)
         }
     }
 
@@ -2217,17 +2291,48 @@ class TdLibTelegramClient(
                 )
             }
             "updateMessageContent" -> {
-                // Only what changes the words is passed on. The same update
-                // fires for a poll's votes or a location moving, and marking
-                // those "edited" would be wrong.
+                // Only what changes the words is passed on as an edit. The
+                // same update fires for a poll's votes or a location moving,
+                // and marking those "edited" would be wrong — a poll gets a
+                // case of its own instead.
                 val chatId = update.optLong("chat_id")
                 val messageId = update.optLong("message_id")
+                val newContent = update.optJSONObject("new_content")
+                if (newContent?.optString("@type") == "messagePoll") {
+                    val poll = pollOf(newContent.optJSONObject("poll")) ?: return
+                    emitUpdate(MessageUpdate.PollChanged(chatId, messageId, poll))
+                    return
+                }
                 val text = contentText(update.optJSONObject("new_content"))
                     ?.takeIf { it.isNotBlank() }
                     ?: return
                 val known = messagesByChat[chatId]?.firstOrNull { it.id == messageId }
                 if (known != null && known.text == text) return
                 emitUpdate(MessageUpdate.Edited(chatId, messageId, text))
+            }
+            "updateMessageEdited" -> {
+                // Carries the buttons, not the text: a bot paging through a
+                // list rewrites its keyboard in place. The words, if they
+                // changed too, come separately as updateMessageContent.
+                emitUpdate(
+                    MessageUpdate.ButtonsChanged(
+                        chatId = update.optLong("chat_id"),
+                        messageId = update.optLong("message_id"),
+                        buttons = inlineKeyboardOf(update.optJSONObject("reply_markup"))
+                    )
+                )
+            }
+            "updateChatReplyMarkup" -> {
+                val chatId = update.optLong("chat_id")
+                val message = update.optJSONObject("reply_markup_message")
+                // An older TDLib names the message by id only.
+                val messageId = update.optLong("reply_markup_message_id")
+                when {
+                    message != null ->
+                        setReplyKeyboard(chatId, replyKeyboardOf(message.optJSONObject("reply_markup")))
+                    messageId != 0L -> scope.launch { loadReplyKeyboard(chatId, messageId) }
+                    else -> setReplyKeyboard(chatId, null)
+                }
             }
             "updateMessageInteractionInfo" -> {
                 emitUpdate(
@@ -2708,6 +2813,8 @@ class TdLibTelegramClient(
             "messageVoiceNote" -> "🎤 Voice"
             "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
                 ?.takeIf { it.isNotBlank() }?.let { "$it Sticker" } ?: "Sticker"
+            "messagePoll" -> "📊 " + (content.optJSONObject("poll")?.textOf("question")
+                ?.takeIf { it.isNotBlank() } ?: "Poll")
             else -> content.optString("@type").removePrefix("message")
         }
     }
@@ -2804,6 +2911,7 @@ class TdLibTelegramClient(
             "messageDocument" -> MessageContentType.Document
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
+            "messagePoll" -> MessageContentType.Poll
             else -> MessageContentType.Text
         }
         val senderId = message.optJSONObject("sender_id")?.optLong("user_id")
@@ -2889,8 +2997,99 @@ class TdLibTelegramClient(
                 val height = size.optInt("height")
                 if (width > 0 && height > 0) width.toFloat() / height else 1f
             } ?: 1f,
-            video = videoContent(content)
+            video = videoContent(content),
+            poll = content?.takeIf { type == "messagePoll" }?.optJSONObject("poll")?.let(::pollOf),
+            inlineKeyboard = inlineKeyboardOf(message.optJSONObject("reply_markup"))
         )
+    }
+
+    /**
+     * A `formattedText`'s words, or a plain string where an older TDLib
+     * still sends one — a poll's question and options changed from one to
+     * the other.
+     */
+    private fun JSONObject.textOf(key: String): String = when (val value = opt(key)) {
+        is JSONObject -> value.optString("text")
+        is String -> value
+        else -> ""
+    }
+
+    private fun pollOf(poll: JSONObject?): PollContent? {
+        if (poll == null) return null
+        val options = poll.optJSONArray("options") ?: JSONArray()
+        val type = poll.optJSONObject("type")
+        val isQuiz = type?.optString("@type") == "pollTypeQuiz"
+        // Newer TDLib lists every right answer; an older one had exactly one.
+        val correct = type?.optJSONArray("correct_option_ids")
+            ?.let { ids -> (0 until ids.length()).map { ids.optInt(it) }.toSet() }
+            ?: type?.optInt("correct_option_id", -1)?.takeIf { it >= 0 }?.let { setOf(it) }
+            ?: emptySet()
+        return PollContent(
+            id = poll.optInt64("id"),
+            question = poll.textOf("question"),
+            options = (0 until options.length()).mapNotNull { index ->
+                val option = options.optJSONObject(index) ?: return@mapNotNull null
+                PollOption(
+                    text = option.textOf("text"),
+                    voterCount = option.optInt("voter_count"),
+                    percentage = option.optInt("vote_percentage"),
+                    isChosen = option.optBoolean("is_chosen")
+                )
+            },
+            totalVoters = poll.optInt("total_voter_count"),
+            isAnonymous = poll.optBoolean("is_anonymous", true),
+            allowsMultiple = poll.optBoolean("allows_multiple_answers") ||
+                type?.optBoolean("allow_multiple_answers") == true,
+            allowsRevoting = poll.optBoolean("allows_revoting", true),
+            isQuiz = isQuiz,
+            correctOptions = correct,
+            explanation = type?.optJSONObject("explanation")?.optString("text").orEmpty(),
+            isClosed = poll.optBoolean("is_closed")
+        )
+    }
+
+    /** A bot's inline buttons; empty for anything that is not a set of them. */
+    private fun inlineKeyboardOf(markup: JSONObject?): List<List<InlineButton>> {
+        if (markup?.optString("@type") != "replyMarkupInlineKeyboard") return emptyList()
+        return rowsOf(markup) { button ->
+            val type = button.optJSONObject("type")
+            val action = when (type?.optString("@type")) {
+                "inlineKeyboardButtonTypeUrl" -> ButtonAction.OpenUrl(type.optString("url"))
+                // Opened as the link it is: logging in through it and Mini
+                // Apps both need a web view this client does not have.
+                "inlineKeyboardButtonTypeLoginUrl", "inlineKeyboardButtonTypeWebApp" ->
+                    ButtonAction.OpenUrl(type.optString("url"))
+                "inlineKeyboardButtonTypeCallback" -> ButtonAction.Callback(type.optString("data"))
+                "inlineKeyboardButtonTypeCopyText" -> ButtonAction.CopyText(type.optString("text"))
+                else -> ButtonAction.Unsupported
+            }
+            InlineButton(button.optString("text"), action)
+        }
+    }
+
+    /** A bot's keyboard under the composer; null for any other markup. */
+    private fun replyKeyboardOf(markup: JSONObject?): ReplyKeyboard? {
+        if (markup?.optString("@type") != "replyMarkupShowKeyboard") return null
+        return ReplyKeyboard(
+            rows = rowsOf(markup) { button ->
+                ReplyKey(
+                    text = button.optString("text"),
+                    sendsText = button.optJSONObject("type")?.optString("@type")
+                        .let { it == null || it == "keyboardButtonTypeText" }
+                )
+            },
+            placeholder = markup.optString("input_field_placeholder"),
+            oneTime = markup.optBoolean("one_time")
+        )
+    }
+
+    private fun <T> rowsOf(markup: JSONObject, button: (JSONObject) -> T): List<List<T>> {
+        val rows = markup.optJSONArray("rows") ?: return emptyList()
+        return (0 until rows.length()).mapNotNull { r ->
+            val row = rows.optJSONArray(r) ?: return@mapNotNull null
+            (0 until row.length()).mapNotNull { index -> row.optJSONObject(index)?.let { button(it) } }
+                .takeIf { it.isNotEmpty() }
+        }
     }
 
     /**

@@ -33,6 +33,8 @@ SHOWCASE = [
     ("04-chat", "Conversation"),
     ("06-group-header", "Group"),
     ("31-video-note", "Video messages"),
+    ("34-poll", "Polls"),
+    ("35-bot", "Bot buttons"),
     ("28-old-search-hit", "Search"),
     ("21-story", "Stories"),
     ("09-attachments", "Attachments"),

@@ -34,6 +34,13 @@ import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
+import com.telegramyou.app.telegram.model.ButtonAction
+import com.telegramyou.app.telegram.model.CallbackAnswer
+import com.telegramyou.app.telegram.model.InlineButton
+import com.telegramyou.app.telegram.model.PollContent
+import com.telegramyou.app.telegram.model.PollOption
+import com.telegramyou.app.telegram.model.ReplyKey
+import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import com.telegramyou.app.ui.chat.formatDuration
@@ -738,6 +745,21 @@ class DemoTelegramClient(
             type = MessageContentType.Text,
             replyToId = replyToId
         )
+        if (chatId == BOT_CHAT_ID) scope.launch {
+            delay(500)
+            val answer = when (text.trim()) {
+                "Status" -> DEMO_BOT_STATUS
+                "Latest build" -> "Build 1.0.366, from main."
+                "Help" -> "Press a key below, or a button under a message."
+                else -> "I only know the keys below."
+            }
+            val reply = demoMessage(
+                messageId.incrementAndGet(), BOT_CHAT_ID, answer, false,
+                System.currentTimeMillis() / 1000, "Build Bot"
+            )
+            chatMessages.getOrPut(BOT_CHAT_ID) { mutableListOf() }.add(reply)
+            _messageUpdates.tryEmit(MessageUpdate.Added(reply))
+        }
     }
 
     override suspend fun sendAttachment(
@@ -864,6 +886,35 @@ class DemoTelegramClient(
      * restrictions to honour, so every chat offers all of them.
      */
     override suspend fun availableReactions(chatId: Long): List<String> = DEMO_REACTIONS
+
+    override suspend fun votePoll(chatId: Long, messageId: Long, optionIds: List<Int>) {
+        delay(150)
+        val bucket = chatMessages[chatId] ?: return
+        val index = bucket.indexOfFirst { it.id == messageId }
+        val poll = bucket.getOrNull(index)?.poll ?: return
+        val voted = poll.withVote(optionIds.toSet())
+        bucket[index] = bucket[index].copy(poll = voted)
+        _messageUpdates.tryEmit(MessageUpdate.PollChanged(chatId, messageId, voted))
+    }
+
+    override suspend fun pressButton(chatId: Long, messageId: Long, data: String): CallbackAnswer? {
+        delay(300)
+        return CallbackAnswer(text = DEMO_CHANGELOG_ANSWER)
+    }
+
+    /** The bot's keyboard is up from the start; nothing else has one. */
+    private val _replyKeyboards = MutableStateFlow(
+        mapOf(
+            BOT_CHAT_ID to ReplyKeyboard(
+                rows = listOf(
+                    listOf(ReplyKey("Status"), ReplyKey("Latest build")),
+                    listOf(ReplyKey("Help"))
+                ),
+                placeholder = "Ask the bot"
+            )
+        )
+    )
+    override val replyKeyboards: StateFlow<Map<Long, ReplyKeyboard>> = _replyKeyboards.asStateFlow()
 
     /**
      * Demo mode holds no remote files, so there is never anything to fetch.
@@ -1153,6 +1204,12 @@ class DemoTelegramClient(
             8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2,
             avatarColor = 88, folderIds = setOf(FOLDER_PEOPLE)
         ),
+        // A bot, so its buttons — under a message and under the composer —
+        // can be pressed without an account.
+        ChatPreview(
+            BOT_CHAT_ID, "Build Bot", "Build 1.0.366 is ready", "Thu",
+            avatarColor = 121
+        ),
         // Two in the archive from the start, one of them unread, so the entry
         // row has both halves of its summary to show offline — and so the
         // main list can be seen not to include them.
@@ -1412,6 +1469,55 @@ class DemoTelegramClient(
             demoMessage(25, 3, "Figma dump is in #files now", false, today - 90 * 60, "Sasha"),
             demoMessage(26, 3, "Reviewing tonight 👀", false, today - 40 * 60, "Ivan")
         )).toMutableList()
+        // A poll nobody here has answered yet, so voting is the first thing
+        // the chat offers, and a quiz already answered beside it, so the
+        // results and the right answer are visible without a tap.
+        chatMessages[7] = mutableListOf(
+            demoMessage(40, 7, "Compose BOM tips in the pinned post", false, yesterday, "Pavel"),
+            demoMessage(41, 7, DEMO_POLL_QUESTION, false, yesterday + 600, "Pavel").copy(
+                contentType = MessageContentType.Poll,
+                poll = PollContent(
+                    id = 41,
+                    question = DEMO_POLL_QUESTION,
+                    options = listOf(
+                        PollOption("LazyColumn", voterCount = 14, percentage = 47),
+                        PollOption("ListItem", voterCount = 9, percentage = 30),
+                        PollOption("SharedTransitionLayout", voterCount = 7, percentage = 23)
+                    ),
+                    totalVoters = 30,
+                    isAnonymous = true
+                )
+            ),
+            demoMessage(42, 7, "Which spring does MotionScheme.standard() use?", false, today - 30 * 60, "Nadia").copy(
+                contentType = MessageContentType.Poll,
+                poll = PollContent(
+                    id = 42,
+                    question = "Which spring does MotionScheme.standard() use?",
+                    options = listOf(
+                        PollOption("Bouncy", voterCount = 3, percentage = 25),
+                        PollOption("No bounce, critically damped", voterCount = 8, percentage = 67, isChosen = true),
+                        PollOption("A tween", voterCount = 1, percentage = 8)
+                    ),
+                    totalVoters = 12,
+                    isAnonymous = false,
+                    isQuiz = true,
+                    correctOptions = setOf(1),
+                    explanation = "Standard never overshoots; expressive does."
+                )
+            )
+        )
+        chatMessages[BOT_CHAT_ID] = mutableListOf(
+            demoMessage(50, BOT_CHAT_ID, "Hi! I post every build of TelegramYou.", false, yesterday, "Build Bot"),
+            demoMessage(51, BOT_CHAT_ID, "Build 1.0.366 is ready", false, today - 20 * 60, "Build Bot").copy(
+                inlineKeyboard = listOf(
+                    listOf(
+                        InlineButton("Download", ButtonAction.OpenUrl("https://github.com/TemaSil/TelegramYou")),
+                        InlineButton(DEMO_CHANGELOG_BUTTON, ButtonAction.Callback("Y2hhbmdlbG9n"))
+                    ),
+                    listOf(InlineButton("Copy version", ButtonAction.CopyText("1.0.366")))
+                )
+            )
+        )
     }
 
     /**
@@ -1476,7 +1582,14 @@ class DemoTelegramClient(
         video = video
     )
 
-    /** Telegram's default reaction set, in its order. */
+    /** The demo bot's chat; see seedChats. */
+private const val BOT_CHAT_ID = 11L
+internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
+internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
+internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
+internal const val DEMO_BOT_STATUS = "All green ✅"
+
+/** Telegram's default reaction set, in its order. */
 private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
 
 /**
