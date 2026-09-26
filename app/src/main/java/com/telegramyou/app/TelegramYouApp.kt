@@ -16,6 +16,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.telegramyou.app.settings.GeekStore
+import com.telegramyou.app.settings.QueryHistoryStore
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -40,6 +41,10 @@ class TelegramYouApp : Application() {
     lateinit var geeks: GeekStore
         private set
 
+    /** What was typed into search, newest first; see QueryHistory. */
+    lateinit var queryHistory: QueryHistoryStore
+        private set
+
     /** Checking for and installing a newer build; see AppUpdates. */
     lateinit var updates: AppUpdates
         private set
@@ -57,6 +62,7 @@ class TelegramYouApp : Application() {
         createNotificationChannels()
         appearance = AppearanceStore(this)
         geeks = GeekStore(this)
+        queryHistory = QueryHistoryStore(this)
         updates = AppUpdates(this)
         // Quietly, once a launch: nothing is said unless there is a newer
         // build, and then the Settings tab says so.

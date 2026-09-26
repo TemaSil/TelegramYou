@@ -70,6 +70,28 @@ interface TelegramChats {
     suspend fun searchChats(query: String, limit: Int = 30): List<ChatPreview>
 
     /**
+     * Public chats — channels, groups, bots — whose name or username matches
+     * [query] and that this account is not in. What makes search a way to
+     * find Telegram rather than only one's own chats.
+     */
+    suspend fun searchPublicChats(query: String): List<ChatPreview>
+
+    /** The people this account writes to most, for the top of search. */
+    suspend fun topPeople(limit: Int = 12): List<ChatPreview>
+
+    /**
+     * Chats opened from search, newest first — Telegram's own list, kept on
+     * the account, so it is the same on every device.
+     */
+    suspend fun recentlyFoundChats(): List<ChatPreview>
+    suspend fun addRecentlyFoundChat(chatId: Long)
+    suspend fun removeRecentlyFoundChat(chatId: Long)
+    suspend fun clearRecentlyFoundChats()
+
+    /** Channels Telegram suggests to this account; empty when it has none. */
+    suspend fun recommendedChannels(): List<ChatPreview>
+
+    /**
      * Silences a chat, or stops silencing it.
      *
      * [muted] rather than a toggle, so the caller sends what it drew: a toggle

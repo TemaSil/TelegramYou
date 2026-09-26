@@ -45,7 +45,7 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 
 | Search | Stories | Attachments | Chat info |
 |---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/28-old-search-hit.jpg" width="180" alt="Search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/21-story.jpg" width="180" alt="Stories"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> |
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/36-search.jpg" width="180" alt="Search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/21-story.jpg" width="180" alt="Stories"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> |
 
 | Privacy | Devices | Data and storage | For geeks |
 |---|---|---|---|
@@ -55,9 +55,9 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 |---|---|---|---|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/26-qr-login.jpg" width="180" alt="QR login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/27-email-code.jpg" width="180" alt="Email login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/23-proxy.jpg" width="180" alt="Proxy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
 
-| Polls | Bot buttons |
-|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="180" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/35-bot.jpg" width="180" alt="Bot buttons"> |
+| Polls | Bot buttons | Post search | Search in chat |
+|---|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="180" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/35-bot.jpg" width="180" alt="Bot buttons"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/37-post-search.jpg" width="180" alt="Post search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/28-old-search-hit.jpg" width="180" alt="Search in chat"> |
 
 Not drawn for this page: they are taken by the **UI** workflow, which drives
 the demo client on an emulator after every push to `main`, and they change
@@ -86,6 +86,10 @@ seen without an account:
   there; replies, edits, forwarding, selection, reactions, a pinned-message
   bar, an unread divider, and search that jumps to any message however old.
   A floating composer with the camera, the microphone and a sticker sheet.
+- **Search** — a section of its own: the people you write to most, recent
+  searches and chats found before, channels to try; then chats, messages,
+  groups, channels and bots across Telegram, and posts in public channels
+  anywhere.
 - **Polls and bots** — polls and quizzes answered in the bubble with the
   results drawn as they land, bots' buttons under their messages, and a
   bot's own keyboard above the composer.

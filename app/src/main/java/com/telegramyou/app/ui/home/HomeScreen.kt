@@ -160,6 +160,8 @@ fun HomeScreen(
     onOpenStory: (StoryItem) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    /** Everything else search can do; see SearchActions. */
+    searchActions: SearchActions = SearchActions(),
     onMutedChange: (Long, Boolean) -> Unit,
     onPinnedChange: (Long, Boolean) -> Unit,
     onMarkRead: (Long) -> Unit,
@@ -269,11 +271,13 @@ fun HomeScreen(
             // results belong to it — so the app bar underneath would only be
             // something to see through it.
             if (state.search.expanded) {
-                ChatSearchBar(
+                SearchSection(
                     search = state.search,
                     onQueryChange = onSearchQueryChange,
                     onExpandedChange = onSearchExpandedChange,
+                    actions = searchActions,
                     onOpenChat = { id ->
+                        searchActions.onResultOpened(id)
                         onSearchExpandedChange(false)
                         onOpenChat(id)
                     }
@@ -901,148 +905,6 @@ private fun FolderTabs(
             )
         }
     }
-}
-
-/**
- * Search across chats.
- *
- * Material's own [SearchBar], expanded to fill the screen, with the results
- * as [ChatListRow]s — the same row as the list behind it, because a result
- * and a chat are the same thing and should not look like two.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ChatSearchBar(
-    search: SearchState,
-    onQueryChange: (String) -> Unit,
-    onExpandedChange: (Boolean) -> Unit,
-    onOpenChat: (Long) -> Unit
-) {
-    SearchBar(
-        expanded = true,
-        onExpandedChange = onExpandedChange,
-        inputField = {
-            SearchBarDefaults.InputField(
-                query = search.query,
-                onQueryChange = onQueryChange,
-                onSearch = {},
-                expanded = true,
-                onExpandedChange = onExpandedChange,
-                placeholder = { Text("Search chats") },
-                leadingIcon = {
-                    IconButton(onClick = { onExpandedChange(false) }) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Close search"
-                        )
-                    }
-                },
-                trailingIcon = {
-                    if (search.isSearching) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                    } else if (search.query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Clear")
-                        }
-                    }
-                }
-            )
-        }
-    ) {
-        LazyColumn(
-            contentPadding = PaddingValues(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (search.results.isNotEmpty()) {
-                item(key = "chats-header") { SearchSectionHeader("Chats") }
-            }
-            items(search.results, key = { "chat-${it.id}" }) { chat ->
-                ChatListRow(
-                    chat = chat,
-                    onClick = { onOpenChat(chat.id) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp)
-                )
-            }
-            if (search.messages.isNotEmpty()) {
-                item(key = "messages-header") { SearchSectionHeader("Messages") }
-            }
-            items(
-                search.messages,
-                // A message id is only unique within its chat, so the chat
-                // has to be part of the key or two hits can collide.
-                key = { "msg-${it.chat.id}-${it.message.id}" }
-            ) { hit ->
-                MessageHitRow(hit = hit, onClick = { onOpenChat(hit.chat.id) })
-            }
-            // Said only once the search has actually looked, so a slow query
-            // does not report failure before it has an answer.
-            if (search.query.isNotBlank() && !search.isSearching && search.isEmpty) {
-                item {
-                    Text(
-                        text = "Nothing found for \u201C${search.query}\u201D",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchSectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-    )
-}
-
-/**
- * One message found by search, under the conversation it came from.
- *
- * A [ListItem] like the chat rows, but the roles are swapped: the chat title
- * is the headline and the message text the supporting line, because what
- * identifies a hit is where it was said.
- */
-@Composable
-private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
-    ListItem(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick),
-        colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
-        leadingContent = {
-            AvatarBubble(
-                title = hit.chat.title,
-                seed = hit.chat.avatarColor,
-                size = 40.dp,
-                shape = personShape(hit.chat.avatarColor),
-                photoPath = hit.chat.photoPath
-            )
-        },
-        headlineContent = {
-            Text(hit.chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
-        },
-        supportingContent = {
-            Text(hit.message.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        },
-        trailingContent = {
-            Text(
-                text = hit.message.timeLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    )
 }
 
 /**

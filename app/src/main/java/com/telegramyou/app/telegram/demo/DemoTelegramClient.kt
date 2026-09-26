@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
@@ -416,6 +417,85 @@ class DemoTelegramClient(
             .take(limit)
     }
 
+    /**
+     * Public chats this account is not in, for global search and the
+     * recommendations. Not in [_chats]: finding one does not join it.
+     */
+    private val publicChats = listOf(
+        ChatPreview(
+            PUBLIC_CHANNEL_ID, DEMO_PUBLIC_CHANNEL, "Material 3 Expressive, in depth", "",
+            isChannel = true, avatarColor = 131
+        ),
+        ChatPreview(
+            PUBLIC_CHANNEL_ID + 1, "Android Developers", "Compose 1.12 is out", "",
+            isChannel = true, avatarColor = 141
+        ),
+        ChatPreview(
+            PUBLIC_CHANNEL_ID + 2, "Compose Community", "Ask anything about Compose", "",
+            isGroup = true, avatarColor = 151
+        ),
+        ChatPreview(
+            PUBLIC_CHANNEL_ID + 3, "Material Colour Bot", "Send a colour, get a palette", "",
+            isBot = true, avatarColor = 161
+        )
+    )
+
+    /** Chats opened from search, newest first, the way TDLib keeps them. */
+    private val recentlyFound = mutableListOf(3L, BOT_CHAT_ID, 4L)
+
+    /** Free post searches left today; the demo counts them down. */
+    private var freePostSearches = 10
+
+    override suspend fun searchPublicChats(query: String): List<ChatPreview> {
+        if (query.isBlank()) return emptyList()
+        delay(200)
+        return publicChats.filter { it.title.contains(query, ignoreCase = true) }
+    }
+
+    override suspend fun topPeople(limit: Int): List<ChatPreview> {
+        delay(60)
+        return _chats.value
+            .filter { !it.isGroup && !it.isChannel && !it.isBot && !it.isArchived && it.title != "Saved Messages" }
+            .take(limit)
+    }
+
+    override suspend fun recentlyFoundChats(): List<ChatPreview> {
+        delay(60)
+        val known = (_chats.value + publicChats).associateBy { it.id }
+        return recentlyFound.mapNotNull { known[it] }
+    }
+
+    override suspend fun addRecentlyFoundChat(chatId: Long) {
+        recentlyFound.remove(chatId)
+        recentlyFound.add(0, chatId)
+    }
+
+    override suspend fun removeRecentlyFoundChat(chatId: Long) {
+        recentlyFound.remove(chatId)
+    }
+
+    override suspend fun clearRecentlyFoundChats() = recentlyFound.clear()
+
+    override suspend fun recommendedChannels(): List<ChatPreview> {
+        delay(80)
+        return publicChats.filter { it.isChannel }
+    }
+
+    override suspend fun searchPublicPosts(query: String, limit: Int): PostSearch {
+        if (query.isBlank()) return PostSearch()
+        delay(260)
+        if (freePostSearches == 0) {
+            return PostSearch(limitReached = true, freeLeft = 0, nextFreeInSeconds = 3 * 60 * 60)
+        }
+        freePostSearches -= 1
+        val hits = publicChats.filter { it.isChannel }.flatMap { channel ->
+            chatMessages[channel.id].orEmpty()
+                .filter { it.text.contains(query, ignoreCase = true) }
+                .map { MessageHit(chat = channel, message = it) }
+        }
+        return PostSearch(hits = hits.take(limit), freeLeft = freePostSearches)
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         delay(160)
@@ -561,7 +641,9 @@ class DemoTelegramClient(
 
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
-        val chat = _chats.value.first { it.id == chatId }
+        // A public chat found by search is readable before it is joined.
+        val chat = _chats.value.firstOrNull { it.id == chatId }
+            ?: publicChats.first { it.id == chatId }
         val messages = chatMessages.getOrPut(chatId) { mutableListOf() }
         return ChatDetail(
             chat = chat,
@@ -1208,7 +1290,7 @@ class DemoTelegramClient(
         // can be pressed without an account.
         ChatPreview(
             BOT_CHAT_ID, "Build Bot", "Build 1.0.366 is ready", "Thu",
-            avatarColor = 121
+            isBot = true, avatarColor = 121
         ),
         // Two in the archive from the start, one of them unread, so the entry
         // row has both halves of its summary to show offline — and so the
@@ -1506,6 +1588,21 @@ class DemoTelegramClient(
                 )
             )
         )
+        // Posts in the public channels, for post search and for reading one
+        // found that way before joining it.
+        chatMessages[PUBLIC_CHANNEL_ID] = mutableListOf(
+            demoMessage(60, PUBLIC_CHANNEL_ID, "Why Expressive motion uses springs, not curves", false, yesterday, DEMO_PUBLIC_CHANNEL),
+            demoMessage(61, PUBLIC_CHANNEL_ID, "Shape morphing in Material 3 Expressive, explained", false, today - 2 * 60 * 60, DEMO_PUBLIC_CHANNEL)
+        )
+        chatMessages[PUBLIC_CHANNEL_ID + 1] = mutableListOf(
+            demoMessage(70, PUBLIC_CHANNEL_ID + 1, "Compose 1.12 is out: what changed for Material 3", false, today - 60 * 60, "Android Developers")
+        )
+        chatMessages[PUBLIC_CHANNEL_ID + 2] = mutableListOf(
+            demoMessage(80, PUBLIC_CHANNEL_ID + 2, "Ask anything about Compose", false, yesterday, "Compose Community")
+        )
+        chatMessages[PUBLIC_CHANNEL_ID + 3] = mutableListOf(
+            demoMessage(90, PUBLIC_CHANNEL_ID + 3, "Send a colour, get a palette", false, yesterday, "Material Colour Bot")
+        )
         chatMessages[BOT_CHAT_ID] = mutableListOf(
             demoMessage(50, BOT_CHAT_ID, "Hi! I post every build of TelegramYou.", false, yesterday, "Build Bot"),
             demoMessage(51, BOT_CHAT_ID, "Build 1.0.366 is ready", false, today - 20 * 60, "Build Bot").copy(
@@ -1680,6 +1777,10 @@ const val DEMO_ARCHIVE_FIRST_LINE = "Kickoff: first sketches of the floating com
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L
+
+/** The first of the public chats search finds; see publicChats. */
+private const val PUBLIC_CHANNEL_ID = 500L
+internal const val DEMO_PUBLIC_CHANNEL = "Expressive Design Weekly"
 internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
 internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
 internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"

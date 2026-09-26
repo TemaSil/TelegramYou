@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PrivacyAudience
 import com.telegramyou.app.telegram.model.PrivacyRules
 import com.telegramyou.app.telegram.model.PrivacySetting
@@ -322,6 +323,34 @@ class FakeTelegramClient(
             mutableAuthState.value = mutableAuthState.value.copy(me = value)
         }
     override suspend fun refreshChats() = Unit
+
+    /** Public chats the next global search finds. */
+    var publicChats: List<ChatPreview> = emptyList()
+    override suspend fun searchPublicChats(query: String): List<ChatPreview> =
+        publicChats.filter { it.title.contains(query, ignoreCase = true) }
+
+    var people: List<ChatPreview> = emptyList()
+    override suspend fun topPeople(limit: Int): List<ChatPreview> = people.take(limit)
+
+    val recentlyFound = mutableListOf<ChatPreview>()
+    override suspend fun recentlyFoundChats(): List<ChatPreview> = recentlyFound.toList()
+    override suspend fun addRecentlyFoundChat(chatId: Long) {
+        val chat = (chats.value + searchable + publicChats).firstOrNull { it.id == chatId } ?: return
+        recentlyFound.removeAll { it.id == chatId }
+        recentlyFound.add(0, chat)
+    }
+    override suspend fun removeRecentlyFoundChat(chatId: Long) {
+        recentlyFound.removeAll { it.id == chatId }
+    }
+    override suspend fun clearRecentlyFoundChats() = recentlyFound.clear()
+    override suspend fun recommendedChannels(): List<ChatPreview> = emptyList()
+
+    var postSearch = PostSearch()
+    var postSearchCount = 0
+    override suspend fun searchPublicPosts(query: String, limit: Int): PostSearch {
+        postSearchCount++
+        return postSearch
+    }
 
     override suspend fun searchChats(query: String, limit: Int): List<ChatPreview> {
         searchCount++

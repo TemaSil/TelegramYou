@@ -904,6 +904,24 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       so this is `addChatToList`, with membership read from positions
 - [x] Search — `SearchBar`, server-side across chats **and** message text,
       in two labelled sections
+- [x] Search as a section of its own. Empty, it is a front page: the people
+      written to most (`getTopChats`) as a row of faces, recent searches as
+      `SuggestionChip`s (kept on the device, the prefixes typed on the way
+      folded into the finished word), the chats opened from search before
+      (Telegram's own `searchRecentlyFoundChats`, each removable, all
+      clearable), and channels Telegram suggests (`getRecommendedChats`).
+      With a query, `SecondaryScrollableTabRow` tabs — All, Chats, Messages,
+      Posts, Channels, Groups, Bots. Chats are the account's own first, then
+      **Global search** (`searchPublicChats`) for public ones it is not in,
+      each once. **Posts** searches public channels anywhere on Telegram
+      (`searchPublicPosts`) on a button or the keyboard's search key, never
+      while typing: Telegram gives a few free post searches a day and asks
+      Stars for more, and this client never pays — it says how many are left
+      and, once they are gone, when the next one comes. The tab and merge
+      rules are in `:core` with tests
+- [x] Channels read as channels. A channel is a supergroup with `is_channel`
+      inside its type; the flag was read off the chat, where it never is, so
+      every channel was drawn and filtered as a group
 - [x] Grouped into containers — `SegmentedListItem` with
       `ListItemDefaults.segmentedShapes(index, count)`; pinned chats are one
       run, everything else another

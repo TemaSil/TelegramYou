@@ -98,6 +98,7 @@ class MainActivity : ComponentActivity() {
                             repository = app.telegramRepository,
                             appearance = app.appearance,
                             geeks = app.geeks,
+                            queryHistory = app.queryHistory,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }

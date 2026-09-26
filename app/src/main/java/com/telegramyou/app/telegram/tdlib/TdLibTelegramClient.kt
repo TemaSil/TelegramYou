@@ -40,6 +40,7 @@ import com.telegramyou.app.ui.format.memberCountLabel
 import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.packWaveform
 import com.telegramyou.app.telegram.model.unpackWaveform
@@ -495,6 +496,105 @@ class TdLibTelegramClient(
             out += toPreview(chat)
         }
         return out
+    }
+
+    override suspend fun searchPublicChats(query: String): List<ChatPreview> {
+        if (query.isBlank()) return emptyList()
+        awaitReady()
+        return chatsFrom("searchPublicChats") { it.put("query", query) }
+    }
+
+    override suspend fun topPeople(limit: Int): List<ChatPreview> {
+        awaitReady()
+        return chatsFrom("getTopChats") {
+            it.put("category", JSONObject().put("@type", "topChatCategoryUsers"))
+                .put("limit", limit)
+        }
+    }
+
+    override suspend fun recentlyFoundChats(): List<ChatPreview> {
+        awaitReady()
+        // An empty query is how TDLib lists them all, up to fifty.
+        return chatsFrom("searchRecentlyFoundChats") { it.put("query", "").put("limit", 50) }
+    }
+
+    override suspend fun addRecentlyFoundChat(chatId: Long) {
+        awaitReady()
+        quietly("addRecentlyFoundChat") { it.put("chat_id", chatId) }
+    }
+
+    override suspend fun removeRecentlyFoundChat(chatId: Long) {
+        awaitReady()
+        quietly("removeRecentlyFoundChat") { it.put("chat_id", chatId) }
+    }
+
+    override suspend fun clearRecentlyFoundChats() {
+        awaitReady()
+        quietly("clearRecentlyFoundChats") { it }
+    }
+
+    override suspend fun recommendedChannels(): List<ChatPreview> {
+        awaitReady()
+        return chatsFrom("getRecommendedChats") { it }
+    }
+
+    /**
+     * One of TDLib's many requests that answer with `chats` — a list of ids
+     * whose chats it has already announced — read into rows. A refusal is an
+     * empty list: every caller is a part of search that can simply be absent.
+     */
+    private suspend fun chatsFrom(type: String, fill: (JSONObject) -> JSONObject): List<ChatPreview> {
+        val found = try {
+            requireEngine().send(fill(JSONObject().put("@type", type)))
+        } catch (e: TdLibException) {
+            Log.w(TAG, "$type: ${e.message}")
+            return emptyList()
+        }
+        val ids = found.optJSONArray("chat_ids") ?: return emptyList()
+        return (0 until ids.length()).mapNotNull { index -> chatsById[ids.optLong(index)]?.let(::toPreview) }
+    }
+
+    /** A request whose failure costs nothing worth telling anyone about. */
+    private suspend fun quietly(type: String, fill: (JSONObject) -> JSONObject) {
+        try {
+            requireEngine().send(fill(JSONObject().put("@type", type)))
+        } catch (e: TdLibException) {
+            Log.w(TAG, "$type: ${e.message}")
+        }
+    }
+
+    override suspend fun searchPublicPosts(query: String, limit: Int): PostSearch {
+        if (query.isBlank()) return PostSearch()
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchPublicPosts")
+                    .put("query", query)
+                    .put("offset", "")
+                    .put("limit", limit)
+                    // Never pays: a search that costs Stars is refused here
+                    // rather than charged, and the tab says why.
+                    .put("star_count", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchPublicPosts: ${e.message}")
+            return PostSearch(limitReached = e.message.orEmpty().contains("LIMIT", ignoreCase = true))
+        }
+        val limits = found.optJSONObject("search_limits")
+        val array = found.optJSONArray("messages") ?: JSONArray()
+        val hits = (0 until array.length()).mapNotNull { index ->
+            val raw = array.optJSONObject(index) ?: return@mapNotNull null
+            val chatId = raw.optLong("chat_id")
+            val chat = chatsById[chatId] ?: return@mapNotNull null
+            MessageHit(chat = toPreview(chat), message = mapMessage(chatId, raw))
+        }
+        return PostSearch(
+            hits = hits,
+            limitReached = found.optBoolean("are_limits_exceeded"),
+            freeLeft = limits?.optInt("remaining_free_query_count"),
+            nextFreeInSeconds = limits?.optInt("next_free_query_in") ?: 0
+        )
     }
 
     override suspend fun searchChatMessages(
@@ -2745,8 +2845,13 @@ class TdLibTelegramClient(
             isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
             isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
             photoPath = photoPath(chat.optJSONObject("photo")?.optJSONObject("small")),
-            isChannel = chat.optBoolean("is_channel") || type.contains("channel", ignoreCase = true),
-            isGroup = type == "chatTypeBasicGroup" || type == "chatTypeSupergroup",
+            // A channel is a supergroup with is_channel set inside its type.
+            // This read the flag off the chat itself, where it never is, so
+            // every channel was drawn and filtered as a group.
+            isChannel = chat.optJSONObject("type")?.optBoolean("is_channel") == true,
+            isGroup = type == "chatTypeBasicGroup" ||
+                (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
+            isBot = privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot",
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
             isArchived = positions.isArchived(id)

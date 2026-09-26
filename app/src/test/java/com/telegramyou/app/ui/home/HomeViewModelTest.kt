@@ -5,6 +5,8 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.SearchScope
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -239,6 +241,67 @@ class HomeViewModelTest {
         assertEquals("the design is done", search.messages.single().message.text)
         assertEquals("one debounce, not one per half", 1, client.searchCount)
         assertEquals(1, client.messageSearchCount)
+    }
+
+    @Test
+    fun `public chats come after the account's own, each once`() = runTest {
+        val (vm, client) = viewModel()
+        client.publicChats = listOf(chat(1, "Material Design"), chat(40, "Design Weekly").copy(isChannel = true))
+
+        vm.onSearchQueryChange("design")
+        advanceUntilIdle()
+
+        val chats = vm.uiState.value.search.chats
+        assertEquals(listOf("Material Design", "Design crit"), chats.mine.map { it.title })
+        assertEquals(listOf("Design Weekly"), chats.global.map { it.title })
+        vm.onSearchScopeChange(SearchScope.Channels)
+        assertEquals(listOf("Design Weekly"), vm.uiState.value.search.visibleChats.global.map { it.title })
+    }
+
+    @Test
+    fun `posts are searched when asked, not while typing`() = runTest {
+        val (vm, client) = viewModel()
+        client.postSearch = PostSearch(freeLeft = 4)
+
+        vm.onSearchScopeChange(SearchScope.Posts)
+        vm.onSearchQueryChange("design")
+        advanceUntilIdle()
+        assertEquals("typing spends no post search", 0, client.postSearchCount)
+        assertNull(vm.uiState.value.search.posts)
+
+        vm.onSearchSubmit()
+        advanceUntilIdle()
+        assertEquals(1, client.postSearchCount)
+        assertEquals(4, vm.uiState.value.search.posts?.freeLeft)
+
+        vm.onSearchQueryChange("designs")
+        assertNull("a new query drops the old posts", vm.uiState.value.search.posts)
+    }
+
+    @Test
+    fun `opening a result remembers the chat and the words`() = runTest {
+        val (vm, client) = viewModel()
+        vm.onSearchExpandedChange(true)
+        vm.onSearchQueryChange("lina")
+        advanceUntilIdle()
+
+        vm.onSearchResultOpened(2)
+        advanceUntilIdle()
+        assertEquals(listOf(2L), client.recentlyFound.map { it.id })
+
+        vm.onSearchExpandedChange(false)
+        vm.onSearchExpandedChange(true)
+        advanceUntilIdle()
+        val search = vm.uiState.value.search
+        assertEquals(listOf("lina"), search.recentQueries)
+        assertEquals(listOf("Lina Park"), search.recentChats.map { it.title })
+
+        vm.onRecentChatsCleared()
+        vm.onRecentQueriesCleared()
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.search.recentChats.isEmpty())
+        assertTrue(vm.uiState.value.search.recentQueries.isEmpty())
+        assertTrue(client.recentlyFound.isEmpty())
     }
 
     @Test

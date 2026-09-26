@@ -1371,6 +1371,32 @@ class SmokeTest {
         screenshot("35-bot")
     }
 
+    /**
+     * Search as a section of its own: with nothing typed, the people written
+     * to most and the chats found before; with a word, the account's chats
+     * and public ones apart, and posts from public channels on request —
+     * one of which opens its channel.
+     */
+    @Test
+    fun searchFindsChatsAndPublicPosts() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Search"))
+        waitFor(By.text("People"), "the people written to most")
+        waitFor(By.text("Recent"), "the chats found before")
+        screenshot("36-search")
+        type("Expressive")
+        waitFor(By.text("Global search"), "public chats")
+        waitFor(By.text("Expressive Design Weekly"), "a public channel")
+        tap(By.text("Posts"))
+        tap(By.text("Search posts"))
+        waitFor(By.textContains("Shape morphing"), "a public post")
+        screenshot("37-post-search")
+        tap(By.textContains("Shape morphing"))
+        waitFor(By.textContains("springs, not curves"), "the channel the post is in")
+    }
+
     /** Drags the chat list up until [selector] is on screen. */
     private fun scrollChatsTo(selector: BySelector) {
         repeat(8) {

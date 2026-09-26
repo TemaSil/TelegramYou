@@ -5,6 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.SearchChats
+import com.telegramyou.app.telegram.model.SearchScope
+import com.telegramyou.app.telegram.model.mergeChatResults
+import com.telegramyou.app.settings.InMemoryQueryHistory
+import com.telegramyou.app.settings.QueryHistory
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.ui.profile.ProfileDraft
@@ -146,16 +152,41 @@ private data class ProfileEditing(
 data class SearchState(
     val expanded: Boolean = false,
     val query: String = "",
-    val results: List<ChatPreview> = emptyList(),
+    /** The tab under the field, once something is typed. */
+    val scope: SearchScope = SearchScope.All,
+    /** Chats by name: the account's own first, then public ones. */
+    val chats: SearchChats = SearchChats(),
     val messages: List<MessageHit> = emptyList(),
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    /**
+     * Public posts for [query], or null until they have been asked for.
+     *
+     * Asked for only on purpose — the Posts tab's button or the keyboard's
+     * search key — never while typing: Telegram allows a few free post
+     * searches a day, and a debounce would spend one on every pause.
+     */
+    val posts: PostSearch? = null,
+    val isSearchingPosts: Boolean = false,
+    // What the empty field shows: the search section's own front page.
+    val topPeople: List<ChatPreview> = emptyList(),
+    val recentChats: List<ChatPreview> = emptyList(),
+    val recentQueries: List<String> = emptyList(),
+    val recommended: List<ChatPreview> = emptyList()
 ) {
+    /** The account's own chats that matched, in the server's order. */
+    val results: List<ChatPreview> get() = chats.mine
+
     /** Used to decide whether the screen may say nothing was found. */
-    val isEmpty: Boolean get() = results.isEmpty() && messages.isEmpty()
+    val isEmpty: Boolean get() = chats.isEmpty && messages.isEmpty()
+
+    /** What the current tab shows of the chats found. */
+    val visibleChats: SearchChats get() = chats.filteredBy(scope)
 }
 
 class HomeViewModel(
-    private val repository: TelegramRepository
+    private val repository: TelegramRepository,
+    /** What was typed into search before; this device's, not the account's. */
+    private val queryHistory: QueryHistory = InMemoryQueryHistory()
 ) : ViewModel() {
 
     /** Set here rather than in the screen, so a rotation mid-refresh keeps it. */
@@ -165,6 +196,9 @@ class HomeViewModel(
 
     /** Cancelled on each keystroke, which is what makes the delay a debounce. */
     private var searchJob: Job? = null
+
+    /** A post search in flight; see [SearchState.posts]. */
+    private var postJob: Job? = null
 
     private val profileEditing = MutableStateFlow(ProfileEditing())
 
@@ -247,29 +281,118 @@ class HomeViewModel(
 
     // ── search ───────────────────────────────────────────────────────────
 
+    init {
+        viewModelScope.launch {
+            queryHistory.queries.collect { queries ->
+                search.update { it.copy(recentQueries = queries) }
+            }
+        }
+    }
+
     fun onSearchExpandedChange(expanded: Boolean) {
         searchJob?.cancel()
+        postJob?.cancel()
         search.value = if (expanded) {
             search.value.copy(expanded = true)
         } else {
             // Closing clears it. A query left behind would silently filter the
             // list the next time the field is opened.
-            SearchState()
+            SearchState(recentQueries = queryHistory.queries.value)
         }
+        if (expanded) loadSearchFrontPage()
+    }
+
+    /**
+     * The empty field's page: people, chats found before, channels to try.
+     *
+     * Fetched each time search opens rather than kept, because every part
+     * of it changes as the account is used — and each is a local answer from
+     * TDLib, except the recommendations, which may take a moment and simply
+     * appear when they arrive.
+     */
+    private fun loadSearchFrontPage() {
+        viewModelScope.launch {
+            val people = runCatching { repository.topPeople() }.getOrDefault(emptyList())
+            val recent = runCatching { repository.recentlyFoundChats() }.getOrDefault(emptyList())
+            search.update { it.copy(topPeople = people, recentChats = recent) }
+            val recommended = runCatching { repository.recommendedChannels() }.getOrDefault(emptyList())
+            search.update { it.copy(recommended = recommended) }
+        }
+    }
+
+    fun onSearchScopeChange(scope: SearchScope) {
+        search.update { it.copy(scope = scope) }
+    }
+
+    /**
+     * The keyboard's search key: the query is kept in the history, and on
+     * the Posts tab it is what spends a post search.
+     */
+    fun onSearchSubmit() {
+        val query = search.value.query
+        if (query.isBlank()) return
+        queryHistory.remember(query)
+        if (search.value.scope == SearchScope.Posts) onSearchPosts()
+    }
+
+    /** Public posts for the current query; see [SearchState.posts]. */
+    fun onSearchPosts() {
+        val query = search.value.query
+        if (query.isBlank()) return
+        postJob?.cancel()
+        search.update { it.copy(isSearchingPosts = true) }
+        postJob = viewModelScope.launch {
+            val found = runCatching { repository.searchPublicPosts(query) }.getOrDefault(PostSearch())
+            search.update {
+                // A query changed while this was on its way has moved on.
+                if (it.query != query) it else it.copy(posts = found, isSearchingPosts = false)
+            }
+        }
+    }
+
+    /**
+     * A result was opened. The chat joins Telegram's list of chats found,
+     * and the words that found it join ours.
+     */
+    fun onSearchResultOpened(chatId: Long) {
+        queryHistory.remember(search.value.query)
+        viewModelScope.launch { runCatching { repository.addRecentlyFoundChat(chatId) } }
+    }
+
+    fun onRecentQueryPicked(query: String) = onSearchQueryChange(query)
+
+    fun onRecentQueriesCleared() = queryHistory.clear()
+
+    fun onRecentChatRemoved(chatId: Long) {
+        search.update { state -> state.copy(recentChats = state.recentChats.filterNot { it.id == chatId }) }
+        viewModelScope.launch { runCatching { repository.removeRecentlyFoundChat(chatId) } }
+    }
+
+    fun onRecentChatsCleared() {
+        search.update { it.copy(recentChats = emptyList()) }
+        viewModelScope.launch { runCatching { repository.clearRecentlyFoundChats() } }
     }
 
     fun onSearchQueryChange(query: String) {
         searchJob?.cancel()
+        postJob?.cancel()
         if (query.isBlank()) {
             search.value = search.value.copy(
                 query = query,
-                results = emptyList(),
+                chats = SearchChats(),
                 messages = emptyList(),
-                isSearching = false
+                posts = null,
+                isSearching = false,
+                isSearchingPosts = false
             )
             return
         }
-        search.value = search.value.copy(query = query, isSearching = true)
+        search.value = search.value.copy(
+            query = query,
+            isSearching = true,
+            posts = null,
+            isSearchingPosts = false
+        )
         searchJob = viewModelScope.launch {
             // Long enough that typing a word is one request rather than five,
             // short enough that it does not feel like waiting.
@@ -277,9 +400,12 @@ class HomeViewModel(
             // Both halves of one search, so the screen never shows chats
             // while still waiting on messages and looks half-finished.
             val chats = repository.searchChats(query)
+            // Public chats the account is not in, which is what makes this a
+            // way to find Telegram and not only one's own list.
+            val global = runCatching { repository.searchPublicChats(query) }.getOrDefault(emptyList())
             val messages = repository.searchMessages(query)
             search.value = search.value.copy(
-                results = chats,
+                chats = mergeChatResults(chats, global),
                 messages = messages,
                 isSearching = false
             )

@@ -5,6 +5,8 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.settings.InMemoryQueryHistory
+import com.telegramyou.app.settings.QueryHistory
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
@@ -27,10 +29,13 @@ import com.telegramyou.app.ui.stories.StoryViewModel
  * takes it through `SavedStateHandle` rather than through this factory, so
  * the argument survives process death with the rest of the state.
  */
-fun telegramViewModelFactory(repository: TelegramRepository): ViewModelProvider.Factory =
+fun telegramViewModelFactory(
+    repository: TelegramRepository,
+    queryHistory: QueryHistory = InMemoryQueryHistory()
+): ViewModelProvider.Factory =
     viewModelFactory {
         initializer { AuthViewModel(repository) }
-        initializer { HomeViewModel(repository) }
+        initializer { HomeViewModel(repository, queryHistory) }
         initializer { ChatViewModel(repository, createSavedStateHandle()) }
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
         initializer { NewChatViewModel(repository) }

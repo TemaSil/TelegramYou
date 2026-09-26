@@ -68,6 +68,9 @@ import androidx.compose.runtime.mutableStateOf
 import com.telegramyou.app.ui.settings.SettingsScreen
 import com.telegramyou.app.ui.settings.GeeksScreen
 import com.telegramyou.app.settings.GeekStore
+import com.telegramyou.app.settings.InMemoryQueryHistory
+import com.telegramyou.app.settings.QueryHistory
+import com.telegramyou.app.ui.home.SearchActions
 import com.telegramyou.app.settings.LocalGeekSettings
 import com.telegramyou.app.ui.settings.DevicesScreen
 import com.telegramyou.app.ui.settings.PrivacyScreen
@@ -87,6 +90,8 @@ fun TelegramYouNavHost(
     appearance: AppearanceStore,
     /** Settings → For geeks; defaults where none is given, as in previews. */
     geeks: GeekStore? = null,
+    /** Search's recent queries; kept in memory where none is given. */
+    queryHistory: QueryHistory? = null,
     /** A chat a notification asked to open, or null. */
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
@@ -98,7 +103,9 @@ fun TelegramYouNavHost(
     // Only the auth state is read here, and only to decide where to send the
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
-    val viewModelFactory = remember(repository) { telegramViewModelFactory(repository) }
+    val viewModelFactory = remember(repository) {
+        telegramViewModelFactory(repository, queryHistory ?: InMemoryQueryHistory())
+    }
     val geekSettings = LocalGeekSettings.current
 
     // A chat opened from a list: its messages first, then the screen — so the
@@ -277,6 +284,16 @@ fun TelegramYouNavHost(
                     if (!expanded && tab == HomeTab.Search) tab = HomeTab.Chats
                 },
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
+                searchActions = SearchActions(
+                    onScopeChange = homeViewModel::onSearchScopeChange,
+                    onSubmit = homeViewModel::onSearchSubmit,
+                    onSearchPosts = homeViewModel::onSearchPosts,
+                    onResultOpened = homeViewModel::onSearchResultOpened,
+                    onRecentQueryPicked = homeViewModel::onRecentQueryPicked,
+                    onRecentQueriesCleared = homeViewModel::onRecentQueriesCleared,
+                    onRecentChatRemoved = homeViewModel::onRecentChatRemoved,
+                    onRecentChatsCleared = homeViewModel::onRecentChatsCleared
+                ),
                 onMutedChange = homeViewModel::onMutedChange,
                 onPinnedChange = homeViewModel::onPinnedChange,
                 onMarkRead = homeViewModel::onMarkRead,

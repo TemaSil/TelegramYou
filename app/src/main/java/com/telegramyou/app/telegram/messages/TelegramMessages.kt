@@ -6,6 +6,7 @@ import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageUpdate
+import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -170,6 +171,13 @@ interface TelegramMessages {
      * does: an empty field is not a request for the whole history.
      */
     suspend fun searchMessages(query: String, limit: Int = 30): List<MessageHit>
+
+    /**
+     * Posts in public channels matching [query], whether or not this account
+     * follows them. Telegram allows a few of these a day for free and asks
+     * Stars for more; this never pays, and says so in the result instead.
+     */
+    suspend fun searchPublicPosts(query: String, limit: Int = 30): PostSearch
 
     /**
      * The photos and videos in a chat, newest first.

@@ -110,6 +110,8 @@ data class ChatPreview(
     val photoPath: String? = null,
     val isChannel: Boolean = false,
     val isGroup: Boolean = false,
+    /** A private chat with a bot rather than a person. */
+    val isBot: Boolean = false,
     val avatarColor: Long = id,
     val hasUnreadMention: Boolean = false,
     /**
