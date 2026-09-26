@@ -199,6 +199,34 @@ jobs:
       # in question were cancelled by this workflow's own cancel-in-progress,
       # not stuck — and filtering only stood between a failure and its
       # explanation.
+      # TEMPORARY, on this probe branch only. ButtonGroup threw
+      # "maxWidth must be >= minWidth" from ButtonGroupMeasurePolicy.measure
+      # (ButtonGroup.kt:712) on the profile. The library's own source is the
+      # only authority, and CI is the one place that reaches Google's Maven.
+      - name: Read ButtonGroup's measure policy
+        if: always()
+        run: |
+          V=1.5.0-alpha29
+          BASE=https://dl.google.com/dl/android/maven2/androidx/compose/material3/material3-android
+          curl -sSfL "$BASE/$V/material3-android-$V-sources.jar" -o m3src.jar || { echo "::error::no sources jar"; exit 0; }
+          unzip -o -q m3src.jar -d m3src
+          F=$(find m3src -name ButtonGroup.kt | head -1)
+          echo "file: $F ($(wc -l < "$F") lines)"
+          python3 - "$F" <<'PY'
+          import sys
+          lines = open(sys.argv[1]).read().splitlines()
+          def emit(a, b):
+              chunk = "\n".join(f"{i+1}: {lines[i]}" for i in range(a - 1, min(b, len(lines))))
+              chunk = chunk.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              print(f"::notice title=ButtonGroup.kt {a}-{b}::{chunk}")
+          for start in range(560, 800, 40):
+              emit(start, start + 39)
+          # And every line mentioning the things that decide the widths.
+          hits = [i for i, l in enumerate(lines) if any(k in l for k in ("overflow", "expandedRatio", "weight", "minWidth", "copy("))]
+          emit_lines = "\n".join(f"{i+1}: {lines[i].strip()}" for i in hits[:80])
+          print("::notice title=ButtonGroup.kt hits::" + emit_lines.replace("%", "%25").replace("\n", "%0A"))
+          PY
+
       - name: Assemble debug
         timeout-minutes: 15
         run: |
