@@ -689,6 +689,11 @@ class SmokeTest {
                 .append(if (left) "left Work" else "stayed on Work").append('\n')
             if (left) break
             screenshot("folder-swipe-${attempt + 1}-stayed")
+            // What the accessibility tree still holds, bounds and all: the
+            // group's row has been reported with its page off screen.
+            TestStorage().openOutputFile("hierarchy-folder-swipe-${attempt + 1}.xml").use { out ->
+                device.dumpWindowHierarchy(out)
+            }
         }
         TestStorage().openOutputFile("frames-folder-swipe.txt").use { it.write(tries.toString().toByteArray()) }
         assertTrue("the second swipe should have left Work and its group behind", left)
@@ -1263,7 +1268,13 @@ class SmokeTest {
         // mark. One pattern: a selector takes a single text condition.
         tap(By.text(Pattern.compile("Clear [0-9.]+ GB")))
         tap(By.text("Clear"))
-        waitFor(By.textStartsWith("Cleared"), "the cache cleared")
+        // The cleared kinds leaving the list, rather than the snackbar that
+        // says so: it is on screen four seconds, and the emulator's slow
+        // polls have missed it while the clearing itself had worked.
+        assertTrue(
+            "the cleared videos should have left the list",
+            device.wait(Until.gone(By.text("Videos")), STEP_TIMEOUT)
+        )
         assertTrue(
             "the cleared videos should leave the list",
             device.wait(Until.gone(By.text("Videos")), STEP_TIMEOUT)
