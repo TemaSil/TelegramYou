@@ -139,7 +139,7 @@ fun DevicesScreen(
             state.current?.let { current ->
                 item(key = "this") {
                     SettingsGroup("This device") {
-                        custom { index, count -> SessionRow(index, count, current, current.activityLabel(now, timeLabel), onClick = null) }
+                        sessionRow(current, current.activityLabel(now, timeLabel), onClick = null)
                     }
                 }
             }
@@ -162,15 +162,11 @@ fun DevicesScreen(
                 item(key = "others") {
                     SettingsGroup("Active sessions") {
                         state.others.forEach { session ->
-                            custom { index, count ->
-                                SessionRow(
-                                    index,
-                                    count,
-                                    session,
-                                    session.activityLabel(now, timeLabel),
-                                    onClick = if (state.isWorking) null else ({ onSessionSelected(session) })
-                                )
-                            }
+                            sessionRow(
+                                session,
+                                session.activityLabel(now, timeLabel),
+                                onClick = if (state.isWorking) null else ({ onSessionSelected(session) })
+                            )
                         }
                     }
                 }
@@ -180,10 +176,8 @@ fun DevicesScreen(
 }
 
 @Composable
-private fun SessionRow(index: Int, count: Int, session: ActiveSession, activity: String, onClick: (() -> Unit)?) {
-    SettingsItem(
-        index = index,
-        count = count,
+private fun SettingsGroupScope.sessionRow(session: ActiveSession, activity: String, onClick: (() -> Unit)?) {
+    item(
         title = session.title(),
         summary = listOfNotNull(
             session.appLine().takeIf { it.isNotBlank() },

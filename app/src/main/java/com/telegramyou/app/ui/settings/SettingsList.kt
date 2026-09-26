@@ -40,12 +40,27 @@ import androidx.compose.ui.unit.dp
  * cannot know about its siblings.
  */
 class SettingsGroupScope internal constructor() {
-    internal val rows = mutableListOf<@Composable (index: Int, count: Int) -> Unit>()
+    // Rows as data, drawn by the group itself. They were composable lambdas
+    // first, called from the group with their place in it, and Compose
+    // skipped any whose place had not changed — so a row went on showing
+    // what it was first given: a privacy rule changed in its dialog kept its
+    // old summary, an ended session stayed in the list. Data has no such
+    // trap: the group redraws every row from what it holds now.
+    internal val rows = mutableListOf<SettingsRow>()
 
-    // Composable, both, so the row lambdas they make are created inside the
-    // composition and Compose tracks what they capture. Made outside it, a
-    // row kept drawing the value it was first given: a privacy rule changed
-    // in its dialog went on saying what it had said before.
+    /** Any row; [link] and [switch] are the common shapes of it. */
+    fun item(
+        title: String,
+        onClick: () -> Unit,
+        modifier: Modifier = Modifier,
+        summary: String? = null,
+        leading: (@Composable () -> Unit)? = null,
+        trailing: (@Composable () -> Unit)? = null,
+        titleColor: Color = Color.Unspecified,
+        below: (@Composable () -> Unit)? = null
+    ) {
+        rows += SettingsRow(title, onClick, modifier, summary, leading, trailing, titleColor, below)
+    }
 
     /** A row that opens somewhere else. */
     @Composable
@@ -57,20 +72,14 @@ class SettingsGroupScope internal constructor() {
         titleColor: Color = Color.Unspecified,
         trailing: (@Composable () -> Unit)? = null,
         onClick: () -> Unit
-    ) {
-        rows += { index, count ->
-            SettingsItem(
-                index = index,
-                count = count,
-                title = title,
-                summary = summary,
-                leading = icon?.let { { SettingsIcon(it, tone) } },
-                trailing = trailing,
-                titleColor = titleColor,
-                onClick = onClick
-            )
-        }
-    }
+    ) = item(
+        title = title,
+        onClick = onClick,
+        summary = summary,
+        leading = icon?.let { { SettingsIcon(it, tone) } },
+        trailing = trailing,
+        titleColor = titleColor
+    )
 
     /** A row that is a switch — the whole row toggles it, as on Android. */
     @Composable
@@ -83,26 +92,27 @@ class SettingsGroupScope internal constructor() {
         enabled: Boolean = true,
         leading: (@Composable () -> Unit)? = null,
         onChange: (Boolean) -> Unit
-    ) {
-        rows += { index, count ->
-            SettingsItem(
-                index = index,
-                count = count,
-                title = title,
-                summary = summary,
-                leading = leading ?: icon?.let { { SettingsIcon(it, tone) } },
-                trailing = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) },
-                modifier = Modifier.semantics { stateDescription = if (checked) "On" else "Off" },
-                onClick = { if (enabled) onChange(!checked) }
-            )
-        }
-    }
-
-    /** Anything else, given its place in the group. */
-    fun custom(content: @Composable (index: Int, count: Int) -> Unit) {
-        rows += content
-    }
+    ) = item(
+        title = title,
+        onClick = { if (enabled) onChange(!checked) },
+        modifier = Modifier.semantics { stateDescription = if (checked) "On" else "Off" },
+        summary = summary,
+        leading = leading ?: icon?.let { { SettingsIcon(it, tone) } },
+        trailing = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) }
+    )
 }
+
+/** One row of a [SettingsGroup], as data; see [SettingsGroupScope]. */
+internal class SettingsRow(
+    val title: String,
+    val onClick: () -> Unit,
+    val modifier: Modifier,
+    val summary: String?,
+    val leading: (@Composable () -> Unit)?,
+    val trailing: (@Composable () -> Unit)?,
+    val titleColor: Color,
+    val below: (@Composable () -> Unit)?
+)
 
 /**
  * One group, with an optional heading above it in the primary colour, as
@@ -126,7 +136,20 @@ fun SettingsGroup(title: String? = null, build: @Composable SettingsGroupScope.(
             Box(Modifier.padding(top = 16.dp))
         }
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            scope.rows.forEachIndexed { index, row -> row(index, scope.rows.size) }
+            scope.rows.forEachIndexed { index, row ->
+                SettingsItem(
+                    index = index,
+                    count = scope.rows.size,
+                    title = row.title,
+                    onClick = row.onClick,
+                    modifier = row.modifier,
+                    summary = row.summary,
+                    leading = row.leading,
+                    trailing = row.trailing,
+                    titleColor = row.titleColor,
+                    below = row.below
+                )
+            }
         }
     }
 }

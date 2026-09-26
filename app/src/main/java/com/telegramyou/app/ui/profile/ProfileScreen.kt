@@ -260,49 +260,33 @@ fun ProfileContent(
         // as the official client and Android's contact card both put it.
         SettingsGroup {
             me.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
-                custom { index, count ->
-                    SettingsItem(
-                        index = index,
-                        count = count,
+                item(
                         title = phone,
                         summary = "Mobile",
                         leading = { SettingsIcon(Icons.Rounded.Phone) },
                         onClick = { copy(phone) }
                     )
-                }
             }
-            custom { index, count ->
-                SettingsItem(
-                    index = index,
-                    count = count,
+            item(
                     title = me.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No username",
                     summary = if (link != null) "Username · tap to copy the link" else "Username · set one so people can find you",
                     leading = { SettingsIcon(Icons.Rounded.AlternateEmail) },
                     onClick = { if (link != null) copy(link) else editing = true }
                 )
-            }
-            custom { index, count ->
-                SettingsItem(
-                    index = index,
-                    count = count,
+            item(
                     title = me.bio.ifBlank { "Add a few words about yourself" },
                     summary = "Bio",
                     leading = { SettingsIcon(Icons.Rounded.Info) },
                     onClick = { editing = true }
                 )
-            }
         }
         if (me.isPremium) {
             SettingsGroup {
-                custom { index, count ->
-                    SettingsItem(
-                        index = index,
-                        count = count,
+                item(
                         title = "Telegram Premium",
                         leading = { SettingsIcon(Icons.Rounded.WorkspacePremium, IconTone.Tertiary) },
                         onClick = {}
                     )
-                }
             }
         }
     }

@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class HomeTab(val label: String, val icon: ImageVector) {
     Chats("Chats", Icons.AutoMirrored.Rounded.Chat),
     Search("Search", Icons.Rounded.Search),
-    Profile("Profile", Icons.Rounded.Person),
-    Settings("Settings", Icons.Rounded.Settings)
+    // Settings before Profile, with the profile at the end of the bar the
+    // way the official client places it — the owner's call.
+    Settings("Settings", Icons.Rounded.Settings),
+    Profile("Profile", Icons.Rounded.Person)
 }

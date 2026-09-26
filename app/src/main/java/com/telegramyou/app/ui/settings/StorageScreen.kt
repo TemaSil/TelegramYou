@@ -166,13 +166,10 @@ fun StorageScreen(
                     SettingsGroup("Clear from this phone") {
                         usage.slices.forEach { slice ->
                             val checked = slice.kind in state.selected
-                            custom { index, count ->
-                                // The whole row toggles, as a checkbox row does
-                                // in every Android settings screen; the box
-                                // itself takes no separate tap.
-                                SettingsItem(
-                                    index = index,
-                                    count = count,
+                            // The whole row toggles, as a checkbox row does in
+                            // every Android settings screen; the box itself
+                            // takes no separate tap.
+                            item(
                                     title = slice.kind.label,
                                     summary = filesLabel(slice.count),
                                     leading = { Checkbox(checked = checked, onCheckedChange = null) },
@@ -182,7 +179,6 @@ fun StorageScreen(
                                     },
                                     onClick = { if (!state.isClearing) onKindToggle(slice.kind) }
                                 )
-                            }
                         }
                     }
                 }

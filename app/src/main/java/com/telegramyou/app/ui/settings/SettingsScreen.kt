@@ -161,10 +161,7 @@ fun SettingsContent(
     ) {
         if (me != null) {
             SettingsGroup {
-                custom { index, count ->
-                    SettingsItem(
-                        index = index,
-                        count = count,
+                item(
                         title = me.displayName,
                         summary = me.username?.let { "@$it" } ?: me.phoneNumber.orEmpty(),
                         leading = {
@@ -172,7 +169,6 @@ fun SettingsContent(
                         },
                         onClick = onOpenProfile
                     )
-                }
             }
         }
 
@@ -195,10 +191,7 @@ fun SettingsContent(
             )
             // Three short choices side by side: exactly what a segmented
             // button row is for, set under the row's title.
-            custom { index, count ->
-                SettingsItem(
-                    index = index,
-                    count = count,
+            item(
                     title = "Theme",
                     leading = { SettingsIcon(Icons.Rounded.DarkMode) },
                     onClick = {},
@@ -221,7 +214,6 @@ fun SettingsContent(
                         }
                     }
                 )
-            }
             // The other half of what an avatar carries, shown on the
             // account's own avatar changing shape as the switch moves.
             val avatarPreview: @Composable () -> Unit = if (me != null) {
@@ -250,10 +242,7 @@ fun SettingsContent(
             )
             // Four stops, the way Android's own display settings offer it.
             // The whole app follows as it moves — this screen included.
-            custom { index, count ->
-                SettingsItem(
-                    index = index,
-                    count = count,
+            item(
                     title = "Text size",
                     summary = TextSize.label(settings.textScale),
                     leading = { SettingsIcon(Icons.Rounded.FormatSize) },
@@ -270,7 +259,6 @@ fun SettingsContent(
                         )
                     }
                 )
-            }
         }
 
         SettingsGroup("Privacy and security") {

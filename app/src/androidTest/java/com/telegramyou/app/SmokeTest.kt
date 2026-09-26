@@ -1422,7 +1422,10 @@ class SmokeTest {
         tap(By.text("Schedule message"))
         tap(By.text("Next"))
         tap(By.text("Schedule"))
-        waitFor(By.textContains("Scheduled for"), "the scheduled notice")
+        // The clock in the header, not the snackbar: the snackbar sits
+        // behind the keyboard and is gone in four seconds, and the clock is
+        // what says the chat now has something waiting.
+        waitFor(By.desc("Scheduled messages"), "the clock for what is scheduled")
         tap(By.desc("Scheduled messages"))
         waitFor(By.text("See you at the review"), "the message in the scheduled list")
         screenshot("39-scheduled")
