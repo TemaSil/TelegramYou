@@ -1409,9 +1409,7 @@ class SmokeTest {
         // By name: the chat's own field is behind the dialog, and a search
         // by class alone finds it first.
         listOf("Poll question" to "Tea or coffee?", "Answer 1" to "Tea", "Answer 2" to "Coffee").forEach { (field, text) ->
-            waitFor(By.desc(field), field)
-            device.findObject(By.desc(field)).text = text
-            device.waitForIdle(IDLE_TIMEOUT)
+            typeInto(field, text)
         }
         screenshot("38-new-poll")
         tap(By.text("Send"))
@@ -1457,9 +1455,7 @@ class SmokeTest {
 
         tap(By.text("Edit"))
         waitFor(By.text("Edit profile"), "the profile form")
-        waitFor(By.desc("Bio"), "the bio field")
-        device.findObject(By.desc("Bio")).text = "Built with M3 Expressive"
-        device.waitForIdle(IDLE_TIMEOUT)
+        typeInto("Bio", "Built with M3 Expressive")
         tap(By.text("Save"))
         waitFor(By.text("Built with M3 Expressive"), "the saved bio on the profile")
 
@@ -1507,6 +1503,20 @@ class SmokeTest {
         }
         waitFor(By.text("Unpin"), "the menu of a pinned message")
         device.pressBack()
+    }
+
+    /**
+     * Types into the field named [description]. The name sits on the
+     * field's wrapper, not on the EditText inside it, and setting text on the
+     * wrapper does nothing — so the field is tapped, and the text goes into
+     * whichever EditText then has focus.
+     */
+    private fun typeInto(description: String, text: String) {
+        tap(By.desc(description))
+        val focused = By.clazz("android.widget.EditText").focused(true)
+        waitFor(focused, "the $description field focused")
+        device.findObject(focused).text = text
+        device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /** Drags the chat list up until [selector] is on screen. */

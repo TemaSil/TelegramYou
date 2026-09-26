@@ -143,8 +143,10 @@ Cleaned up on the way through, and worth keeping either way:
 Still to spend the move on:
 
 - [x] `FloatingToolbar` for a message selection bar
-- [x] `ButtonGroup` somewhere it belongs — the profile's Set photo / Edit /
-      Settings. Before that: It was tried in the chat composer
+- [ ] `ButtonGroup` somewhere it belongs. The profile's three actions were
+      the second try, and the alpha's ButtonGroup threw on measuring three
+      labelled items on a phone (`maxWidth must be >= minWidth`), so they are
+      plain tonal buttons. Before that: It was tried in the chat composer
       and taken out again: grouped beside the field it read as a split button
       next to a text box — three things in a row rather than one control, and
       the person who asked for it said so. The composer is a floating capsule
@@ -1119,8 +1121,8 @@ them. Ticks are only worth something if somebody moves them.
       `t.me/socks` link fills the form; the parsing and the form's rules are
       in `:core` with tests
 - [x] Profile, as the official app has it — a large photo with the name and
-      status under it, Set photo / Edit / Settings as an Expressive
-      `ButtonGroup` (its first real home), the phone, username and bio as a
+      status under it, Set photo / Edit / Settings as three tonal buttons,
+      the phone, username and bio as a
       segmented list that copies on a tap, a QR code of the t.me link with
       Share, and Change username / Copy link in the overflow. A new photo
       goes through the system photo picker to `setProfilePhoto`. Editing is

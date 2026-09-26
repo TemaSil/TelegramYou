@@ -143,6 +143,7 @@ fun PrivacyScreen(
     }
 }
 
+@Composable
 private fun SettingsGroupScope.privacyRow(
     setting: PrivacySetting,
     rules: PrivacyRules?,

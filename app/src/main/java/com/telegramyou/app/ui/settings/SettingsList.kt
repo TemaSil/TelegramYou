@@ -42,7 +42,13 @@ import androidx.compose.ui.unit.dp
 class SettingsGroupScope internal constructor() {
     internal val rows = mutableListOf<@Composable (index: Int, count: Int) -> Unit>()
 
+    // Composable, both, so the row lambdas they make are created inside the
+    // composition and Compose tracks what they capture. Made outside it, a
+    // row kept drawing the value it was first given: a privacy rule changed
+    // in its dialog went on saying what it had said before.
+
     /** A row that opens somewhere else. */
+    @Composable
     fun link(
         title: String,
         summary: String? = null,
@@ -67,6 +73,7 @@ class SettingsGroupScope internal constructor() {
     }
 
     /** A row that is a switch — the whole row toggles it, as on Android. */
+    @Composable
     fun switch(
         title: String,
         checked: Boolean,

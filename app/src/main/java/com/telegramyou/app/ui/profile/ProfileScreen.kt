@@ -34,8 +34,8 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonGroup
-import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -83,7 +83,7 @@ import com.telegramyou.app.ui.settings.settingsBackground
 /**
  * The account this app is signed in as, as the official client shows it:
  * the photo large with the name and status under it, the three things done
- * from here as one Expressive [ButtonGroup] — a new photo, editing, Settings
+ * from here as a row of tonal buttons — a new photo, editing, Settings
  * — and what people can find you by as a segmented list. A QR code to share
  * the profile is in the corner, and the less common actions are in the
  * overflow menu.
@@ -211,27 +211,18 @@ fun ProfileContent(
         }
         Spacer(Modifier.height(20.dp))
 
-        // Three actions that belong together, which is what a button group
-        // is for — and pressing one widens it, Expressive's own motion.
-        ButtonGroup(
-            overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState = menuState) },
+        // Three tonal buttons of equal width, each an icon over its label.
+        // This was Expressive's ButtonGroup for a day, and the alpha's
+        // ButtonGroup threw while measuring three labelled items on a phone
+        // — a crash the moment the tab opened — so it is plain buttons until
+        // a later alpha measures itself.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         ) {
-            clickableItem(
-                onClick = pickPhoto,
-                label = "Set photo",
-                icon = { Icon(Icons.Rounded.AddAPhoto, contentDescription = null) }
-            )
-            clickableItem(
-                onClick = { editing = true },
-                label = "Edit",
-                icon = { Icon(Icons.Rounded.Edit, contentDescription = null) }
-            )
-            clickableItem(
-                onClick = onOpenSettings,
-                label = "Settings",
-                icon = { Icon(Icons.Rounded.Settings, contentDescription = null) }
-            )
+            ProfileAction("Set photo", Icons.Rounded.AddAPhoto, pickPhoto, Modifier.weight(1f))
+            ProfileAction("Edit", Icons.Rounded.Edit, { editing = true }, Modifier.weight(1f))
+            ProfileAction("Settings", Icons.Rounded.Settings, onOpenSettings, Modifier.weight(1f))
         }
 
         // What people find you by, the value first and what it is under it,
@@ -282,6 +273,22 @@ fun ProfileContent(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ProfileAction(label: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier) {
+    FilledTonalButton(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.large,
+        contentPadding = PaddingValues(vertical = 12.dp),
+        modifier = modifier
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = null)
+            Spacer(Modifier.height(4.dp))
+            Text(label, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
