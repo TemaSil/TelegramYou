@@ -1118,7 +1118,10 @@ class SmokeTest {
         repeat(14) {
             list?.scroll(Direction.UP, 0.4f)
             device.waitForIdle(IDLE_TIMEOUT)
-            if (device.hasObject(selector)) return
+            // A moment, not a glance: the list can still be settling after
+            // the drag, and a check made mid-glide missed a line that was
+            // plainly on screen in the photograph taken straight after.
+            if (device.wait(Until.hasObject(selector), 1_000)) return
         }
         screenshot("failed-scrolling-to-${what.replace(' ', '-')}")
         fail("$what never came into view")
