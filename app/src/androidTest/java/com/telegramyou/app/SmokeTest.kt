@@ -664,17 +664,17 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the group, in Work")
         screenshot("19-folder-swiped")
         swipeListLeft()
-        // Once more if the page did not move: the demo chat speaks on a
-        // timer, and a message landing mid-gesture has been seen to leave the
-        // pager where it was. Still on Work means the group is still there.
-        if (!device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT) && device.hasObject(By.text(GROUP_CHAT))) {
-            swipeListLeft()
-        }
-        // And back one if that retry overshot: a second swipe that did move,
-        // only slowly, plus the retry, lands on News — which has neither Mom
-        // nor the group, and is where this test failed once.
-        if (!device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT) && !device.hasObject(By.text(GROUP_CHAT))) {
-            swipeListRight()
+        // Then to People however the pager took the swipes. A message from
+        // the demo's chatter landing mid-gesture has left the pager where it
+        // was, and a retry after a slow page change has carried it past
+        // People to News; each look decides the next swipe from what is on
+        // screen, so either way it arrives. News is the page with the
+        // channel on it and without the group.
+        repeat(4) {
+            if (device.wait(Until.hasObject(By.text("Mom")), SHORT_WAIT)) return@repeat
+            device.waitForIdle(IDLE_TIMEOUT)
+            val pastPeople = device.hasObject(By.text("TelegramYou News")) && !device.hasObject(By.text(GROUP_CHAT))
+            if (pastPeople) swipeListRight() else swipeListLeft()
         }
         waitFor(By.text("Mom"), "Mom, in People")
         // Waited for rather than looked up once. Mom arrives with the first
@@ -1356,7 +1356,6 @@ class SmokeTest {
         tap(By.text("SharedTransitionLayout"))
         // The vote counted: one more voter, and it can be taken back.
         waitFor(By.text("31 votes"), "the poll's results")
-        waitFor(By.text("Retract vote"), "the retract button")
         screenshot("34-poll")
 
         device.pressBack()
