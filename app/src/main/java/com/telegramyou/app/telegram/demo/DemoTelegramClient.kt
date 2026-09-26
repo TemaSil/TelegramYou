@@ -23,6 +23,8 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LinkPreview
@@ -819,8 +821,29 @@ class DemoTelegramClient(
             .takeLast(limit)
     }
 
-    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
+    /** Messages waiting to go, by chat; see scheduledMessages. */
+    private val scheduled = mutableMapOf<Long, MutableList<ChatMessage>>()
+
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         delay(120)
+        if (sendAt != null) {
+            // Kept apart until its time, which in the demo never comes on
+            // its own: "Send now" is how one leaves the list.
+            scheduled.getOrPut(chatId) { mutableListOf() } += ChatMessage(
+                id = messageId.incrementAndGet(),
+                chatId = chatId,
+                text = text,
+                isOutgoing = true,
+                timeLabel = demoTimeFormat.format(Date(sendAt * 1000)),
+                date = sendAt,
+                canBeEdited = true,
+                canBeDeletedForSelf = true,
+                canBeDeletedForEveryone = true,
+                scheduledAt = sendAt
+            )
+            setHasScheduled(chatId)
+            return
+        }
         appendOutgoing(
             chatId = chatId,
             text = text,
@@ -937,6 +960,8 @@ class DemoTelegramClient(
     ) {
         delay(80)
         chatMessages[chatId]?.removeAll { it.id == messageId }
+        // A scheduled one is deleted the same way, from its own list.
+        if (scheduled[chatId]?.removeAll { it.id == messageId } == true) setHasScheduled(chatId)
         _messageUpdates.tryEmit(MessageUpdate.Deleted(chatId, setOf(messageId)))
     }
 
@@ -961,6 +986,45 @@ class DemoTelegramClient(
         if (index == -1) return
         val message = bucket[index]
         bucket[index] = message.copy(reactions = applyReaction(message.reactions, emoji))
+    }
+
+    override suspend fun sendPoll(chatId: Long, draft: PollDraft) {
+        delay(160)
+        val options = draft.filledOptions
+        appendOutgoing(
+            chatId = chatId,
+            text = draft.question.trim(),
+            type = MessageContentType.Poll,
+            poll = PollContent(
+                id = messageId.get() + 1,
+                question = draft.question.trim(),
+                options = options.map { PollOption(it) },
+                isAnonymous = draft.isAnonymous,
+                allowsMultiple = draft.allowsMultiple,
+                allowsRevoting = !draft.isQuiz,
+                isQuiz = draft.isQuiz,
+                correctOptions = setOfNotNull(draft.correctIndex),
+                explanation = draft.explanation.trim()
+            )
+        )
+    }
+
+    override suspend fun scheduledMessages(chatId: Long): List<ChatMessage> {
+        delay(80)
+        return scheduled[chatId].orEmpty().sortedBy { it.scheduledAt }
+    }
+
+    override suspend fun sendScheduledNow(chatId: Long, messageId: Long) {
+        delay(80)
+        val waiting = scheduled[chatId]?.firstOrNull { it.id == messageId } ?: return
+        scheduled[chatId]?.remove(waiting)
+        setHasScheduled(chatId)
+        appendOutgoing(chatId = chatId, text = waiting.text, type = MessageContentType.Text)
+    }
+
+    private fun setHasScheduled(chatId: Long) {
+        val has = scheduled[chatId].orEmpty().isNotEmpty()
+        _chats.update { list -> list.map { if (it.id == chatId) it.copy(hasScheduledMessages = has) else it } }
     }
 
     /**
@@ -1199,7 +1263,8 @@ class DemoTelegramClient(
         waveform: List<Int> = emptyList(),
         photoPath: String? = null,
         photoFileId: Int? = null,
-        sticker: StickerContent? = null
+        sticker: StickerContent? = null,
+        poll: PollContent? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -1226,7 +1291,8 @@ class DemoTelegramClient(
             waveform = waveform,
             photoPath = photoPath,
             photoFileId = photoFileId,
-            sticker = sticker
+            sticker = sticker,
+            poll = poll
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -1241,6 +1307,7 @@ class DemoTelegramClient(
                         lastMessage = when (type) {
                             MessageContentType.Document -> "📎 ${fileName ?: "File"}"
                             MessageContentType.Photo -> "🖼 Photo"
+                            MessageContentType.Poll -> "📊 $text"
                             else -> text
                         },
                         timestampLabel = "now",
@@ -1603,6 +1670,21 @@ class DemoTelegramClient(
         chatMessages[PUBLIC_CHANNEL_ID + 3] = mutableListOf(
             demoMessage(90, PUBLIC_CHANNEL_ID + 3, "Send a colour, get a palette", false, yesterday, "Material Colour Bot")
         )
+        // Saved Messages keeps a song, so the music bubble has something to
+        // show offline. No file stands behind it: the demo has no audio to
+        // ship, and the bubble is what there is to look at.
+        chatMessages[6] = mutableListOf(
+            demoMessage(95, 6, "Color tokens & springs", true, yesterday, isRead = true),
+            demoMessage(96, 6, "", true, today - 50 * 60, isRead = true).copy(
+                contentType = MessageContentType.Audio,
+                audio = AudioContent(
+                    title = DEMO_AUDIO_TITLE,
+                    performer = "Material Sound",
+                    durationSeconds = 214,
+                    fileName = "expressive-motion.mp3"
+                )
+            )
+        )
         chatMessages[BOT_CHAT_ID] = mutableListOf(
             demoMessage(50, BOT_CHAT_ID, "Hi! I post every build of TelegramYou.", false, yesterday, "Build Bot"),
             demoMessage(51, BOT_CHAT_ID, "Build 1.0.366 is ready", false, today - 20 * 60, "Build Bot").copy(
@@ -1785,3 +1867,4 @@ internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
 internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
 internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
 internal const val DEMO_BOT_STATUS = "All green ✅"
+internal const val DEMO_AUDIO_TITLE = "Expressive Motion"

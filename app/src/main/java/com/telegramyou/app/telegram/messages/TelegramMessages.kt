@@ -7,6 +7,7 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.PollDraft
 import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,8 +40,23 @@ interface TelegramMessages {
      */
     val messageUpdates: Flow<MessageUpdate>
 
-    /** [replyToId] answers an existing message, or null for a fresh one. */
-    suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null)
+    /**
+     * [replyToId] answers an existing message, or null for a fresh one.
+     * [sendAt], in epoch seconds, schedules it instead of sending it now.
+     */
+    suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null, sendAt: Long? = null)
+
+    /** Sends a poll; [PollDraft.canSend] has already said it may go. */
+    suspend fun sendPoll(chatId: Long, draft: PollDraft)
+
+    /**
+     * The messages waiting to go out in this chat, soonest first — a list
+     * of their own, never part of the conversation until they are sent.
+     */
+    suspend fun scheduledMessages(chatId: Long): List<ChatMessage>
+
+    /** Sends a scheduled message now rather than at its time. */
+    suspend fun sendScheduledNow(chatId: Long, messageId: Long)
 
     suspend fun sendAttachment(
         chatId: Long,

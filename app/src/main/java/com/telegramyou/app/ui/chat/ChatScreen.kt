@@ -26,6 +26,8 @@ import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardHide
 import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.InlineButton
+import com.telegramyou.app.telegram.model.PollDraft
+import androidx.compose.material.icons.rounded.Poll
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.ui.components.personShape
 import android.Manifest
@@ -280,7 +282,18 @@ fun ChatScreen(
     onBotButton: (ChatMessage, InlineButton) -> Unit = { _, _ -> },
     /** A key of the bot's keyboard under the composer. */
     onReplyKey: (String) -> Unit = {},
-    onBotAnswerShown: () -> Unit = {}
+    onBotAnswerShown: () -> Unit = {},
+    onPollOpen: () -> Unit = {},
+    onPollChange: (PollDraft) -> Unit = {},
+    onPollSend: () -> Unit = {},
+    onPollDismiss: () -> Unit = {},
+    /** What is typed, scheduled for this moment in epoch seconds. */
+    onSchedule: (Long) -> Unit = {},
+    onScheduledOpen: () -> Unit = {},
+    onScheduledSendNow: (ChatMessage) -> Unit = {},
+    onScheduledDelete: (ChatMessage) -> Unit = {},
+    onScheduledDismiss: () -> Unit = {},
+    onNoticeShown: () -> Unit = {}
 ) {
     val listState = rememberLazyListState()
     val uriHandler = LocalUriHandler.current
@@ -324,6 +337,36 @@ fun ChatScreen(
             snackbarHostState.showSnackbar(message)
             onErrorShown()
         }
+    }
+    // Something done rather than refused — "Scheduled for today at 18:00" —
+    // said the same way, once.
+    state.notice?.let { notice ->
+        LaunchedEffect(notice) {
+            snackbarHostState.showSnackbar(notice)
+            onNoticeShown()
+        }
+    }
+    // The two pickers for scheduling, one after the other; see SchedulePicker.
+    var schedulePicking by remember { mutableStateOf(false) }
+    if (schedulePicking) {
+        SchedulePicker(
+            onPicked = { at ->
+                schedulePicking = false
+                onSchedule(at)
+            },
+            onDismiss = { schedulePicking = false }
+        )
+    }
+    state.pollDraft?.let { draft ->
+        PollComposer(draft = draft, onChange = onPollChange, onSend = onPollSend, onDismiss = onPollDismiss)
+    }
+    state.scheduled?.let { waiting ->
+        ScheduledSheet(
+            messages = waiting,
+            onSendNow = onScheduledSendNow,
+            onDelete = onScheduledDelete,
+            onDismiss = onScheduledDismiss
+        )
     }
     // What a bot said back to a pressed button: a snackbar, unless the bot
     // asked for it to be dismissed by hand — then a dialog, which is what
@@ -583,6 +626,14 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Only while something is waiting: a clock in the bar of
+                    // a chat with nothing scheduled would be a button that
+                    // opens an empty list.
+                    if (detail?.chat?.hasScheduledMessages == true) {
+                        IconButton(onClick = onScheduledOpen) {
+                            Icon(Icons.Rounded.Schedule, contentDescription = "Scheduled messages")
+                        }
+                    }
                     // Beside search rather than behind an overflow: both are
                     // ways of finding something in a long conversation, and a
                     // bar with two actions has room for two.
@@ -1015,7 +1066,8 @@ fun ChatScreen(
                             onPickRecent = { uri ->
                                 onAttachmentPicked(AttachmentDraft.Photos(listOf(uri)))
                                 onAttachmentSheetOpenChange(false)
-                            }
+                            },
+                            onPoll = if (state.canSendPolls) onPollOpen else null
                         )
                     }
 
@@ -1052,6 +1104,11 @@ fun ChatScreen(
                             cameraLauncher.launch(uri)
                         },
                         onSend = onSend,
+                        // Held, send offers to schedule — only for text: an
+                        // attachment or an edit goes now or not at all.
+                        onSchedule = if (state.pendingAttachment == null && state.editing == null) {
+                            { schedulePicking = true }
+                        } else null,
                         recordingSince = recordingSince,
                         onRecordStart = {
                             if (ContextCompat.checkSelfPermission(
@@ -1457,6 +1514,28 @@ private fun MessageBubble(
                             PollMessage(poll = poll, outgoing = outgoing, onVote = onVote)
                         } else {
                             Text(message.text)
+                        }
+                    }
+                    MessageContentType.Audio -> {
+                        val audio = message.audio
+                        if (audio != null) {
+                            AudioMessage(
+                                audio = audio,
+                                outgoing = outgoing,
+                                state = voiceState,
+                                progress = voiceProgress,
+                                onToggle = onVoiceToggled
+                            )
+                        } else {
+                            Text(message.text.ifBlank { "Audio" })
+                        }
+                        if (message.text.isNotBlank() && audio != null) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                message.text,
+                                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
                     MessageContentType.Voice -> {
@@ -2583,7 +2662,9 @@ private fun AttachmentSheet(
     onPickPhoto: () -> Unit,
     onPickFile: () -> Unit,
     onTakePhoto: () -> Unit,
-    onPickRecent: (String) -> Unit
+    onPickRecent: (String) -> Unit,
+    /** A poll, where the chat takes them — groups and channels. */
+    onPoll: (() -> Unit)? = null
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2624,6 +2705,15 @@ private fun AttachmentSheet(
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickFile)
         )
+        if (onPoll != null) {
+            ListItem(
+                headlineContent = { Text("Poll") },
+                supportingContent = { Text("A question with answers to vote on") },
+                leadingContent = { Icon(Icons.Rounded.Poll, contentDescription = null) },
+                colors = sheetRow,
+                modifier = Modifier.clickable(onClick = onPoll)
+            )
+        }
         Spacer(Modifier.height(24.dp))
     }
 }
@@ -3162,6 +3252,8 @@ private fun ComposerBar(
     /** The camera, straight from the composer rather than through the sheet. */
     onCamera: () -> Unit,
     onSend: () -> Unit,
+    /** Held send button's "Schedule message"; null where it is not offered. */
+    onSchedule: (() -> Unit)? = null,
     recordingSince: Long?,
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
@@ -3454,6 +3546,8 @@ private fun ComposerBar(
                         Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
                     }
                 } else {
+                    var scheduleMenu by remember { mutableStateOf(false) }
+                    Box {
                     FilledIconButton(
                         onClick = onSend,
                         shape = CircleShape,
@@ -3461,9 +3555,40 @@ private fun ComposerBar(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        modifier = Modifier.padding(bottom = ComposerButtonLift)
+                        modifier = Modifier
+                            .padding(bottom = ComposerButtonLift)
+                            .then(
+                                if (onSchedule == null) Modifier
+                                else Modifier.pointerInput(Unit) {
+                                    // Held rather than tapped: the menu opens,
+                                    // and the release is swallowed on the
+                                    // Initial pass so the button's own click
+                                    // never sees it — a hold must not also send.
+                                    awaitEachGesture {
+                                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                        val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                            waitForUpOrCancellation(PointerEventPass.Initial)
+                                        }
+                                        if (released == null) {
+                                            scheduleMenu = true
+                                            waitForUpOrCancellation(PointerEventPass.Initial)?.consume()
+                                        }
+                                    }
+                                }
+                            )
                     ) {
                         Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
+                    }
+                    DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Schedule message") },
+                            leadingIcon = { Icon(Icons.Rounded.Schedule, contentDescription = null) },
+                            onClick = {
+                                scheduleMenu = false
+                                onSchedule?.invoke()
+                            }
+                        )
+                    }
                     }
                 }
             }

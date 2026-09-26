@@ -860,8 +860,29 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       A quiz marks the right answer and a wrong one of ours, and shows its
       explanation. The vote is drawn at once and corrected by the server's
       counts (`updateMessageContent`); retracting where the poll allows it.
-      Percentages use the largest-remainder rounding, in `:core` with tests.
-      Creating a poll is not in yet
+      Percentages use the largest-remainder rounding, in `:core` with tests
+- [x] Writing a poll — a Poll row in the attachment sheet of groups and
+      channels opens Material's full-screen dialog: the question, answers
+      that grow a new row as the last is typed into (up to ten), switches for
+      anonymous voting, several answers and quiz mode, the right answer
+      marked with a `RadioButton` and an optional explanation. Send stays
+      disabled with the reason written under the fields; the rules are
+      `PollDraft` in `:core` with tests
+- [x] Scheduled messages — holding send offers "Schedule message", then
+      Material's `DatePicker` and `TimePicker`, one after the other. The
+      message goes to the chat's scheduled list (`messageSchedulingStateSendAtDate`)
+      and never into the conversation until it is sent; a clock in the app
+      bar opens that list while anything is waiting, each message with Send
+      now and Delete. Text only: an attachment or an edit goes at once
+- [x] Music files — `messageAudio` in its own bubble: play and pause,
+      title, performer and length, and a bar while it plays, on the same
+      player as voice messages. Picked files with a music extension are sent
+      as audio rather than as documents
+- [ ] Location and contacts — sending one's place or a contact card, and
+      drawing the ones that arrive (a map needs a provider decision first)
+- [ ] Inline bots and Mini Apps — the buttons are there and drawn disabled;
+      what they open needs an inline-results sheet and a web view
+
 - [x] Bot inline buttons — `FilledTonalButton` rows under the bubble, as wide
       as the bubble or the buttons, whichever is more. Callback buttons ask
       the bot (`getCallbackQueryAnswer`) and its answer is a snackbar, or a
@@ -957,6 +978,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       is *not* one of those — Material keeps the bar whenever the window is
       short, which is why the emulator test resizes the window to a tablet's
       rather than turning the phone
+
+- [ ] Editing folders — creating, renaming and choosing chats; the account's
+      folders are shown and paged between but cannot be changed here yet
 
 ## Sign-in
 

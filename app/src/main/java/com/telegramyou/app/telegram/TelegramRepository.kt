@@ -52,12 +52,14 @@ class TelegramRepository(
         chatId: Long,
         text: String,
         attachment: AttachmentDraft? = null,
-        replyToId: Long? = null
+        replyToId: Long? = null,
+        /** Epoch seconds to schedule a text for; attachments always go now. */
+        sendAt: Long? = null
     ) {
         if (attachment != null) {
             client.sendAttachment(chatId, attachment, text, replyToId)
         } else if (text.isNotBlank()) {
-            client.sendText(chatId, text, replyToId)
+            client.sendText(chatId, text, replyToId, sendAt)
         }
     }
 }

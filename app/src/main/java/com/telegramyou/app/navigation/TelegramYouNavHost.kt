@@ -654,7 +654,17 @@ fun TelegramYouNavHost(
                 onVote = chatViewModel::onVote,
                 onBotButton = chatViewModel::onBotButton,
                 onReplyKey = chatViewModel::onReplyKey,
-                onBotAnswerShown = chatViewModel::onBotAnswerShown
+                onBotAnswerShown = chatViewModel::onBotAnswerShown,
+                onPollOpen = chatViewModel::onPollOpen,
+                onPollChange = chatViewModel::onPollChange,
+                onPollSend = chatViewModel::onPollSend,
+                onPollDismiss = chatViewModel::onPollDismiss,
+                onSchedule = { at -> chatViewModel.onSchedule(at) },
+                onScheduledOpen = chatViewModel::onScheduledOpen,
+                onScheduledSendNow = chatViewModel::onScheduledSendNow,
+                onScheduledDelete = chatViewModel::onScheduledDelete,
+                onScheduledDismiss = chatViewModel::onScheduledDismiss,
+                onNoticeShown = chatViewModel::onNoticeShown
             )
             }
             }

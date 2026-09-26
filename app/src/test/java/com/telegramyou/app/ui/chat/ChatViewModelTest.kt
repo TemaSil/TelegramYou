@@ -16,6 +16,7 @@ import com.telegramyou.app.telegram.model.PollContent
 import com.telegramyou.app.telegram.model.PollOption
 import com.telegramyou.app.telegram.model.ReplyKey
 import com.telegramyou.app.telegram.model.ReplyKeyboard
+import com.telegramyou.app.telegram.model.PollDraft
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -625,6 +626,80 @@ class ChatViewModelTest {
         client.mutableReplyKeyboards.value = emptyMap()
         advanceUntilIdle()
         assertNull(vm.uiState.value.replyKeyboard)
+    }
+
+    @Test
+    fun `a poll that can go is sent and its form closes`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+        vm.onPollOpen()
+        vm.onPollChange(PollDraft(question = "Lunch?", options = listOf("Soup", "Salad", "")))
+
+        vm.onPollSend()
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.pollDraft)
+        assertEquals(listOf("Soup", "Salad"), client.sentPolls.single().filledOptions)
+    }
+
+    @Test
+    fun `a poll that cannot go stays in its form`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        vm.onPollOpen()
+        vm.onPollChange(PollDraft(question = "Lunch?"))
+
+        vm.onPollSend()
+        advanceUntilIdle()
+
+        assertTrue(client.sentPolls.isEmpty())
+        assertEquals("Lunch?", vm.uiState.value.pollDraft?.question)
+    }
+
+    @Test
+    fun `scheduling takes the draft, sends it for later and says when`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+        vm.onDraftChange("later")
+        val now = 1_000_000L
+
+        vm.onSchedule(now + 3600, nowSeconds = now)
+        advanceUntilIdle()
+
+        assertEquals(listOf("later" to now + 3600), client.scheduledTexts)
+        assertTrue("nothing went now", client.sentTexts.isEmpty())
+        assertEquals("", vm.uiState.value.draft)
+        assertTrue(vm.uiState.value.notice.orEmpty().startsWith("Scheduled for"))
+    }
+
+    @Test
+    fun `a time in the past is refused and the draft kept`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        vm.onDraftChange("too late")
+
+        vm.onSchedule(900, nowSeconds = 1_000)
+        advanceUntilIdle()
+
+        assertTrue(client.scheduledTexts.isEmpty())
+        assertEquals("too late", vm.uiState.value.draft)
+        assertEquals("Pick a time in the future", vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun `a scheduled message sent now leaves the list`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        val waiting = message(50, "soon").copy(scheduledAt = 2_000_000L, isOutgoing = true)
+        client.scheduled = listOf(waiting)
+        vm.onScheduledOpen()
+        advanceUntilIdle()
+        assertEquals(listOf(50L), vm.uiState.value.scheduled?.map { it.id })
+
+        vm.onScheduledSendNow(waiting)
+        advanceUntilIdle()
+
+        assertEquals(listOf(50L), client.sentNow)
+        assertEquals(emptyList<Long>(), vm.uiState.value.scheduled?.map { it.id })
+        vm.onScheduledDismiss()
+        assertNull(vm.uiState.value.scheduled)
     }
 
     private companion object {

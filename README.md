@@ -90,8 +90,9 @@ seen without an account:
   searches and chats found before, channels to try; then chats, messages,
   groups, channels and bots across Telegram, and posts in public channels
   anywhere.
-- **Polls and bots** — polls and quizzes answered in the bubble with the
-  results drawn as they land, bots' buttons under their messages, and a
+- **Polls and bots** — polls and quizzes written and answered in the
+  bubble with the results drawn as they land, messages scheduled for later,
+  music files played in place, bots' buttons under their messages, and a
   bot's own keyboard above the composer.
 - **Media** — photos and videos out to the bubble's edges, GIFs that play by
   themselves, round video messages played in place, voice messages with a

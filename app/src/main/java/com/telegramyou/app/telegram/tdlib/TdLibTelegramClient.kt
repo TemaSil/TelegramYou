@@ -41,6 +41,9 @@ import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.AudioContent
+import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.isAudioFileName
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.packWaveform
 import com.telegramyou.app.telegram.model.unpackWaveform
@@ -1292,13 +1295,28 @@ class TdLibTelegramClient(
         }
     }
 
-    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         awaitReady()
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
                 .withReplyTo(replyToId)
+                .apply {
+                    if (sendAt != null) {
+                        put(
+                            "options",
+                            JSONObject()
+                                .put("@type", "messageSendOptions")
+                                .put(
+                                    "scheduling_state",
+                                    JSONObject()
+                                        .put("@type", "messageSchedulingStateSendAtDate")
+                                        .put("send_date", sendAt)
+                                )
+                        )
+                    }
+                }
                 .put(
                     "input_message_content",
                     JSONObject()
@@ -1310,6 +1328,71 @@ class TdLibTelegramClient(
                                 .put("text", text)
                         )
                 )
+        )
+    }
+
+    override suspend fun sendPoll(chatId: Long, draft: PollDraft) {
+        awaitReady()
+        fun text(value: String) = JSONObject().put("@type", "formattedText").put("text", value)
+        val type = if (draft.isQuiz) {
+            JSONObject()
+                .put("@type", "inputPollTypeQuiz")
+                .put("correct_option_ids", JSONArray(listOfNotNull(draft.correctIndex)))
+                // The older schema's single id, for a TDLib that still wants it.
+                .put("correct_option_id", draft.correctIndex ?: 0)
+                .put("explanation", text(draft.explanation.trim()))
+        } else {
+            JSONObject().put("@type", "inputPollTypeRegular")
+        }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessagePoll")
+                        .put("question", text(draft.question.trim()))
+                        .put(
+                            "options",
+                            JSONArray(draft.filledOptions.map { option ->
+                                JSONObject().put("@type", "inputPollOption").put("text", text(option))
+                            })
+                        )
+                        .put("is_anonymous", draft.isAnonymous)
+                        .put("allows_multiple_answers", draft.allowsMultiple && !draft.isQuiz)
+                        .put("allows_revoting", !draft.isQuiz)
+                        .put("type", type)
+                        .put("is_closed", false)
+                )
+        )
+    }
+
+    override suspend fun scheduledMessages(chatId: Long): List<ChatMessage> {
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject().put("@type", "getChatScheduledMessages").put("chat_id", chatId)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "getChatScheduledMessages: ${e.message}")
+            return emptyList()
+        }
+        val array = found.optJSONArray("messages") ?: return emptyList()
+        return (0 until array.length())
+            .mapNotNull { array.optJSONObject(it)?.let { raw -> mapMessage(chatId, raw) } }
+            .sortedBy { it.scheduledAt ?: Long.MAX_VALUE }
+    }
+
+    override suspend fun sendScheduledNow(chatId: Long, messageId: Long) {
+        awaitReady()
+        // No scheduling state is TDLib's way of saying "now".
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "editMessageSchedulingState")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put("scheduling_state", JSONObject.NULL)
         )
     }
 
@@ -1340,8 +1423,15 @@ class TdLibTelegramClient(
             is AttachmentDraft.Files ->
                 draft.uris.zip(draft.names).forEachIndexed { index, (uri, name) ->
                     val path = copyUriToCache(uri, name)
-                    sendLocalFile(chatId, path, caption.takeIf { index == 0 }.orEmpty(),
-                        photo = false, replyToId = replyToId.takeIf { index == 0 })
+                    val fileCaption = caption.takeIf { index == 0 }.orEmpty()
+                    val quoted = replyToId.takeIf { index == 0 }
+                    // Music goes as music, so it plays in the bubble with its
+                    // title rather than arriving as a file to save and open.
+                    if (isAudioFileName(name)) {
+                        sendAudio(chatId, path, fileCaption, quoted)
+                    } else {
+                        sendLocalFile(chatId, path, fileCaption, photo = false, replyToId = quoted)
+                    }
                 }
             // No copy here: a recording is already a file this app wrote, in
             // this app's own cache. Everything else arrives as a Uri from
@@ -2147,6 +2237,26 @@ class TdLibTelegramClient(
     private fun inputPhoto(path: String): JSONObject =
         JSONObject().put("@type", "inputPhoto").put("photo", localFile(path))
 
+    /**
+     * A music file. The title, the performer and the length are left for
+     * Telegram to read from the file's own tags.
+     */
+    private suspend fun sendAudio(chatId: Long, path: String, caption: String, replyToId: Long?) {
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .withReplyTo(replyToId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageAudio")
+                        .put("audio", JSONObject().put("@type", "inputAudio").put("audio", localFile(path)))
+                        .put("caption", JSONObject().put("@type", "formattedText").put("text", caption))
+                )
+        )
+    }
+
     private suspend fun sendLocalFile(
         chatId: Long,
         path: String,
@@ -2282,7 +2392,7 @@ class TdLibTelegramClient(
             }
             "updateChatTitle", "updateChatPhoto", "updateChatLastMessage",
             "updateChatReadInbox", "updateChatReadOutbox", "updateChatNotificationSettings",
-            "updateChatUnreadMentionCount" -> {
+            "updateChatUnreadMentionCount", "updateChatHasScheduledMessages" -> {
                 val chatId = update.optLong("chat_id")
                 val chat = chatsById[chatId] ?: return
                 when (update.optString("@type")) {
@@ -2309,6 +2419,9 @@ class TdLibTelegramClient(
                     }
                     "updateChatNotificationSettings" -> {
                         chat.put("notification_settings", update.optJSONObject("notification_settings"))
+                    }
+                    "updateChatHasScheduledMessages" -> {
+                        chat.put("has_scheduled_messages", update.optBoolean("has_scheduled_messages"))
                     }
                 }
                 publishChats()
@@ -2337,6 +2450,9 @@ class TdLibTelegramClient(
             }
             "updateNewMessage" -> {
                 val message = update.optJSONObject("message") ?: return
+                // A scheduled message is not in the conversation until it
+                // goes; it lives in the chat's scheduled list instead.
+                if (message.optJSONObject("scheduling_state") != null) return
                 val chatId = message.optLong("chat_id")
                 val mapped = mapMessage(chatId, message)
                 chatsById[chatId]?.put("last_message", message)
@@ -2352,6 +2468,7 @@ class TdLibTelegramClient(
                 // this lands it has a temporary one, and anything aimed at
                 // that — an edit, a reply, a delete — would be refused.
                 val message = update.optJSONObject("message") ?: return
+                if (message.optJSONObject("scheduling_state") != null) return
                 val chatId = message.optLong("chat_id")
                 emitUpdate(
                     MessageUpdate.Replaced(
@@ -2852,6 +2969,7 @@ class TdLibTelegramClient(
             isGroup = type == "chatTypeBasicGroup" ||
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
             isBot = privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot",
+            hasScheduledMessages = chat.optBoolean("has_scheduled_messages"),
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
             isArchived = positions.isArchived(id)
@@ -2918,6 +3036,9 @@ class TdLibTelegramClient(
             "messageVoiceNote" -> "🎤 Voice"
             "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
                 ?.takeIf { it.isNotBlank() }?.let { "$it Sticker" } ?: "Sticker"
+            "messageAudio" -> "🎵 " + (content.optJSONObject("audio")?.let { audio ->
+                audio.optString("title").ifBlank { audio.optString("file_name") }
+            }?.takeIf { it.isNotBlank() } ?: "Audio")
             "messagePoll" -> "📊 " + (content.optJSONObject("poll")?.textOf("question")
                 ?.takeIf { it.isNotBlank() } ?: "Poll")
             else -> content.optString("@type").removePrefix("message")
@@ -3017,6 +3138,7 @@ class TdLibTelegramClient(
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
             "messagePoll" -> MessageContentType.Poll
+            "messageAudio" -> MessageContentType.Audio
             else -> MessageContentType.Text
         }
         val senderId = message.optJSONObject("sender_id")?.optLong("user_id")
@@ -3078,12 +3200,14 @@ class TdLibTelegramClient(
             linkPreview = linkPreview(content),
             // Only a voice note carries these, and only once TDLib has the
             // bytes: the id arrives with the message, the path with the file.
-            voiceFileId = content?.optJSONObject("voice_note")
-                ?.optJSONObject("voice")
+            // A music file's bytes travel in the same two fields: the one
+            // player plays both, and it asks for them by these names.
+            voiceFileId = (content?.optJSONObject("voice_note")?.optJSONObject("voice")
+                ?: content?.optJSONObject("audio")?.optJSONObject("audio"))
                 ?.optInt("id")
                 ?.takeIf { it != 0 },
-            voicePath = content?.optJSONObject("voice_note")
-                ?.optJSONObject("voice")
+            voicePath = (content?.optJSONObject("voice_note")?.optJSONObject("voice")
+                ?: content?.optJSONObject("audio")?.optJSONObject("audio"))
                 ?.optJSONObject("local")
                 ?.takeIf { it.optBoolean("is_downloading_completed") }
                 ?.optString("path")
@@ -3104,7 +3228,21 @@ class TdLibTelegramClient(
             } ?: 1f,
             video = videoContent(content),
             poll = content?.takeIf { type == "messagePoll" }?.optJSONObject("poll")?.let(::pollOf),
-            inlineKeyboard = inlineKeyboardOf(message.optJSONObject("reply_markup"))
+            inlineKeyboard = inlineKeyboardOf(message.optJSONObject("reply_markup")),
+            audio = content?.takeIf { type == "messageAudio" }?.optJSONObject("audio")?.let { audio ->
+                val file = audio.optJSONObject("audio")
+                AudioContent(
+                    title = audio.optString("title"),
+                    performer = audio.optString("performer"),
+                    durationSeconds = audio.optInt("duration"),
+                    fileName = audio.optString("file_name"),
+                    fileId = file?.optInt("id")?.takeIf { it != 0 },
+                    path = file?.localPathIfDownloaded()
+                )
+            },
+            scheduledAt = message.optJSONObject("scheduling_state")
+                ?.optLong("send_date")
+                ?.takeIf { it > 0 }
         )
     }
 

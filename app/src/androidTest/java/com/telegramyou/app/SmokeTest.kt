@@ -1398,6 +1398,54 @@ class SmokeTest {
         waitFor(By.textContains("springs, not curves"), "the channel the post is in")
     }
 
+    /**
+     * The messages pack: a poll written in the group's form and sent, a
+     * message scheduled from the held send button and then sent from the
+     * scheduled list, and a music file in Saved Messages.
+     */
+    @Test
+    fun aPollIsWrittenAndAMessageScheduled() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+
+        tap(By.desc("Attach"))
+        tap(By.text("Poll"))
+        waitFor(By.text("New poll"), "the poll form")
+        val fields = By.clazz("android.widget.EditText")
+        device.findObjects(fields)[0].text = "Tea or coffee?"
+        device.findObjects(fields)[1].text = "Tea"
+        device.findObjects(fields)[2].text = "Coffee"
+        device.waitForIdle(IDLE_TIMEOUT)
+        screenshot("38-new-poll")
+        tap(By.text("Send"))
+        waitFor(By.text("Tea or coffee?"), "the poll in the group")
+
+        type("See you at the review")
+        val send = By.desc("Send")
+        waitFor(send, "the send button")
+        device.findObject(send).longClick()
+        tap(By.text("Schedule message"))
+        tap(By.text("Next"))
+        tap(By.text("Schedule"))
+        waitFor(By.textContains("Scheduled for"), "the scheduled notice")
+        tap(By.desc("Scheduled messages"))
+        waitFor(By.text("See you at the review"), "the message in the scheduled list")
+        screenshot("39-scheduled")
+        tap(By.desc("Send now"))
+        waitFor(By.text("Nothing is waiting to be sent"), "the list emptied")
+        device.pressBack()
+        waitFor(By.text("See you at the review"), "the message sent into the group")
+
+        device.pressBack()
+        waitFor(By.text("Saved Messages"), "the chat list again")
+        tap(By.text("Saved Messages"))
+        waitFor(By.text("Expressive Motion"), "the music file")
+        screenshot("40-audio")
+    }
+
     /** Drags the chat list up until [selector] is on screen. */
     private fun scrollChatsTo(selector: BySelector) {
         repeat(8) {

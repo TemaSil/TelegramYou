@@ -112,6 +112,8 @@ data class ChatPreview(
     val isGroup: Boolean = false,
     /** A private chat with a bot rather than a person. */
     val isBot: Boolean = false,
+    /** Messages are waiting to be sent here later; the header shows a clock. */
+    val hasScheduledMessages: Boolean = false,
     val avatarColor: Long = id,
     val hasUnreadMention: Boolean = false,
     /**
@@ -242,7 +244,9 @@ enum class MessageContentType {
     /** A round video message, played in place. */
     VideoNote,
     /** A poll or a quiz; [ChatMessage.poll] holds it. */
-    Poll
+    Poll,
+    /** A music file with its tags; [ChatMessage.audio] holds it. */
+    Audio
 }
 
 /**
@@ -422,7 +426,15 @@ data class ChatMessage(
      * without touching the text — a "Next page" button that pages in place
      * — which arrives as [MessageUpdate.ButtonsChanged].
      */
-    val inlineKeyboard: List<List<InlineButton>> = emptyList()
+    val inlineKeyboard: List<List<InlineButton>> = emptyList(),
+    /** The music file, when this message is one. */
+    val audio: AudioContent? = null,
+    /**
+     * When a scheduled message will go out, in epoch seconds; null for every
+     * message that has been sent. Scheduled messages live in a list of their
+     * own and never in the conversation.
+     */
+    val scheduledAt: Long? = null
 )
 
 /**

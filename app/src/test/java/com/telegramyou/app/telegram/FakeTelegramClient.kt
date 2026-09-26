@@ -14,6 +14,7 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
+import com.telegramyou.app.telegram.model.PollDraft
 import com.telegramyou.app.telegram.model.PrivacyAudience
 import com.telegramyou.app.telegram.model.PrivacyRules
 import com.telegramyou.app.telegram.model.PrivacySetting
@@ -412,9 +413,26 @@ class FakeTelegramClient(
     /** Every text sent, in order. */
     val sentTexts = mutableListOf<String>()
 
-    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?) {
+    /** Texts scheduled rather than sent, with when for. */
+    val scheduledTexts = mutableListOf<Pair<String, Long>>()
+
+    override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         maybeFail()
-        sentTexts += text
+        if (sendAt != null) scheduledTexts += text to sendAt else sentTexts += text
+    }
+
+    val sentPolls = mutableListOf<PollDraft>()
+    override suspend fun sendPoll(chatId: Long, draft: PollDraft) {
+        maybeFail()
+        sentPolls += draft
+    }
+
+    var scheduled: List<ChatMessage> = emptyList()
+    val sentNow = mutableListOf<Long>()
+    override suspend fun scheduledMessages(chatId: Long): List<ChatMessage> = scheduled
+    override suspend fun sendScheduledNow(chatId: Long, messageId: Long) {
+        sentNow += messageId
+        scheduled = scheduled.filterNot { it.id == messageId }
     }
     override suspend fun sendAttachment(
         chatId: Long,

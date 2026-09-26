@@ -19,6 +19,10 @@ import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.ReplyKeyboard
+import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.isValidSchedule
+import com.telegramyou.app.telegram.model.scheduleLabel
+import java.time.ZoneId
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import com.telegramyou.app.telegram.model.toggleReaction
@@ -169,8 +173,20 @@ data class ChatUiState(
     /** The bot's keyboard under the composer, in a chat that has one. */
     val replyKeyboard: ReplyKeyboard? = null,
     /** What a bot said back to a pressed button, until it has been shown. */
-    val botAnswer: CallbackAnswer? = null
+    val botAnswer: CallbackAnswer? = null,
+    /** The poll being written, while its form is open. */
+    val pollDraft: PollDraft? = null,
+    /**
+     * This chat's scheduled messages, while their sheet is open; null when it
+     * is closed. Fetched each time it opens, since they leave on their own.
+     */
+    val scheduled: List<ChatMessage>? = null,
+    /** Something done that is worth a line in a snackbar, until shown. */
+    val notice: String? = null
 ) {
+    /** Polls go to groups and channels, as in every Telegram client. */
+    val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
+
     val messages: List<ChatMessage>
         get() = olderMessages + (detachedWindow ?: detail?.messages.orEmpty())
 
@@ -644,6 +660,87 @@ class ChatViewModel(
             attempt("Could not send") { repository.sendMessage(chatId, text) }
         }
     }
+
+    // ── writing a poll ───────────────────────────────────────────────────
+
+    fun onPollOpen() = _uiState.update { it.copy(pollDraft = PollDraft(), attachmentSheetOpen = false) }
+
+    fun onPollChange(draft: PollDraft) = _uiState.update { it.copy(pollDraft = draft) }
+
+    fun onPollDismiss() = _uiState.update { it.copy(pollDraft = null) }
+
+    /** Sends the poll being written; a refusal keeps the form as it was. */
+    fun onPollSend() {
+        val draft = _uiState.value.pollDraft ?: return
+        if (!draft.canSend) return
+        _uiState.update { it.copy(pollDraft = null) }
+        onJumpToLatest()
+        viewModelScope.launch {
+            val sent = attempt("Could not send the poll") { repository.sendPoll(chatId, draft) }
+            if (!sent) _uiState.update { it.copy(pollDraft = draft) }
+        }
+    }
+
+    // ── scheduled messages ───────────────────────────────────────────────
+
+    /**
+     * Schedules what is typed for [sendAt], epoch seconds. The composer is
+     * cleared as for a send; the message goes to the scheduled list, not
+     * the conversation, and a snackbar says when it will go.
+     */
+    fun onSchedule(sendAt: Long, nowSeconds: Long = System.currentTimeMillis() / 1000) {
+        val state = _uiState.value
+        val text = state.draft
+        if (text.isBlank() || state.pendingAttachment != null || state.editing != null) return
+        if (!isValidSchedule(sendAt, nowSeconds)) {
+            _uiState.update { it.copy(errorMessage = "Pick a time in the future") }
+            return
+        }
+        val answering = state.replyTo
+        _uiState.update { it.copy(draft = "", replyTo = null) }
+        viewModelScope.launch {
+            val done = attempt("Could not schedule") {
+                repository.sendMessage(chatId, text, replyToId = answering?.id, sendAt = sendAt)
+            }
+            _uiState.update {
+                if (done) it.copy(notice = "Scheduled for ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}")
+                else if (it.draft.isEmpty()) it.copy(draft = text, replyTo = answering)
+                else it
+            }
+        }
+    }
+
+    fun onScheduledOpen() {
+        _uiState.update { it.copy(scheduled = it.scheduled ?: emptyList()) }
+        refreshScheduled()
+    }
+
+    fun onScheduledDismiss() = _uiState.update { it.copy(scheduled = null) }
+
+    private fun refreshScheduled() {
+        viewModelScope.launch {
+            val waiting = runCatching { repository.scheduledMessages(chatId) }.getOrDefault(emptyList())
+            _uiState.update { if (it.scheduled == null) it else it.copy(scheduled = waiting) }
+        }
+    }
+
+    fun onScheduledSendNow(message: ChatMessage) {
+        _uiState.update { state -> state.copy(scheduled = state.scheduled?.filterNot { it.id == message.id }) }
+        viewModelScope.launch {
+            attempt("Could not send") { repository.sendScheduledNow(chatId, message.id) }
+            refreshScheduled()
+        }
+    }
+
+    fun onScheduledDelete(message: ChatMessage) {
+        _uiState.update { state -> state.copy(scheduled = state.scheduled?.filterNot { it.id == message.id }) }
+        viewModelScope.launch {
+            attempt("Could not delete") { repository.deleteMessage(chatId, message.id, forEveryone = true) }
+            refreshScheduled()
+        }
+    }
+
+    fun onNoticeShown() = _uiState.update { it.copy(notice = null) }
 
     // ── voice ────────────────────────────────────────────────────────────
 
