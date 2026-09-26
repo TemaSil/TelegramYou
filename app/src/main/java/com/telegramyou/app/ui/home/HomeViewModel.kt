@@ -29,9 +29,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -189,14 +186,7 @@ data class SearchState(
 class HomeViewModel(
     private val repository: TelegramRepository,
     /** What was typed into search before; this device's, not the account's. */
-    private val queryHistory: QueryHistory = InMemoryQueryHistory(),
-    /**
-     * Where the list is filtered, split into folders and counted. Off the
-     * main thread: it runs on every change to any chat, over every chat,
-     * once per folder tab, and the frame being drawn should not wait on it.
-     * Tests hand in their own dispatcher so they stay in step.
-     */
-    private val work: CoroutineDispatcher = Dispatchers.Default
+    private val queryHistory: QueryHistory = InMemoryQueryHistory()
 ) : ViewModel() {
 
     /** Set here rather than in the screen, so a rotation mid-refresh keeps it. */
@@ -270,7 +260,12 @@ class HomeViewModel(
         home.copy(compose = composeState)
     }.combine(failure) { home, message ->
         home.copy(errorMessage = message)
-    }.flowOn(work).stateIn(
+    // On the main thread, on purpose. Moved to a background dispatcher once,
+    // as an optimisation, the folder a swipe chose came back late — and the
+    // pager, which follows the chosen folder as well as setting it, was
+    // pulled back to the one before. The filtering here is a pass over a
+    // list; the chat list's expensive part is the backend's rebuild.
+    }.stateIn(
         scope = viewModelScope,
         // Kept briefly past the last subscriber: a rotation unsubscribes and
         // resubscribes, and rebuilding the list for that is wasted work.
