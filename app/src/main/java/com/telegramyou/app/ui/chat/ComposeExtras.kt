@@ -57,6 +57,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -112,7 +114,10 @@ internal fun PollComposer(
                         value = draft.question,
                         onValueChange = { onChange(draft.copy(question = it)) },
                         label = { Text("Question") },
-                        modifier = Modifier.fillMaxWidth()
+                        // Named for TalkBack, and for the UI test, which
+                        // otherwise finds the chat's own field behind this
+                        // dialog first.
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Poll question" }
                     )
                 }
                 item(key = "answers") {
@@ -137,7 +142,7 @@ internal fun PollComposer(
                             onValueChange = { onChange(draft.withOption(index, it)) },
                             placeholder = { Text("Answer ${index + 1}") },
                             singleLine = true,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).semantics { contentDescription = "Answer ${index + 1}" },
                             trailingIcon = if (draft.options.size > 2 && option.isNotEmpty()) {
                                 {
                                     IconButton(onClick = { onChange(draft.withoutOption(index)) }) {

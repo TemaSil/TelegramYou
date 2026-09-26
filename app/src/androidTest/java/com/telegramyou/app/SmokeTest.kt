@@ -1414,11 +1414,13 @@ class SmokeTest {
         tap(By.desc("Attach"))
         tap(By.text("Poll"))
         waitFor(By.text("New poll"), "the poll form")
-        val fields = By.clazz("android.widget.EditText")
-        device.findObjects(fields)[0].text = "Tea or coffee?"
-        device.findObjects(fields)[1].text = "Tea"
-        device.findObjects(fields)[2].text = "Coffee"
-        device.waitForIdle(IDLE_TIMEOUT)
+        // By name: the chat's own field is behind the dialog, and a search
+        // by class alone finds it first.
+        listOf("Poll question" to "Tea or coffee?", "Answer 1" to "Tea", "Answer 2" to "Coffee").forEach { (field, text) ->
+            waitFor(By.desc(field), field)
+            device.findObject(By.desc(field)).text = text
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
         screenshot("38-new-poll")
         tap(By.text("Send"))
         waitFor(By.text("Tea or coffee?"), "the poll in the group")
