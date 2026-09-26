@@ -211,6 +211,39 @@ is just a row.
 middle and pressed variants — plus `OverflowIndicator`, which is the sane
 thing to pass as `overflowIndicator`.
 
+**Second attempt, 26 September 2026: the profile, and a crash.** The
+profile's Set photo / Edit / Settings went in as a `ButtonGroup` of three
+`clickableItem`s, which compiled against the signature above, and the
+Profile tab crashed the moment it opened:
+
+```
+IllegalArgumentException: maxWidth must be >= than minWidth,
+    maxHeight must be >= than minHeight, minWidth and minHeight must be >= 0
+  at androidx.compose.ui.unit.Constraints.copy(Constraints.kt:673)
+  at androidx.compose.material3.ButtonGroupMeasurePolicy.measure(ButtonGroup.kt:712)
+  ... PaddingNode ... FillNode ... ColumnMeasurePolicy ... ScrollNode
+```
+
+What it means: ButtonGroup's own measure policy built a `Constraints`
+with a negative or inverted width while dividing the row among its items.
+The group sat in `Modifier.fillMaxWidth().padding(horizontal = 16.dp)`
+inside a `verticalScroll` Column, measured in the lookahead pass (the app
+runs inside a `SharedTransitionLayout`), with three labelled items at
+default weight on a 411dp phone. Likely suspects, in the order to try:
+the overflow logic deciding items do not fit (the labelled buttons' minimum
+width times three plus the gaps, against the padded width) and computing a
+negative remainder; the lookahead pass handing it constraints the main pass
+would not; `expandedRatio` pushing a pressed item past the row.
+
+To bring it back: try a newer `material3` alpha first — this is the
+library's arithmetic, not ours — with the three items in the profile and a
+UI test that opens the Profile tab (`theProfileEditsAndSharesItself`
+already does, and is what caught it). If it still throws, give each item an
+explicit `Modifier.weight(1f)` through the scope, drop the labels to icons
+with `customItem`, or measure the group outside the lookahead with a fixed
+height. Until then the profile uses three `FilledTonalButton`s, icon over
+label, which is what the owner wants to replace.
+
 If a later alpha changes any of this: the way to find out is a workflow step
 that curls
 `.../androidx/compose/material3/material3-android/<v>/material3-android-<v>.aar`
