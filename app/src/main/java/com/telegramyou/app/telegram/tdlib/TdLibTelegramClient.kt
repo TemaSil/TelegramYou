@@ -43,6 +43,9 @@ import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.EntityType
+import com.telegramyou.app.telegram.model.TextEntity
+import com.telegramyou.app.telegram.model.clampEntities
 import com.telegramyou.app.telegram.model.isAudioFileName
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.packWaveform
@@ -505,6 +508,16 @@ class TdLibTelegramClient(
         if (query.isBlank()) return emptyList()
         awaitReady()
         return chatsFrom("searchPublicChats") { it.put("query", query) }
+    }
+
+    override suspend fun chatByUsername(username: String): Long? {
+        awaitReady()
+        return try {
+            requireEngine().send(JSONObject().put("@type", "searchPublicChat").put("username", username))
+                .optLong("id").takeIf { it != 0L }
+        } catch (e: TdLibException) {
+            null
+        }
     }
 
     override suspend fun topPeople(limit: Int): List<ChatPreview> {
@@ -1321,12 +1334,7 @@ class TdLibTelegramClient(
                     "input_message_content",
                     JSONObject()
                         .put("@type", "inputMessageText")
-                        .put(
-                            "text",
-                            JSONObject()
-                                .put("@type", "formattedText")
-                                .put("text", text)
-                        )
+                        .put("text", formatted(text))
                 )
         )
     }
@@ -1569,12 +1577,7 @@ class TdLibTelegramClient(
                     "input_message_content",
                     JSONObject()
                         .put("@type", "inputMessageText")
-                        .put(
-                            "text",
-                            JSONObject()
-                                .put("@type", "formattedText")
-                                .put("text", text)
-                        )
+                        .put("text", formatted(text))
                 )
         )
     }
@@ -2538,9 +2541,10 @@ class TdLibTelegramClient(
                 val text = contentText(update.optJSONObject("new_content"))
                     ?.takeIf { it.isNotBlank() }
                     ?: return
+                val entities = entitiesOf(formattedOf(newContent), text)
                 val known = messagesByChat[chatId]?.firstOrNull { it.id == messageId }
-                if (known != null && known.text == text) return
-                emitUpdate(MessageUpdate.Edited(chatId, messageId, text))
+                if (known != null && known.text == text && known.entities == entities) return
+                emitUpdate(MessageUpdate.Edited(chatId, messageId, text, entities))
             }
             "updateMessageEdited" -> {
                 // Carries the buttons, not the text: a bot paging through a
@@ -2565,6 +2569,15 @@ class TdLibTelegramClient(
                     messageId != 0L -> scope.launch { loadReplyKeyboard(chatId, messageId) }
                     else -> setReplyKeyboard(chatId, null)
                 }
+            }
+            "updateMessageIsPinned" -> {
+                emitUpdate(
+                    MessageUpdate.PinChanged(
+                        chatId = update.optLong("chat_id"),
+                        messageId = update.optLong("message_id"),
+                        isPinned = update.optBoolean("is_pinned")
+                    )
+                )
             }
             "updateMessageInteractionInfo" -> {
                 emitUpdate(
@@ -3257,9 +3270,102 @@ class TdLibTelegramClient(
             },
             scheduledAt = message.optJSONObject("scheduling_state")
                 ?.optLong("send_date")
-                ?.takeIf { it > 0 }
+                ?.takeIf { it > 0 },
+            entities = entitiesOf(formattedOf(content), text),
+            forwardedFrom = forwardOrigin(message.optJSONObject("forward_info")),
+            albumId = message.optInt64("media_album_id").takeIf { it != 0L },
+            isPinned = message.optBoolean("is_pinned")
         )
     }
+
+    /** The formatted text a content carries: a text's own, or a caption. */
+    private fun formattedOf(content: JSONObject?): JSONObject? = when (content?.optString("@type")) {
+        "messageText" -> content.optJSONObject("text")
+        null -> null
+        else -> content.optJSONObject("caption")
+    }
+
+    /**
+     * A `formattedText`'s entities, for [text] as the bubble shows it. When
+     * the bubble shows something other than the formatted text itself — a
+     * caption's fallback, a file name — the entities belong to other words
+     * and none are kept.
+     */
+    private fun entitiesOf(formatted: JSONObject?, text: String): List<TextEntity> {
+        if (formatted == null || formatted.optString("text") != text) return emptyList()
+        val array = formatted.optJSONArray("entities") ?: return emptyList()
+        val entities = (0 until array.length()).mapNotNull { index ->
+            val entity = array.optJSONObject(index) ?: return@mapNotNull null
+            val type = entity.optJSONObject("type") ?: return@mapNotNull null
+            val kind = when (type.optString("@type")) {
+                "textEntityTypeBold" -> EntityType.Bold
+                "textEntityTypeItalic" -> EntityType.Italic
+                "textEntityTypeUnderline" -> EntityType.Underline
+                "textEntityTypeStrikethrough" -> EntityType.Strikethrough
+                "textEntityTypeSpoiler" -> EntityType.Spoiler
+                "textEntityTypeCode" -> EntityType.Code
+                "textEntityTypePre", "textEntityTypePreCode" -> EntityType.Pre
+                "textEntityTypeBlockQuote", "textEntityTypeExpandableBlockQuote" -> EntityType.BlockQuote
+                "textEntityTypeUrl" -> EntityType.Url
+                "textEntityTypeTextUrl" -> EntityType.TextUrl(type.optString("url"))
+                "textEntityTypeEmailAddress" -> EntityType.Email
+                "textEntityTypePhoneNumber" -> EntityType.Phone
+                "textEntityTypeMention" -> EntityType.Mention
+                "textEntityTypeMentionName" -> EntityType.MentionName(type.optLong("user_id"))
+                "textEntityTypeHashtag" -> EntityType.Hashtag
+                "textEntityTypeCashtag" -> EntityType.Cashtag
+                "textEntityTypeBotCommand" -> EntityType.BotCommand
+                else -> return@mapNotNull null
+            }
+            TextEntity(entity.optInt("offset"), entity.optInt("length"), kind)
+        }
+        return clampEntities(text, entities)
+    }
+
+    /** "Forwarded from" whom, by the name the origin carries or points at. */
+    private fun forwardOrigin(info: JSONObject?): String? {
+        val origin = info?.optJSONObject("origin") ?: return null
+        return when (origin.optString("@type")) {
+            "messageOriginUser" -> usersById[origin.optLong("sender_user_id")]?.let { mapUser(it).displayName }
+            "messageOriginHiddenUser" -> origin.optString("sender_name")
+            "messageOriginChat" -> chatsById[origin.optLong("sender_chat_id")]?.optString("title")
+            "messageOriginChannel" -> chatsById[origin.optLong("chat_id")]?.optString("title")
+            else -> null
+        }?.takeIf { it.isNotBlank() } ?: "someone"
+    }
+
+    override suspend fun setMessagePinned(chatId: Long, messageId: Long, pinned: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            if (pinned) {
+                JSONObject()
+                    .put("@type", "pinChatMessage")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+                    .put("disable_notification", false)
+                    .put("only_for_self", false)
+            } else {
+                JSONObject().put("@type", "unpinChatMessage").put("chat_id", chatId).put("message_id", messageId)
+            }
+        )
+    }
+
+    /**
+     * What was typed, with Telegram's own markdown read into formatting:
+     * **bold**, __italic__, ~~strikethrough~~, ||spoiler||, `code` and
+     * [links](url). TDLib does the reading; a refusal sends the text as
+     * typed rather than not at all.
+     */
+    private suspend fun formatted(text: String): JSONObject {
+        val plain = JSONObject().put("@type", "formattedText").put("text", text)
+        return try {
+            requireEngine().send(JSONObject().put("@type", "parseMarkdown").put("text", plain))
+                .also { it.put("@type", "formattedText") }
+        } catch (e: TdLibException) {
+            plain
+        }
+    }
+
 
     /**
      * A `formattedText`'s words, or a plain string where an older TDLib

@@ -27,6 +27,8 @@ import androidx.compose.material.icons.rounded.KeyboardHide
 import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.forwardedLabel
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Poll
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.ui.components.personShape
@@ -293,7 +295,10 @@ fun ChatScreen(
     onScheduledSendNow: (ChatMessage) -> Unit = {},
     onScheduledDelete: (ChatMessage) -> Unit = {},
     onScheduledDismiss: () -> Unit = {},
-    onNoticeShown: () -> Unit = {}
+    onNoticeShown: () -> Unit = {},
+    /** An @username tapped in a message; the graph opens that chat. */
+    onMention: (String) -> Unit = {},
+    onPinToggled: (ChatMessage) -> Unit = {}
 ) {
     val listState = rememberLazyListState()
     val uriHandler = LocalUriHandler.current
@@ -760,7 +765,17 @@ fun ChatScreen(
                     )
                     // Newest first, because item 0 is the bottom of the
                     // list; `index` stays the message's place in time.
+                    // Photos sent together draw once, as a grid, where the
+                    // album's first photo is; the others draw nothing.
+                    val albums = remember(messages) {
+                        messages
+                            .filter { it.albumId != null && it.contentType == MessageContentType.Photo }
+                            .groupBy { it.albumId }
+                            .filterValues { it.size > 1 }
+                    }
                     itemsIndexed(messages.asReversed(), key = { _, m -> m.id }) { fromNewest, message ->
+                        val album = message.albumId?.let { albums[it] }
+                        if (album != null && album.first().id != message.id) return@itemsIndexed
                         val index = messages.lastIndex - fromNewest
                         val previous = messages.getOrNull(index - 1)
                         val next = messages.getOrNull(index + 1)
@@ -879,6 +894,15 @@ fun ChatScreen(
                             onPhotoVisible = { onPhotoVisible(message) },
                             onPhotoOpened = { onPhotoOpened(message) },
                             onVideoOpened = { onVideoOpened(message) },
+                            album = album,
+                            onAlbumPhotoVisible = onPhotoVisible,
+                            onAlbumPhotoOpened = onPhotoOpened,
+                            onMention = onMention,
+                            onHashtag = { tag ->
+                                onSearchOpenChange(true)
+                                onSearchQueryChange(tag)
+                            },
+                            onPinToggled = { onPinToggled(message) },
                             transfers = state.transfers,
                             onVote = { chosen -> onVote(message, chosen) },
                             onButton = { button ->
@@ -1241,6 +1265,13 @@ private fun MessageBubble(
     onVideoOpened: () -> Unit,
     /** Files in flight, by id — usually empty. See ChatUiState.transfers. */
     transfers: Map<Int, FileTransfer>,
+    /** Every photo of this message's album when it leads one; see AlbumGrid. */
+    album: List<ChatMessage>? = null,
+    onAlbumPhotoVisible: (ChatMessage) -> Unit = {},
+    onAlbumPhotoOpened: (ChatMessage) -> Unit = {},
+    onMention: (String) -> Unit = {},
+    onHashtag: (String) -> Unit = {},
+    onPinToggled: () -> Unit = {},
     /** Our answer to a poll, by the options' positions; empty takes it back. */
     onVote: (Set<Int>) -> Unit = {},
     /** One of a bot's buttons under this message. */
@@ -1400,6 +1431,17 @@ private fun MessageBubble(
                     )
                     Spacer(Modifier.height(2.dp))
                 }
+                // Where a forward came from, above it — without this a
+                // forwarded message read as the sender's own words.
+                message.forwardedFrom?.let { origin ->
+                    Text(
+                        forwardedLabel(origin),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (outgoing) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        else MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
                 when (message.contentType) {
                     MessageContentType.Sticker -> {
                         val sticker = message.sticker
@@ -1427,7 +1469,15 @@ private fun MessageBubble(
                             Text(message.text)
                         }
                     }
-                    MessageContentType.Photo -> {
+                    MessageContentType.Photo -> if (album != null) {
+                        AlbumGrid(
+                            photos = album,
+                            onVisible = onAlbumPhotoVisible,
+                            onOpen = onAlbumPhotoOpened,
+                            captionColor = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
                         PhotoMessage(
                             // Flush with the bubble's top as well as its sides,
                             // unless a name or a quote sits above it.
@@ -1549,10 +1599,15 @@ private fun MessageBubble(
                             onSeek = onVoiceSeek
                         )
                     }
-                    else -> Text(
-                        message.text,
+                    else -> FormattedText(
+                        text = message.text,
+                        entities = message.entities,
                         color = if (outgoing) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurface,
+                        linkColor = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.primary,
+                        onMention = onMention,
+                        onHashtag = onHashtag
                     )
                 }
                 message.linkPreview?.let { preview ->
@@ -1635,6 +1690,14 @@ private fun MessageBubble(
                     leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = null) },
                     onClick = {
                         onReply()
+                        menuOpen = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(if (message.isPinned) "Unpin" else "Pin") },
+                    leadingIcon = { Icon(Icons.Rounded.PushPin, contentDescription = null) },
+                    onClick = {
+                        onPinToggled()
                         menuOpen = false
                     }
                 )

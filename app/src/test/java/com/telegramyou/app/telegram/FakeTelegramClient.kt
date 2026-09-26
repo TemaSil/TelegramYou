@@ -336,6 +336,8 @@ class FakeTelegramClient(
     override suspend fun searchPublicChats(query: String): List<ChatPreview> =
         publicChats.filter { it.title.contains(query, ignoreCase = true) }
 
+    override suspend fun chatByUsername(username: String): Long? = null
+
     var people: List<ChatPreview> = emptyList()
     override suspend fun topPeople(limit: Int): List<ChatPreview> = people.take(limit)
 
@@ -436,6 +438,11 @@ class FakeTelegramClient(
     var scheduled: List<ChatMessage> = emptyList()
     val sentNow = mutableListOf<Long>()
     override suspend fun scheduledMessages(chatId: Long): List<ChatMessage> = scheduled
+    val pinned = mutableListOf<Pair<Long, Boolean>>()
+    override suspend fun setMessagePinned(chatId: Long, messageId: Long, pinned: Boolean) {
+        maybeFail()
+        this.pinned += messageId to pinned
+    }
     override suspend fun sendScheduledNow(chatId: Long, messageId: Long) {
         sentNow += messageId
         scheduled = scheduled.filterNot { it.id == messageId }

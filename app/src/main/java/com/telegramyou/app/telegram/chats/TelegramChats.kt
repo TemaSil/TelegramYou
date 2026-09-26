@@ -76,6 +76,12 @@ interface TelegramChats {
      */
     suspend fun searchPublicChats(query: String): List<ChatPreview>
 
+    /**
+     * The chat behind an @username, for a mention tapped in a message; null
+     * when there is none.
+     */
+    suspend fun chatByUsername(username: String): Long?
+
     /** The people this account writes to most, for the top of search. */
     suspend fun topPeople(limit: Int = 12): List<ChatPreview>
 

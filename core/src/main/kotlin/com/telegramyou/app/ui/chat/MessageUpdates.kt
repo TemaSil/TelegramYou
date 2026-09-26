@@ -35,8 +35,12 @@ fun List<ChatMessage>.applying(
         else filterNot { it.id in update.messageIds }
 
     is MessageUpdate.Edited -> mapMessage(update.messageId) {
-        if (it.text == update.text && it.isEdited) it
-        else it.copy(text = update.text, isEdited = true)
+        if (it.text == update.text && it.entities == update.entities && it.isEdited) it
+        else it.copy(text = update.text, entities = update.entities, isEdited = true)
+    }
+
+    is MessageUpdate.PinChanged -> mapMessage(update.messageId) {
+        if (it.isPinned == update.isPinned) it else it.copy(isPinned = update.isPinned)
     }
 
     is MessageUpdate.ReactionsChanged -> mapMessage(update.messageId) {

@@ -679,7 +679,13 @@ fun TelegramYouNavHost(
                 onScheduledSendNow = chatViewModel::onScheduledSendNow,
                 onScheduledDelete = chatViewModel::onScheduledDelete,
                 onScheduledDismiss = chatViewModel::onScheduledDismiss,
-                onNoticeShown = chatViewModel::onNoticeShown
+                onNoticeShown = chatViewModel::onNoticeShown,
+                onPinToggled = chatViewModel::onPinToggled,
+                onMention = { username ->
+                    openScope.launch {
+                        repository.chatByUsername(username)?.let(openChat)
+                    }
+                }
             )
             }
             }

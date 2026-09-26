@@ -313,6 +313,18 @@ class ChatViewModel(
                 errorMessage = failureText("Could not send", update.error),
                 selection = patched.selection.retaining(patched.messages)
             )
+            // The bar follows: a message pinned now is the one it shows,
+            // and the one it showed going unpinned takes the bar with it.
+            is MessageUpdate.PinChanged -> patched.copy(
+                detail = patched.detail?.let { chat ->
+                    when {
+                        update.isPinned -> patched.messages.firstOrNull { it.id == update.messageId }
+                            ?.let { chat.copy(pinnedMessage = it) } ?: chat
+                        chat.pinnedMessage?.id == update.messageId -> chat.copy(pinnedMessage = null)
+                        else -> chat
+                    }
+                }
+            )
             is MessageUpdate.Replaced -> patched.copy(
                 replyTo = patched.replyTo?.let {
                     if (it.id == update.oldId) update.message else it
@@ -658,6 +670,20 @@ class ChatViewModel(
         onJumpToLatest()
         viewModelScope.launch {
             attempt("Could not send") { repository.sendMessage(chatId, text) }
+        }
+    }
+
+    // ── pinning ──────────────────────────────────────────────────────────
+
+    /** Pins or unpins, drawn at once and put back if the server refuses. */
+    fun onPinToggled(message: ChatMessage) {
+        val pin = !message.isPinned
+        applyUpdate(MessageUpdate.PinChanged(chatId, message.id, pin))
+        viewModelScope.launch {
+            val done = attempt(if (pin) "Could not pin" else "Could not unpin") {
+                repository.setMessagePinned(chatId, message.id, pin)
+            }
+            if (!done) applyUpdate(MessageUpdate.PinChanged(chatId, message.id, !pin))
         }
     }
 

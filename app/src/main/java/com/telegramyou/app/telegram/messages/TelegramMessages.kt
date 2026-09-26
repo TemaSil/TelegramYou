@@ -55,6 +55,9 @@ interface TelegramMessages {
      */
     suspend fun scheduledMessages(chatId: Long): List<ChatMessage>
 
+    /** Pins a message in its chat, or unpins it. */
+    suspend fun setMessagePinned(chatId: Long, messageId: Long, pinned: Boolean)
+
     /** Sends a scheduled message now rather than at its time. */
     suspend fun sendScheduledNow(chatId: Long, messageId: Long)
 

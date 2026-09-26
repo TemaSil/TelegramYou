@@ -54,7 +54,16 @@ sealed interface MessageUpdate {
     data class Edited(
         override val chatId: Long,
         val messageId: Long,
-        val text: String
+        val text: String,
+        /** The new text's formatting; an edit can change it with the words. */
+        val entities: List<TextEntity> = emptyList()
+    ) : MessageUpdate
+
+    /** A message was pinned or unpinned, here or elsewhere. */
+    data class PinChanged(
+        override val chatId: Long,
+        val messageId: Long,
+        val isPinned: Boolean
     ) : MessageUpdate
 
     data class ReactionsChanged(

@@ -702,6 +702,23 @@ class ChatViewModelTest {
         assertNull(vm.uiState.value.scheduled)
     }
 
+    @Test
+    fun `pinning shows in the message and the bar at once`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10), message(11)))
+        advanceUntilIdle()
+
+        vm.onPinToggled(message(11))
+        advanceUntilIdle()
+
+        assertTrue(vm.uiState.value.messages.first { it.id == 11L }.isPinned)
+        assertEquals(11L, vm.uiState.value.detail?.pinnedMessage?.id)
+        assertEquals(listOf(11L to true), client.pinned)
+
+        vm.onPinToggled(vm.uiState.value.messages.first { it.id == 11L })
+        advanceUntilIdle()
+        assertNull(vm.uiState.value.detail?.pinnedMessage)
+    }
+
     private companion object {
         const val CHAT_ID = 1L
     }

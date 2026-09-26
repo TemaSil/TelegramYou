@@ -434,7 +434,18 @@ data class ChatMessage(
      * message that has been sent. Scheduled messages live in a list of their
      * own and never in the conversation.
      */
-    val scheduledAt: Long? = null
+    val scheduledAt: Long? = null,
+    /** Bold, links, mentions and the rest, over [text]; see [TextEntity]. */
+    val entities: List<TextEntity> = emptyList(),
+    /**
+     * Who a forwarded message first came from, as its line says it; null
+     * for a message that was not forwarded.
+     */
+    val forwardedFrom: String? = null,
+    /** Photos sent together share this; see `albumRuns`. */
+    val albumId: Long? = null,
+    /** Pinned in its chat. */
+    val isPinned: Boolean = false
 )
 
 /**

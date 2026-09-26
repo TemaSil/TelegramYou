@@ -59,7 +59,7 @@ client and is not there.
 **Still missing, and basic** — what someone coming from the official app
 notices within a day. Roughly in the order to do them:
 
-1. **Formatted text.** Messages arrive as plain strings: no bold or italic,
+1. ~~**Formatted text.**~~ Done the same day — see below. Messages arrived as plain strings: no bold or italic,
    and links, @mentions and #hashtags are not tappable. TDLib sends
    `entities` with every text; none are read. Composing with formatting
    (Material's text-selection toolbar) comes with it.
@@ -918,6 +918,20 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       and never into the conversation until it is sent; a clock in the app
       bar opens that list while anything is waiting, each message with Send
       now and Delete. Text only: an attachment or an edit goes at once
+- [x] Formatted text — TDLib's `entities` read into `TextEntity` in `:core`
+      and drawn as span styles: bold, italic, underline, strikethrough,
+      code, quotes. Links, e-mail and phone numbers are Compose's own
+      `LinkAnnotation.Url`; an @mention opens that chat (`searchPublicChat`);
+      a #hashtag searches the conversation for it; a spoiler is covered until
+      tapped. Sending reads Telegram's markdown — **bold**, __italic__,
+      ~~strikethrough~~, ||spoiler||, `code`, [text](url) — through TDLib's
+      `parseMarkdown`. Captions keep their formatting in the data; photo and
+      file captions still draw plain
+- [x] "Forwarded from …" over a forward, from `forward_info`'s origin
+- [x] Albums — photos sharing a `media_album_id` draw once, as one grid
+      where the first of them is, with the album's caption under it
+- [x] Pin and unpin from a message's menu; the pinned bar follows at once,
+      and `updateMessageIsPinned` keeps it true when it changes elsewhere
 - [x] Music files — `messageAudio` in its own bubble: play and pause,
       title, performer and length, and a bar while it plays, on the same
       player as voice messages. Picked files with a music extension are sent

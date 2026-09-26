@@ -1468,6 +1468,47 @@ class SmokeTest {
         screenshot("43-profile-qr")
     }
 
+    /**
+     * The formatting pack: a forward says where it came from, typed markdown
+     * arrives formatted with its markers gone, and a message pins and unpins
+     * from its menu.
+     */
+    @Test
+    fun formattingForwardsAndPins() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("Kotlin Night"))
+        tap(By.text("Kotlin Night"))
+        waitFor(By.text("What do you reach for first?"), "the group")
+        scrollBackTo(By.text("Forwarded from Android Developers"), "the forwarded message")
+        screenshot("44-formatting")
+
+        type("**bold** move")
+        tap(By.desc("Send"))
+        val sent = By.text("bold move")
+        waitFor(sent, "the message, formatted and without its markers")
+        repeat(3) {
+            if (device.hasObject(By.text("Pin"))) return@repeat
+            try {
+                device.findObject(sent)?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Pin")), SHORT_WAIT)
+        }
+        tap(By.text("Pin"))
+        repeat(3) {
+            if (device.hasObject(By.text("Unpin"))) return@repeat
+            try {
+                device.findObjects(sent).lastOrNull()?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Unpin")), SHORT_WAIT)
+        }
+        waitFor(By.text("Unpin"), "the menu of a pinned message")
+        device.pressBack()
+    }
+
     /** Drags the chat list up until [selector] is on screen. */
     private fun scrollChatsTo(selector: BySelector) {
         repeat(8) {

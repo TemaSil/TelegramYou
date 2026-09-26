@@ -24,6 +24,9 @@ import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.EntityType
+import com.telegramyou.app.telegram.model.TextEntity
+import com.telegramyou.app.telegram.model.parseMarkdown
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -454,6 +457,13 @@ class DemoTelegramClient(
         return publicChats.filter { it.title.contains(query, ignoreCase = true) }
     }
 
+    override suspend fun chatByUsername(username: String): Long? {
+        delay(80)
+        // Every demo chat answers to its first name, lower-cased: @lina is
+        // Lina Park.
+        return _chats.value.firstOrNull { it.title.substringBefore(' ').equals(username, ignoreCase = true) }?.id
+    }
+
     override suspend fun topPeople(limit: Int): List<ChatPreview> {
         delay(60)
         return _chats.value
@@ -844,11 +854,13 @@ class DemoTelegramClient(
             setHasScheduled(chatId)
             return
         }
+        val (plain, entities) = parseMarkdown(text)
         appendOutgoing(
             chatId = chatId,
-            text = text,
+            text = plain,
             type = MessageContentType.Text,
-            replyToId = replyToId
+            replyToId = replyToId,
+            entities = entities
         )
         if (chatId == BOT_CHAT_ID) scope.launch {
             delay(500)
@@ -970,8 +982,18 @@ class DemoTelegramClient(
         val bucket = chatMessages[chatId] ?: return
         val index = bucket.indexOfFirst { it.id == messageId }
         if (index == -1) return
-        bucket[index] = bucket[index].copy(text = text, isEdited = true)
-        _messageUpdates.tryEmit(MessageUpdate.Edited(chatId, messageId, text))
+        val (plain, entities) = parseMarkdown(text)
+        bucket[index] = bucket[index].copy(text = plain, entities = entities, isEdited = true)
+        _messageUpdates.tryEmit(MessageUpdate.Edited(chatId, messageId, plain, entities))
+    }
+
+    override suspend fun setMessagePinned(chatId: Long, messageId: Long, pinned: Boolean) {
+        delay(100)
+        val bucket = chatMessages[chatId] ?: return
+        val index = bucket.indexOfFirst { it.id == messageId }
+        if (index == -1) return
+        bucket[index] = bucket[index].copy(isPinned = pinned)
+        _messageUpdates.tryEmit(MessageUpdate.PinChanged(chatId, messageId, pinned))
     }
 
     /**
@@ -1271,7 +1293,8 @@ class DemoTelegramClient(
         photoPath: String? = null,
         photoFileId: Int? = null,
         sticker: StickerContent? = null,
-        poll: PollContent? = null
+        poll: PollContent? = null,
+        entities: List<TextEntity> = emptyList()
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -1299,7 +1322,8 @@ class DemoTelegramClient(
             photoPath = photoPath,
             photoFileId = photoFileId,
             sticker = sticker,
-            poll = poll
+            poll = poll,
+            entities = entities
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -1628,8 +1652,25 @@ class DemoTelegramClient(
         // A poll nobody here has answered yet, so voting is the first thing
         // the chat offers, and a quiz already answered beside it, so the
         // results and the right answer are visible without a tap.
+        // Formatting, a forward and an album, so all three draw offline.
+        val bom = "Compose BOM tips: pin one version, see developer.android.com, ask @lina"
         chatMessages[7] = mutableListOf(
-            demoMessage(40, 7, "Compose BOM tips in the pinned post", false, yesterday, "Pavel"),
+            demoMessage(33, 7, "Photos from the meetup", false, yesterday - 3600, "Pavel",
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+            demoMessage(34, 7, "", false, yesterday - 3600, "Pavel",
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+            demoMessage(35, 7, "", false, yesterday - 3600, "Pavel",
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+            demoMessage(36, 7, DEMO_FORWARDED_TEXT, false, yesterday - 1800, "Nadia")
+                .copy(forwardedFrom = "Android Developers"),
+            demoMessage(40, 7, bom, false, yesterday, "Pavel").copy(
+                entities = listOf(
+                    TextEntity(0, 12, EntityType.Bold),
+                    TextEntity(bom.indexOf("pin one version"), "pin one version".length, EntityType.Italic),
+                    TextEntity(bom.indexOf("developer.android.com"), "developer.android.com".length, EntityType.Url),
+                    TextEntity(bom.indexOf("@lina"), 5, EntityType.Mention)
+                )
+            ),
             demoMessage(41, 7, DEMO_POLL_QUESTION, false, yesterday + 600, "Pavel").copy(
                 contentType = MessageContentType.Poll,
                 poll = PollContent(
@@ -1875,3 +1916,5 @@ internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
 internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
 internal const val DEMO_BOT_STATUS = "All green ✅"
 internal const val DEMO_AUDIO_TITLE = "Expressive Motion"
+internal const val DEMO_FORWARDED_TEXT = "Material 3 Expressive is now in the Compose alpha"
+private const val DEMO_ALBUM_ID = 7001L
