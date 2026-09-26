@@ -2,6 +2,7 @@ package com.telegramyou.app.navigation
 
 import com.telegramyou.app.ui.chat.LocalFileLoader
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import kotlinx.coroutines.launch
@@ -557,7 +558,13 @@ fun TelegramYouNavHost(
             arguments = Route.Chat.arguments,
             // The row it opened out of does the moving; see containerTransform.
             enterTransition = { fadeIn(spring()) },
-            popExitTransition = { fadeOut(spring()) }
+            // Kept on screen until the container transform has shrunk back
+            // into its row. A fade here finished in a fifth of a second
+            // while the container took half a second to close, so it went
+            // transparent halfway and the row seemed to grow out of an
+            // empty box — the "buggy" close. The container's own crossfade
+            // is the only fade the way back needs.
+            popExitTransition = { ExitTransition.KeepUntilTransitionsFinished }
         ) { entry ->
             val openedChatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
             // chatId is not read here: ChatViewModel takes it from the saved
@@ -681,7 +688,13 @@ fun TelegramYouNavHost(
             route = Route.Story.PATTERN,
             arguments = Route.Story.arguments,
             enterTransition = { fadeIn(spring()) },
-            popExitTransition = { fadeOut(spring()) }
+            // Kept on screen until the container transform has shrunk back
+            // into its row. A fade here finished in a fifth of a second
+            // while the container took half a second to close, so it went
+            // transparent halfway and the row seemed to grow out of an
+            // empty box — the "buggy" close. The container's own crossfade
+            // is the only fade the way back needs.
+            popExitTransition = { ExitTransition.KeepUntilTransitionsFinished }
         ) { entry ->
             val openedStoryId = entry.arguments?.getLong(Route.Story.ARG_STORY_ID) ?: 0L
             // The story arrives as an id in the route and is looked up by its

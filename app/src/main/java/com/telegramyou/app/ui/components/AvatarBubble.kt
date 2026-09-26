@@ -73,7 +73,8 @@ fun AvatarBubble(
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "avatarScale"
     )
-    val outline = if (typing) typingShape(seed) else shape
+    // Always through typingShape, so stopping has somewhere to animate from.
+    val outline = typingShape(seed, typing, shape)
     val base = avatarColor(seed)
     val initials = title
         .split(" ")
