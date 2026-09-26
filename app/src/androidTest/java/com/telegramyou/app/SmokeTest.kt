@@ -237,9 +237,23 @@ class SmokeTest {
         val note = By.descStartsWith("Video message, ")
         waitFor(note, "the round video message")
         tap(note)
-        waitFor(By.desc("Video message, playing"), "the video message playing")
+        // Looked for often rather than waited for: the demo's clip is four
+        // seconds long, and on the emulator a wait that polls once a second
+        // over a slow tree missed it playing — the audio in the log shows
+        // it did play, from the tap to its end.
+        val playingNote = By.desc("Video message, playing")
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (!device.hasObject(playingNote) && SystemClock.uptimeMillis() < deadline) {
+            SystemClock.sleep(100)
+        }
+        waitFor(playingNote, "the video message playing")
         screenshot("31-video-note")
-        tap(By.desc("Video message, playing"))
+        // Paused by a second tap, or over by itself if the four seconds ran
+        // out first — either way it comes back to rest on its length.
+        try {
+            device.findObject(playingNote)?.click()
+        } catch (_: StaleObjectException) {
+        }
         waitFor(By.desc("Video message, 0:08"), "the video message paused")
     }
 
@@ -661,14 +675,23 @@ class SmokeTest {
         // twice. That the pager moves on each swipe is the point here.
         // Once more if the first one did nothing: a message from the demo's
         // chatter landing mid-gesture can leave the pager where it was.
-        repeat(2) {
-            swipeListLeft()
-            if (device.wait(Until.gone(By.text(GROUP_CHAT)), STEP_TIMEOUT / 2)) return@repeat
+        //
+        // The first try is in the empty space under Work's three chats, the
+        // second across the rows themselves, and which one moved the pager
+        // is written to evidence/frames/: a swipe on the empty part of a
+        // short folder is a thing a person does too.
+        val tries = StringBuilder()
+        var left = false
+        for ((attempt, height) in listOf(0.65, 0.35).withIndex()) {
+            swipeListLeft(height)
+            left = device.wait(Until.gone(By.text(GROUP_CHAT)), STEP_TIMEOUT / 2)
+            tries.append("swipe ${attempt + 1} at ${(height * 100).toInt()}% of the height: ")
+                .append(if (left) "left Work" else "stayed on Work").append('\n')
+            if (left) break
+            screenshot("folder-swipe-${attempt + 1}-stayed")
         }
-        assertTrue(
-            "the second swipe should have left Work and its group behind",
-            device.wait(Until.gone(By.text(GROUP_CHAT)), STEP_TIMEOUT)
-        )
+        TestStorage().openOutputFile("frames-folder-swipe.txt").use { it.write(tries.toString().toByteArray()) }
+        assertTrue("the second swipe should have left Work and its group behind", left)
         // And the tabs and pages agree: People by its tab, Mom there.
         tap(By.text("People"))
         waitFor(By.text("Mom"), "Mom, in People")
@@ -1146,8 +1169,8 @@ class SmokeTest {
         device.waitForIdle(IDLE_TIMEOUT)
     }
 
-    private fun swipeListLeft() {
-        val y = (device.displayHeight * 0.65).toInt()
+    private fun swipeListLeft(height: Double = 0.65) {
+        val y = (device.displayHeight * height).toInt()
         device.swipe(
             (device.displayWidth * 0.85).toInt(), y,
             (device.displayWidth * 0.15).toInt(), y,

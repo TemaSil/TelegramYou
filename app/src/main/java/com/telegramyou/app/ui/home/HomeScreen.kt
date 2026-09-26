@@ -681,7 +681,6 @@ private fun ChatListPage(
         // darker still — is drawn around the pager rather than here, so it
         // stays still while pages swipe across it. The list stays lazy
         // either way.
-        // The panel itself is drawn around the pager; see there.
         modifier = Modifier.fillMaxSize(),
         // Twenty above, so the first row sits inside the panel
         // rather than wedged into its rounded corner. Below, room for
