@@ -19,6 +19,12 @@ data class GeekSettings(
     val hideStories: Boolean = false,
     /** The All tab off the chat list when there are folders to page between. */
     val hideAllChatsTab: Boolean = false,
+    /**
+     * Search opens with the field waiting and the keyboard down. By default
+     * the field takes focus and the keyboard comes up, since opening search
+     * is almost always the first half of typing into it.
+     */
+    val searchWithoutKeyboard: Boolean = false,
     /** TDLib's `prefer_ipv6`: reach Telegram over IPv6 where both are offered. */
     val preferIpv6: Boolean = false
 )

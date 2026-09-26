@@ -104,7 +104,7 @@ seen without an account:
   and updates checked for and installed from inside the app.
 - **For geeks** — double-tap actions, seconds in message times, message
   details, save and copy media, forwarding without quoting, hiding stories
-  or the All tab, and IPv6 — all off until turned on.
+  or the All tab, search without the keyboard, and IPv6 — all off until turned on.
 - **Notifications** — a foreground service, per-chat mute, and replying
   from the shade.
 - **Adaptive** — the navigation becomes a rail where the window is wide and

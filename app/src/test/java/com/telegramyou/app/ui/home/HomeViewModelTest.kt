@@ -255,6 +255,8 @@ class HomeViewModelTest {
         assertEquals(listOf("Material Design", "Design crit"), chats.mine.map { it.title })
         assertEquals(listOf("Design Weekly"), chats.global.map { it.title })
         vm.onSearchScopeChange(SearchScope.Channels)
+        advanceUntilIdle()
+        assertEquals(SearchScope.Channels, vm.uiState.value.search.scope)
         assertEquals(listOf("Design Weekly"), vm.uiState.value.search.visibleChats.global.map { it.title })
     }
 
@@ -275,6 +277,7 @@ class HomeViewModelTest {
         assertEquals(4, vm.uiState.value.search.posts?.freeLeft)
 
         vm.onSearchQueryChange("designs")
+        advanceUntilIdle()
         assertNull("a new query drops the old posts", vm.uiState.value.search.posts)
     }
 

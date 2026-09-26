@@ -38,6 +38,13 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,11 +94,25 @@ internal fun SearchSection(
     actions: SearchActions,
     onOpenChat: (Long) -> Unit
 ) {
+    // The field waits with the caret in it and the keyboard up, unless
+    // Settings → For geeks says to open search without it.
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val withoutKeyboard = LocalGeekSettings.current.searchWithoutKeyboard
+    LaunchedEffect(Unit) {
+        if (withoutKeyboard) return@LaunchedEffect
+        // A frame first: the bar is still being laid out when this starts,
+        // and focus asked of a node not yet attached is dropped.
+        withFrameNanos { }
+        runCatching { focus.requestFocus() }
+        keyboard?.show()
+    }
     SearchBar(
         expanded = true,
         onExpandedChange = onExpandedChange,
         inputField = {
             SearchBarDefaults.InputField(
+                modifier = Modifier.focusRequester(focus),
                 query = search.query,
                 onQueryChange = onQueryChange,
                 onSearch = { actions.onSubmit() },

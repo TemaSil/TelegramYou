@@ -137,6 +137,11 @@ fun GeeksScreen(
                 summary = "Start on your first folder, when you have folders",
                 checked = settings.hideAllChatsTab
             ) { on -> onChange { it.copy(hideAllChatsTab = on) } }
+            GeekSwitch(
+                title = "Open search without the keyboard",
+                summary = "Show recent chats and people first; tap the field to type",
+                checked = settings.searchWithoutKeyboard
+            ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
 
             SectionHeader("Connection")
             GeekSwitch(

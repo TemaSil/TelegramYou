@@ -13,6 +13,7 @@ class GeeksTest {
         assertFalse(defaults.showSeconds || defaults.messageDetails || defaults.saveMedia)
         assertFalse(defaults.forwardWithoutQuote || defaults.hideStories || defaults.hideAllChatsTab)
         assertFalse(defaults.preferIpv6)
+        assertFalse("search opens ready to type", defaults.searchWithoutKeyboard)
     }
 
     @Test

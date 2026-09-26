@@ -1194,6 +1194,8 @@ never opens that screen. The settings are in `:core` with tests
       clipboard never sees TDLib's own directory). Open in browser is not in
 - [x] Time with seconds. Number rounding is not in
 - [x] Hide stories, hide the All tab when there are folders
+- [x] Open search without the keyboard. By default search takes the caret
+      and raises the keyboard the moment it opens
 - [x] Prefer IPv6 — TDLib's `prefer_ipv6`. Showing RPC errors is not in:
       failures already reach a snackbar with the server's words
 

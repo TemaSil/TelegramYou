@@ -1385,6 +1385,8 @@ class SmokeTest {
         tap(By.text("Search"))
         waitFor(By.text("People"), "the people written to most")
         waitFor(By.text("Recent"), "the chats found before")
+        // Ready to type from the first moment: the field has the caret.
+        waitFor(By.clazz("android.widget.EditText").focused(true), "the search field, focused")
         screenshot("36-search")
         type("Expressive")
         waitFor(By.text("Global search"), "public chats")

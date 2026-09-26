@@ -31,6 +31,7 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_FORWARD_COPY, now.forwardWithoutQuote)
             .putBoolean(KEY_HIDE_STORIES, now.hideStories)
             .putBoolean(KEY_HIDE_ALL, now.hideAllChatsTab)
+            .putBoolean(KEY_SEARCH_NO_KEYBOARD, now.searchWithoutKeyboard)
             .putBoolean(KEY_IPV6, now.preferIpv6)
             .apply()
     }
@@ -45,6 +46,7 @@ class GeekStore(context: Context) {
             forwardWithoutQuote = preferences.getBoolean(KEY_FORWARD_COPY, false),
             hideStories = preferences.getBoolean(KEY_HIDE_STORIES, false),
             hideAllChatsTab = preferences.getBoolean(KEY_HIDE_ALL, false),
+            searchWithoutKeyboard = preferences.getBoolean(KEY_SEARCH_NO_KEYBOARD, false),
             preferIpv6 = preferences.getBoolean(KEY_IPV6, false)
         )
     }
@@ -58,6 +60,7 @@ class GeekStore(context: Context) {
         const val KEY_FORWARD_COPY = "forward_without_quote"
         const val KEY_HIDE_STORIES = "hide_stories"
         const val KEY_HIDE_ALL = "hide_all_chats_tab"
+        const val KEY_SEARCH_NO_KEYBOARD = "search_without_keyboard"
         const val KEY_IPV6 = "prefer_ipv6"
     }
 }
