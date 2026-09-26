@@ -554,6 +554,18 @@ fun HomeScreen(
                                     onArchivedChange = onArchivedChange
                                 )
                             }
+                        // The panel under the chats, rounded where it meets the
+                        // header. Here, around the pager, rather than on each
+                        // page's list: there it travelled with the page, so a
+                        // swipe between folders slid the whole rounded card
+                        // sideways. The panel stays put and only the rows move
+                        // across it, clipped to its corners.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        ) {
                         if (tabs.isEmpty()) {
                             // No folders, nothing to page between: one list, and
                             // the rows keep their own swipes.
@@ -575,6 +587,7 @@ fun HomeScreen(
                                     /* current = */ index == pager.currentPage
                                 )
                             }
+                        }
                         }
                     }
                 }
@@ -663,30 +676,13 @@ private fun ChatListPage(
     }
     LazyColumn(
         state = listState,
-        // The lighter panel the chats sit on, and the second half
-        // of Material's "contain content for emphasis": the rows
-        // are the lightest tone, the panel under them is a step
-        // darker, and the bar and the stories rail above are
-        // darker still. Three steps, so the chats read as their
-        // own zone rather than as pills floating on the same grey
-        // as everything else — which is what they did when this
-        // background and the one behind the stories were the same
-        // colour.
-        //
-        // On the list rather than around it: wrapping the chats in a
-        // panel of their own would mean one `item` holding every row,
-        // and a chat list is exactly the thing that must stay lazy.
-        modifier = Modifier
-            .fillMaxSize()
-            // Rounded where it meets the header, so the chats
-            // read as sitting in a panel rather than as the
-            // screen carrying on in another colour. Clipped
-            // before the background, or the corners would be
-            // painted over by it.
-            .clip(
-                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            )
-            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+        // The lighter panel the chats sit on — Material's "contain content
+        // for emphasis": rows lightest, the panel a step darker, the header
+        // darker still — is drawn around the pager rather than here, so it
+        // stays still while pages swipe across it. The list stays lazy
+        // either way.
+        // The panel itself is drawn around the pager; see there.
+        modifier = Modifier.fillMaxSize(),
         // Twenty above, so the first row sits inside the panel
         // rather than wedged into its rounded corner. Below, room for
         // the floating button and only for it: the navigation bar is
@@ -915,7 +911,11 @@ private fun FolderTabs(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         // No divider. The step down in tone at the top of the list already
         // separates the two, and a line as well would be saying it twice.
-        divider = {}
+        divider = {},
+        // Each tab as wide as its name, as the official client has them:
+        // at Material's default of 90dp a short "All" took as much of the
+        // strip as a long folder name, and fewer folders fitted on screen.
+        minTabWidth = 0.dp
     ) {
         tabs.forEachIndexed { index, folder ->
             val count = unread.getOrElse(index) { 0 }
