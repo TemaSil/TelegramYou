@@ -103,7 +103,10 @@ class SettingsGroupScope internal constructor() {
  */
 @Composable
 fun SettingsGroup(title: String? = null, build: @Composable SettingsGroupScope.() -> Unit) {
-    val scope = SettingsGroupScope().apply(build)
+    // Called, not applied: apply takes a plain lambda and this one reads
+    // composition state.
+    val scope = SettingsGroupScope()
+    scope.build()
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         if (title != null) {
             Text(
