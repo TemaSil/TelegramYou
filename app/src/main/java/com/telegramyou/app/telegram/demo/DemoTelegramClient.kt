@@ -1582,14 +1582,7 @@ class DemoTelegramClient(
         video = video
     )
 
-    /** The demo bot's chat; see seedChats. */
-private const val BOT_CHAT_ID = 11L
-internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
-internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
-internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
-internal const val DEMO_BOT_STATUS = "All green ✅"
-
-/** Telegram's default reaction set, in its order. */
+    /** Telegram's default reaction set, in its order. */
 private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
 
 /**
@@ -1684,3 +1677,10 @@ private const val DEMO_ARCHIVE_SIZE = 120
 
 /** The oldest line in Design Circle — well outside what opening it loads. */
 const val DEMO_ARCHIVE_FIRST_LINE = "Kickoff: first sketches of the floating composer"
+
+/** The demo bot's chat; see seedChats. */
+private const val BOT_CHAT_ID = 11L
+internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
+internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
+internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
+internal const val DEMO_BOT_STATUS = "All green ✅"
