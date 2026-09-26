@@ -2371,16 +2371,19 @@ private fun VideoNoteMessage(
     LaunchedEffect(note.path, note.thumbPath) {
         if (note.path == null || note.thumbPath == null) onVisible()
     }
-    var playing by remember(note.path) { mutableStateOf(false) }
+    // A tap while the file is still arriving is kept, not dropped: the
+    // circle starts as soon as there is something to play.
+    var playing by remember { mutableStateOf(false) }
     val duration = formatDuration(note.durationSeconds.toLong())
     Box(
         modifier = Modifier
             .size(VIDEO_NOTE_SIZE)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(enabled = note.path != null) { playing = !playing }
+            .clickable { playing = !playing }
             .semantics(mergeDescendants = true) {
-                contentDescription = if (playing) "Video message, playing" else "Video message, $duration"
+                contentDescription =
+                    if (playing && note.path != null) "Video message, playing" else "Video message, $duration"
             },
         contentAlignment = Alignment.Center
     ) {
