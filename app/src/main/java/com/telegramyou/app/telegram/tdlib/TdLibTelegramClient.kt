@@ -3316,5 +3316,5 @@ private fun emailResetOf(state: JSONObject?): EmailReset? {
  * reads. Sent back to TDLib, an int64 goes as a string for the same reason.
  * (int53 fields — chat, user and message ids — are numbers and exact already.)
  */
-private fun JSONObject.optInt64(key: String): Long =
+internal fun JSONObject.optInt64(key: String): Long =
     optString(key).toLongOrNull() ?: optLong(key)
