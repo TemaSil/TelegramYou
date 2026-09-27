@@ -244,7 +244,15 @@ class SmokeTest {
         // it did play, from the tap to its end.
         val playingNote = By.desc("Video message, playing")
         val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
-        while (!device.hasObject(playingNote) && SystemClock.uptimeMillis() < deadline) {
+        // And through a fresh accessibility cache each look: UiAutomator's
+        // held the circle's old description while it played — the audio in
+        // the log runs from the tap to the clip's end — the same staleness
+        // the folder pager showed.
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            if (device.hasObject(playingNote)) break
             SystemClock.sleep(100)
         }
         waitFor(playingNote, "the video message playing")
