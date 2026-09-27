@@ -169,7 +169,9 @@ class AppUpdates(private val context: Context) {
                     )
                 }
             }
-            return releaseOf(json.optString("name"), json.optString("body"), byName)
+            // Each build type updates to its own kind: a release to the
+            // release APK, a debug build to the debug one.
+            return releaseOf(json.optString("name"), json.optString("body"), byName, BuildConfig.UPDATE_ASSET)
         } finally {
             connection.disconnect()
         }

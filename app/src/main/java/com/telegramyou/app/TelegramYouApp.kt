@@ -68,11 +68,14 @@ class TelegramYouApp : Application() {
         // build, and then the Settings tab says so.
         updates.check(quiet = true)
 
-        isSwitchedToDemo = !BuildConfig.USE_DEMO_CLIENT &&
+        // Every way into the demo sits behind DEMO_ALLOWED, a constant false in
+        // a release build, so R8 can see the demo is unreachable there and
+        // drop it — the backend, its seeded chats, its media — whole.
+        isSwitchedToDemo = BuildConfig.DEMO_ALLOWED && !BuildConfig.USE_DEMO_CLIENT &&
             getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_DEMO, false)
-        val client = if (BuildConfig.USE_DEMO_CLIENT) {
+        val client = if (BuildConfig.DEMO_ALLOWED && BuildConfig.USE_DEMO_CLIENT) {
             DemoTelegramClient()
-        } else if (isSwitchedToDemo) {
+        } else if (BuildConfig.DEMO_ALLOWED && isSwitchedToDemo) {
             DemoTelegramClient(signedIn = true)
         } else {
             TdLibTelegramClient(
@@ -84,7 +87,7 @@ class TelegramYouApp : Application() {
                 )
             )
         }
-        demoClient = client as? DemoTelegramClient
+        demoClient = if (BuildConfig.DEMO_ALLOWED) client as? DemoTelegramClient else null
         telegramRepository = TelegramRepository(client)
         telegramRepository.start()
         // The one geek setting that is TDLib's rather than the screens': sent
@@ -119,7 +122,7 @@ class TelegramYouApp : Application() {
      * coming back out of the demo is still signed in.
      */
     fun setDemoMode(enabled: Boolean) {
-        if (BuildConfig.USE_DEMO_CLIENT) return
+        if (!BuildConfig.DEMO_ALLOWED || BuildConfig.USE_DEMO_CLIENT) return
         // commit, not apply: the process ends two lines down.
         getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_DEMO, enabled).commit()
         val launch = packageManager.getLaunchIntentForPackage(packageName) ?: return

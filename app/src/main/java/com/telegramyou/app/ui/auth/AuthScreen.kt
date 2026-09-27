@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.auth
 
+import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.TextRange
@@ -314,11 +315,18 @@ private fun BrandMark(onDemoRequested: () -> Unit) {
             .size(96.dp)
             .clip(outline)
             .background(MaterialTheme.colorScheme.primaryContainer)
-            .pointerInput(Unit) {
-                detectTapGestures {
-                    if (taps.tap(System.currentTimeMillis())) onDemoRequested()
+            // Not in a release build: the demo is not in it to switch to.
+            .then(
+                if (BuildConfig.DEMO_ALLOWED) {
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures {
+                            if (taps.tap(System.currentTimeMillis())) onDemoRequested()
+                        }
+                    }
+                } else {
+                    Modifier
                 }
-            },
+            ),
         contentAlignment = Alignment.Center
     ) {
         Icon(

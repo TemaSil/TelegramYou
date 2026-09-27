@@ -243,6 +243,36 @@ Android SDK has used for its own debug keystore forever; it signs debug
 builds and nothing else. **A release key is not covered by this** and must
 never be committed.
 
+### Two builds
+
+- **Debug** (`com.telegramyou.app.debug`, `TelegramYou-debug.apk`) — for
+  testing: the demo inside it, the tracked debug key, no R8. Slower than the
+  app will be; judge motion on the release.
+- **Release** (`com.telegramyou.app`, `TelegramYou.apk`) — for people: live
+  only, R8 and resource shrinking on, signed with the owner's key. **The demo
+  is not in it**: every way in is behind `BuildConfig.DEMO_ALLOWED`, false for
+  release, so R8 drops the backend, its chats and its media, and the Build
+  workflow fails the build if a seeded demo line or the demo's media are
+  still in the APK. Each build's update check looks for its own file
+  (`BuildConfig.UPDATE_ASSET`).
+
+The release key lives in four repository secrets — `RELEASE_KEYSTORE_BASE64`
+(the keystore file, base64), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
+`RELEASE_KEY_PASSWORD` — or on a machine in `local.properties` as
+`release.storeFile` and friends. It is made once, by the owner, on the owner's
+machine, and never passes through a session:
+
+```
+keytool -genkeypair -v -keystore telegramyou-release.jks -alias telegramyou \
+  -keyalg RSA -keysize 4096 -validity 36500
+base64 -w0 telegramyou-release.jks    # macOS: base64 -i telegramyou-release.jks
+```
+
+**Losing it means no installed release can ever be updated again** — keep
+the file and its passwords somewhere safe, apart from this repository.
+Without the secrets the release build is still made and checked on every
+push, unsigned, and not published.
+
 ## Working here
 
 - **Говорить в чате по-русски.** Владелец проекта пишет по-русски и ждёт

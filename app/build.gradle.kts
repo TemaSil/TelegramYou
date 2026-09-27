@@ -72,6 +72,29 @@ val telegramApiHash: String =
 val isLiveBuild = telegramApiId != "0" && telegramApiHash.isNotBlank()
 
 /**
+ * The release key, from local.properties (`release.storeFile`,
+ * `release.storePassword`, `release.keyAlias`, `release.keyPassword`) or the
+ * environment (RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS,
+ * RELEASE_KEY_PASSWORD), or null when neither has it. The key file itself
+ * lives outside the repository; `*.jks` and `*.keystore` are ignored, and a
+ * release key must never be committed — CLAUDE.md, "Credentials".
+ */
+class ReleaseSigning(val storeFile: String, val storePassword: String, val keyAlias: String, val keyPassword: String)
+
+val releaseSigning: ReleaseSigning? = run {
+    fun read(property: String, variable: String) =
+        localProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+            ?: System.getenv(variable)?.takeIf { it.isNotBlank() }
+    val file = read("release.storeFile", "RELEASE_STORE_FILE") ?: return@run null
+    ReleaseSigning(
+        storeFile = file,
+        storePassword = read("release.storePassword", "RELEASE_STORE_PASSWORD") ?: return@run null,
+        keyAlias = read("release.keyAlias", "RELEASE_KEY_ALIAS") ?: return@run null,
+        keyPassword = read("release.keyPassword", "RELEASE_KEY_PASSWORD") ?: return@run null
+    )
+}
+
+/**
  * `-PtelegramTestDc=true` points a live build at Telegram's test servers.
  *
  * There, numbers of the form +99966XYYYY exist for testing, and their login
@@ -127,6 +150,20 @@ android {
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+        // The owner's release key, which is never in this repository: on CI
+        // the Build workflow writes it from the RELEASE_KEYSTORE_BASE64 secret
+        // to a file outside the checkout and names it here through the
+        // environment; on a developer's machine, local.properties does. With
+        // neither, there is no release signing config and no release build
+        // to install — see releaseSigning.
+        releaseSigning?.let { key ->
+            create("release") {
+                storeFile = file(key.storeFile)
+                storePassword = key.storePassword
+                keyAlias = key.keyAlias
+                keyPassword = key.keyPassword
+            }
+        }
     }
 
     defaultConfig {
@@ -143,6 +180,14 @@ android {
         buildConfigField("String", "TELEGRAM_API_HASH_MASKED", "\"${maskedApiHash.first}\"")
         buildConfigField("String", "TELEGRAM_API_HASH_MASK", "\"${maskedApiHash.second}\"")
         buildConfigField("boolean", "USE_DEMO_CLIENT", (!isLiveBuild).toString())
+        // Whether this build may contain the demo at all — the backend, its
+        // seeded chats and media, and the ten taps that switch to it. True
+        // here and false for release, which is what lets R8 drop every line
+        // and resource of it from the APK people install.
+        buildConfigField("boolean", "DEMO_ALLOWED", "true")
+        // The asset on the `latest` release the in-app update check looks
+        // for: each build type updates to its own kind.
+        buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou-debug.apk\"")
         buildConfigField("boolean", "USE_TEST_DC", useTestDc.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -160,12 +205,21 @@ android {
     }
 
     buildTypes {
+        // The build people install: live only, shrunk and optimised by R8,
+        // signed with the owner's key. Debug is the one for testing — the
+        // demo, the debug key, the Compose debug overhead — and the two sit
+        // side by side on a phone under different ids.
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.findByName("release")
+            buildConfigField("boolean", "USE_DEMO_CLIENT", "false")
+            buildConfigField("boolean", "DEMO_ALLOWED", "false")
+            buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou.apk\"")
         }
         debug {
             applicationIdSuffix = ".debug"

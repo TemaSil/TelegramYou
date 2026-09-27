@@ -10,9 +10,12 @@ That is the release page, rebuilt from `main` on every green push — the APK is
 the file attached at the bottom of it.
 
 If you would rather have the file itself:
-[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk).
-The file name stays the same on every build so this link keeps working; the
-release title says which build it is.
+[TelegramYou.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou.apk)
+is the app — the release build, once its signing key is configured — and
+[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk)
+is the build for testing, slower and with the demo in it; the two install side
+by side. The file names stay the same on every build so these links keep
+working; the release title says which build it is.
 
 Installed once, it updates itself: **Settings → About → Check for updates**
 fetches the newest build from the same release and hands it to Android's
