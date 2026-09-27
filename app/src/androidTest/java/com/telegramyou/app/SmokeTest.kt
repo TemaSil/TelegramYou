@@ -722,7 +722,9 @@ class SmokeTest {
     @Test
     fun theHeaderScrollsAwayAndBack() {
         signIn()
-        waitFor(By.text(GROUP_CHAT), "the chat list")
+        // The pinned chat at the top, not the group further down: groups
+        // made by other tests on the same emulator push that below the fold.
+        waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
 
         dragList(fromY = 0.75, toY = 0.35)
@@ -1447,6 +1449,9 @@ class SmokeTest {
         waitFor(By.textContains("Figma dump"), "the group")
 
         tap(By.desc("Attach"))
+        // The sheet asks for the photos it shows recent ones from; which test
+        // meets that request first depends on how the runner shards them.
+        allowPhotos()
         tap(By.text("Poll"))
         waitFor(By.text("New poll"), "the poll form")
         // By name: the chat's own field is behind the dialog, and a search

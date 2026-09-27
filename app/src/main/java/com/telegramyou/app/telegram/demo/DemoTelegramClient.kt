@@ -1639,10 +1639,15 @@ class DemoTelegramClient(
                     path = DEMO_VIDEO
                 )
             ),
-            demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park"),
-            // A video sticker — VP9 with its transparency riding beside it,
-            // the way Telegram's are — so the player for them has something
-            // to play offline and in the smoke test.
+            demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park")
+        )
+        // Artem's chat, with a video sticker — VP9 with its transparency
+        // riding beside it, the way Telegram's are — so the player for them
+        // has something to play offline and in the smoke test.
+        chatMessages[5] = mutableListOf(
+            demoMessage(
+                289, 5, "Send me the apk?", false, today + 60, "Artem"
+            ),
             demoMessage(
                 290, 5, "😊", false, today + 100, "Artem",
                 contentType = MessageContentType.Sticker
