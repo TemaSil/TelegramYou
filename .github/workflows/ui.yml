@@ -20,6 +20,14 @@ on:
   # are left out — they hold no code, and a run on them would test nothing.
   push:
     branches-ignore: [ui-screenshots, live-screenshots, gallery]
+    # Words only — the README, the roadmap, these notes — cannot change a
+    # screen, and each such push used to cost a full eleven-minute run.
+    # The app's own what's-new note is Markdown too; a new sentence in it
+    # cannot break the screen that shows it.
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.gitignore'
   workflow_dispatch:
 
 permissions:
@@ -33,21 +41,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Three emulators at once, each running a third of the smoke test. One ran
-  # all of it in ten minutes, nearly all of it tests run back to back;
-  # AndroidJUnitRunner's own sharding splits them, and the report job below
-  # puts the three thirds back together. Public repository minutes cost
-  # nothing, so the extra machines are free and the wait is a third.
+  # Four emulators at once, each running a quarter of the smoke test.
+  # AndroidJUnitRunner's own sharding splits them — by a hash of each test's
+  # name, not by how long it takes, so the parts are uneven and the run
+  # waits for the slowest. At three the parts ran from five minutes to ten
+  # and a half; a fourth makes each smaller. Public repository minutes cost
+  # nothing, so the extra machine is free. The count is in three places —
+  # the matrix, numShards, and the report's check — and they move together.
   smoke:
-    name: smoke (${{ matrix.shard }} of 3)
+    name: smoke (${{ matrix.shard }} of 4)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
-      # A failure in one third must not cancel the others: the whole
+      # A failure in one quarter must not cancel the others: the whole
       # report is what says what broke.
       fail-fast: false
       matrix:
-        shard: [0, 1, 2]
+        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
 
@@ -127,7 +137,7 @@ jobs:
             # failure, so leaving it to skip itself turns the run red.
             # One line: the emulator runner executes each line of this
             # script on its own, so a backslash continuation is two commands.
-            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest -Pandroid.testInstrumentationRunnerArguments.numShards=3 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard }} --stacktrace || echo failed > failed.marker
+            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest -Pandroid.testInstrumentationRunnerArguments.numShards=4 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard }} --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
             # Nothing is pulled off the device: the screenshots go through
@@ -146,8 +156,8 @@ jobs:
         if: always()
         run: |
           mkdir -p evidence/screenshots
-          # Each third's report under its own name: the files are named after
-          # the device, and the three would otherwise overwrite each other
+          # Each quarter's report under its own name: the files are named after
+          # the device, and the four would otherwise overwrite each other
           # when the report job puts them together.
           mkdir -p "evidence/results/shard-${{ matrix.shard }}"
           cp -r app/build/outputs/androidTest-results/connected/. "evidence/results/shard-${{ matrix.shard }}/" \
@@ -174,7 +184,7 @@ jobs:
           echo "--- gathered ---"
           find evidence -type f | sort
 
-      # Handed to the report job, which publishes all three thirds as one.
+      # Handed to the report job, which publishes all four quarters as one.
       # An artifact is fine here where it is not for people: it is read by the
       # next job of the same run, never fetched from outside.
       - name: Hand the evidence on
@@ -186,7 +196,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 1
 
-  # The three thirds put back together, then everything the single job used
+  # The four quarters put back together, then everything the single job used
   # to do at its end: publish the screens, decide the verdict from the
   # reports, and file the gallery on a green main.
   report:
@@ -197,7 +207,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Gather the thirds
+      - name: Gather the quarters
         uses: actions/download-artifact@v4
         with:
           pattern: evidence-shard-*
@@ -281,11 +291,11 @@ jobs:
           if total == 0:
               print("::error::No instrumentation tests ran.")
               sys.exit(1)
-          # Every third has to have reported: a shard whose emulator never
+          # Every quarter has to have reported: a shard whose emulator never
           # ran anything leaves the other two looking like the whole run.
           shards = {p.split('/')[2] for p in glob.glob('evidence/results/shard-*/**/*.xml', recursive=True)}
-          if len(shards) < 3:
-              print(f"::error::Only {len(shards)} of 3 shards reported: {sorted(shards)}")
+          if len(shards) < 4:
+              print(f"::error::Only {len(shards)} of 4 shards reported: {sorted(shards)}")
               sys.exit(1)
           if failed:
               print("::error::The smoke test failed. See the ui-screenshots branch.")
