@@ -269,9 +269,8 @@ fun TelegramYouNavHost(
                 tab = tab,
                 onTabSelected = { picked ->
                     tab = picked
-                    // The Search tab is the search bar, so selecting it opens
-                    // it and leaving it closes it — otherwise the bar would
-                    // stay expanded over the Profile tab.
+                    // Search is active while its tab is: the front page loads
+                    // on arrival, and leaving the tab ends the search.
                     homeViewModel.onSearchExpandedChange(picked == HomeTab.Search)
                 },
                 settings = appearanceSettings,
@@ -280,9 +279,8 @@ fun TelegramYouNavHost(
                 onOpenStory = { story -> navController.navigateTo(Route.Story(story.id)) },
                 onSearchExpandedChange = { expanded ->
                     homeViewModel.onSearchExpandedChange(expanded)
-                    // Closing the search bar by its own X or back arrow has to
-                    // move the tab too, or the bar underneath would still be
-                    // lit while the list is no longer being searched.
+                    // Back on an empty search page leaves for the chat list,
+                    // and the tab has to move with it.
                     if (!expanded && tab == HomeTab.Search) tab = HomeTab.Chats
                 },
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,

@@ -1,5 +1,20 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.ui.settings.settingsBackground
+import com.telegramyou.app.ui.motion.ChatContainerSpring
+import com.telegramyou.app.ui.motion.ChatContainerShape
+import com.telegramyou.app.ui.motion.chatContainerKey
+import com.telegramyou.app.ui.motion.containerTransform
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +45,6 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SecondaryScrollableTabRow
 import androidx.compose.material3.SuggestionChip
@@ -76,23 +90,29 @@ data class SearchActions(
 )
 
 /**
- * Search, as a section of its own rather than a filter over the chat list.
+ * The Search tab: a page like Settings — its name, large, folding away as
+ * the page scrolls — with the search field standing on it just below, as a
+ * pill, the way Gmail and Android's own Settings put theirs. Not a sheet
+ * drawn over everything: the field is part of the page, and what it finds
+ * is the page's content.
  *
- * Material's [SearchBar], expanded to the whole screen. Empty, it is a front
- * page — the people written to most, the chats found before, the words
- * searched for before, channels Telegram suggests — which is where a search
- * usually ends before anything is typed. With a query, tabs choose between
- * chats of each kind, messages in this account's chats, and posts in public
- * channels anywhere on Telegram.
+ * Empty, the page is a front page — the people written to most, the chats
+ * found before, the words searched for before, channels Telegram suggests.
+ * With a query, tabs choose between chats of each kind, messages in this
+ * account's chats, and posts in public channels anywhere on Telegram.
+ *
+ * A chat opened from here grows out of the row or the face that was
+ * tapped, as one opened from the chat list does; see [opensChat].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun SearchSection(
+internal fun SearchPage(
     search: SearchState,
     onQueryChange: (String) -> Unit,
     onExpandedChange: (Boolean) -> Unit,
     actions: SearchActions,
-    onOpenChat: (Long) -> Unit
+    onOpenChat: (Long) -> Unit,
+    contentPadding: PaddingValues
 ) {
     // The field waits with the caret in it and the keyboard up, unless
     // Settings → For geeks says to open search without it.
@@ -101,59 +121,83 @@ internal fun SearchSection(
     val withoutKeyboard = LocalGeekSettings.current.searchWithoutKeyboard
     LaunchedEffect(Unit) {
         if (withoutKeyboard) return@LaunchedEffect
-        // A frame first: the bar is still being laid out when this starts,
+        // A frame first: the field is still being laid out when this starts,
         // and focus asked of a node not yet attached is dropped.
         withFrameNanos { }
         runCatching { focus.requestFocus() }
         keyboard?.show()
     }
-    SearchBar(
-        expanded = true,
-        onExpandedChange = onExpandedChange,
-        inputField = {
-            SearchBarDefaults.InputField(
-                modifier = Modifier.focusRequester(focus),
-                query = search.query,
-                onQueryChange = onQueryChange,
-                onSearch = { actions.onSubmit() },
-                expanded = true,
-                onExpandedChange = onExpandedChange,
-                placeholder = { Text("Search Telegram") },
-                leadingIcon = {
-                    IconButton(onClick = { onExpandedChange(false) }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Close search")
-                    }
-                },
-                trailingIcon = {
-                    if (search.isSearching) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                    } else if (search.query.isNotEmpty()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Clear")
-                        }
-                    }
-                }
-            )
-        }
-    ) {
-        if (search.query.isBlank()) {
-            SearchFrontPage(search = search, actions = actions, onOpenChat = onOpenChat)
+    // Back clears a query first, then leaves for the chat list.
+    BackHandler {
+        if (search.query.isNotEmpty()) onQueryChange("") else onExpandedChange(false)
+    }
+    // Which row or face opened the chat on screen, so that one — and only
+    // that one, a chat can be in two sections at once — carries the
+    // container the conversation grows out of and shrinks back into.
+    // Saveable: Home is composed again under the closing chat.
+    var opened by rememberSaveable { mutableStateOf<String?>(null) }
+    val open: (String, Long) -> Unit = { section, id ->
+        opened = "$section:$id"
+        onOpenChat(id)
+    }
+    val grows: @Composable (String, Long) -> Modifier = { section, id ->
+        if (opened == "$section:$id") {
+            Modifier.containerTransform(chatContainerKey(id), ChatContainerShape, bounds = ChatContainerSpring)
         } else {
-            Column {
-                SecondaryScrollableTabRow(
-                    selectedTabIndex = search.scope.ordinal,
-                    edgePadding = 16.dp
-                ) {
-                    SearchScope.entries.forEach { scope ->
-                        Tab(
-                            selected = scope == search.scope,
-                            onClick = { actions.onScopeChange(scope) },
-                            text = { Text(scope.label) }
-                        )
+            Modifier
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(settingsBackground())
+            .padding(top = contentPadding.calculateTopPadding())
+    ) {
+        SearchBarDefaults.InputField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clip(SearchBarDefaults.inputFieldShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .focusRequester(focus),
+            query = search.query,
+            onQueryChange = onQueryChange,
+            onSearch = {
+                actions.onSubmit()
+                keyboard?.hide()
+            },
+            expanded = false,
+            onExpandedChange = {},
+            placeholder = { Text("Search Telegram") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (search.isSearching) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                } else if (search.query.isNotEmpty()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Rounded.Close, contentDescription = "Clear")
                     }
                 }
-                SearchResults(search = search, actions = actions, onOpenChat = onOpenChat)
             }
+        )
+        val bottom = PaddingValues(bottom = contentPadding.calculateBottomPadding() + 16.dp)
+        if (search.query.isBlank()) {
+            SearchFrontPage(search = search, actions = actions, open = open, grows = grows, padding = bottom)
+        } else {
+            SecondaryScrollableTabRow(
+                selectedTabIndex = search.scope.ordinal,
+                edgePadding = 16.dp,
+                containerColor = settingsBackground()
+            ) {
+                SearchScope.entries.forEach { scope ->
+                    Tab(
+                        selected = scope == search.scope,
+                        onClick = { actions.onScopeChange(scope) },
+                        text = { Text(scope.label) }
+                    )
+                }
+            }
+            SearchResults(search = search, actions = actions, open = open, grows = grows, padding = bottom)
         }
     }
 }
@@ -163,9 +207,14 @@ internal fun SearchSection(
 private fun SearchFrontPage(
     search: SearchState,
     actions: SearchActions,
-    onOpenChat: (Long) -> Unit
+    open: (String, Long) -> Unit,
+    grows: @Composable (String, Long) -> Modifier,
+    padding: PaddingValues
 ) {
-    LazyColumn(contentPadding = PaddingValues(vertical = 8.dp)) {
+    LazyColumn(
+        contentPadding = PaddingValues(top = 4.dp, bottom = padding.calculateBottomPadding()),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
         if (search.topPeople.isNotEmpty()) {
             item(key = "people-header") { SearchSectionHeader("People") }
             item(key = "people") {
@@ -174,7 +223,11 @@ private fun SearchFrontPage(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(search.topPeople, key = { it.id }) { person ->
-                        PersonTile(person = person, onClick = { onOpenChat(person.id) })
+                        PersonTile(
+                            person = person,
+                            onClick = { open("people", person.id) },
+                            modifier = grows("people", person.id)
+                        )
                     }
                 }
             }
@@ -202,10 +255,13 @@ private fun SearchFrontPage(
             item(key = "recent-header") {
                 SearchSectionHeader("Recent", action = "Clear", onAction = actions.onRecentChatsCleared)
             }
-            items(search.recentChats, key = { "recent-${it.id}" }) { chat ->
+            itemsIndexed(search.recentChats, key = { _, chat -> "recent-${chat.id}" }) { index, chat ->
                 SearchChatRow(
                     chat = chat,
-                    onClick = { onOpenChat(chat.id) },
+                    index = index,
+                    count = search.recentChats.size,
+                    onClick = { open("recent", chat.id) },
+                    modifier = grows("recent", chat.id),
                     trailing = {
                         IconButton(onClick = { actions.onRecentChatRemoved(chat.id) }) {
                             Icon(Icons.Rounded.Close, contentDescription = "Remove ${chat.title} from recent")
@@ -216,8 +272,14 @@ private fun SearchFrontPage(
         }
         if (search.recommended.isNotEmpty()) {
             item(key = "recommended-header") { SearchSectionHeader("Channels for you") }
-            items(search.recommended, key = { "recommended-${it.id}" }) { chat ->
-                SearchChatRow(chat = chat, onClick = { onOpenChat(chat.id) })
+            itemsIndexed(search.recommended, key = { _, chat -> "recommended-${chat.id}" }) { index, chat ->
+                SearchChatRow(
+                    chat = chat,
+                    index = index,
+                    count = search.recommended.size,
+                    onClick = { open("recommended", chat.id) },
+                    modifier = grows("recommended", chat.id)
+                )
             }
         }
         if (search.topPeople.isEmpty() && search.recentChats.isEmpty() &&
@@ -241,41 +303,62 @@ private fun SearchFrontPage(
 private fun SearchResults(
     search: SearchState,
     actions: SearchActions,
-    onOpenChat: (Long) -> Unit
+    open: (String, Long) -> Unit,
+    grows: @Composable (String, Long) -> Modifier,
+    padding: PaddingValues
 ) {
     val scope = search.scope
     val chats = search.visibleChats
     LazyColumn(
-        contentPadding = PaddingValues(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        contentPadding = PaddingValues(top = 8.dp, bottom = padding.calculateBottomPadding()),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         if (scope.showsChats) {
             if (chats.mine.isNotEmpty()) {
                 item(key = "mine-header") { SearchSectionHeader(if (scope == SearchScope.All) "Chats" else "Yours") }
             }
-            items(chats.mine, key = { "mine-${it.id}" }) { chat ->
+            // The account's own chats as the chat list draws them — the
+            // same row, in one group, with the group's corners.
+            itemsIndexed(chats.mine, key = { _, chat -> "mine-${chat.id}" }) { index, chat ->
                 ChatListRow(
                     chat = chat,
-                    onClick = { onOpenChat(chat.id) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                    index = index,
+                    count = chats.mine.size,
+                    onClick = { open("mine", chat.id) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .then(grows("mine", chat.id))
                 )
             }
             if (chats.global.isNotEmpty()) {
                 item(key = "global-header") { SearchSectionHeader("Global search") }
             }
-            items(chats.global, key = { "global-${it.id}" }) { chat ->
-                SearchChatRow(chat = chat, onClick = { onOpenChat(chat.id) })
+            itemsIndexed(chats.global, key = { _, chat -> "global-${chat.id}" }) { index, chat ->
+                SearchChatRow(
+                    chat = chat,
+                    index = index,
+                    count = chats.global.size,
+                    onClick = { open("global", chat.id) },
+                    modifier = grows("global", chat.id)
+                )
             }
         }
         if (scope.showsMessages && search.messages.isNotEmpty()) {
             item(key = "messages-header") { SearchSectionHeader("Messages") }
-            items(
+            itemsIndexed(
                 search.messages,
                 // A message id is only unique within its chat, so the chat
                 // has to be part of the key or two hits can collide.
-                key = { "msg-${it.chat.id}-${it.message.id}" }
-            ) { hit ->
-                MessageHitRow(hit = hit, onClick = { onOpenChat(hit.chat.id) })
+                key = { _, hit -> "msg-${hit.chat.id}-${hit.message.id}" }
+            ) { index, hit ->
+                MessageHitRow(
+                    hit = hit,
+                    index = index,
+                    count = search.messages.size,
+                    onClick = { open("msg-${hit.message.id}", hit.chat.id) },
+                    modifier = grows("msg-${hit.message.id}", hit.chat.id)
+                )
             }
         }
         if (scope.showsPosts) {
@@ -315,8 +398,14 @@ private fun SearchResults(
                             )
                         }
                     }
-                    items(posts.hits, key = { "post-${it.chat.id}-${it.message.id}" }) { hit ->
-                        MessageHitRow(hit = hit, onClick = { onOpenChat(hit.chat.id) })
+                    itemsIndexed(posts.hits, key = { _, hit -> "post-${hit.chat.id}-${hit.message.id}" }) { index, hit ->
+                        MessageHitRow(
+                            hit = hit,
+                            index = index,
+                            count = posts.hits.size,
+                            onClick = { open("post-${hit.message.id}", hit.chat.id) },
+                            modifier = grows("post-${hit.message.id}", hit.chat.id)
+                        )
                     }
                     if (posts.hits.isEmpty() && !posts.limitReached) {
                         item(key = "posts-none") { NothingFound("No public posts about “${search.query}”") }
@@ -352,7 +441,8 @@ private fun NothingFound(text: String) {
 private fun SearchSectionHeader(title: String, action: String? = null, onAction: () -> Unit = {}) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp)
+        // In line with the rows' content, as Settings heads its groups.
+        modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 20.dp, top = 8.dp)
     ) {
         Text(
             text = title,
@@ -366,10 +456,10 @@ private fun SearchSectionHeader(title: String, action: String? = null, onAction:
 
 /** One of the people written to most: a face and a first name. */
 @Composable
-private fun PersonTile(person: ChatPreview, onClick: () -> Unit) {
+private fun PersonTile(person: ChatPreview, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
+        modifier = modifier
             .width(72.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick)
@@ -402,23 +492,31 @@ private fun ChatPreview.kindLabel(): String = when {
 }
 
 /**
- * A chat found or suggested, as a [ListItem]: the kind of chat under its
- * name, since for one not yet joined that is the first thing worth knowing,
- * and its last message is often something it has not been sent yet.
+ * A chat found or suggested: a [SegmentedListItem] in its section's group,
+ * with the group's corners — the list the chat list and Settings are made
+ * of. It was a plain ListItem clipped into a card of its own, clicked
+ * through a modifier, so each result floated apart from the next and had
+ * none of the list's own press state. The kind of chat sits under its name,
+ * since for one not yet joined that is the first thing worth knowing.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SearchChatRow(
     chat: ChatPreview,
+    index: Int,
+    count: Int,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null
 ) {
-    ListItem(
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick),
-        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+            .padding(horizontal = 16.dp)
+            .then(modifier),
         leadingContent = {
             AvatarBubble(
                 title = chat.title,
@@ -429,7 +527,6 @@ private fun SearchChatRow(
                 savedMessages = chat.isSavedMessages
             )
         },
-        headlineContent = { Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
             val about = chat.lastMessage.takeIf { it.isNotBlank() }
             Text(
@@ -438,28 +535,35 @@ private fun SearchChatRow(
                 overflow = TextOverflow.Ellipsis
             )
         },
-        trailingContent = trailing
+        trailingContent = trailing,
+        content = { Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
     )
 }
 
 /**
  * One message found by search, under the conversation it came from.
  *
- * A [ListItem] like the chat rows, but the roles are swapped: the chat title
+ * A segmented row like the chat rows, but the roles are swapped: the chat title
  * is the headline and the message text the supporting line, because what
  * identifies a hit is where it was said.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
-    ListItem(
+private fun MessageHitRow(
+    hit: MessageHit,
+    index: Int,
+    count: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp)
-            .clip(MaterialTheme.shapes.large)
-            .clickable(onClick = onClick),
-        colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-        ),
+            .padding(horizontal = 16.dp)
+            .then(modifier),
         leadingContent = {
             AvatarBubble(
                 title = hit.chat.title,
@@ -470,9 +574,6 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
                 savedMessages = hit.chat.isSavedMessages
             )
         },
-        headlineContent = {
-            Text(hit.chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
-        },
         supportingContent = {
             Text(hit.message.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
         },
@@ -482,6 +583,7 @@ private fun MessageHitRow(hit: MessageHit, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
+        },
+        content = { Text(hit.chat.title, fontWeight = FontWeight.Bold, maxLines = 1) }
     )
 }

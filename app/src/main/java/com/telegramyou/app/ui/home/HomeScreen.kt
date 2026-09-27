@@ -291,28 +291,17 @@ fun HomeScreen(
     NavigationSuiteScaffold(navigationItems) {
     // Settings' large title folds into a small one as the page scrolls, the
     // way Android's own Settings does.
+    // Search's does the same: the two are pages of the same kind.
     val settingsBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val searchBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
-        modifier = if (tab == HomeTab.Settings) Modifier.nestedScroll(settingsBar.nestedScrollConnection) else Modifier,
+        modifier = when (tab) {
+            HomeTab.Settings -> Modifier.nestedScroll(settingsBar.nestedScrollConnection)
+            HomeTab.Search -> Modifier.nestedScroll(searchBar.nestedScrollConnection)
+            else -> Modifier
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            // Expanded, the SearchBar takes the whole screen and its own
-            // results belong to it — so the app bar underneath would only be
-            // something to see through it.
-            if (state.search.expanded) {
-                SearchSection(
-                    search = state.search,
-                    onQueryChange = onSearchQueryChange,
-                    onExpandedChange = onSearchExpandedChange,
-                    actions = searchActions,
-                    onOpenChat = { id ->
-                        searchActions.onResultOpened(id)
-                        onSearchExpandedChange(false)
-                        onOpenChat(id)
-                    }
-                )
-                return@Scaffold
-            }
             // On the chat list the bar is the top of a header that scrolls
             // away with the chats, so it is drawn with them, below.
             //
@@ -324,7 +313,17 @@ fun HomeScreen(
             // Android's Settings has: its name, large, on its own background,
             // folding away as the groups scroll up.
             when (tab) {
-                HomeTab.Chats, HomeTab.Search, HomeTab.Profile -> return@Scaffold
+                HomeTab.Chats, HomeTab.Profile -> return@Scaffold
+                // Named like Settings, and the search field stands under the
+                // name on the page itself — see SearchPage.
+                HomeTab.Search -> LargeTopAppBar(
+                    title = { Text("Search") },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = settingsBackground(),
+                        scrolledContainerColor = settingsBackground()
+                    ),
+                    scrollBehavior = searchBar
+                )
                 HomeTab.Settings -> LargeTopAppBar(
                     title = { Text("Settings") },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -359,12 +358,12 @@ fun HomeScreen(
         // motion guidance gives navigation-bar destinations: they are
         // separate places rather than neighbours, so nothing slides — the
         // old one fades out, and the new one fades in growing slightly into
-        // place, on the theme's springs. Chats and Search are one place here:
-        // searching opens over the same list.
+        // place, on the theme's springs. Search is a page of its own now,
+        // like Settings.
         val motion = MaterialTheme.motionScheme
         AnimatedContent(
             targetState = tab,
-            contentKey = { if (it == HomeTab.Search) HomeTab.Chats else it },
+
             transitionSpec = {
                 (fadeIn(motion.defaultEffectsSpec()) +
                     scaleIn(motion.defaultSpatialSpec(), initialScale = FADE_THROUGH_SCALE)) togetherWith
@@ -407,9 +406,23 @@ fun HomeScreen(
                     )
                     return@AnimatedContent
                 }
-                // Chats and Search share the list below: searching narrows what
-                // is on screen rather than replacing it with somewhere else.
-                HomeTab.Chats, HomeTab.Search -> Unit
+                HomeTab.Search -> {
+                    SearchPage(
+                        search = state.search,
+                        onQueryChange = onSearchQueryChange,
+                        onExpandedChange = onSearchExpandedChange,
+                        actions = searchActions,
+                        // Search stays where it was under the chat, so the
+                        // chat can shrink back into the row it came from.
+                        onOpenChat = { id ->
+                            searchActions.onResultOpened(id)
+                            onOpenChat(id)
+                        },
+                        contentPadding = padding
+                    )
+                    return@AnimatedContent
+                }
+                HomeTab.Chats -> Unit
             }
 
             // Expanded or hidden, the header's position is Material's own state:
