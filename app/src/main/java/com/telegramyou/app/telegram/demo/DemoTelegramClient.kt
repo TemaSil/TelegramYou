@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.StickerFormat
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.R
@@ -1638,7 +1639,21 @@ class DemoTelegramClient(
                     path = DEMO_VIDEO
                 )
             ),
-            demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park")
+            demoMessage(12, 2, "Sending a voice note next 🎧", false, today + 300, "Lina Park"),
+            // A video sticker — VP9 with its transparency riding beside it,
+            // the way Telegram's are — so the player for them has something
+            // to play offline and in the smoke test.
+            demoMessage(
+                290, 5, "😊", false, today + 100, "Artem",
+                contentType = MessageContentType.Sticker
+            ).copy(
+                sticker = StickerContent(
+                    id = 9_001,
+                    emoji = "😊",
+                    format = StickerFormat.Webm,
+                    path = DEMO_VIDEO_STICKER
+                )
+            )
         )
         // A group that behaves like one: several people, because the header
         // draws a cluster of whoever is talking, and a "group" where one
@@ -1860,6 +1875,8 @@ private val DEMO_TRANSFER_STEP_MS = 200L
 
 private val DEMO_VIDEO =
     "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video}"
+private val DEMO_VIDEO_STICKER =
+    "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video_sticker}"
 private val DEMO_VIDEO_POSTER =
     "android.resource://${BuildConfig.APPLICATION_ID}/${R.raw.demo_video_poster}"
 

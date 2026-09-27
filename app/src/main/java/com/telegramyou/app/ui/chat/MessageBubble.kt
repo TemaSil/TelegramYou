@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.border
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.widget.Toast
@@ -228,6 +229,80 @@ internal fun MessageBubble(
         val isVideoNote = message.contentType == MessageContentType.VideoNote && message.video != null
         // What stands on the conversation with no bubble round it.
         val standsAlone = isSticker || isVideoNote
+        // A photo, video, GIF or album with nothing written about it is the
+        // message by itself: no bubble colour round it, its own corners, the
+        // time on it. Words — a caption, a quote, "Forwarded from" — bring the
+        // bubble back, and the picture fills its top as before.
+        val frameless = message.replyToId == null && message.forwardedFrom == null && when (message.contentType) {
+            // "Photo", "Video" and "GIF" are what a message with no caption
+            // is called, not words anyone wrote.
+            MessageContentType.Photo -> if (album != null) {
+                album.none { it.text.isNotBlank() && it.text != "Photo" }
+            } else {
+                message.text.isBlank() || message.text == "Photo"
+            }
+            MessageContentType.Video -> message.video != null && (message.text.isBlank() || message.text == "Video")
+            MessageContentType.Animation -> message.video != null && (message.text.isBlank() || message.text == "GIF")
+            else -> false
+        }
+        // The time, "edited" and the ticks: under the words in a bubble, or
+        // on the picture in a scrim chip when the picture is the message —
+        // one style for everything drawn over media, as the gallery has it.
+        val footer: @Composable (onMedia: Boolean, rowModifier: Modifier) -> Unit = { onMedia, rowModifier ->
+            val footnote = when {
+                onMedia -> Color.White
+                outgoing && !standsAlone -> MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.55f)
+                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = rowModifier
+            ) {
+                if (message.isEdited) {
+                    // Telegram marks an edited message; hiding it would
+                    // let a bubble quietly differ from what was sent.
+                    Text(
+                        "edited ",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = footnote
+                    )
+                }
+                Text(
+                    if (geeks.showSeconds) timeWithSeconds(message.date) ?: message.timeLabel
+                    else message.timeLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = footnote
+                )
+                if (outgoing) {
+                    Spacer(Modifier.width(4.dp))
+                    // Material ships both ticks, so there is nothing to draw
+                    // by hand: one for sent, two for read.
+                    // A clock while it is on its way — a photo uploading
+                    // spends seconds there — and the error mark if the
+                    // server refused it, which used to wear a tick.
+                    Icon(
+                        imageVector = when {
+                            message.sendState == SendState.Failed -> Icons.Rounded.ErrorOutline
+                            message.sendState == SendState.Pending -> Icons.Rounded.Schedule
+                            message.isRead -> Icons.Rounded.DoneAll
+                            else -> Icons.Rounded.Done
+                        },
+                        contentDescription = when {
+                            message.sendState == SendState.Failed -> "Not sent"
+                            message.sendState == SendState.Pending -> "Sending"
+                            message.isRead -> "Read"
+                            else -> "Sent"
+                        },
+                        tint = if (message.sendState == SendState.Failed) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            footnote
+                        },
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+        }
         Box {
             WithInlineKeyboard(rows = message.inlineKeyboard, outgoing = outgoing, onPress = onButton) {
             Surface(
@@ -237,12 +312,12 @@ internal fun MessageBubble(
                 // are about to be acted on has to be readable at a glance,
                 // and on an outgoing bubble the ordinary primary fill is
                 // already the loudest thing on screen.
-                isSelected -> MaterialTheme.colorScheme.tertiaryContainer
+                isSelected && !frameless -> MaterialTheme.colorScheme.tertiaryContainer
                 // A sticker stands on the conversation itself, as it does in
                 // every Telegram client: it is its own shape, and a bubble
                 // around it would be a frame round a picture of a frame.
                 // A round video message likewise: the circle is the message.
-                standsAlone -> Color.Transparent
+                standsAlone || frameless -> Color.Transparent
                 outgoing -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.surfaceContainerHighest
             },
@@ -253,6 +328,15 @@ internal fun MessageBubble(
             shadowElevation = 0.dp,
             modifier = Modifier
                 .widthIn(max = 320.dp)
+                // Selected, a picture without a bubble is ringed rather than
+                // filled: there is no fill to change.
+                .then(
+                    if (isSelected && frameless) {
+                        Modifier.border(3.dp, MaterialTheme.colorScheme.tertiary, shape)
+                    } else {
+                        Modifier
+                    }
+                )
                 .combinedClickable(
                     // Once a selection is up, a tap adds to it. Opening the
                     // menu on a plain tap the rest of the time would fire on
@@ -269,7 +353,9 @@ internal fun MessageBubble(
                     }
                 )
         ) {
-            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(
+                modifier = if (frameless) Modifier else Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
                 if (message.replyToId != null) {
                     QuotedMessage(
                         sender = message.replyToSender,
@@ -289,7 +375,9 @@ internal fun MessageBubble(
                         sender,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        // Over the conversation itself when there is no bubble.
+                        modifier = if (frameless) Modifier.padding(start = 4.dp, bottom = 2.dp) else Modifier
                     )
                     Spacer(Modifier.height(2.dp))
                 }
@@ -304,6 +392,7 @@ internal fun MessageBubble(
                     )
                     Spacer(Modifier.height(4.dp))
                 }
+                Box {
                 when (message.contentType) {
                     MessageContentType.Sticker -> {
                         val sticker = message.sticker
@@ -341,6 +430,7 @@ internal fun MessageBubble(
                         )
                     } else {
                         PhotoMessage(
+                            framed = !frameless,
                             // Flush with the bubble's top as well as its sides,
                             // unless a name or a quote sits above it.
                             bleedTop = message.replyToId == null &&
@@ -367,6 +457,7 @@ internal fun MessageBubble(
                             )
                         } else {
                             VideoMessage(
+                                framed = !frameless,
                                 video = video,
                                 caption = message.text,
                                 outgoing = outgoing,
@@ -393,6 +484,7 @@ internal fun MessageBubble(
                             )
                         } else {
                             AnimationMessage(
+                                framed = !frameless,
                                 gif = gif,
                                 caption = message.text,
                                 outgoing = outgoing,
@@ -472,6 +564,18 @@ internal fun MessageBubble(
                         onHashtag = onHashtag
                     )
                 }
+                if (frameless) {
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = Color.Black.copy(alpha = 0.45f),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                    ) {
+                        footer(true, Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+                }
                 message.linkPreview?.let { preview ->
                     Spacer(Modifier.height(8.dp))
                     LinkPreviewCard(preview = preview, outgoing = outgoing)
@@ -486,59 +590,9 @@ internal fun MessageBubble(
                         onToggle = onReactionToggled
                     )
                 }
-                Spacer(Modifier.height(4.dp))
-                val footnote = (
-                    if (outgoing && !standsAlone) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface
-                )
-                    .copy(alpha = 0.55f)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    if (message.isEdited) {
-                        // Telegram marks an edited message; hiding it would
-                        // let a bubble quietly differ from what was sent.
-                        Text(
-                            "edited ",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = footnote
-                        )
-                    }
-                    Text(
-                        if (geeks.showSeconds) timeWithSeconds(message.date) ?: message.timeLabel
-                        else message.timeLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = footnote
-                    )
-                    if (outgoing) {
-                        Spacer(Modifier.width(4.dp))
-                        // Material ships both ticks, so there is nothing to draw
-                        // by hand: one for sent, two for read.
-                        // A clock while it is on its way — a photo uploading
-                        // spends seconds there — and the error mark if the
-                        // server refused it, which used to wear a tick.
-                        Icon(
-                            imageVector = when {
-                                message.sendState == SendState.Failed -> Icons.Rounded.ErrorOutline
-                                message.sendState == SendState.Pending -> Icons.Rounded.Schedule
-                                message.isRead -> Icons.Rounded.DoneAll
-                                else -> Icons.Rounded.Done
-                            },
-                            contentDescription = when {
-                                message.sendState == SendState.Failed -> "Not sent"
-                                message.sendState == SendState.Pending -> "Sending"
-                                message.isRead -> "Read"
-                                else -> "Sent"
-                            },
-                            tint = if (message.sendState == SendState.Failed) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                footnote
-                            },
-                            modifier = Modifier.size(14.dp)
-                        )
-                    }
+                if (!frameless) {
+                    Spacer(Modifier.height(4.dp))
+                    footer(false, Modifier.align(Alignment.End))
                 }
             }
             }

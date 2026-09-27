@@ -35,7 +35,8 @@ val LocalFileLoader = staticCompositionLocalOf<(suspend (Int) -> String?)?> { nu
 /**
  * One sticker, [size] square: a picture drawn by Coil, a Lottie animation
  * played by Lottie — a `.tgs` is a gzipped Lottie file, which is all the
- * format is — or, for a video sticker, its still picture for now.
+ * format is — or a video sticker, played with its transparency by
+ * [VideoSticker].
  *
  * Whatever is not on this device yet is fetched through [LocalFileLoader];
  * until it arrives, and for the demo's stickers that have no file at all,
@@ -50,18 +51,35 @@ fun StickerView(
     animate: Boolean = true
 ) {
     val loader = LocalFileLoader.current
-    val known = if (sticker.format == StickerFormat.Webm) sticker.thumbPath else sticker.path
-    val path by produceState(known, sticker.drawnFileId) {
+    // The sticker's own file for every format now, a video sticker's too:
+    // it plays (VideoSticker) rather than standing still on its thumbnail.
+    val path by produceState(sticker.path, sticker.fileId) {
         if (value == null) {
-            val id = sticker.drawnFileId
+            val id = sticker.fileId
             if (id != null && loader != null) value = loader(id)
         }
     }
+    val description = "${sticker.emoji} sticker"
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         val file = path
-        when {
-            file == null || (sticker.format == StickerFormat.Webm && sticker.thumbFileId == null) ->
+        // While a video sticker's file is on its way, or if it will not
+        // decode: its still, where it has one, or its emoji.
+        val still: @Composable () -> Unit = {
+            val thumb = sticker.thumbPath
+            if (sticker.format == StickerFormat.Webm && thumb != null) {
+                AsyncImage(
+                    model = File(thumb),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(size)
+                )
+            } else {
                 EmojiSticker(sticker.emoji, size)
+            }
+        }
+        when {
+            file == null -> still()
+            sticker.format == StickerFormat.Webm -> VideoSticker(file, size, animate, description, still)
             sticker.isAnimated -> LottieSticker(file, size, animate, sticker.emoji)
             else -> AsyncImage(
                 model = File(file),

@@ -1606,6 +1606,23 @@ class SmokeTest {
         waitFor(By.text("Half a thought"), "the draft back in the field")
     }
 
+    /**
+     * A video sticker plays: its description appears only once a frame has
+     * come out of the two VP9 decoders, so waiting for it is waiting for the
+     * decoding to have worked on this device.
+     */
+    @Test
+    fun aVideoStickerPlays() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("Artem"))
+        tap(By.text("Artem"))
+        waitFor(By.desc("😊 sticker"), "the video sticker's first frame")
+        SystemClock.sleep(700)
+        screenshot("46-video-sticker")
+    }
+
     @Test
     fun formattingForwardsAndPins() {
         signIn()

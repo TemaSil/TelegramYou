@@ -148,7 +148,7 @@ internal fun AlbumGrid(
                 }
             }
         }
-        photos.firstOrNull { it.text.isNotBlank() }?.let { captioned ->
+        photos.firstOrNull { it.text.isNotBlank() && it.text != "Photo" }?.let { captioned ->
             Text(captioned.text, color = captionColor, modifier = Modifier.padding(top = 6.dp))
         }
     }

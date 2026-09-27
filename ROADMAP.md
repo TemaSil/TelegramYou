@@ -82,26 +82,29 @@ notices within a day. Roughly in the order to do them:
 11. **Posting a story** — they can be watched, not made.
 12. **App lock** — a passcode or the fingerprint in front of the app.
 
-**Asked for on 27 September, next up after the chats-and-people pack:**
+**Content in the conversation — the rule, 27 September 2026.** One rule
+for every kind of message, so a new kind knows where it goes:
 
-- **Media without frames.** Photos, videos, GIFs and albums with no bubble
-  padding or white edge round them — the picture is the bubble, its own
-  corners are the bubble's corners, and the time sits on the picture in a
-  scrim chip, as Material's image cards and the platform's own gallery
-  do. A caption, when there is one, is the only thing that brings the
-  bubble colour back, under the picture.
-- **A rule for all content in the conversation**, written down here once
-  and applied everywhere: what is edge to edge (photos, video, stickers,
-  round video, maps), what sits in a bubble (text, files, voice, polls,
-  link previews), corner radii that follow the bubble grouping, one
-  scrim-chip style for time and duration over media, and the same
-  loading and failed states for every kind.
-- **Video stickers** (WebM, VP9 with alpha). Android's own decoder drops
-  the alpha channel, so they need libvpx or a frame-by-frame path; today
-  they show the pack title's first letter.
+- **The picture is the message** when nothing is written about it: a photo,
+  a video, a GIF or an album without a caption, a quote or "Forwarded
+  from" has no bubble colour round it. It is rounded on its own (20dp) and
+  the time, "edited" and the ticks sit on it in a scrim chip — black at 45%,
+  white type — the one style for anything drawn over media.
+- **Words bring the bubble.** A caption, a reply or a forward puts the
+  bubble back; the picture fills its top and sides, and the words and the
+  time sit under it in the bubble's colour.
+- **Standing alone, always:** stickers (still, Lottie and video) and round
+  video messages — their outline is the message.
+- **In a bubble, always:** text, files, voice, music, polls, link previews.
+- **Selected**, a picture without a bubble is ringed in the tertiary
+  colour; there is no fill to change.
+- **Video stickers play** — WebM, VP9, with the alpha that Android's own
+  players drop: `parseWebm` in `:core` reads the file's two streams and
+  `VideoSticker` decodes both with the platform's VP9 decoder into frames
+  at the size drawn.
 
 **Later, polish rather than basics:** forum topics in supergroups; admins
-and permissions; invite-link management; video stickers; video playback
+and permissions; invite-link management; video playback
 speed and picture-in-picture; recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;

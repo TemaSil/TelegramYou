@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -222,6 +223,7 @@ fun PhotoViewer(
 @Composable
 internal fun PhotoMessage(
     bleedTop: Boolean,
+    framed: Boolean = true,
     path: String?,
     aspect: Float,
     caption: String,
@@ -241,7 +243,7 @@ internal fun PhotoMessage(
                 // corners, and the caption and the time sit under it. It used
                 // to be a smaller rounded picture inside the bubble, framed
                 // by a band of bubble colour on every side.
-                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
+                .mediaEdges(framed, bleedTop)
                 .fillMaxWidth()
                 // Clamped: a panorama would otherwise be a sliver and a very
                 // tall photo would fill the screen on its own.
@@ -354,6 +356,7 @@ internal fun VideoMessage(
     caption: String,
     outgoing: Boolean,
     bleedTop: Boolean,
+    framed: Boolean = true,
     transfer: FileTransfer?,
     onPosterVisible: () -> Unit,
     onOpen: () -> Unit
@@ -372,7 +375,7 @@ internal fun VideoMessage(
                 // Out to the bubble's edges, as a photo is: the video is the
                 // bubble, and its caption and time sit under it. It was a
                 // smaller rounded frame inside a band of bubble colour.
-                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
+                .mediaEdges(framed, bleedTop)
                 .fillMaxWidth()
                 .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -467,6 +470,7 @@ internal fun AnimationMessage(
     caption: String,
     outgoing: Boolean,
     bleedTop: Boolean,
+    framed: Boolean = true,
     transfer: FileTransfer?,
     onVisible: () -> Unit,
     onOpen: () -> Unit
@@ -477,7 +481,7 @@ internal fun AnimationMessage(
     Column {
         Box(
             modifier = Modifier
-                .bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
+                .mediaEdges(framed, bleedTop)
                 .fillMaxWidth()
                 .aspectRatio(gif.aspect.coerceIn(0.6f, 1.9f))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -775,3 +779,20 @@ internal fun Waveform(
 
 /** A round video message's diameter: a little under the bubble's widest, as Telegram draws it. */
 internal val VIDEO_NOTE_SIZE = 220.dp
+
+/**
+ * Where a photo, a video or a GIF meets the edge of its message. [framed]:
+ * out to the bubble's edges, past the padding its words keep, and clipped
+ * by the bubble — the caption under it brings the bubble with it. Not
+ * framed: there is no bubble, and the picture is rounded on its own, so it
+ * is the message itself. See the content rules in ROADMAP.md.
+ */
+internal fun Modifier.mediaEdges(framed: Boolean, bleedTop: Boolean): Modifier =
+    if (framed) {
+        bleed(horizontal = BUBBLE_PADDING_H, top = if (bleedTop) BUBBLE_PADDING_V else 0.dp)
+    } else {
+        clip(MEDIA_SHAPE)
+    }
+
+/** The corners of a picture that is a message on its own. */
+internal val MEDIA_SHAPE = RoundedCornerShape(20.dp)
