@@ -835,6 +835,11 @@ class DemoTelegramClient(
     /** Messages waiting to go, by chat; see scheduledMessages. */
     private val scheduled = mutableMapOf<Long, MutableList<ChatMessage>>()
 
+    override suspend fun saveDraft(chatId: Long, text: String) {
+        val draft = if (text.isBlank()) "" else text
+        _chats.update { chats -> chats.map { if (it.id == chatId) it.copy(draft = draft) else it } }
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         delay(120)
         if (sendAt != null) {

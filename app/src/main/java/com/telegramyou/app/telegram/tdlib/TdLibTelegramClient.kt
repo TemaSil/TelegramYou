@@ -1272,6 +1272,28 @@ class TdLibTelegramClient(
         known.addAll(messages.filter { it.id !in ids })
     }
 
+    override suspend fun saveDraft(chatId: Long, text: String) {
+        awaitReady()
+        val draft = if (text.isBlank()) {
+            JSONObject.NULL
+        } else {
+            JSONObject()
+                .put("@type", "draftMessage")
+                .put(
+                    "input_message_text",
+                    JSONObject()
+                        .put("@type", "inputMessageText")
+                        .put("text", JSONObject().put("@type", "formattedText").put("text", text))
+                )
+        }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatDraftMessage")
+                .put("chat_id", chatId)
+                .put("draft_message", draft)
+        )
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         awaitReady()
         requireEngine().send(
@@ -2256,6 +2278,15 @@ class TdLibTelegramClient(
                 )
                 _fileTransfers.update { it + (id to transfer) }
             }
+            // A draft saved here or on another device. It comes with the
+            // chat's positions, since a draft can lift a chat in the list.
+            "updateChatDraftMessage" -> {
+                val chatId = update.optLong("chat_id")
+                val chat = chatsById[chatId] ?: return
+                chat.put("draft_message", update.optJSONObject("draft_message") ?: JSONObject.NULL)
+                update.optJSONArray("positions")?.let { applyPositions(chatId, it) }
+                publishChats()
+            }
             "updateNewChat" -> {
                 val chat = update.optJSONObject("chat") ?: return
                 val chatId = chat.optLong("id")
@@ -2892,6 +2923,11 @@ class TdLibTelegramClient(
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
             isBot = privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot",
             isSavedMessages = saved,
+            draft = chat.optJSONObject("draft_message")
+                ?.optJSONObject("input_message_text")
+                ?.optJSONObject("text")
+                ?.optString("text")
+                .orEmpty(),
             hasScheduledMessages = chat.optBoolean("has_scheduled_messages"),
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,

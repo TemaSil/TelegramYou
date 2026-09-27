@@ -46,6 +46,12 @@ interface TelegramMessages {
      */
     suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null, sendAt: Long? = null)
 
+    /**
+     * Keeps [text] as the chat's draft, or clears it when blank. A no-op
+     * where there is nowhere to keep one.
+     */
+    suspend fun saveDraft(chatId: Long, text: String) {}
+
     /** Sends a poll; [PollDraft.canSend] has already said it may go. */
     suspend fun sendPoll(chatId: Long, draft: PollDraft)
 

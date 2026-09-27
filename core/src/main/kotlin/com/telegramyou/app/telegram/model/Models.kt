@@ -117,6 +117,11 @@ data class ChatPreview(
      * initials and without a "last seen", as every Telegram client draws it.
      */
     val isSavedMessages: Boolean = false,
+    /**
+     * What was typed here and not sent, as Telegram keeps it — on the
+     * server, so it follows the account to every device. Empty for none.
+     */
+    val draft: String = "",
     /** Messages are waiting to be sent here later; the header shows a clock. */
     val hasScheduledMessages: Boolean = false,
     val avatarColor: Long = id,

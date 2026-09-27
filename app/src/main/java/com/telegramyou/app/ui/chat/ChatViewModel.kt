@@ -36,6 +36,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Searching inside one conversation.
@@ -230,6 +233,20 @@ class ChatViewModel(
             _uiState.update { it.copy(detail = warm) }
         }
         reload()
+        // The draft, kept as it is typed: a pause of a second and it is on
+        // the server, where the chat list and the account's other devices
+        // see it. Not while editing a message — the field holds the edit
+        // then, which is not a draft of anything.
+        viewModelScope.launch {
+            _uiState
+                .map { state -> state.draft.takeIf { state.editing == null } }
+                .distinctUntilChanged()
+                .collectLatest { text ->
+                    if (text == null || !draftRestored) return@collectLatest
+                    delay(DRAFT_SAVE_MS)
+                    keepDraft(text)
+                }
+        }
         viewModelScope.launch {
             // Forwarding needs somewhere to forward to, and the chat list is
             // already a flow the repository keeps current — asking for it per
@@ -869,8 +886,34 @@ class ChatViewModel(
         }
     }
 
+    /** The draft the server holds, as far as this chat knows; null until read. */
+    private var keptDraft: String? = null
+    private var draftRestored = false
+
+    private suspend fun keepDraft(text: String) {
+        if (text == keptDraft) return
+        keptDraft = text
+        try {
+            repository.saveDraft(chatId, text)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // A draft that did not save is still in the field; the next
+            // keystroke or leaving the chat tries again.
+            keptDraft = null
+        }
+    }
+
+    @OptIn(DelicateCoroutinesApi::class)
     override fun onCleared() {
         super.onCleared()
+        // Leaving within the second after the last keystroke would lose it,
+        // and this scope is already gone — so the last save outlives it.
+        val state = _uiState.value
+        if (draftRestored && state.editing == null && state.draft != keptDraft) {
+            val text = state.draft
+            GlobalScope.launch { runCatching { repository.saveDraft(chatId, text) } }
+        }
         repository.releaseChat(chatId)
         // The screen can go away mid-sentence, and a MediaPlayer left holding
         // a file handle outlives it.
@@ -1341,6 +1384,9 @@ class ChatViewModel(
 
         /** Ten position reads a second, which is smooth at a hundred pixels. */
         const val PROGRESS_TICK_MS = 100L
+
+        /** How long typing pauses before the draft is saved. */
+        const val DRAFT_SAVE_MS = 1_000L
     }
 
     private fun reload() {
@@ -1357,8 +1403,15 @@ class ChatViewModel(
             if (!opened) return@launch
             // The window from openChat is fresh, so anything paged in before
             // it is discarded rather than left to duplicate or contradict it.
+            // The saved draft goes into the field once, on the first load,
+            // and only if nothing has been typed yet. Decided outside the
+            // update, whose block may run more than once.
+            val restoring = !draftRestored
+            if (restoring) keptDraft = detail.chat.draft
+            draftRestored = true
             _uiState.update {
                 val reloaded = it.copy(
+                    draft = if (restoring && it.draft.isEmpty()) detail.chat.draft else it.draft,
                     detail = detail,
                     olderMessages = emptyList(),
                     detachedWindow = null,

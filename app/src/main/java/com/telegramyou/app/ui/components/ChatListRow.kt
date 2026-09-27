@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.components
 
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -172,6 +175,19 @@ fun ChatListRow(
                             text = "typing…",
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1
+                        )
+                    } else if (chat.draft.isNotBlank()) {
+                        // As Telegram marks it: the word in the error colour,
+                        // then what was left unsent, in place of the last
+                        // message — it is what this chat is waiting on.
+                        val mark = MaterialTheme.colorScheme.error
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(color = mark)) { append("Draft: ") }
+                                append(chat.draft.lineSequence().first())
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     } else {
                         Text(

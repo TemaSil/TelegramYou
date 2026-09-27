@@ -63,13 +63,14 @@ notices within a day. Roughly in the order to do them:
    and links, @mentions and #hashtags are not tappable. TDLib sends
    `entities` with every text; none are read. Composing with formatting
    (Material's text-selection toolbar) comes with it.
-2. **Forwarded messages say where they came from.** `forward_info` is not
+2. ~~**Forwarded messages say where they came from.**~~ Done with the formatting pack. `forward_info` is not
    read, so a forward looks like the sender's own words.
-3. **Albums.** Photos sent together (`media_album_id`) draw as separate
+3. ~~**Albums.**~~ Done with the formatting pack. Photos sent together (`media_album_id`) draw as separate
    bubbles instead of one grid. Sending albums already works.
-4. **Pin and unpin** a message from its menu; the pinned bar only shows.
-5. **Drafts** — `draft_message`, kept per chat and synced across devices;
-   leaving a chat now loses what was typed.
+4. ~~**Pin and unpin**~~ — done with the formatting pack.
+5. ~~**Drafts**~~ — done 27 September: saved a second after typing stops
+   and on leaving, through `setChatDraftMessage`, so they follow the account
+   to other devices; "Draft:" in the chat list, back in the field on return.
 6. **Someone else's profile** — tapping a person opens their info: photo,
    bio, username, phone, shared media, mute, **block** (no block list
    exists anywhere yet).
@@ -80,6 +81,24 @@ notices within a day. Roughly in the order to do them:
 10. **Editing folders** — see section 2.
 11. **Posting a story** — they can be watched, not made.
 12. **App lock** — a passcode or the fingerprint in front of the app.
+
+**Asked for on 27 September, next up after the chats-and-people pack:**
+
+- **Media without frames.** Photos, videos, GIFs and albums with no bubble
+  padding or white edge round them — the picture is the bubble, its own
+  corners are the bubble's corners, and the time sits on the picture in a
+  scrim chip, as Material's image cards and the platform's own gallery
+  do. A caption, when there is one, is the only thing that brings the
+  bubble colour back, under the picture.
+- **A rule for all content in the conversation**, written down here once
+  and applied everywhere: what is edge to edge (photos, video, stickers,
+  round video, maps), what sits in a bubble (text, files, voice, polls,
+  link previews), corner radii that follow the bubble grouping, one
+  scrim-chip style for time and duration over media, and the same
+  loading and failed states for every kind.
+- **Video stickers** (WebM, VP9 with alpha). Android's own decoder drops
+  the alpha channel, so they need libvpx or a frame-by-frame path; today
+  they show the pack title's first letter.
 
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video stickers; video playback

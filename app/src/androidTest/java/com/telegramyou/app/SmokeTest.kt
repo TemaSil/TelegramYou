@@ -1582,6 +1582,30 @@ class SmokeTest {
             .joinToString("\n")
     }
 
+    /**
+     * A draft: typed, left behind, marked in the chat list, and back in the
+     * field on returning — what Telegram keeps on the server for every chat.
+     */
+    @Test
+    fun aDraftStaysWithItsChat() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        type("Half a thought")
+        // Back until the list: the first press only puts the keyboard away.
+        repeat(3) {
+            if (device.hasObject(By.textContains("Draft:"))) return@repeat
+            device.pressBack()
+            device.wait(Until.hasObject(By.textContains("Draft:")), SHORT_WAIT)
+        }
+        waitFor(By.textContains("Draft: Half a thought"), "the draft in the chat list")
+        screenshot("45-draft")
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.text("Half a thought"), "the draft back in the field")
+    }
+
     @Test
     fun formattingForwardsAndPins() {
         signIn()
