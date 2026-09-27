@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.BoundsTransform
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -86,7 +87,16 @@ fun Modifier.containerTransform(
             // was the close that still read as jerky.
             enter = if (isScreen) fadeIn(fade) else fadeIn(LateFade),
             exit = if (isScreen) fadeOut(LateFade) else fadeOut(fade),
-            boundsTransform = BoundsTransform { _, _ -> bounds },
+            // Under a finger, a duration rather than a spring. A predictive
+            // back gesture seeks the transition — the share of the swipe
+            // becomes the share of its total length — and a spring's length
+            // runs until it is still to half a pixel, when it looked done a
+            // good while before. So the first half of the swipe did nearly
+            // all the shrinking and the rest crept, and the release crept
+            // out the same way. A tween moves in step with the finger.
+            boundsTransform = BoundsTransform { _, _ ->
+                if (animated.transition.isSeeking) GestureBounds else bounds
+            },
             // The small side — a row, a circle — is laid out again at each
             // size, which costs nothing. The screen side is not: laid out
             // again sixty times a second, a conversation re-wrapped every line
@@ -120,6 +130,14 @@ val ChatContainerSpring: FiniteAnimationSpec<Rect> =
 /** The standard scheme's slow spatial spring: barely overshoots. The story viewer's. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private val ContainerSpring = MotionScheme.standard().slowSpatialSpec<Rect>()
+
+/**
+ * The container's movement while a back gesture drives it: as long as the
+ * spring looks, not as long as it takes to settle, and easing out, so the
+ * last of the swipe still visibly lands the chat in its row.
+ */
+private val GestureBounds: FiniteAnimationSpec<Rect> =
+    tween(durationMillis = 350, easing = LinearOutSlowInEasing)
 
 /**
  * The crossfade at the end of a close: held until the container has all
