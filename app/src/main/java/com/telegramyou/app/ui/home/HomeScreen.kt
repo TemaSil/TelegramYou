@@ -118,6 +118,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
+import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
@@ -307,7 +309,23 @@ fun HomeScreen(
             when (tab) {
                 HomeTab.Chats, HomeTab.Profile, HomeTab.Search -> return@Scaffold
                 HomeTab.Settings -> LargeTopAppBar(
-                    title = { Text("Settings", style = AppTitleStyle) },
+                    title = {
+                        // Larger than the name on Home while the bar is open
+                        // — it is the page's only heading, and at Home's 26
+                        // it read small in the tall bar — shrinking to the
+                        // folded bar's size as the groups scroll up. One
+                        // lambda draws both of the bar's title slots, so
+                        // following the fold keeps them the same size.
+                        val folded = settingsBar.state.collapsedFraction
+                        Text(
+                            "Settings",
+                            style = AppTitleStyle.copy(
+                                fontSize = lerp(SettingsTitleOpen, SettingsTitleFolded, folded),
+                                lineHeight = lerp(44.sp, 28.sp, folded)
+                            ),
+                            maxLines = 1
+                        )
+                    },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = settingsBackground(),
                         scrolledContainerColor = settingsBackground()
@@ -1141,3 +1159,7 @@ private const val LOAD_MORE_AHEAD = 8
 
 /** How far a tab's content grows into place as it fades in. */
 private const val FADE_THROUGH_SCALE = 0.92f
+
+/** The Settings title with its bar open, and folded — see HomeScreen's top bar. */
+private val SettingsTitleOpen = 36.sp
+private val SettingsTitleFolded = 22.sp
