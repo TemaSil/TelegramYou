@@ -1624,8 +1624,10 @@ class SmokeTest {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
-        scrollChatsTo(By.text("Artem"))
-        tap(By.text("Artem"))
+        // By the chat's preview, not its name: "Artem" is also a story in
+        // the rail above, and a tap there opened his story instead.
+        scrollChatsTo(By.text("Send me the apk?"))
+        tap(By.text("Send me the apk?"))
         waitFor(By.desc("😊 sticker"), "the video sticker's first frame")
         SystemClock.sleep(700)
         screenshot("46-video-sticker")
