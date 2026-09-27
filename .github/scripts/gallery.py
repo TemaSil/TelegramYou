@@ -45,6 +45,7 @@ SHOWCASE = [
     ("29-devices", "Devices"),
     ("30-storage", "Data and storage"),
     ("41-settings", "Settings"),
+    ("42-profile", "Profile"),
     ("25-updates", "App update"),
     ("33-for-geeks", "For geeks"),
     ("26-qr-login", "QR login"),

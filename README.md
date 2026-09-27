@@ -39,9 +39,13 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 
 ## Screenshots
 
-| Chats | Conversation | Settings |
+| Chats | Conversation | Group |
 |---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="250" alt="Chats"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="250" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="250" alt="Settings"> |
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="250" alt="Chats"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="250" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="250" alt="Group"> |
+
+| Search | Profile | Settings |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/36-search.jpg" width="250" alt="Search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/42-profile.jpg" width="250" alt="Profile"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="250" alt="Settings"> |
 
 Not drawn for this page: they are taken by the **UI** workflow, which drives
 the demo client on an emulator after every push to `main`, and they change
