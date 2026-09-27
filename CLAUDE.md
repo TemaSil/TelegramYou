@@ -156,11 +156,26 @@ Two things to hold on to while doing it:
 gradlew.bat :app:assembleDebug
 ```
 
-APK lands at `app\build\outputs\apk\debug\TelegramYou-1.0.<build>-debug.apk`.
-The version is `1.0.$GITHUB_RUN_NUMBER` on CI and `1.0.<commit count>` off it,
-so every build is a distinct `versionCode` and a phone treats a newer one as an
-upgrade. CI publishes it under the fixed name `TelegramYou-debug.apk`, so the
-link on the front page does not break every push.
+APK lands at `app\build\outputs\apk\debug\TelegramYou-<version>-debug.apk`.
+CI publishes it under the fixed name `TelegramYou-debug.apk`, so the link on
+the front page does not break every push.
+
+### Versions
+
+**The version is the owner's to set, and it is short:** `1.1`, `1.1.5`,
+`1.2` — no build number in it. It is `appVersionName` in
+`app/build.gradle.kts`, changed by hand when the owner says so and never
+bumped on anyone's initiative. 1.1 is the first, from 27 September 2026,
+with the first release build; before it the name was `1.0.<build>`.
+
+The build number still exists and still moves with every build: it is
+`$GITHUB_RUN_NUMBER` on CI and the commit count off it, and it is the
+`versionCode`, so a phone takes each newer build as an upgrade. The release
+is titled `TelegramYou 1.1 · build 430`, and the in-app update check reads
+the build out of that title (`isUpdate` in `:core`), so a push to main is
+still offered as an update while the version stays put. The gallery files
+screens under `1.1-430`. Keep `appVersionName` a plain one-line string: both
+workflows read it out of the file with `sed`.
 
 The pure module needs neither the SDK nor Google's Maven, so its tests run
 anywhere — including environments where `:app` cannot even be configured:

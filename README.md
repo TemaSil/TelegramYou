@@ -59,7 +59,7 @@ release changed.
 
 ## What is in it
 
-Version 1.0. The demo build is the whole interface, so everything here can be
+Version 1.1. The demo build is the whole interface, so everything here can be
 seen without an account:
 
 - **Material You, properly** — the palette comes from the wallpaper (below
@@ -191,7 +191,7 @@ TELEGRAM_API_HASH=your_api_hash_here
 
 ## Output
 
-APK: `app\build\outputs\apk\debug\TelegramYou-1.0.<build>-debug.apk`
+APK: `app\build\outputs\apk\debug\TelegramYou-<version>-debug.apk`
 
 ## Project map
 

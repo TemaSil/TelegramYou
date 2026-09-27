@@ -484,7 +484,7 @@ jobs:
               echo "this source."
             fi
             echo
-            echo "Version \`$VERSION\`, built from $GITHUB_SHA."
+            echo "Version \`$VERSION\`, build $GITHUB_RUN_NUMBER, built from $GITHUB_SHA."
             echo
             echo "The file name is the same every build so the link above keeps"
             echo "working; which build it is shows in the release title and in the"
@@ -496,7 +496,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: TelegramYou ${{ env.VERSION }}
+          # The build is in the title as well as the version: from 1.1 the
+          # version stays put between pushes, and the app's update check
+          # reads "build N" out of this title to know a newer one is here.
+          name: TelegramYou ${{ env.VERSION }} · build ${{ github.run_number }}
           # The release is published once the release key is configured;
           # until then the file is not there and only the debug APK goes up.
           files: |

@@ -61,6 +61,12 @@ class AppUpdates(private val context: Context) {
     /** This build's version, as its APK and the release name write it. */
     val installed: AppVersion = AppVersion.find(BuildConfig.VERSION_NAME) ?: AppVersion(listOf(0))
 
+    /** This build's number — CI's run number, and the APK's versionCode. */
+    val installedBuild: Int = BuildConfig.VERSION_CODE
+
+    /** "1.1 (build 423)", for where an update of the same version is offered. */
+    val installedLabel: String = versionLabel(installed, installedBuild)
+
     private var work: Job? = null
 
     /**
@@ -82,7 +88,7 @@ class AppUpdates(private val context: Context) {
                 return@launch
             }
             _state.value = when {
-                result != null && isUpdate(result, installed) -> UpdateState.Available(result)
+                result != null && isUpdate(result, installed, installedBuild) -> UpdateState.Available(result)
                 quiet -> _state.value
                 else -> UpdateState.UpToDate
             }
@@ -185,7 +191,7 @@ class AppUpdates(private val context: Context) {
     private fun fetchApk(release: Release): File {
         val folder = File(context.cacheDir, "updates").apply { mkdirs() }
         folder.listFiles()?.forEach { it.delete() }
-        val target = File(folder, "TelegramYou-${release.version}.apk")
+        val target = File(folder, "TelegramYou-${release.version}-${release.build ?: 0}.apk")
         val connection = (URL(release.downloadUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = TIMEOUT_MILLIS
             readTimeout = TIMEOUT_MILLIS

@@ -33,13 +33,24 @@ val buildNumber: Int =
         }.getOrDefault(1)
 
 /**
- * Used for both versionName and the APK name, so the two cannot drift.
+ * The version, as people see it: "1.1", "1.1.5", "1.2". Moved by hand, when
+ * the owner says the app has moved — nothing bumps it on its own.
  *
- * 1.0 from 25 September 2026, on the owner's word, after 0.2. The third part
- * is still the run number and the versionCode is still that number, so the
- * change is only in the name: a phone on 0.2.N takes 1.0.N+1 as an upgrade.
+ * Used for versionName and the APK name, so the two cannot drift, and read
+ * out of this file by the Build and UI workflows for the release title and
+ * the gallery, so keep it a plain string on one line.
+ *
+ * Until 1.1 the build number was its last part, "1.0.423". The number has
+ * not gone: it is still the versionCode, which is what Android compares,
+ * and the release is titled "TelegramYou 1.1 · build 430", which is what
+ * the in-app update check compares (see isUpdate in :core). So every push
+ * to main is still an update to a phone on the one before, while the name
+ * stays 1.1 until it is changed here.
+ *
+ * 0.2 until 25 September 2026, then 1.0.<build>, then 1.1 from 27 September,
+ * on the owner's word, with the first release build.
  */
-val appVersionName = "1.0.$buildNumber"
+val appVersionName = "1.1"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")

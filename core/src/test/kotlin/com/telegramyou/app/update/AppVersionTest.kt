@@ -45,6 +45,34 @@ class AppVersionTest {
     }
 
     @Test
+    fun `from 1_1 the build is named beside the version and decides`() {
+        val release = releaseOf("TelegramYou 1.1 · build 430", "", assets)!!
+        assertEquals(v("1.1"), release.version)
+        assertEquals(430, release.build)
+        assertEquals("1.1 (build 430)", release.label)
+        assertTrue("a newer build of the same version", isUpdate(release, v("1.1"), 429))
+        assertFalse("the same build is not an update", isUpdate(release, v("1.1"), 430))
+        assertFalse("nor is an older one", isUpdate(release, v("1.1"), 431))
+    }
+
+    @Test
+    fun `a phone on the last 1_0 build is offered the first 1_1`() {
+        // Code from before 1.1 reads only the version out of the title...
+        val release = releaseOf("TelegramYou 1.1 · build 430", "", assets)!!
+        assertTrue(isUpdate(release.copy(build = null), v("1.0.429")))
+        // ...and the first dotted run in it is the 1.1, not the build.
+        assertEquals("1.1", AppVersion.find("TelegramYou 1.1 · build 430").toString())
+        assertTrue(v("1.1") > v("1.0.429"))
+        assertTrue(v("1.1.5") > v("1.1") && v("1.2") > v("1.1.5"))
+    }
+
+    @Test
+    fun `a release named before 1_1 has no build`() {
+        assertNull(releaseOf("TelegramYou 1.0.423", "", assets)!!.build)
+        assertEquals("1.0.423", releaseOf("TelegramYou 1.0.423", "", assets)!!.label)
+    }
+
+    @Test
     fun `no APK or no version is no release`() {
         assertNull(releaseOf("TelegramYou 0.2.300", "", emptyMap()))
         assertNull(releaseOf("Latest", "", assets))

@@ -301,8 +301,8 @@ fun SettingsContent(
             link(
                 title = "App update",
                 summary = when (state) {
-                    is UpdateState.Available -> "Version ${state.release.version} is out"
-                    is UpdateState.Ready -> "Version ${state.release.version} is ready to install"
+                    is UpdateState.Available -> "Version ${state.release.label} is out"
+                    is UpdateState.Ready -> "Version ${state.release.label} is ready to install"
                     else -> updates?.let { "Version ${it.installed} · what's new" } ?: "What's new"
                 },
                 icon = Symbols.SystemUpdate,

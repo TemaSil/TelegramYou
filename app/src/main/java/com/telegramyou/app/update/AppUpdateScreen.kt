@@ -122,9 +122,9 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             when (state) {
-                                is UpdateState.Available -> "Version ${state.release.version} is out"
-                                is UpdateState.Downloading -> "Downloading ${state.release.version}"
-                                is UpdateState.Ready -> "Version ${state.release.version} is ready"
+                                is UpdateState.Available -> "Version ${state.release.label} is out"
+                                is UpdateState.Downloading -> "Downloading ${state.release.label}"
+                                is UpdateState.Ready -> "Version ${state.release.label} is ready"
                                 UpdateState.Checking -> "Checking for updates…"
                                 UpdateState.UpToDate -> "You're up to date"
                                 else -> "TelegramYou $installed"
@@ -137,7 +137,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                             when (state) {
                                 is UpdateState.Failed -> state.message
                                 is UpdateState.Ready -> "Android will ask you to confirm the install"
-                                is UpdateState.Available -> listOf("You have $installed", sizeLabel(state.release.size))
+                                is UpdateState.Available -> listOf("You have ${updates?.installedLabel ?: installed}", sizeLabel(state.release.size))
                                     .filter { it.isNotEmpty() }
                                     .joinToString(" · ")
                                 else -> "Version $installed"
