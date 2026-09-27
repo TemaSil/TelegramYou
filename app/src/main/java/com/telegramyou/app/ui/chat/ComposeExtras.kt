@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.MusicNote
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -96,7 +90,7 @@ internal fun PollComposer(
                 TopAppBar(
                     title = { Text("New poll") },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Discard poll") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Discard poll") }
                     },
                     actions = {
                         TextButton(onClick = onSend, enabled = draft.canSend) { Text("Send") }
@@ -146,7 +140,7 @@ internal fun PollComposer(
                             trailingIcon = if (draft.options.size > 2 && option.isNotEmpty()) {
                                 {
                                     IconButton(onClick = { onChange(draft.withoutOption(index)) }) {
-                                        Icon(Icons.Rounded.Close, contentDescription = "Remove answer ${index + 1}")
+                                        Icon(Symbols.Close, contentDescription = "Remove answer ${index + 1}")
                                     }
                                 }
                             } else null
@@ -295,10 +289,10 @@ internal fun ScheduledSheet(
                     trailingContent = {
                         Row {
                             IconButton(onClick = { onSendNow(message) }) {
-                                Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send now")
+                                Icon(Symbols.SendFilled, contentDescription = "Send now")
                             }
                             IconButton(onClick = { onDelete(message) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = "Delete scheduled message")
+                                Icon(Symbols.Delete, contentDescription = "Delete scheduled message")
                             }
                         }
                     },
@@ -329,8 +323,8 @@ internal fun AudioMessage(
             FilledTonalIconButton(onClick = onToggle) {
                 when (state) {
                     VoiceState.Loading -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    VoiceState.Playing -> Icon(Icons.Rounded.Pause, contentDescription = "Pause")
-                    VoiceState.Idle -> Icon(Icons.Rounded.PlayArrow, contentDescription = "Play ${audio.displayTitle}")
+                    VoiceState.Playing -> Icon(Symbols.PauseFilled, contentDescription = "Pause")
+                    VoiceState.Idle -> Icon(Symbols.PlayArrowFilled, contentDescription = "Play ${audio.displayTitle}")
                 }
             }
             Spacer(Modifier.width(12.dp))
@@ -347,7 +341,7 @@ internal fun AudioMessage(
                     audio.durationSeconds.takeIf { it > 0 }?.let { formatDuration(it.toLong()) }
                 ).joinToString(" · ")
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = onTint.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
+                    Icon(Symbols.MusicNote, contentDescription = null, tint = onTint.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
                         details.ifBlank { "Audio" },

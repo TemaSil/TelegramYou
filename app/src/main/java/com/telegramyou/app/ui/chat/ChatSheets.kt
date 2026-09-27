@@ -1,6 +1,6 @@
 package com.telegramyou.app.ui.chat
 
-import androidx.compose.material.icons.rounded.Poll
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,15 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Forward
-import androidx.compose.material.icons.rounded.AttachFile
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.PhotoCamera
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -172,21 +163,21 @@ internal fun AttachmentSheet(
         ListItem(
             headlineContent = { Text("Photo or video") },
             supportingContent = { Text("From the gallery") },
-            leadingContent = { Icon(Icons.Rounded.Image, contentDescription = null) },
+            leadingContent = { Icon(Symbols.Image, contentDescription = null) },
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickPhoto)
         )
         ListItem(
             headlineContent = { Text("Camera") },
             supportingContent = { Text("Take a photo now") },
-            leadingContent = { Icon(Icons.Rounded.PhotoCamera, contentDescription = null) },
+            leadingContent = { Icon(Symbols.PhotoCamera, contentDescription = null) },
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onTakePhoto)
         )
         ListItem(
             headlineContent = { Text("File") },
             supportingContent = { Text("Anything else") },
-            leadingContent = { Icon(Icons.Rounded.AttachFile, contentDescription = null) },
+            leadingContent = { Icon(Symbols.AttachFile, contentDescription = null) },
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickFile)
         )
@@ -194,7 +185,7 @@ internal fun AttachmentSheet(
             ListItem(
                 headlineContent = { Text("Poll") },
                 supportingContent = { Text("A question with answers to vote on") },
-                leadingContent = { Icon(Icons.Rounded.Poll, contentDescription = null) },
+                leadingContent = { Icon(Symbols.Poll, contentDescription = null) },
                 colors = sheetRow,
                 modifier = Modifier.clickable(onClick = onPoll)
             )
@@ -332,7 +323,7 @@ internal fun SelectionToolbar(
     ) {
         HorizontalFloatingToolbar(expanded = true) {
             IconButton(onClick = onClear) {
-                Icon(Icons.Rounded.Close, contentDescription = "Clear selection")
+                Icon(Symbols.Close, contentDescription = "Clear selection")
             }
             Text(
                 count.toString(),
@@ -341,19 +332,19 @@ internal fun SelectionToolbar(
             )
             if (actions.canCopy) {
                 IconButton(onClick = onCopy) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy")
+                    Icon(Symbols.ContentCopy, contentDescription = "Copy")
                 }
             }
             // No flag guards this one: anything that can be selected can be
             // sent on, and Telegram refuses at the far end if the target chat
             // does not accept it.
             IconButton(onClick = onForward) {
-                Icon(Icons.AutoMirrored.Rounded.Forward, contentDescription = "Forward")
+                Icon(Symbols.Forward, contentDescription = "Forward")
             }
             if (actions.canDeleteForSelf || actions.canDeleteForEveryone) {
                 IconButton(onClick = onDelete) {
                     Icon(
-                        Icons.Rounded.Delete,
+                        Symbols.Delete,
                         contentDescription = "Delete",
                         tint = MaterialTheme.colorScheme.error
                     )
@@ -379,7 +370,7 @@ internal fun DeleteSelectionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+        icon = { Icon(Symbols.Delete, contentDescription = null) },
         title = { Text(if (count == 1) "Delete message?" else "Delete $count messages?") },
         text = {
             Text(
@@ -483,7 +474,7 @@ internal fun DeleteMessageDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Rounded.Delete, contentDescription = null) },
+        icon = { Icon(Symbols.Delete, contentDescription = null) },
         title = { Text("Delete message?") },
         text = {
             Text(

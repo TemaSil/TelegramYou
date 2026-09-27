@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -180,7 +179,7 @@ private fun AlbumCell(
         } else {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Rounded.Image,
+                    Symbols.Image,
                     contentDescription = "Photo",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(28.dp)

@@ -286,10 +286,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.animation:animation")
-    // Pinned, not taken from the BOM: androidx froze material-icons-extended
-    // at 1.7.x and dropped it from later BOMs, so an unversioned coordinate
-    // stops resolving. The icons themselves have not changed.
-    implementation("androidx.compose.material:material-icons-extended:1.7.8")
+    // No icon library: the icons are Material Symbols, generated into
+    // ui/icons/Symbols.kt by .github/scripts/symbols.py. The frozen
+    // material-icons-extended they replaced is gone with them.
 
     // The shape library the avatar cluster builds its outlines from.
     //

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.proxy
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.ContentPaste
-import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -100,7 +96,7 @@ fun ProxyScreen(
                 title = { Text("Proxy") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -112,7 +108,7 @@ fun ProxyScreen(
                 // empty node, which TalkBack reads as "button" and UiAutomator
                 // cannot find — see the same fix on NewChatScreen.
                 modifier = Modifier.semantics { contentDescription = "Add proxy" },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = null) },
+                icon = { Icon(Symbols.Add, contentDescription = null) },
                 text = { Text("Add proxy") }
             )
         }
@@ -215,7 +211,7 @@ private fun ProxyRow(
         leadingContent = { RadioButton(selected = proxy.isEnabled, onClick = null) },
         trailingContent = {
             IconButton(onClick = onRemove) {
-                Icon(Icons.Rounded.Delete, contentDescription = "Remove ${proxy.server}")
+                Icon(Symbols.Delete, contentDescription = "Remove ${proxy.server}")
             }
         },
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -255,7 +251,7 @@ private fun AddProxySheet(
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Rounded.ContentPaste, contentDescription = null)
+            Icon(Symbols.ContentPaste, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Paste a proxy link")
         }

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.newchat
 
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,9 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -100,7 +98,7 @@ fun NewChatScreen(
                 title = { Text(if (kind == NewChatKind.Group) "New group" else "New channel") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -136,7 +134,7 @@ fun NewChatScreen(
                         if (state.isWorking) {
                             LoadingIndicator(modifier = Modifier.size(24.dp))
                         } else {
-                            Icon(Icons.Rounded.Check, contentDescription = null)
+                            Icon(Symbols.Check, contentDescription = null)
                         }
                     },
                     text = { Text("Create") }
@@ -279,7 +277,7 @@ fun JoinLinkScreen(
                 title = { Text("Join with a link") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 }
             )

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.Column
@@ -10,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -85,7 +84,7 @@ fun GeeksScreen(
                 title = { Text("For geeks") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())

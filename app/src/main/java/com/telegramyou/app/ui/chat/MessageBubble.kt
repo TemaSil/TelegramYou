@@ -1,11 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.border
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import android.widget.Toast
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Download
 import com.telegramyou.app.settings.QUICK_REACTION
 import com.telegramyou.app.settings.DoubleTapAction
 import com.telegramyou.app.settings.LocalGeekSettings
@@ -13,8 +12,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.forwardedLabel
-import androidx.compose.material.icons.rounded.PushPin
-import androidx.compose.material.icons.rounded.Poll
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -40,20 +37,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Reply
-import androidx.compose.material.icons.rounded.AddReaction
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Description
-import androidx.compose.material.icons.rounded.Done
-import androidx.compose.material.icons.rounded.DoneAll
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -282,10 +265,10 @@ internal fun MessageBubble(
                     // server refused it, which used to wear a tick.
                     Icon(
                         imageVector = when {
-                            message.sendState == SendState.Failed -> Icons.Rounded.ErrorOutline
-                            message.sendState == SendState.Pending -> Icons.Rounded.Schedule
-                            message.isRead -> Icons.Rounded.DoneAll
-                            else -> Icons.Rounded.Done
+                            message.sendState == SendState.Failed -> Symbols.ErrorOutlineFilled
+                            message.sendState == SendState.Pending -> Symbols.Schedule
+                            message.isRead -> Symbols.DoneAll
+                            else -> Symbols.Done
                         },
                         contentDescription = when {
                             message.sendState == SendState.Failed -> "Not sent"
@@ -404,7 +387,7 @@ internal fun MessageBubble(
                     }
                     MessageContentType.Document -> {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Description, contentDescription = null)
+                            Icon(Symbols.Description, contentDescription = null)
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(message.fileName ?: "File", fontWeight = FontWeight.SemiBold)
@@ -603,7 +586,7 @@ internal fun MessageBubble(
             ) {
                 DropdownMenuItem(
                     text = { Text("Reply") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Reply, contentDescription = null) },
+                    leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
                     onClick = {
                         onReply()
                         menuOpen = false
@@ -611,7 +594,7 @@ internal fun MessageBubble(
                 )
                 DropdownMenuItem(
                     text = { Text(if (message.isPinned) "Unpin" else "Pin") },
-                    leadingIcon = { Icon(Icons.Rounded.PushPin, contentDescription = null) },
+                    leadingIcon = { Icon(Symbols.PushPinFilled, contentDescription = null) },
                     onClick = {
                         onPinToggled()
                         menuOpen = false
@@ -620,7 +603,7 @@ internal fun MessageBubble(
                 DropdownMenuItem(
                     text = { Text("Select") },
                     leadingIcon = {
-                        Icon(Icons.Rounded.CheckCircle, contentDescription = null)
+                        Icon(Symbols.CheckCircleFilled, contentDescription = null)
                     },
                     onClick = {
                         onSelect()
@@ -630,7 +613,7 @@ internal fun MessageBubble(
                 DropdownMenuItem(
                     text = { Text("React") },
                     leadingIcon = {
-                        Icon(Icons.Rounded.AddReaction, contentDescription = null)
+                        Icon(Symbols.AddReaction, contentDescription = null)
                     },
                     onClick = {
                         onReact()
@@ -639,7 +622,7 @@ internal fun MessageBubble(
                 )
                 DropdownMenuItem(
                     text = { Text("Copy") },
-                    leadingIcon = { Icon(Icons.Rounded.ContentCopy, contentDescription = null) },
+                    leadingIcon = { Icon(Symbols.ContentCopy, contentDescription = null) },
                     onClick = {
                         onCopy()
                         menuOpen = false
@@ -651,7 +634,7 @@ internal fun MessageBubble(
                 if (geeks.saveMedia && mediaPath != null && MediaActions.canSaveToDownloads) {
                     DropdownMenuItem(
                         text = { Text("Save to Downloads") },
-                        leadingIcon = { Icon(Icons.Rounded.Download, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             val mime = if (message.photoPath != null) "image/jpeg" else "video/mp4"
@@ -672,7 +655,7 @@ internal fun MessageBubble(
                 if (geeks.saveMedia && photoPath != null) {
                     DropdownMenuItem(
                         text = { Text("Copy photo") },
-                        leadingIcon = { Icon(Icons.Rounded.Image, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.Image, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             mediaScope.launch {
@@ -689,7 +672,7 @@ internal fun MessageBubble(
                 if (geeks.messageDetails) {
                     DropdownMenuItem(
                         text = { Text("Details") },
-                        leadingIcon = { Icon(Icons.Rounded.Info, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.Info, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             detailsOpen = true
@@ -699,7 +682,7 @@ internal fun MessageBubble(
                 if (message.canBeEdited) {
                     DropdownMenuItem(
                         text = { Text("Edit") },
-                        leadingIcon = { Icon(Icons.Rounded.Edit, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.Edit, contentDescription = null) },
                         onClick = {
                             onEdit()
                             menuOpen = false
@@ -713,7 +696,7 @@ internal fun MessageBubble(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Rounded.Delete,
+                                Symbols.Delete,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error
                             )

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,8 +11,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -71,7 +70,7 @@ fun StickerPickerSheet(
             Tab(
                 selected = state.selected == RECENT_STICKERS,
                 onClick = { onSetSelected(RECENT_STICKERS) },
-                icon = { Icon(Icons.Rounded.History, contentDescription = "Recent stickers") }
+                icon = { Icon(Symbols.History, contentDescription = "Recent stickers") }
             )
             state.sets.forEach { set ->
                 Tab(

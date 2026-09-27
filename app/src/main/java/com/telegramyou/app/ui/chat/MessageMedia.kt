@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.Canvas
@@ -24,10 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -201,7 +198,7 @@ fun PhotoViewer(
                     .padding(8.dp)
                     .alpha(1f - progress)
             ) {
-                Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
             }
         }
     }
@@ -407,7 +404,7 @@ internal fun VideoMessage(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Rounded.PlayArrow,
+                        Symbols.PlayArrowFilled,
                         // Described by the container above, which is what a
                         // reader announces and what a finger taps.
                         contentDescription = null,
@@ -618,7 +615,7 @@ internal fun VideoNoteMessage(
                     .background(Color.Black.copy(alpha = 0.45f), CircleShape)
             ) {
                 Icon(
-                    Icons.Rounded.PlayArrow,
+                    Symbols.PlayArrowFilled,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(30.dp)
@@ -692,8 +689,8 @@ internal fun VoiceMessage(
             )
             else -> IconButton(onClick = onToggle, modifier = Modifier.size(24.dp)) {
                 Icon(
-                    if (state == VoiceState.Playing) Icons.Rounded.Pause
-                    else Icons.Rounded.PlayArrow,
+                    if (state == VoiceState.Playing) Symbols.PauseFilled
+                    else Symbols.PlayArrowFilled,
                     contentDescription = if (state == VoiceState.Playing) "Pause" else "Play",
                     tint = tint
                 )

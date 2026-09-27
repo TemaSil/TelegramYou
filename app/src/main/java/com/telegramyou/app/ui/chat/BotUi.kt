@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,12 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.OpenInNew
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -227,9 +222,9 @@ private fun PollResultRow(
                 modifier = Modifier.weight(1f)
             )
             val mark = when {
-                isQuiz && isCorrect -> Icons.Rounded.CheckCircle
-                wrong -> Icons.Rounded.Close
-                isChosen -> Icons.Rounded.Check
+                isQuiz && isCorrect -> Symbols.CheckCircleFilled
+                wrong -> Symbols.Close
+                isChosen -> Symbols.Check
                 else -> null
             }
             if (mark != null) {
@@ -310,8 +305,8 @@ private fun InlineKeyboard(rows: List<List<InlineButton>>, onPress: (InlineButto
                         // leaves the app, or one that only copies, should not
                         // look like one that talks to the bot.
                         val hint = when (button.action) {
-                            is ButtonAction.OpenUrl -> Icons.AutoMirrored.Rounded.OpenInNew
-                            is ButtonAction.CopyText -> Icons.Rounded.ContentCopy
+                            is ButtonAction.OpenUrl -> Symbols.OpenInNew
+                            is ButtonAction.CopyText -> Symbols.ContentCopy
                             else -> null
                         }
                         if (hint != null) {

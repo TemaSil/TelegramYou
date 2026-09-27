@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,7 +67,7 @@ fun ArchiveScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            Symbols.ArrowBack,
                             contentDescription = "Back"
                         )
                     }

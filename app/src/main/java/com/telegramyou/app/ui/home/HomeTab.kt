@@ -1,10 +1,6 @@
 package com.telegramyou.app.ui.home
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Chat
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Settings
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
@@ -21,11 +17,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * bottom bar now, and a bar that omits the thing they are looking for sends
  * them hunting.
  */
-enum class HomeTab(val label: String, val icon: ImageVector) {
-    Chats("Chats", Icons.AutoMirrored.Rounded.Chat),
-    Search("Search", Icons.Rounded.Search),
+// Two icons each, as Material 3 asks of a navigation bar: the outline while
+// the tab is not the one open, and the same glyph filled when it is — the
+// fill is part of how the bar says where you are.
+enum class HomeTab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
+    Chats("Chats", Symbols.Chat, Symbols.ChatFilled),
+    Search("Search", Symbols.Search, Symbols.SearchFilled),
     // Settings before Profile, with the profile at the end of the bar the
     // way the official client places it — the owner's call.
-    Settings("Settings", Icons.Rounded.Settings),
-    Profile("Profile", Icons.Rounded.Person)
+    Settings("Settings", Symbols.Settings, Symbols.SettingsFilled),
+    Profile("Profile", Symbols.Person, Symbols.PersonFilled)
 }

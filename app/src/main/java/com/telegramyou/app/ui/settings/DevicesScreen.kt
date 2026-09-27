@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -7,17 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Computer
-import androidx.compose.material.icons.rounded.DesktopWindows
-import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.LaptopMac
-import androidx.compose.material.icons.rounded.PhoneAndroid
-import androidx.compose.material.icons.rounded.PhoneIphone
-import androidx.compose.material.icons.rounded.SportsEsports
-import androidx.compose.material.icons.rounded.TabletMac
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -111,7 +101,7 @@ fun DevicesScreen(
                 title = { Text("Devices") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -179,13 +169,13 @@ private fun SettingsGroupScope.sessionRow(session: ActiveSession, activity: Stri
 }
 
 private fun deviceIcon(kind: DeviceKind): ImageVector = when (kind) {
-    DeviceKind.Android -> Icons.Rounded.PhoneAndroid
-    DeviceKind.Iphone -> Icons.Rounded.PhoneIphone
-    DeviceKind.Ipad -> Icons.Rounded.TabletMac
-    DeviceKind.Mac -> Icons.Rounded.LaptopMac
-    DeviceKind.Windows -> Icons.Rounded.DesktopWindows
-    DeviceKind.Linux -> Icons.Rounded.Computer
-    DeviceKind.Browser -> Icons.Rounded.Language
-    DeviceKind.Console -> Icons.Rounded.SportsEsports
-    DeviceKind.Unknown -> Icons.Rounded.Devices
+    DeviceKind.Android -> Symbols.PhoneAndroid
+    DeviceKind.Iphone -> Symbols.PhoneIphone
+    DeviceKind.Ipad -> Symbols.TabletMac
+    DeviceKind.Mac -> Symbols.LaptopMac
+    DeviceKind.Windows -> Symbols.DesktopWindows
+    DeviceKind.Linux -> Symbols.Computer
+    DeviceKind.Browser -> Symbols.Language
+    DeviceKind.Console -> Symbols.SportsEsports
+    DeviceKind.Unknown -> Symbols.Devices
 }

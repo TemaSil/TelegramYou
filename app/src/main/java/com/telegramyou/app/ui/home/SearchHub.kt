@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.settings.settingsBackground
 import com.telegramyou.app.ui.motion.ChatContainerSpring
 import com.telegramyou.app.ui.motion.ChatContainerShape
@@ -7,7 +8,6 @@ import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.containerTransform
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,10 +31,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -169,13 +165,13 @@ internal fun SearchPage(
             expanded = false,
             onExpandedChange = {},
             placeholder = { Text("Search Telegram") },
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             trailingIcon = {
                 if (search.isSearching) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else if (search.query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Rounded.Close, contentDescription = "Clear")
+                        Icon(Symbols.Close, contentDescription = "Clear")
                     }
                 }
             }
@@ -245,7 +241,7 @@ private fun SearchFrontPage(
                         SuggestionChip(
                             onClick = { actions.onRecentQueryPicked(query) },
                             label = { Text(query, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                            icon = { Icon(Icons.Rounded.History, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                            icon = { Icon(Symbols.History, contentDescription = null, modifier = Modifier.size(18.dp)) }
                         )
                     }
                 }
@@ -264,7 +260,7 @@ private fun SearchFrontPage(
                     modifier = grows("recent", chat.id),
                     trailing = {
                         IconButton(onClick = { actions.onRecentChatRemoved(chat.id) }) {
-                            Icon(Icons.Rounded.Close, contentDescription = "Remove ${chat.title} from recent")
+                            Icon(Symbols.Close, contentDescription = "Remove ${chat.title} from recent")
                         }
                     }
                 )

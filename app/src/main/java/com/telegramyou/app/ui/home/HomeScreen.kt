@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.settings.hiddenLeadingTabs
 import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.animation.AnimatedContent
@@ -27,11 +28,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.VpnKey
-import androidx.compose.material.icons.rounded.Bookmark
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.mutableStateOf
@@ -74,12 +70,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.telegramyou.app.ui.settings.SettingsContent
 import com.telegramyou.app.ui.profile.ProfileContent
@@ -89,9 +79,6 @@ import com.telegramyou.app.settings.AppearanceSettings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material.icons.rounded.Group
-import androidx.compose.material.icons.rounded.Campaign
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -275,12 +262,15 @@ fun HomeScreen(
                             },
                             modifier = Modifier.semantics { contentDescription = entry.label }
                         )
-                    } else if (entry == HomeTab.Settings && updateWaiting) {
-                        BadgedBox(badge = { Badge() }) {
-                            Icon(entry.icon, contentDescription = "${entry.label}, update available")
-                        }
                     } else {
-                        Icon(entry.icon, contentDescription = entry.label)
+                        val glyph = if (tab == entry) entry.selectedIcon else entry.icon
+                        if (entry == HomeTab.Settings && updateWaiting) {
+                            BadgedBox(badge = { Badge() }) {
+                                Icon(glyph, contentDescription = "${entry.label}, update available")
+                            }
+                        } else {
+                            Icon(glyph, contentDescription = entry.label)
+                        }
                     }
                 },
                 label = { Text(entry.label) }
@@ -805,14 +795,14 @@ private fun HomeTitleBar(
         actions = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = "More")
+                    Icon(Symbols.MoreVert, contentDescription = "More")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text(if (isDark) "Light theme" else "Dark theme") },
                         leadingIcon = {
                             Icon(
-                                if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                                if (isDark) Symbols.LightMode else Symbols.DarkMode,
                                 contentDescription = null
                             )
                         },
@@ -826,7 +816,7 @@ private fun HomeTitleBar(
                     )
                     DropdownMenuItem(
                         text = { Text("Proxy") },
-                        leadingIcon = { Icon(Icons.Rounded.VpnKey, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.VpnKey, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             onOpenProxy()
@@ -834,7 +824,7 @@ private fun HomeTitleBar(
                     )
                     DropdownMenuItem(
                         text = { Text("Saved Messages") },
-                        leadingIcon = { Icon(Icons.Rounded.Bookmark, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.BookmarkFilled, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             onOpenSavedMessages()
@@ -998,10 +988,10 @@ private fun ComposeFabMenu(
     var expanded by rememberSaveable { mutableStateOf(false) }
     BackHandler(expanded) { expanded = false }
     val items = listOf(
-        Triple(Icons.Rounded.Edit, "New message", onNewMessage),
-        Triple(Icons.Rounded.Group, "New group", onNewGroup),
-        Triple(Icons.Rounded.Campaign, "New channel", onNewChannel),
-        Triple(Icons.Rounded.Link, "Join with a link", onJoinLink)
+        Triple(Symbols.Edit, "New message", onNewMessage),
+        Triple(Symbols.Group, "New group", onNewGroup),
+        Triple(Symbols.Campaign, "New channel", onNewChannel),
+        Triple(Symbols.Link, "Join with a link", onJoinLink)
     )
     FloatingActionButtonMenu(
         expanded = expanded,
@@ -1018,7 +1008,7 @@ private fun ComposeFabMenu(
                 }
             ) {
                 val icon by remember {
-                    derivedStateOf { if (checkedProgress > 0.5f) Icons.Rounded.Close else Icons.Rounded.Edit }
+                    derivedStateOf { if (checkedProgress > 0.5f) Symbols.Close else Symbols.Edit }
                 }
                 Icon(
                     painter = rememberVectorPainter(icon),
@@ -1155,7 +1145,7 @@ private fun ArchiveEntryRow(
                     .background(MaterialTheme.colorScheme.secondaryContainer, CircleShape)
             ) {
                 Icon(
-                    Icons.Rounded.Archive,
+                    Symbols.Archive,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSecondaryContainer
                 )

@@ -1,13 +1,12 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import com.telegramyou.app.update.LocalAppUpdates
 import com.telegramyou.app.update.UpdateState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.background
 import androidx.compose.material3.Badge
-import androidx.compose.material.icons.rounded.SystemUpdate
-import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,17 +21,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Science
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import com.telegramyou.app.settings.TextSize
 import androidx.compose.material3.Slider
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Storage
-import androidx.compose.material.icons.rounded.Devices
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -90,7 +82,7 @@ fun SettingsScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            Symbols.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -256,14 +248,14 @@ fun SettingsContent(
             link(
                 title = "Privacy",
                 summary = "Who can see your number, your last seen and more",
-                icon = Icons.Rounded.Lock,
+                icon = Symbols.Lock,
                 tone = IconTone.Secondary,
                 onClick = onOpenPrivacy
             )
             link(
                 title = "Devices",
                 summary = "Where you are signed in",
-                icon = Icons.Rounded.Devices,
+                icon = Symbols.Devices,
                 tone = IconTone.Secondary,
                 onClick = onOpenDevices
             )
@@ -273,14 +265,14 @@ fun SettingsContent(
             link(
                 title = "Data and storage",
                 summary = "The cache, and clearing it",
-                icon = Icons.Rounded.Storage,
+                icon = Symbols.Storage,
                 tone = IconTone.Tertiary,
                 onClick = onOpenStorage
             )
             link(
                 title = "Proxy",
                 summary = "Connect through SOCKS5, HTTP or MTProto",
-                icon = Icons.Rounded.VpnKey,
+                icon = Symbols.VpnKey,
                 tone = IconTone.Tertiary,
                 onClick = onOpenProxy
             )
@@ -292,7 +284,7 @@ fun SettingsContent(
             link(
                 title = "For geeks",
                 summary = "Small things for people who like to tinker",
-                icon = Icons.Rounded.Science,
+                icon = Symbols.Science,
                 onClick = onOpenGeeks
             )
         }
@@ -313,7 +305,7 @@ fun SettingsContent(
                     is UpdateState.Ready -> "Version ${state.release.version} is ready to install"
                     else -> updates?.let { "Version ${it.installed} · what's new" } ?: "What's new"
                 },
-                icon = Icons.Rounded.SystemUpdate,
+                icon = Symbols.SystemUpdate,
                 tone = if (waiting) IconTone.Tertiary else IconTone.Primary,
                 trailing = dot,
                 onClick = onOpenUpdates
@@ -334,7 +326,7 @@ fun SettingsContent(
         if (confirmLogout) {
             AlertDialog(
                 onDismissRequest = { confirmLogout = false },
-                icon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null) },
+                icon = { Icon(Symbols.Logout, contentDescription = null) },
                 title = { Text("Log out of Telegram?") },
                 text = { Text("Your chats stay on Telegram. You can sign back in with your phone number.") },
                 confirmButton = {

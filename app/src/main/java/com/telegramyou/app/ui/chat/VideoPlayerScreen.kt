@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import android.view.TextureView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -11,10 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -194,7 +191,7 @@ fun VideoPlayerScreen(
                     .align(Alignment.TopStart)
                     .padding(8.dp)
             ) {
-                Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
             }
 
             Column(
@@ -223,7 +220,7 @@ fun VideoPlayerScreen(
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(
-                            if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                            if (isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
                             contentDescription = if (isPlaying) "Pause" else "Play"
                         )
                     }

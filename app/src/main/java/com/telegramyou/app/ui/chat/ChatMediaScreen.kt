@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,9 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -32,7 +30,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,7 +74,7 @@ fun ChatMediaScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            Symbols.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -184,7 +181,7 @@ private fun VideoTile(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        Icons.Rounded.PlayArrow,
+                        Symbols.PlayArrowFilled,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp)
                     )
@@ -254,7 +251,7 @@ private fun MediaTile(
         if (path.isNullOrBlank()) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    Icons.Rounded.Image,
+                    Symbols.Image,
                     contentDescription = message.text.ifBlank { "Photo" },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -1,14 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.notifications.MuteDuration
 import com.telegramyou.app.notifications.notificationStatusLabel
 import java.time.ZoneId
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.NotificationsOff
-import androidx.compose.material.icons.rounded.Snooze
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.Switch
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -26,11 +22,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.Logout
-import androidx.compose.material.icons.rounded.ContentCopy
-import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -108,7 +99,7 @@ fun ChatInfoScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            Symbols.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -160,10 +151,10 @@ fun ChatInfoScreen(
                         headlineContent = { Text(link) },
                         overlineContent = { Text("Invite link") },
                         leadingContent = {
-                            Icon(Icons.Rounded.Link, contentDescription = null)
+                            Icon(Symbols.Link, contentDescription = null)
                         },
                         trailingContent = {
-                            Icon(Icons.Rounded.ContentCopy, contentDescription = null)
+                            Icon(Symbols.ContentCopy, contentDescription = null)
                         },
                         // Tapping the row rather than only the icon: the whole
                         // row is what a finger aims at, and the only thing
@@ -199,7 +190,7 @@ fun ChatInfoScreen(
                         headlineContent = { Text("Leave ${if (chat.isChannel) "channel" else "group"}") },
                         leadingContent = {
                             Icon(
-                                Icons.AutoMirrored.Rounded.Logout,
+                                Symbols.Logout,
                                 contentDescription = null
                             )
                         },
@@ -272,7 +263,7 @@ private fun NotificationSettingsSection(
             supportingContent = { Text(notificationStatusLabel(settings, now, ZoneId.systemDefault())) },
             leadingContent = {
                 Icon(
-                    if (on) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff,
+                    if (on) Symbols.Notifications else Symbols.NotificationsOff,
                     contentDescription = null
                 )
             },
@@ -288,7 +279,7 @@ private fun NotificationSettingsSection(
         Box {
             ListItem(
                 headlineContent = { Text("Mute for…") },
-                leadingContent = { Icon(Icons.Rounded.Snooze, contentDescription = null) },
+                leadingContent = { Icon(Symbols.Snooze, contentDescription = null) },
                 modifier = Modifier.clickable { choosing = true }
             )
             DropdownMenu(expanded = choosing, onDismissRequest = { choosing = false }) {
@@ -306,7 +297,7 @@ private fun NotificationSettingsSection(
         ListItem(
             headlineContent = { Text("Message preview") },
             supportingContent = { Text("Show what the message says in the notification") },
-            leadingContent = { Icon(Icons.Rounded.Visibility, contentDescription = null) },
+            leadingContent = { Icon(Symbols.Visibility, contentDescription = null) },
             trailingContent = {
                 Switch(
                     checked = settings.showPreview,
@@ -316,7 +307,7 @@ private fun NotificationSettingsSection(
         )
         ListItem(
             headlineContent = { Text("Sound") },
-            leadingContent = { Icon(Icons.AutoMirrored.Rounded.VolumeUp, contentDescription = null) },
+            leadingContent = { Icon(Symbols.VolumeUp, contentDescription = null) },
             trailingContent = {
                 Switch(
                     checked = settings.sound,

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
@@ -41,14 +42,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Done
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.PhotoLibrary
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -450,7 +443,7 @@ fun ChatScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 },
                 title = {
@@ -548,7 +541,7 @@ fun ChatScreen(
                     // opens an empty list.
                     if (detail?.chat?.hasScheduledMessages == true) {
                         IconButton(onClick = onScheduledOpen) {
-                            Icon(Icons.Rounded.Schedule, contentDescription = "Scheduled messages")
+                            Icon(Symbols.Schedule, contentDescription = "Scheduled messages")
                         }
                     }
                     // Beside search rather than behind an overflow: both are
@@ -556,13 +549,13 @@ fun ChatScreen(
                     // bar with two actions has room for two.
                     IconButton(onClick = onOpenMedia) {
                         Icon(
-                            Icons.Rounded.PhotoLibrary,
+                            Symbols.PhotoLibrary,
                             contentDescription = "Photos in this chat"
                         )
                     }
                     IconButton(onClick = { onSearchOpenChange(!state.search.isOpen) }) {
                         Icon(
-                            if (state.search.isOpen) Icons.Rounded.Close else Icons.Rounded.Search,
+                            if (state.search.isOpen) Symbols.Close else Symbols.Search,
                             contentDescription = if (state.search.isOpen) {
                                 "Close search"
                             } else {
@@ -924,7 +917,7 @@ fun ChatScreen(
                                 }
                             }
                         ) {
-                            Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = "Jump to latest")
+                            Icon(Symbols.KeyboardArrowDown, contentDescription = "Jump to latest")
                         }
                     }
                 }

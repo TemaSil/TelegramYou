@@ -1,5 +1,6 @@
 package com.telegramyou.app.update
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
@@ -16,11 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.InstallMobile
-import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -84,7 +80,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                 title = { Text("App update") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -117,7 +113,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                                 .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                         ) {
                             Icon(
-                                if (state is UpdateState.Ready) Icons.Rounded.InstallMobile else Icons.Rounded.SystemUpdate,
+                                if (state is UpdateState.Ready) Symbols.InstallMobile else Symbols.SystemUpdate,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(36.dp)
@@ -173,7 +169,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                                 onClick = { updates?.download() },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Rounded.Download, contentDescription = null)
+                                Icon(Symbols.Download, contentDescription = null)
                                 Spacer(Modifier.size(8.dp))
                                 Text("Download and install")
                             }

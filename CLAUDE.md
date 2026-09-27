@@ -290,6 +290,25 @@ right about attachment types. These three are not types: they are the three
 things people reach for, and the attachment sheet is still behind the plus
 for everything else.
 
+## Icons
+
+**Material Symbols, Rounded** — Google's current icon set — generated into
+`app/src/main/java/com/telegramyou/app/ui/icons/Symbols.kt` by
+`.github/scripts/symbols.py`, which downloads each from
+google/material-design-icons. There is no icon library dependency: the
+frozen `material-icons-extended` these replaced had no unfilled rounded
+glyphs at all, which is what Material 3's rules for icons need.
+
+- **Unfilled by default** (`Symbols.X`), as Material 3 applies them.
+- **Filled for state** (`Symbols.XFilled`): the selected tab in the bar, a
+  pin marking a pinned chat — and for the few that read better solid, small
+  or on a coloured ground: play, pause, send, the Saved Messages bookmark,
+  a selection tick, an error mark.
+- **One style throughout.** Rounded only — no Outlined or Sharp mixed in.
+- **A new icon:** add its name to `ICONS` in the script (and to `RENAMED`
+  when Symbols calls it something else — `Phone` is `call` there) and run
+  it from the repository root; do not edit `Symbols.kt` by hand.
+
 ## What's new
 
 Settings → App update shows **one** card: what the incoming update brings, or

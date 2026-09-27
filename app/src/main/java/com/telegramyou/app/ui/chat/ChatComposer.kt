@@ -1,12 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.material.icons.rounded.EmojiEmotions
-import androidx.compose.material.icons.rounded.Keyboard
-import androidx.compose.material.icons.rounded.KeyboardHide
 import android.content.Context
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -24,16 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Reply
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.AttachFile
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Mic
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledIconButton
@@ -140,7 +128,7 @@ internal fun ComposerBanner(
             modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
         ) {
             Icon(
-                if (isEditing) Icons.Rounded.Edit else Icons.AutoMirrored.Rounded.Reply,
+                if (isEditing) Symbols.Edit else Symbols.Reply,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
@@ -163,7 +151,7 @@ internal fun ComposerBanner(
             }
             IconButton(onClick = onCancel) {
                 Icon(
-                    Icons.Rounded.Close,
+                    Symbols.Close,
                     contentDescription = if (isEditing) "Cancel edit" else "Cancel reply"
                 )
             }
@@ -197,13 +185,13 @@ internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
             label = { Text(label, maxLines = 1) },
             leadingIcon = {
                 Icon(
-                    if (draft is AttachmentDraft.Photos) Icons.Rounded.Image
-                    else Icons.Rounded.AttachFile,
+                    if (draft is AttachmentDraft.Photos) Symbols.Image
+                    else Symbols.AttachFile,
                     contentDescription = null
                 )
             },
             trailingIcon = {
-                Icon(Icons.Rounded.Close, contentDescription = "Remove attachment")
+                Icon(Symbols.Close, contentDescription = "Remove attachment")
             }
         )
     }
@@ -396,14 +384,14 @@ internal fun ComposerBar(
                     enabled = recordingSince == null,
                     modifier = Modifier.padding(bottom = ComposerButtonLift)
                 ) {
-                    Icon(Icons.Rounded.AttachFile, contentDescription = "Attach")
+                    Icon(Symbols.AttachFile, contentDescription = "Attach")
                 }
                 IconButton(
                     onClick = onCamera,
                     enabled = recordingSince == null,
                     modifier = Modifier.padding(bottom = ComposerButtonLift)
                 ) {
-                    Icon(Icons.Rounded.PhotoCamera, contentDescription = "Camera")
+                    Icon(Symbols.PhotoCamera, contentDescription = "Camera")
                 }
 
                 if (recordingSince != null) {
@@ -447,15 +435,15 @@ internal fun ComposerBar(
                                 if (botKeyboardShown != null) {
                                     IconButton(onClick = onBotKeyboardToggle) {
                                         Icon(
-                                            if (botKeyboardShown) Icons.Rounded.KeyboardHide
-                                            else Icons.Rounded.Keyboard,
+                                            if (botKeyboardShown) Symbols.KeyboardHide
+                                            else Symbols.Keyboard,
                                             contentDescription = if (botKeyboardShown) "Hide bot keyboard"
                                             else "Bot keyboard"
                                         )
                                     }
                                 }
                                 IconButton(onClick = onStickers) {
-                                    Icon(Icons.Rounded.EmojiEmotions, contentDescription = "Stickers")
+                                    Icon(Symbols.EmojiEmotions, contentDescription = "Stickers")
                                 }
                             }
                         },
@@ -526,7 +514,7 @@ internal fun ComposerBar(
                                 }
                             }
                     ) {
-                        Icon(Icons.Rounded.Mic, contentDescription = "Hold to record")
+                        Icon(Symbols.Mic, contentDescription = "Hold to record")
                     }
                 } else {
                     var scheduleMenu by remember { mutableStateOf(false) }
@@ -560,12 +548,12 @@ internal fun ComposerBar(
                                 }
                             )
                     ) {
-                        Icon(Icons.AutoMirrored.Rounded.Send, contentDescription = "Send")
+                        Icon(Symbols.SendFilled, contentDescription = "Send")
                     }
                     DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
                         DropdownMenuItem(
                             text = { Text("Schedule message") },
-                            leadingIcon = { Icon(Icons.Rounded.Schedule, contentDescription = null) },
+                            leadingIcon = { Icon(Symbols.Schedule, contentDescription = null) },
                             onClick = {
                                 scheduleMenu = false
                                 onSchedule?.invoke()

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.stories
 
+import com.telegramyou.app.ui.icons.Symbols
 import android.view.TextureView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -16,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -188,7 +187,7 @@ fun StoryViewerScreen(
                     }
                 }
                 IconButton(onClick = onClose) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                    Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
                 }
             }
         }

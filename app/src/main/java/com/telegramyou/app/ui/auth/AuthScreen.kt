@@ -1,8 +1,7 @@
 package com.telegramyou.app.ui.auth
 
-import androidx.compose.material.icons.rounded.VpnKey
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import android.content.Context
@@ -35,12 +34,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Send
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -276,7 +269,7 @@ fun AuthScreen(
                 onClick = onOpenProxy,
                 modifier = Modifier.align(Alignment.TopEnd)
             ) {
-                Icon(Icons.Rounded.VpnKey, contentDescription = "Proxy")
+                Icon(Symbols.VpnKey, contentDescription = "Proxy")
             }
         }
 
@@ -329,7 +322,7 @@ private fun BrandMark(onDemoRequested: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            Icons.AutoMirrored.Rounded.Send,
+            Symbols.SendFilled,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.size(40.dp)
@@ -465,7 +458,7 @@ private fun PhoneStep(
                     if (country != null) {
                         Text(country.flag, fontSize = 22.sp)
                     } else {
-                        Icon(Icons.Rounded.Public, contentDescription = null)
+                        Icon(Symbols.Public, contentDescription = null)
                     }
                 }
             },
@@ -487,7 +480,7 @@ private fun PhoneStep(
             onClick = onQrLogin,
             modifier = Modifier.align(Alignment.CenterHorizontally)
         ) {
-            Icon(Icons.Rounded.QrCode2, contentDescription = null)
+            Icon(Symbols.QrCode2, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             Text("Log in with a QR code")
         }
@@ -537,7 +530,7 @@ private fun CountrySheet(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
             placeholder = { Text("Country or code") },
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             singleLine = true
         )
         Spacer(Modifier.height(8.dp))
@@ -704,7 +697,7 @@ private fun PasswordStep(
             trailingIcon = {
                 IconButton(onClick = { visible = !visible }) {
                     Icon(
-                        if (visible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                        if (visible) Symbols.VisibilityOff else Symbols.Visibility,
                         contentDescription = if (visible) "Hide password" else "Show password"
                     )
                 }

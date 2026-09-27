@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -12,8 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -111,7 +110,7 @@ fun PrivacyScreen(
                 title = { Text("Privacy") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())

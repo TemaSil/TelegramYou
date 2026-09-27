@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.auth.PhoneEntry
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,19 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AddAPhoto
-import androidx.compose.material.icons.rounded.AlternateEmail
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.Phone
-import androidx.compose.material.icons.rounded.QrCode2
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonGroup
@@ -166,17 +154,17 @@ fun ProfileContent(
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             IconButton(onClick = { showingQr = true }) {
-                Icon(Icons.Rounded.QrCode2, contentDescription = "QR code")
+                Icon(Symbols.QrCode2, contentDescription = "QR code")
             }
             Spacer(Modifier.weight(1f))
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Rounded.MoreVert, contentDescription = "More")
+                    Icon(Symbols.MoreVert, contentDescription = "More")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text(if (link == null) "Set a username" else "Change username") },
-                        leadingIcon = { Icon(Icons.Rounded.AlternateEmail, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.AlternateEmail, contentDescription = null) },
                         onClick = {
                             menuOpen = false
                             editing = true
@@ -185,7 +173,7 @@ fun ProfileContent(
                     if (link != null) {
                         DropdownMenuItem(
                             text = { Text("Copy link to profile") },
-                            leadingIcon = { Icon(Icons.Rounded.Link, contentDescription = null) },
+                            leadingIcon = { Icon(Symbols.Link, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
                                 copy(link)
@@ -224,9 +212,9 @@ fun ProfileContent(
         // weights the row is divided, everything fits, and that path is
         // never taken. See ROADMAP, "ButtonGroup".
         val actions = listOf(
-            Triple("Set photo", Icons.Rounded.AddAPhoto, pickPhoto),
-            Triple("Edit", Icons.Rounded.Edit, { editing = true }),
-            Triple("Settings", Icons.Rounded.Settings, onOpenSettings)
+            Triple("Set photo", Symbols.AddAPhoto, pickPhoto),
+            Triple("Edit", Symbols.Edit, { editing = true }),
+            Triple("Settings", Symbols.Settings, onOpenSettings)
         )
         ButtonGroup(
             overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState = menuState) },
@@ -267,20 +255,20 @@ fun ProfileContent(
                         // screen types through; TDLib sends bare digits.
                         title = PhoneEntry.format(phone),
                         summary = "Mobile",
-                        leading = { SettingsIcon(Icons.Rounded.Phone) },
+                        leading = { SettingsIcon(Symbols.Phone) },
                         onClick = { copy(phone) }
                     )
             }
             item(
                     title = me.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No username",
                     summary = if (link != null) "Username · tap to copy the link" else "Username · set one so people can find you",
-                    leading = { SettingsIcon(Icons.Rounded.AlternateEmail) },
+                    leading = { SettingsIcon(Symbols.AlternateEmail) },
                     onClick = { if (link != null) copy(link) else editing = true }
                 )
             item(
                     title = me.bio.ifBlank { "Add a few words about yourself" },
                     summary = "Bio",
-                    leading = { SettingsIcon(Icons.Rounded.Info) },
+                    leading = { SettingsIcon(Symbols.Info) },
                     onClick = { editing = true }
                 )
         }
@@ -288,7 +276,7 @@ fun ProfileContent(
             SettingsGroup {
                 item(
                         title = "Telegram Premium",
-                        leading = { SettingsIcon(Icons.Rounded.WorkspacePremium, IconTone.Tertiary) },
+                        leading = { SettingsIcon(Symbols.WorkspacePremium, IconTone.Tertiary) },
                         onClick = {}
                     )
             }
@@ -339,7 +327,7 @@ private fun ProfileEditor(
                 TopAppBar(
                     title = { Text("Edit profile") },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Close") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Close") }
                     },
                     actions = {
                         if (profile.isSaving) {
@@ -422,7 +410,7 @@ private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit
                 TopAppBar(
                     title = { Text("QR code") },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, contentDescription = "Close") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Close") }
                     }
                 )
             }
@@ -471,7 +459,7 @@ private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Rounded.Share, contentDescription = null)
+                        Icon(Symbols.Share, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
                         Text("Share QR code")
                     }

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -14,14 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.VolumeOff
-import androidx.compose.material.icons.outlined.PushPin
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.MarkChatRead
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.NotificationsOff
-import androidx.compose.material.icons.rounded.Unarchive
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -235,7 +228,7 @@ fun ChatListRow(
                         // badge's place. Before the preview text it read as
                         // though the last message were the pinned one.
                         Icon(
-                            Icons.Outlined.PushPin,
+                            Symbols.PushPinFilled,
                             contentDescription = "Pinned",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -258,7 +251,7 @@ fun ChatListRow(
                     if (chat.isMuted) {
                         Spacer(Modifier.width(4.dp))
                         Icon(
-                            Icons.AutoMirrored.Outlined.VolumeOff,
+                            Symbols.VolumeOff,
                             contentDescription = "Muted",
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -305,7 +298,7 @@ fun ChatListRow(
                     DropdownMenuItem(
                         text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
                         leadingIcon = {
-                            Icon(Icons.Outlined.PushPin, contentDescription = null)
+                            Icon(Symbols.PushPinFilled, contentDescription = null)
                         },
                         onClick = {
                             onPinnedChange(!chat.isPinned)
@@ -317,8 +310,8 @@ fun ChatListRow(
                     text = { Text(if (chat.isMuted) "Unmute" else "Mute") },
                     leadingIcon = {
                         Icon(
-                            if (chat.isMuted) Icons.Rounded.NotificationsActive
-                            else Icons.Rounded.NotificationsOff,
+                            if (chat.isMuted) Symbols.NotificationsActive
+                            else Symbols.NotificationsOff,
                             contentDescription = null
                         )
                     },
@@ -337,8 +330,8 @@ fun ChatListRow(
                         text = { Text(if (chat.isArchived) "Unarchive" else "Archive") },
                         leadingIcon = {
                             Icon(
-                                if (chat.isArchived) Icons.Rounded.Unarchive
-                                else Icons.Rounded.Archive,
+                                if (chat.isArchived) Symbols.Unarchive
+                                else Symbols.Archive,
                                 contentDescription = null
                             )
                         },
@@ -355,7 +348,7 @@ fun ChatListRow(
                     DropdownMenuItem(
                         text = { Text("Mark as read") },
                         leadingIcon = {
-                            Icon(Icons.Rounded.MarkChatRead, contentDescription = null)
+                            Icon(Symbols.MarkChatRead, contentDescription = null)
                         },
                         onClick = {
                             onMarkRead()
@@ -420,11 +413,11 @@ private fun SwipeAction(
         if (direction == SwipeToDismissBoxValue.StartToEnd) {
             // The archive renames this one, and renaming it changes the icon
             // too: a pin over "Unarchive" would say the opposite of the word.
-            icon = if (startLabel == null) Icons.Outlined.PushPin else Icons.Rounded.Unarchive
+            icon = if (startLabel == null) Symbols.PushPinFilled else Symbols.Unarchive
             label = startLabel ?: if (isPinned) "Unpin" else "Pin"
         } else {
-            icon = if (isMuted) Icons.Rounded.NotificationsActive
-            else Icons.Rounded.NotificationsOff
+            icon = if (isMuted) Symbols.NotificationsActive
+            else Symbols.NotificationsOff
             label = if (isMuted) "Unmute" else "Mute"
         }
         Icon(icon, contentDescription = label, tint = content)

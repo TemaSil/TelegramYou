@@ -1,8 +1,7 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.Icon
-import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.Icons
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -149,7 +148,7 @@ fun AvatarBubble(
         ) {
             if (savedMessages) {
                 Icon(
-                    Icons.Rounded.Bookmark,
+                    Symbols.BookmarkFilled,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(size * 0.5f)
