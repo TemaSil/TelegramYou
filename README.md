@@ -39,35 +39,16 @@ Live Telegram connectivity uses the **official TDLib JSON interface**:
 
 ## Screenshots
 
-| Chat list | Conversation | Group | Video messages |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="180" alt="Chat list"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="180" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="180" alt="Group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/31-video-note.jpg" width="180" alt="Video messages"> |
-
-| Search | Stories | Attachments | Chat info |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/36-search.jpg" width="180" alt="Search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/21-story.jpg" width="180" alt="Stories"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/09-attachments.jpg" width="180" alt="Attachments"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/12-chat-info.jpg" width="180" alt="Chat info"> |
-
-| Privacy | Devices | Data and storage | For geeks |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/32-privacy.jpg" width="180" alt="Privacy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/29-devices.jpg" width="180" alt="Devices"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/30-storage.jpg" width="180" alt="Data and storage"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/33-for-geeks.jpg" width="180" alt="For geeks"> |
-
-| QR login | Email login | Proxy | Tablet |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/26-qr-login.jpg" width="180" alt="QR login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/27-email-code.jpg" width="180" alt="Email login"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/23-proxy.jpg" width="180" alt="Proxy"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/13-rail.jpg" width="180" alt="Tablet"> |
-
-| Settings | App update | | |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="180" alt="Settings"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/25-updates.jpg" width="180" alt="App update"> | | |
-
-| Polls | Bot buttons | Post search | Search in chat |
-|---|---|---|---|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="180" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/35-bot.jpg" width="180" alt="Bot buttons"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/37-post-search.jpg" width="180" alt="Post search"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/28-old-search-hit.jpg" width="180" alt="Search in chat"> |
+| Chats | Conversation | Settings |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/03-chats.jpg" width="250" alt="Chats"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/04-chat.jpg" width="250" alt="Conversation"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="250" alt="Settings"> |
 
 Not drawn for this page: they are taken by the **UI** workflow, which drives
 the demo client on an emulator after every push to `main`, and they change
 the moment a screen does. The same screens from **every** build, newest
-first, are in the [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme)
-— which is where to look to see what a release changed.
+first, are in the [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme),
+with every other screen too — which is where to look to see what a
+release changed.
 
 ## What is in it
 

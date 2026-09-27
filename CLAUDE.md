@@ -357,10 +357,12 @@ chat that speaks on a timer can be asked to speak at once from a test
 tests do instead of waiting for it.
 
 A second branch, **`gallery`**, is the one that is never rewritten. After a
-green run on `main` the same workflow files eight of those screens into it
-under `builds/<version>/`, the version being the one the Build workflow gave
-the same commit, and refreshes `latest/` — which is what the Screenshots
-section of `README.md` shows. It is the record of how the app looked release
+green run on `main` the same workflow files the screens `gallery.py` lists
+into it under `builds/<version>/`, the version being the one the Build
+workflow gave the same commit, and refreshes `latest/` — which is what the
+Screenshots section of `README.md` shows. That section shows three and only
+three — chats, a conversation, settings — the owner's call: the front page
+is a glance, and the gallery is where every screen lives. It is the record of how the app looked release
 by release; `.github/scripts/gallery.py` chooses the screens, shrinks them and
 writes its index. Renaming a screenshot in `SmokeTest` drops it from there
 until the list in that script is updated to match.
