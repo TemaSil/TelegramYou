@@ -240,6 +240,14 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.findByName("release")
+            // Probes for a release that a phone refused to install, built by
+            // the Install check workflow: each changes one thing, so which of
+            // them installs says what the phone objects to. Unset, as in
+            // every real build, they change nothing.
+            providers.gradleProperty("probeIdSuffix").orNull?.let { applicationIdSuffix = it }
+            if (providers.gradleProperty("probeDebugKey").isPresent) {
+                signingConfig = signingConfigs.getByName("debug")
+            }
             buildConfigField("boolean", "USE_DEMO_CLIENT", "false")
             buildConfigField("boolean", "DEMO_ALLOWED", "false")
             buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou.apk\"")
