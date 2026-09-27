@@ -152,7 +152,9 @@ internal fun SearchPage(
         SearchBarDefaults.InputField(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
+                // The top of the page, straight under the status bar: no
+                // title above it, as in Gmail.
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
                 .clip(SearchBarDefaults.inputFieldShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .focusRequester(focus),

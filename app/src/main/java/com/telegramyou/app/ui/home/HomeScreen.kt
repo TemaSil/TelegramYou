@@ -117,7 +117,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
@@ -128,9 +127,7 @@ import com.telegramyou.app.ui.avatars.avatarShapeIndex
 import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.StoriesRail
-import com.telegramyou.app.ui.theme.AppTitleFontFamily
-import com.telegramyou.app.ui.theme.AppTitleWeight
-import com.telegramyou.app.ui.theme.AppTitleSize
+import com.telegramyou.app.ui.theme.AppTitleStyle
 
 /**
  * The chat list.
@@ -283,12 +280,11 @@ fun HomeScreen(
     // way Android's own Settings does.
     // Search's does the same: the two are pages of the same kind.
     val settingsBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val searchBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
-        modifier = when (tab) {
-            HomeTab.Settings -> Modifier.nestedScroll(settingsBar.nestedScrollConnection)
-            HomeTab.Search -> Modifier.nestedScroll(searchBar.nestedScrollConnection)
-            else -> Modifier
+        modifier = if (tab == HomeTab.Settings) {
+            Modifier.nestedScroll(settingsBar.nestedScrollConnection)
+        } else {
+            Modifier
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -301,21 +297,17 @@ fun HomeScreen(
             // Profile has no bar: its header — QR, avatar, name — is the top
             // of the screen, as in the official client. Settings has what
             // Android's Settings has: its name, large, on its own background,
-            // folding away as the groups scroll up.
+            // folding away as the groups scroll up, set like the app's name
+            // on the chat list rather than in the scale's plain headline.
+            //
+            // Search has no bar either. It had a large "Search" over its
+            // field for a while, and the word only repeated the tab and the
+            // field's own placeholder; the field is the top of the page, as
+            // in Gmail — see SearchPage.
             when (tab) {
-                HomeTab.Chats, HomeTab.Profile -> return@Scaffold
-                // Named like Settings, and the search field stands under the
-                // name on the page itself — see SearchPage.
-                HomeTab.Search -> LargeTopAppBar(
-                    title = { Text("Search") },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = settingsBackground(),
-                        scrolledContainerColor = settingsBackground()
-                    ),
-                    scrollBehavior = searchBar
-                )
+                HomeTab.Chats, HomeTab.Profile, HomeTab.Search -> return@Scaffold
                 HomeTab.Settings -> LargeTopAppBar(
-                    title = { Text("Settings") },
+                    title = { Text("Settings", style = AppTitleStyle) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = settingsBackground(),
                         scrolledContainerColor = settingsBackground()
@@ -846,26 +838,11 @@ private fun HomeTitleBar(
             // inches below.
             Text(
                 "TelegramYou",
-                style = MaterialTheme.typography.displayMedium.copy(
-                    // Google Sans Flex, the face Google's own apps set
-                    // their names in — see AppTitleFontFamily. Only the
-                    // name: the rest of the screen stays on the system
-                    // face, which is what makes this read as a title.
-                    fontFamily = AppTitleFontFamily,
-                    // A step down from 30, asked for once it was in Google
-                    // Sans: this face runs wider than the system one, and
-                    // at 30 the name read louder than the chats under it.
-                    fontSize = AppTitleSize,
-                    lineHeight = 32.sp,
-                    // Looser than the -1.2 the system face needed. This
-                    // one's display cut is already drawn tight, and
-                    // pulling it in as far again ran the letters together.
-                    letterSpacing = (-0.5).sp,
-                    // Not the scale's ExtraBold, which read as shouting;
-                    // the face's own title weight, which with its round
-                    // ends and extra width is expressive rather than loud.
-                    fontWeight = AppTitleWeight
-                ),
+                // Google Sans Flex, the face Google's own apps set their
+                // names in — see AppTitleStyle. Only the titles: the rest
+                // of the screen stays on the system face, which is what
+                // makes this read as one.
+                style = AppTitleStyle,
                 maxLines = 1
             )
         },

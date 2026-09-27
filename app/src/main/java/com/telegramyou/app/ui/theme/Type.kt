@@ -18,13 +18,13 @@ import com.telegramyou.app.R
  * uses the scale as it comes read heavier than Android around it: Settings
  * above all, whose title, group headings and rows are nothing but the
  * scale. The owner asked for the standard one. The app's name, on Home and
- * on the login screen, is set in its own face and weight and size, so this
- * does not reach it.
+ * on the login screen, and the Settings title are set in [AppTitleStyle],
+ * so this does not reach them.
  */
 val TelegramYouTypography = Typography()
 
 /**
- * Google Sans Flex, for the app's name and nothing else yet.
+ * Google Sans Flex, for the app's name and the Settings title.
  *
  * From Google Fonts (`ofl/googlesansflex` in google/fonts), under the SIL
  * Open Font License, whose text ships beside it in
@@ -50,8 +50,9 @@ val TelegramYouTypography = Typography()
  * Medium, square-ended and normal width before — Google Sans Flex, but its
  * plainest cut, which read as a neutral label rather than as a name.
  *
- * Latin only is deliberate while the name is all it sets: there is no
+ * Latin only is deliberate while titles are all it sets: there is no
  * Cyrillic in the family at all, so it could not carry a chat list anyway.
+ * A title in it has to be a fixed English word for the same reason.
  */
 /** The size the app's name is set at, which its optical size follows. */
 val AppTitleSize = 26.sp
@@ -73,4 +74,27 @@ val AppTitleFontFamily = FontFamily(
             FontVariation.opticalSizing(AppTitleSize)
         )
     )
+)
+
+/**
+ * A title with character: the app's name on Home, and the Settings title,
+ * which the owner asked to match it. Everything but colour is set here, so
+ * it reads the same whichever style it replaces.
+ */
+val AppTitleStyle = TextStyle(
+    // Google Sans Flex, the face Google's own apps set their names in.
+    fontFamily = AppTitleFontFamily,
+    // A step down from 30, asked for once it was in Google Sans: this face
+    // runs wider than the system one, and at 30 the name read louder than
+    // the chats under it.
+    fontSize = AppTitleSize,
+    lineHeight = 32.sp,
+    // Looser than the -1.2 the system face needed. This one's display cut
+    // is already drawn tight, and pulling it in as far again ran the letters
+    // together.
+    letterSpacing = (-0.5).sp,
+    // Not the scale's ExtraBold, which read as shouting; the face's own title
+    // weight, which with its round ends and extra width is expressive rather
+    // than loud.
+    fontWeight = AppTitleWeight
 )
