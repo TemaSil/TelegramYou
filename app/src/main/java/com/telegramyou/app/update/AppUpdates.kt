@@ -37,13 +37,15 @@ sealed interface UpdateState {
 }
 
 /**
- * Updates without the Play Store: this app is published as one APK on the
- * repository's `latest` release, and this is how it finds a newer one,
- * fetches it and hands it to Android's installer.
+ * Updates without the Play Store: the debug build follows the rolling
+ * `latest` prerelease every push to main refreshes, the release build the
+ * newest real release (BuildConfig.UPDATE_API), and this is how either finds
+ * a newer one, fetches it and hands it to Android's installer.
  *
- * Every build is signed by the same tracked debug key (see CLAUDE.md), which
- * is what lets a newer APK install over the one running — the installer
- * refuses one signed by anything else.
+ * Each build type is always signed by the same key — debug by the tracked
+ * debug key, release by the owner's (see CLAUDE.md) — which is what lets a
+ * newer APK install over the one running: the installer refuses one signed
+ * by anything else.
  *
  * The release API is asked without a token: sixty requests an hour from one
  * address is more than a person pressing a button will ever use, and a token
@@ -155,7 +157,7 @@ class AppUpdates(private val context: Context) {
     }
 
     private fun fetchRelease(): Release? {
-        val connection = (URL(RELEASE_API).openConnection() as HttpURLConnection).apply {
+        val connection = (URL(BuildConfig.UPDATE_API).openConnection() as HttpURLConnection).apply {
             setRequestProperty("Accept", "application/vnd.github+json")
             connectTimeout = TIMEOUT_MILLIS
             readTimeout = TIMEOUT_MILLIS
@@ -237,7 +239,6 @@ class AppUpdates(private val context: Context) {
 
     private companion object {
         const val TAG = "AppUpdates"
-        const val RELEASE_API = "https://api.github.com/repos/TemaSil/TelegramYou/releases/tags/latest"
         const val APK_MIME = "application/vnd.android.package-archive"
         const val TIMEOUT_MILLIS = 20_000
     }

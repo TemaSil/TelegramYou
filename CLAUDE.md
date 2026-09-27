@@ -266,10 +266,10 @@ never be committed.
 - **Release** (`com.telegramyou.app`, `TelegramYou.apk`) — for people: live
   only, R8 and resource shrinking on, signed with the owner's key. **The demo
   is not in it**: every way in is behind `BuildConfig.DEMO_ALLOWED`, false for
-  release, so R8 drops the backend, its chats and its media, and the Build
-  workflow fails the build if a seeded demo line or the demo's media are
-  still in the APK. Each build's update check looks for its own file
-  (`BuildConfig.UPDATE_ASSET`).
+  release, so R8 drops the backend, its chats and its media, and the Release
+  workflow fails if a seeded demo line or the demo's media are still in the
+  APK. Each build's update check looks in its own place for its own file
+  (`BuildConfig.UPDATE_API`, `BuildConfig.UPDATE_ASSET`).
 
 The release key lives in four repository secrets — `RELEASE_KEYSTORE_BASE64`
 (the keystore file, base64), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
@@ -285,8 +285,27 @@ base64 -w0 telegramyou-release.jks    # macOS: base64 -i telegramyou-release.jks
 
 **Losing it means no installed release can ever be updated again** — keep
 the file and its passwords somewhere safe, apart from this repository.
-Without the secrets the release build is still made and checked on every
-push, unsigned, and not published.
+
+### When each is built
+
+**Debug on every push, release only when the owner says so** — the owner's
+rule of 27 September 2026, so a push builds one APK rather than two.
+
+- The **Build** workflow builds the debug APK on every push and, from main,
+  publishes it to the rolling `latest` prerelease. The debug build's update
+  check follows that tag.
+- The **Release** workflow (`release.yml`, `workflow_dispatch` only) builds
+  the release and publishes it as a release of its own, `v<version>`, which
+  becomes GitHub's latest release — what the README's download link and the
+  release build's update check follow. **When the owner asks for a release,
+  run it** (the GitHub tools' `actions_run_trigger`, workflow `release.yml`,
+  ref `main`); nobody has to press anything. It refuses a commit without a
+  green Build and UI run, a version already released, and missing secrets.
+- A new release needs a new version: move `appVersionName` first, on the
+  owner's word — see *Versions*.
+- The price: R8 only runs at release time, so a shrinker rule that breaks
+  the release shows up then. The workflow fails before publishing anything,
+  and the fix is usually a keep rule in `app/proguard-rules.pro`.
 
 ## Working here
 
@@ -359,7 +378,7 @@ glyphs at all, which is what Material 3's rules for icons need.
 Settings → App update shows **one** card: what the incoming update brings, or
 — when none is waiting — what the installed one brought. The text lives in
 `app/src/main/assets/whats-new.md` (`# Title`, then `- line`s); the app ships
-it, and the Build workflow copies it into the `latest` release's description
+it, and the Build and Release workflows copy it into their releases' descriptions
 between `<!-- whats-new -->` markers, which is how an older app reads the
 notes of the update it is about to download (`WhatsNew` in `:core`).
 

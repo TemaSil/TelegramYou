@@ -23,9 +23,15 @@ plugins {
  * does by default — makes counting commits return 1 on every run. Off CI it
  * falls back to the commit count, and to 1 in a tree with no git at all, so a
  * local build still has a number that moves.
+ *
+ * APP_BUILD_NUMBER comes first, and only the Release workflow sets it: it
+ * gives the release the number of the Build run that tested the same commit,
+ * so "1.1 · build 430" names one commit whichever APK it is on — rather than
+ * the Release workflow's own run count, which starts again at 1.
  */
 val buildNumber: Int =
-    System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
+    System.getenv("APP_BUILD_NUMBER")?.toIntOrNull()
+        ?: System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull()
         ?: runCatching {
             providers.exec {
                 commandLine("git", "rev-list", "--count", "HEAD")
@@ -196,9 +202,15 @@ android {
         // here and false for release, which is what lets R8 drop every line
         // and resource of it from the APK people install.
         buildConfigField("boolean", "DEMO_ALLOWED", "true")
-        // The asset on the `latest` release the in-app update check looks
-        // for: each build type updates to its own kind.
+        // Where the in-app update check looks, and for which file: each build
+        // type updates to its own kind. Debug follows the rolling `latest`
+        // prerelease every push to main refreshes; release follows the
+        // newest real release, which only the Release workflow makes.
         buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou-debug.apk\"")
+        buildConfigField(
+            "String", "UPDATE_API",
+            "\"https://api.github.com/repos/TemaSil/TelegramYou/releases/tags/latest\""
+        )
         buildConfigField("boolean", "USE_TEST_DC", useTestDc.toString())
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -231,6 +243,10 @@ android {
             buildConfigField("boolean", "USE_DEMO_CLIENT", "false")
             buildConfigField("boolean", "DEMO_ALLOWED", "false")
             buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou.apk\"")
+            buildConfigField(
+                "String", "UPDATE_API",
+                "\"https://api.github.com/repos/TemaSil/TelegramYou/releases/latest\""
+            )
         }
         debug {
             applicationIdSuffix = ".debug"

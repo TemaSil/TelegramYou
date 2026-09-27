@@ -4,21 +4,22 @@ Android Telegram client with a **Material You Expressive–inspired** UI.
 
 ## Download
 
-### ⬇ **[Get the APK](https://github.com/TemaSil/TelegramYou/releases/tag/latest)**
+### ⬇ **[Get TelegramYou](https://github.com/TemaSil/TelegramYou/releases/latest)**
 
-That is the release page, rebuilt from `main` on every green push — the APK is
-the file attached at the bottom of it.
+That is the newest release — the APK is the file attached at the bottom of
+it, or straight to the file:
+[TelegramYou.apk](https://github.com/TemaSil/TelegramYou/releases/latest/download/TelegramYou.apk).
+Releases are made when a version is ready, not on every push, and each keeps
+its own page (`v1.1`, `v1.2`…).
 
-If you would rather have the file itself:
-[TelegramYou.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou.apk)
-is the app — the release build, once its signing key is configured — and
-[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk)
-is the build for testing, slower and with the demo in it; the two install side
-by side. The file names stay the same on every build so these links keep
-working; the release title says which build it is.
+For testing there is also
+[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk),
+rebuilt from `main` on every green push: slower, with the demo in it, signed
+with a debug key. It installs beside the release as a separate app.
 
-Installed once, it updates itself: **Settings → About → Check for updates**
-fetches the newest build from the same release and hands it to Android's
+Installed once, either updates itself: **Settings → About → Check for
+updates** fetches the newest of its own kind — the release from the newest
+release, the debug build from the newest push — and hands it to Android's
 installer, and a dot on the Settings tab says when there is one.
 
 > Clicked one of these before the first release existed and got **Page not
@@ -32,8 +33,7 @@ repository itself; see *Credentials* in CLAUDE.md. A fork without those
 secrets builds the demo instead — the whole interface, offline, login code
 `12345`.
 
-It is debug-signed, so Android will ask whether to allow installing from this
-source.
+Android will ask whether to allow installing from this source.
 
 Live Telegram connectivity uses the **official TDLib JSON interface**:
 - Docs: https://core.telegram.org/tdlib/getting-started

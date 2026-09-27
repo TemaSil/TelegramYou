@@ -1,0 +1,170 @@
+# Makes a release: the build people install, published as its own GitHub
+# release, `v<version>`. Run by hand, when the owner says a version is ready
+# — or by a session the owner asks to, through workflow_dispatch.
+#
+# Every push to main already builds and publishes the debug APK (Build). The
+# release used to be built beside it on every push as well; since 27
+# September 2026, on the owner's word, it is built only here, so a normal
+# push builds one APK rather than two. The price is that an R8 rule that
+# breaks the release shows up when this runs rather than on the push that
+# broke it — which this workflow then fails on, before publishing anything.
+#
+# It refuses to run when:
+#   - it is not on main;
+#   - the commit has no green Build and UI run — a release is only ever a
+#     build that already passed everything;
+#   - `v<version>` already exists — a new release needs a new version, which
+#     is appVersionName in app/build.gradle.kts, moved on the owner's word;
+#   - the Telegram credentials or the release key are missing — a release is
+#     always the live client, signed with the owner's key.
+#
+# The release takes the Build run's number as its build number, so the
+# release of a commit and its debug APK are both "1.1 · build 430".
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+      RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+      RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+      RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Everything that can say no, before anything is built.
+      - name: Is this a release
+        run: |
+          set -e
+          for name in TELEGRAM_API_ID TELEGRAM_API_HASH RELEASE_KEYSTORE_BASE64 \
+                      RELEASE_STORE_PASSWORD RELEASE_KEY_ALIAS RELEASE_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::The repository secret $name is missing; a release is the live client, signed."
+              exit 1
+            fi
+          done
+
+          version=$(sed -n 's/^val appVersionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          if [ -z "$version" ]; then
+            echo "::error::No appVersionName in app/build.gradle.kts."
+            exit 1
+          fi
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v${version}" >/dev/null 2>&1; then
+            echo "::error::v${version} is already released. Move appVersionName in app/build.gradle.kts first."
+            exit 1
+          fi
+
+          # The Build and UI runs of this very commit, and both green.
+          conclusion() {
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/$1/runs?head_sha=${GITHUB_SHA}&event=push&per_page=1" \
+              --jq ".workflow_runs[0].$2 // empty"
+          }
+          build=$(conclusion build.yml conclusion)
+          ui=$(conclusion ui.yml conclusion)
+          if [ "$build" != success ] || [ "$ui" != success ]; then
+            echo "::error::Build is '${build:-not run}' and UI is '${ui:-not run}' for ${GITHUB_SHA::7}; release only a commit where both are green."
+            exit 1
+          fi
+          number=$(conclusion build.yml run_number)
+
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "APP_BUILD_NUMBER=${number}" >> "$GITHUB_ENV"
+          echo "::notice title=Releasing::${version} · build ${number}, from ${GITHUB_SHA::7}"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Platform tools only, as in Build — see the reasons there.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The release key, from its secret to a file outside the checkout, for
+      # the release build below to sign with. Only the base64 of the file is
+      # a secret on GitHub; the file exists on this runner for this job.
+      - name: Release key
+        run: |
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_STORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # The build people install: R8, no demo, the owner's key, the live
+      # client. Only here — see the top of this file for what that costs.
+      - name: Assemble release
+        timeout-minutes: 20
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleRelease --stacktrace 2>&1 | tee build-log.txt
+
+      # The demo is for us, not for anyone installing the app: its backend,
+      # seeded chats and media must not be in the release at all. R8 drops
+      # them because every way in is behind BuildConfig.DEMO_ALLOWED, false
+      # there; this checks it did. A seeded demo line must be absent from the
+      # code, the demo's media from the resources — and a string only the
+      # live client has must be present, or the check proves nothing.
+      - name: The release has no demo in it
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          echo "Checking $apk"
+          code=$(for dex in $(unzip -Z1 "$apk" 'classes*.dex'); do unzip -p "$apk" "$dex"; done | strings)
+          if echo "$code" | grep -q "Did the ButtonGroup land"; then
+            echo "::error::The demo's chats are in the release build."
+            exit 1
+          fi
+          if unzip -Z1 "$apk" | grep -qi "demo_video"; then
+            echo "::error::The demo's media are in the release build."
+            exit 1
+          fi
+          if ! echo "$code" | grep -q "setTdlibParameters"; then
+            echo "::error::The live client is not in the release build either — the check is looking in the wrong place."
+            exit 1
+          fi
+          echo "::notice title=Release build::$(basename "$apk"), $(du -h "$apk" | cut -f1), no demo"
+
+      - name: Write the release description
+        run: |
+          cp app/build/outputs/apk/release/*-release.apk TelegramYou.apk
+          {
+            echo "<!-- whats-new -->"
+            cat app/src/main/assets/whats-new.md
+            echo "<!-- /whats-new -->"
+            echo
+            echo "**TelegramYou.apk** is the app. Installed once, it updates itself from"
+            echo "here: Settings → About → Check for updates."
+            echo
+            echo "Version \`$VERSION\`, build $APP_BUILD_NUMBER, built from $GITHUB_SHA."
+          } > release-body.md
+
+      # A release of its own, `v1.1`, and GitHub's "latest release" — which
+      # is what /releases/latest, the README's download link and the release
+      # build's update check all follow. The build is in the title because
+      # the update check compares builds (isUpdate in :core).
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: TelegramYou ${{ env.VERSION }} · build ${{ env.APP_BUILD_NUMBER }}
+          files: TelegramYou.apk
+          prerelease: false
+          make_latest: true
+          body_path: release-body.md
