@@ -26,6 +26,10 @@ permissions:
 jobs:
   install:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [35, 36]
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag || 'v1.1' }}
@@ -33,6 +37,9 @@ jobs:
       - name: Fetch the APK
         run: |
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern TelegramYou.apk
+          # The debug build too, installed first, as it is on a phone that
+          # already has it.
+          gh release download latest --repo "$GITHUB_REPOSITORY" --pattern TelegramYou-debug.apk
           ls -l TelegramYou.apk
           echo "::notice title=APK::$TAG, $(stat -c %s TelegramYou.apk) bytes, sha256 $(sha256sum TelegramYou.apk | cut -c1-16)"
 
@@ -56,12 +63,12 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # Android 15, as the phone that refused it runs. Each line of the
+      # Android 15 and 16, as phones that refused it run. Each line of the
       # script runs on its own, so each one stands alone.
       - name: Install and start it
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           emulator-options: >-
@@ -69,11 +76,13 @@ jobs:
             -camera-back none -camera-front none
           disable-animations: true
           script: |
+            adb install TelegramYou-debug.apk > debug.txt 2>&1 || true
+            echo "::notice title=API ${{ matrix.api }} debug first::$(tr '\n' ' ' < debug.txt | cut -c1-300)"
             adb install TelegramYou.apk > install.txt 2>&1 || true
-            echo "::notice title=adb install::$(tr '\n' ' ' < install.txt | cut -c1-900)"
+            echo "::notice title=API ${{ matrix.api }} adb install::$(tr '\n' ' ' < install.txt | cut -c1-900)"
             adb logcat -c
             adb shell am start -W -n com.telegramyou.app/.MainActivity > start.txt 2>&1 || true
             sleep 15
-            echo "::notice title=am start::$(tr '\n' ' ' < start.txt | cut -c1-600) pid=$(adb shell pidof com.telegramyou.app)"
+            echo "::notice title=API ${{ matrix.api }} am start::$(tr '\n' ' ' < start.txt | cut -c1-600) pid=$(adb shell pidof com.telegramyou.app)"
             adb logcat -d -b crash > crash.txt 2>&1 || true
-            echo "::notice title=crash buffer::$(tr '\n' ' ' < crash.txt | cut -c1-1500)"
+            echo "::notice title=API ${{ matrix.api }} crash buffer::$(tr '\n' ' ' < crash.txt | cut -c1-1500)"
