@@ -1522,9 +1522,30 @@ class SmokeTest {
     }
 
     /**
-     * The formatting pack: a forward says where it came from, typed markdown
-     * arrives formatted with its markers gone, and a message pins and unpins
-     * from its menu.
+     * Whether [selector] leaves the screen, looking at a fresh tree each time.
+     *
+     * UiAutomator reads through the accessibility cache, and after the folder
+     * pager changed page the cache went on holding the old page's rows — the
+     * dumps showed Work's chats while the screenshot showed News — until
+     * something else on screen changed. Clearing it before each look tells
+     * the two apart: if the rows still come back, the app is what reports
+     * them, and that would be a bug for TalkBack as well.
+     */
+    private fun goneAfterFreshLooks(selector: BySelector, timeout: Long): Boolean {
+        val deadline = SystemClock.uptimeMillis() + timeout
+        do {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            if (!device.hasObject(selector)) return true
+            SystemClock.sleep(500)
+        } while (SystemClock.uptimeMillis() < deadline)
+        return false
+    }
+
+    /**
+     * A draft: typed, left behind, marked in the chat list, and back in the
+     * field on returning — what Telegram keeps on the server for every chat.
      */
     @Test
     fun aDraftStaysWithItsChat() {
