@@ -1,0 +1,79 @@
+# Installs a published release APK on a clean emulator and says, in
+# Android's own words, whether it goes on and whether it starts.
+#
+# A phone's installer reports most failures as "App not installed as
+# package appears to be invalid" and nothing more. `adb install` names the
+# actual reason (INSTALL_PARSE_FAILED_…, INSTALL_FAILED_…), and apksigner
+# and aapt2 from the runner's SDK say what the file itself looks like. All
+# of it comes back as check-run annotations, readable without the log.
+#
+# Run by hand, with the release tag to check; it also runs on pushes to
+# ci/install-check, which is how a session without the Actions UI starts it.
+name: Install check
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag whose TelegramYou.apk to install
+        default: v1.1
+  push:
+    branches: ['ci/install-check']
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag || 'v1.1' }}
+    steps:
+      - name: Fetch the APK
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern TelegramYou.apk
+          ls -l TelegramYou.apk
+          echo "::notice title=APK::$TAG, $(stat -c %s TelegramYou.apk) bytes, sha256 $(sha256sum TelegramYou.apk | cut -c1-16)"
+
+      # The runner image ships an Android SDK with build-tools; the newest
+      # one there is enough to read any APK.
+      - name: What the file says
+        run: |
+          bt=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $bt"
+          "$bt/apksigner" verify --verbose --print-certs TelegramYou.apk 2>&1 | tee apksigner.txt || true
+          echo "::notice title=apksigner::$(grep -v '^WARNING' apksigner.txt | grep -iv 'digest\|certificate DN\|key size\|key algorithm' | tr '\n' ' ' | cut -c1-900)"
+          "$bt/aapt2" dump badging TelegramYou.apk 2>&1 | head -12 | tee badging.txt || true
+          echo "::notice title=aapt2::$(head -4 badging.txt | tr '\n' ' ' | cut -c1-900)"
+          "$bt/zipalign" -c -P 16 -v 4 TelegramYou.apk > zipalign.txt 2>&1 && res=ok || res=failed
+          echo "::notice title=zipalign -P 16::${res}: $(grep -v 'OK' zipalign.txt | tail -4 | tr '\n' ' ' | cut -c1-600)"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Android 15, as the phone that refused it runs. Each line of the
+      # script runs on its own, so each one stands alone.
+      - name: Install and start it
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb install TelegramYou.apk > install.txt 2>&1 || true
+            echo "::notice title=adb install::$(tr '\n' ' ' < install.txt | cut -c1-900)"
+            adb logcat -c
+            adb shell am start -W -n com.telegramyou.app/.MainActivity > start.txt 2>&1 || true
+            sleep 15
+            echo "::notice title=am start::$(tr '\n' ' ' < start.txt | cut -c1-600) pid=$(adb shell pidof com.telegramyou.app)"
+            adb logcat -d -b crash > crash.txt 2>&1 || true
+            echo "::notice title=crash buffer::$(tr '\n' ' ' < crash.txt | cut -c1-1500)"
