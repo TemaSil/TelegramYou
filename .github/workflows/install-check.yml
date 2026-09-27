@@ -123,10 +123,13 @@ jobs:
         timeout-minutes: 40
         run: |
           set -e
-          ./gradlew :app:assembleRelease -PprobeIdSuffix=.probe
-          cp app/build/outputs/apk/release/*-release.apk TelegramYou-probe-A.apk
-          ./gradlew :app:assembleRelease -PprobeDebugKey=true
-          cp app/build/outputs/apk/release/*-release.apk TelegramYou-probe-B.apk
+          # C and D are v1.1 itself — real id, release key — rebuilt, C with
+          # its build number 434 and D with this run's small one: A and B
+          # both installed, so what is left is the pair, or the number.
+          APP_BUILD_NUMBER=434 ./gradlew :app:assembleRelease
+          cp app/build/outputs/apk/release/*-release.apk TelegramYou-probe-C.apk
+          ./gradlew :app:assembleRelease
+          cp app/build/outputs/apk/release/*-release.apk TelegramYou-probe-D.apk
           ls -l TelegramYou-probe-*.apk
 
       - name: Publish the probes
@@ -138,9 +141,11 @@ jobs:
           prerelease: true
           make_latest: false
           files: |
-            TelegramYou-probe-A.apk
-            TelegramYou-probe-B.apk
+            TelegramYou-probe-C.apk
+            TelegramYou-probe-D.apk
           body: |
             Not a release. Two builds for finding out why a phone refused v1.1:
             A is the release under another id (com.telegramyou.app.probe) with the release key;
-            B is the release under its own id with the debug key. Uninstall both afterwards.
+            B is the release under its own id with the debug key.
+            C is v1.1 rebuilt (build 434); D is the same with a small build number.
+            Uninstall all of them afterwards.
