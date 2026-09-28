@@ -306,6 +306,16 @@ rule of 27 September 2026, so a push builds one APK rather than two.
 - The price: R8 only runs at release time, so a shrinker rule that breaks
   the release shows up then. The workflow fails before publishing anything,
   and the fix is usually a keep rule in `app/proguard-rules.pro`.
+- **A phone refusing a good release.** v1.1 was refused on the owner's
+  Nothing phone (Android 16) — "package appears to be invalid" from Chrome,
+  "You can't install the app on your device" from Files — while the same
+  file installed on Android 15 and 16 emulators and checked out with
+  `apksigner`. Builds one step away from it (another id with the release
+  key; the real id with the debug key) installed at once, and a little
+  later the release itself did. Nothing was wrong with the file: the phone
+  had held on to a refusal of that id with that key. Should it happen
+  again, check the file first, don't re-key — and never tell the owner the
+  APK is broken on the strength of the phone's message alone.
 
 ## Working here
 
