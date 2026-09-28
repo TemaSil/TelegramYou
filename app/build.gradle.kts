@@ -54,9 +54,10 @@ val buildNumber: Int =
  * stays 1.1 until it is changed here.
  *
  * 0.2 until 25 September 2026, then 1.0.<build>, then 1.1 from 27 September,
- * on the owner's word, with the first release build.
+ * on the owner's word, with the first release build; 1.2 from 28 September,
+ * with profiles, blocking, contacts and deleting chats.
  */
-val appVersionName = "1.1"
+val appVersionName = "1.2"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
