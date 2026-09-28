@@ -4,6 +4,36 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 1.3-458
+
+2026-09-28 · [`11a330f`](https://github.com/TemaSil/TelegramYou/commit/11a330fea91d71ae8867a2197addc9437c4b0e46)
+
+<p>
+  <img src="builds/1.3-458/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/1.3-458/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/1.3-458/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/1.3-458/31-video-note.jpg" width="160" alt="Video messages" title="Video messages">
+  <img src="builds/1.3-458/34-poll.jpg" width="160" alt="Polls" title="Polls">
+  <img src="builds/1.3-458/35-bot.jpg" width="160" alt="Bot buttons" title="Bot buttons">
+  <img src="builds/1.3-458/37-post-search.jpg" width="160" alt="Post search" title="Post search">
+  <img src="builds/1.3-458/28-old-search-hit.jpg" width="160" alt="Search in chat" title="Search in chat">
+  <img src="builds/1.3-458/36-search.jpg" width="160" alt="Search" title="Search">
+  <img src="builds/1.3-458/21-story.jpg" width="160" alt="Stories" title="Stories">
+  <img src="builds/1.3-458/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/1.3-458/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/1.3-458/32-privacy.jpg" width="160" alt="Privacy" title="Privacy">
+  <img src="builds/1.3-458/29-devices.jpg" width="160" alt="Devices" title="Devices">
+  <img src="builds/1.3-458/30-storage.jpg" width="160" alt="Data and storage" title="Data and storage">
+  <img src="builds/1.3-458/41-settings.jpg" width="160" alt="Settings" title="Settings">
+  <img src="builds/1.3-458/42-profile.jpg" width="160" alt="Profile" title="Profile">
+  <img src="builds/1.3-458/25-updates.jpg" width="160" alt="App update" title="App update">
+  <img src="builds/1.3-458/33-for-geeks.jpg" width="160" alt="For geeks" title="For geeks">
+  <img src="builds/1.3-458/26-qr-login.jpg" width="160" alt="QR login" title="QR login">
+  <img src="builds/1.3-458/27-email-code.jpg" width="160" alt="Email login" title="Email login">
+  <img src="builds/1.3-458/23-proxy.jpg" width="160" alt="Proxy" title="Proxy">
+  <img src="builds/1.3-458/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+</p>
+
 ## 1.2-452
 
 2026-09-28 · [`4f625fd`](https://github.com/TemaSil/TelegramYou/commit/4f625fd99a64ad50f9233bd8f61daeb72ad4df3c)
