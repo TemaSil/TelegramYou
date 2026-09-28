@@ -48,6 +48,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarHost
@@ -144,6 +145,12 @@ fun ChatScreen(
     onReactionPickerDismissed: () -> Unit,
     onReactionToggled: (ChatMessage, String) -> Unit,
     onSelectionToggled: (ChatMessage) -> Unit,
+    /** A message's menu is opening; see ChatViewModel.onMessageActionsNeeded. */
+    onMessageMenuOpened: (ChatMessage) -> Unit = {},
+    /** Forward one message from its menu. */
+    onForwardOne: (ChatMessage) -> Unit = {},
+    /** A voice or video message was played; its sender is told. */
+    onContentOpened: (ChatMessage) -> Unit = {},
     onSelectionCleared: () -> Unit,
     onSelectionDeleteRequested: () -> Unit,
     onSelectionDeleteDismissed: () -> Unit,
@@ -780,6 +787,9 @@ fun ChatScreen(
                                 isSelected = message.id in state.selection,
                                 isSelecting = state.selection.isActive,
                                 onSelect = { onSelectionToggled(message) },
+                                onMenuOpened = { onMessageMenuOpened(message) },
+                                onForward = { onForwardOne(message) },
+                                onContentOpened = { onContentOpened(message) },
                                 voiceState = when (message.id) {
                                     state.playingVoiceId -> VoiceState.Playing
                                     state.loadingVoiceId -> VoiceState.Loading
@@ -912,7 +922,11 @@ fun ChatScreen(
                                 } else {
                                     scope.launch { listState.animateScrollToItem(0) }
                                 }
-                            }
+                            },
+                            // Flat, at the owner's request: it floats over the
+                            // conversation, not over a page, and a shadow on
+                            // the wallpaper read as a smudge under it.
+                            elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
                         ) {
                             Icon(Symbols.KeyboardArrowDown, contentDescription = "Jump to latest")
                         }

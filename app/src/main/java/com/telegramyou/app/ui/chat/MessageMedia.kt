@@ -557,7 +557,9 @@ internal fun AnimationMessage(
 internal fun VideoNoteMessage(
     note: VideoContent,
     transfer: FileTransfer?,
-    onVisible: () -> Unit
+    onVisible: () -> Unit,
+    /** Started playing: the conversation tells Telegram it was watched. */
+    onPlayed: () -> Unit = {}
 ) {
     LaunchedEffect(note.path, note.thumbPath) {
         if (note.path == null || note.thumbPath == null) onVisible()
@@ -646,7 +648,10 @@ internal fun VideoNoteMessage(
         Box(
             Modifier
                 .matchParentSize()
-                .clickable { playing = !playing }
+                .clickable {
+                    playing = !playing
+                    if (playing) onPlayed()
+                }
         )
     }
 }

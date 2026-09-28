@@ -1,5 +1,5 @@
-# Make it yours
-- A new Appearance screen, with a live chat preview up top
-- Pick an accent colour or keep your wallpaper's, and pure black for OLED
-- Chat wallpapers, softer bubbles, rounder corners and bigger message text
-- Each chat can take its colours from the other person's avatar 🎨
+# Fixes
+- Forward a message straight from its menu, and forwarding works again
+- Delete and edit your own messages — they were missing from the menu
+- Friends now see when you've listened to their voice and video messages
+- A brighter microphone button, and a flat jump-to-latest arrow

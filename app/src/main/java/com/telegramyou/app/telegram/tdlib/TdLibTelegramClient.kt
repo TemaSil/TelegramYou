@@ -52,6 +52,7 @@ import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.PersonProfile
+import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.ui.media.FileTransfer
 // Aliased: this class has a toggleReaction of its own, with a different job.
@@ -1667,7 +1668,10 @@ class TdLibTelegramClient(
     ) {
         if (messageIds.isEmpty()) return
         awaitReady()
-        val ids = JSONArray().apply { messageIds.forEach { put(it) } }
+        // Strictly increasing, or TDLib refuses the lot: the ids come in the
+        // order they were selected, and selecting from the bottom up is the
+        // natural way to pick a run.
+        val ids = JSONArray().apply { messageIds.distinct().sorted().forEach { put(it) } }
         requireEngine().send(
             JSONObject()
                 .put("@type", "forwardMessages")
@@ -1679,6 +1683,43 @@ class TdLibTelegramClient(
                 .put("send_copy", withoutQuote)
                 .put("remove_caption", false)
         )
+    }
+
+    override suspend fun messagePermissions(chatId: Long, messageId: Long): MessagePermissions? {
+        awaitReady()
+        return try {
+            val properties = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessageProperties")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+            )
+            MessagePermissions(
+                canEdit = properties.optBoolean("can_be_edited"),
+                canDeleteForSelf = properties.optBoolean("can_be_deleted_only_for_self"),
+                canDeleteForEveryone = properties.optBoolean("can_be_deleted_for_all_users"),
+                canForward = properties.optBoolean("can_be_forwarded")
+            )
+        } catch (e: Throwable) {
+            Log.w(TAG, "messagePermissions: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun openMessageContent(chatId: Long, messageId: Long) {
+        awaitReady()
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "openMessageContent")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+            )
+        } catch (e: Throwable) {
+            // The playback goes on either way; only the sender's "listened"
+            // mark is missed.
+            Log.w(TAG, "openMessageContent: ${e.message}")
+        }
     }
 
     override suspend fun deleteMessage(
@@ -3166,6 +3207,9 @@ class TdLibTelegramClient(
             senderPhotoPath = sender?.let {
                 photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small"))
             },
+            // Not on the message in this TDLib — messageProperties holds
+            // them, asked for when a menu opens (messagePermissions). Read
+            // here still for a TDLib that sends them; otherwise false.
             canBeEdited = message.optBoolean("can_be_edited"),
             canBeDeletedForSelf = message.optBoolean("can_be_deleted_only_for_self"),
             canBeDeletedForEveryone =

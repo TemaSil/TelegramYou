@@ -5,6 +5,7 @@ import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.FakeTelegramClient
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageReaction
@@ -544,6 +545,51 @@ class ChatViewModelTest {
         assertEquals(Triple(CHAT_ID, listOf(10L, 11L), 99L), client.forwarded)
         assertFalse(vm.uiState.value.selection.isActive)
         assertFalse(vm.uiState.value.forwardSheetOpen)
+    }
+
+    @Test
+    fun `a message's menu asks what may be done to it`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.permissions = MessagePermissions(
+            canEdit = true, canDeleteForSelf = true, canDeleteForEveryone = true, canForward = true
+        )
+        // As TDLib's messages arrive now: nothing on the message says Edit or
+        // Delete may be offered, so the live client offered neither.
+        assertFalse(vm.uiState.value.messages.first { it.id == 10L }.canBeDeletedForSelf)
+
+        vm.onMessageActionsNeeded(message(10))
+
+        val asked = vm.uiState.value.messages.first { it.id == 10L }
+        assertTrue(asked.canBeEdited)
+        assertTrue(asked.canBeDeletedForSelf)
+        assertTrue(asked.canBeDeletedForEveryone)
+    }
+
+    @Test
+    fun `a backend that answers nothing leaves the message as it came`() = runTest {
+        val own = message(10).copy(isOutgoing = true, canBeEdited = true, canBeDeletedForSelf = true)
+        val (vm, _) = viewModel(listOf(own))
+        vm.onMessageActionsNeeded(own)
+        assertTrue(vm.uiState.value.messages.first { it.id == 10L }.canBeEdited)
+    }
+
+    @Test
+    fun `forward from a message's menu takes that message alone`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10), message(11)))
+        vm.onSelectionToggled(message(11))
+
+        vm.onForwardOne(message(10))
+
+        assertEquals(setOf(10L), vm.uiState.value.selection.ids)
+        assertTrue(vm.uiState.value.forwardSheetOpen)
+    }
+
+    @Test
+    fun `a played voice or video message is reported once`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        vm.onContentOpened(10)
+        vm.onContentOpened(10)
+        assertEquals(listOf(10L), client.openedContent)
     }
 
     @Test

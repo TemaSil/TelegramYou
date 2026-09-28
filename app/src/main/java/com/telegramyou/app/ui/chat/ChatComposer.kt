@@ -483,11 +483,18 @@ internal fun ComposerBar(
                         // tap that fired as well would send an empty recording.
                         onClick = {},
                         shape = CircleShape,
+                        // Primary, like Send in its place: secondaryContainer
+                        // sat too close to the capsule around it to be seen.
                         colors = IconButtonDefaults.filledIconButtonColors(
                             containerColor = if (recordingSince != null) {
                                 MaterialTheme.colorScheme.error
                             } else {
-                                MaterialTheme.colorScheme.secondaryContainer
+                                MaterialTheme.colorScheme.primary
+                            },
+                            contentColor = if (recordingSince != null) {
+                                MaterialTheme.colorScheme.onError
+                            } else {
+                                MaterialTheme.colorScheme.onPrimary
                             }
                         ),
                         modifier = Modifier

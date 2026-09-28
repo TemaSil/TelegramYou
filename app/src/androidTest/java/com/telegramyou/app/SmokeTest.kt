@@ -1619,6 +1619,10 @@ class SmokeTest {
             device.wait(Until.hasObject(By.text("Unpin")), SHORT_WAIT)
         }
         waitFor(By.text("Unpin"), "the menu of a pinned message")
+        // Forward is on the message's own menu, not only behind a selection.
+        tap(By.text("Forward"))
+        waitFor(By.text("Forward to…"), "the forward sheet for one message")
+        screenshot("44b-forward-one")
         device.pressBack()
     }
 

@@ -121,7 +121,13 @@ internal fun MessageBubble(
     /** Our answer to a poll, by the options' positions; empty takes it back. */
     onVote: (Set<Int>) -> Unit = {},
     /** One of a bot's buttons under this message. */
-    onButton: (InlineButton) -> Unit = {}
+    onButton: (InlineButton) -> Unit = {},
+    /** The menu is opening: what it offers is asked for now; see MessagePermissions. */
+    onMenuOpened: () -> Unit = {},
+    /** Forward this message, from its menu. */
+    onForward: () -> Unit = {},
+    /** A round video message was started: its sender sees it watched. */
+    onContentOpened: () -> Unit = {}
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -327,7 +333,14 @@ internal fun MessageBubble(
                     // menu on a plain tap the rest of the time would fire on
                     // every scroll that ends on a bubble.
                     onClick = { if (isSelecting) onSelect() },
-                    onLongClick = { if (isSelecting) onSelect() else menuOpen = true },
+                    onLongClick = {
+                        if (isSelecting) {
+                            onSelect()
+                        } else {
+                            menuOpen = true
+                            onMenuOpened()
+                        }
+                    },
                     // Only when one is chosen: a double-tap handler makes every
                     // single tap wait to see whether a second is coming.
                     onDoubleClick = when (geeks.doubleTap) {
@@ -497,7 +510,8 @@ internal fun MessageBubble(
                             VideoNoteMessage(
                                 note = note,
                                 transfer = note.fileId?.let { transfers[it] },
-                                onVisible = onPhotoVisible
+                                onVisible = onPhotoVisible,
+                                onPlayed = onContentOpened
                             )
                         }
                     }
@@ -595,6 +609,18 @@ internal fun MessageBubble(
                     leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
                     onClick = {
                         onReply()
+                        menuOpen = false
+                    }
+                )
+                // Here as well as on the selection bar: forwarding one message
+                // was a long press, then Select, then the bar — three steps
+                // nobody found, and the report was that forwarding did not
+                // work at all.
+                DropdownMenuItem(
+                    text = { Text("Forward") },
+                    leadingIcon = { Icon(Symbols.Forward, contentDescription = null) },
+                    onClick = {
+                        onForward()
                         menuOpen = false
                     }
                 )

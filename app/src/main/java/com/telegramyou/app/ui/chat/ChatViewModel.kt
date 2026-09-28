@@ -15,6 +15,8 @@ import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.PersonProfile
+import com.telegramyou.app.telegram.model.withPermissions
+import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.CallbackAnswer
@@ -864,7 +866,30 @@ class ChatViewModel(
                 voiceProgress = 0f
             )
         }
-        if (started) followProgress()
+        if (started) {
+            followProgress()
+            onContentOpened(messageId)
+        }
+    }
+
+    /** Messages whose content has been reported opened, so each is told once. */
+    private val openedContent = mutableSetOf<Long>()
+
+    /**
+     * A voice or video message was played: tell Telegram, so its sender sees
+     * it listened to. Nothing said this before, and friends saw their voice
+     * messages unplayed however many times they had been heard.
+     */
+    fun onContentOpened(messageId: Long) {
+        if (!openedContent.add(messageId)) return
+        viewModelScope.launch {
+            try {
+                repository.openMessageContent(chatId, messageId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+        }
     }
 
     /**
@@ -1099,8 +1124,37 @@ class ChatViewModel(
      * raises the toolbar and deselecting the last one puts it away, so there
      * is no separate mode to enter or leave.
      */
-    fun onSelectionToggled(message: ChatMessage) =
+    fun onSelectionToggled(message: ChatMessage) {
         _uiState.update { it.copy(selection = it.selection.toggle(message.id)) }
+        // The selection bar offers Delete from what the selected messages
+        // allow, so what they allow has to be known.
+        onMessageActionsNeeded(message)
+    }
+
+    /**
+     * A message's menu is opening, or it is being selected: ask what may be
+     * done to it. TDLib keeps that apart from the message (see
+     * MessagePermissions); the demo's messages carry it and answer null.
+     */
+    fun onMessageActionsNeeded(message: ChatMessage) {
+        viewModelScope.launch {
+            val permissions: MessagePermissions? = try {
+                repository.messagePermissions(chatId, message.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            if (permissions == null) return@launch
+            _uiState.update { state -> state.mapMessage(message.id) { it.withPermissions(permissions) } }
+        }
+    }
+
+    /** Forward from a message's own menu: it alone, into the forward sheet. */
+    fun onForwardOne(message: ChatMessage) =
+        _uiState.update {
+            it.copy(selection = it.selection.cleared().toggle(message.id), forwardSheetOpen = true)
+        }
 
     fun onSelectionCleared() =
         _uiState.update { it.copy(selection = it.selection.cleared()) }

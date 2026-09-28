@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
@@ -436,6 +437,18 @@ class FakeTelegramClient(
     /** The one forward that was asked for, as (from, ids, to). */
     var forwarded: Triple<Long, List<Long>, Long>? = null
         private set
+
+    /** What messagePermissions answers; null plays a backend whose messages carry it. */
+    var permissions: MessagePermissions? = null
+
+    /** Messages reported opened, in order. */
+    val openedContent = mutableListOf<Long>()
+
+    override suspend fun messagePermissions(chatId: Long, messageId: Long): MessagePermissions? = permissions
+
+    override suspend fun openMessageContent(chatId: Long, messageId: Long) {
+        openedContent += messageId
+    }
 
     override suspend fun forwardMessages(
         fromChatId: Long,

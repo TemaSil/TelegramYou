@@ -5,6 +5,7 @@ import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
@@ -132,6 +133,20 @@ interface TelegramMessages {
         /** As copies, with no "Forwarded from" — Settings → For geeks. */
         withoutQuote: Boolean = false
     )
+
+    /**
+     * What may be done to a message now — edited, deleted, forwarded — for
+     * its menu. Null where the backend's messages already carry it, which
+     * the demo's do; TDLib keeps it apart, in getMessageProperties.
+     */
+    suspend fun messagePermissions(chatId: Long, messageId: Long): MessagePermissions? = null
+
+    /**
+     * The account has played a voice or video message: Telegram marks it
+     * listened to, and its sender sees that. A no-op where there is no one
+     * to tell.
+     */
+    suspend fun openMessageContent(chatId: Long, messageId: Long) {}
 
     /**
      * Fetches a file to this device and answers with its path.
