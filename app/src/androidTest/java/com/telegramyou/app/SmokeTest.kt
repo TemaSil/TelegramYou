@@ -1650,7 +1650,9 @@ class SmokeTest {
         tap(By.text("Lina Park"))
         waitFor(By.desc("GIF"), "Lina's chat")
         awaitNoHeadsUp()
-        tap(By.text("Lina Park"))
+        // The header, not one of the "Lina Park" labels over her messages:
+        // the topmost of them.
+        tapTopmost(By.text("Lina Park"))
         waitFor(By.text("Mobile"), "Lina's number")
         waitFor(By.textContains("Swims at dawn"), "her bio")
         screenshot("48-private-info")
@@ -1690,7 +1692,7 @@ class SmokeTest {
         waitFor(By.text("Lina Park"), "the contacts")
         screenshot("50-contacts")
 
-        tap(By.text("Add contact"))
+        tap(By.desc("Add contact"))
         waitFor(By.text("Phone number"), "the add-contact dialog")
         val fields = By.clazz("android.widget.EditText")
         device.wait(Until.hasObject(fields), STEP_TIMEOUT)
@@ -1726,6 +1728,15 @@ class SmokeTest {
             "the deleted chat should leave the list",
             device.wait(Until.gone(By.text("Tess Probe")), STEP_TIMEOUT)
         )
+    }
+
+    /** Taps the highest of several matches — a screen's header over its content. */
+    private fun tapTopmost(selector: BySelector) {
+        device.wait(Until.hasObject(selector), STEP_TIMEOUT)
+        val node = device.findObjects(selector).minByOrNull { it.visibleBounds.top }
+            ?: error("nothing to tap: $selector")
+        node.click()
+        device.waitForIdle(IDLE_TIMEOUT)
     }
 
     /** Long-presses the row titled [title] until its menu shows [entry]. */

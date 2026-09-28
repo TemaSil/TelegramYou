@@ -40,6 +40,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -299,6 +301,10 @@ fun ContactsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddRequested,
+                // Named explicitly: the alpha's extended button publishes an
+                // empty node, which TalkBack reads as "button" and UiAutomator
+                // cannot find — see the same fix on NewChatScreen.
+                modifier = Modifier.semantics { contentDescription = "Add contact" },
                 icon = { Icon(Symbols.PersonAdd, contentDescription = null) },
                 text = { Text("Add contact") }
             )
