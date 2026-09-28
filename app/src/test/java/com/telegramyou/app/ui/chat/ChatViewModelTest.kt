@@ -806,6 +806,17 @@ class ChatViewModelTest {
             assertEquals("the panel stays up", ExpressionTab.Gifs, vm.uiState.value.expressions)
         }
 
+    @Test
+    fun `a message's menu offers what the chat permits to react with`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.permittedReactions = listOf("👍", "🔥", "🎉")
+        advanceUntilIdle()
+
+        vm.onMessageActionsNeeded(message(10))
+        advanceUntilIdle()
+        assertEquals(listOf("👍", "🔥", "🎉"), vm.uiState.value.reactionOptions.map { it.emoji })
+    }
+
     private companion object {
         const val CHAT_ID = 1L
     }

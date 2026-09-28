@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.messages
 
+import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.ReplyKeyboard
@@ -147,6 +148,15 @@ interface TelegramMessages {
      * to tell.
      */
     suspend fun openMessageContent(chatId: Long, messageId: Long) {}
+
+    /**
+     * Every reaction this message may take, most used first, with Telegram's
+     * animation for each where it has one — for the quick row over a
+     * message's menu and the full picker behind it. The chat's list by
+     * default, without animations.
+     */
+    suspend fun messageReactions(chatId: Long, messageId: Long): List<ReactionOption> =
+        availableReactions(chatId).map { ReactionOption(it) }
 
     /**
      * Fetches a file to this device and answers with its path.

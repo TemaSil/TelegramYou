@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.telegram.model.GifItem
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.rememberUpdatedState
@@ -385,6 +388,12 @@ fun ChatScreen(
     }
     val navBarHeight = with(density) { navInsets.getBottom(density).toDp() }
     BackHandler(enabled = expressionsOpen) { onExpressionsClose() }
+
+    // What the open menu offers to react with: the message's own list, with
+    // Telegram's animations, once asked; the chat's until then.
+    val quickReactions = remember(state.reactionOptions, state.availableReactions) {
+        state.reactionOptions.ifEmpty { state.availableReactions.map { ReactionOption(it) } }
+    }
     val microphone = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -831,6 +840,7 @@ fun ChatScreen(
                                 onDelete = { onDeleteRequested(message) },
                                 onReact = { onReactionsRequested(message) },
                                 onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
+                                quickReactions = quickReactions,
                                 isSelected = message.id in state.selection,
                                 isSelecting = state.selection.isActive,
                                 onSelect = { onSelectionToggled(message) },
@@ -1182,7 +1192,7 @@ fun ChatScreen(
 
             state.reactingTo?.let { target ->
                 ReactionPicker(
-                    available = state.availableReactions,
+                    available = quickReactions,
                     chosen = target.reactions.firstOrNull { it.isChosen }?.emoji,
                     onDismiss = onReactionPickerDismissed,
                     onPick = { emoji -> onReactionToggled(target, emoji) }

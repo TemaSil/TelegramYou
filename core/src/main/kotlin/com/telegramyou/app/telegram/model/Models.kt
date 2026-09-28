@@ -478,6 +478,16 @@ data class MessageReaction(
     val isChosen: Boolean = false
 )
 
+/**
+ * A reaction that can be put on a message: its emoji, and — once fetched —
+ * Telegram's own animation of it, the one every client plays in its picker.
+ * Without one it is drawn as the emoji.
+ */
+data class ReactionOption(
+    val emoji: String,
+    val animation: StickerContent? = null
+)
+
 data class ChatDetail(
     val chat: ChatPreview,
     val messages: List<ChatMessage>,

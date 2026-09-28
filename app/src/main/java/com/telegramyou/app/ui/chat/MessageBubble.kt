@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalDivider
+import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.border
 import kotlinx.coroutines.withContext
@@ -99,6 +104,11 @@ internal fun MessageBubble(
     onDelete: () -> Unit,
     onReact: () -> Unit,
     onReactionToggled: (String) -> Unit,
+    /**
+     * The reactions offered over this message's menu, with Telegram's
+     * animations where they have arrived; the full list is behind the arrow.
+     */
+    quickReactions: List<ReactionOption> = emptyList(),
     isSelected: Boolean,
     isSelecting: Boolean,
     onSelect: () -> Unit,
@@ -590,6 +600,7 @@ internal fun MessageBubble(
                     // its message when the list is dense.
                     ReactionRow(
                         reactions = message.reactions,
+                        outgoing = outgoing,
                         onToggle = onReactionToggled
                     )
                 }
@@ -604,6 +615,23 @@ internal fun MessageBubble(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false }
             ) {
+                // The reactions first, as Telegram and Google Messages put
+                // them: the most used in a row, and the arrow to all of them.
+                if (quickReactions.isNotEmpty()) {
+                    QuickReactions(
+                        options = quickReactions.take(QUICK_REACTIONS),
+                        chosen = message.reactions.firstOrNull { it.isChosen }?.emoji,
+                        onPick = { emoji ->
+                            menuOpen = false
+                            onReactionToggled(emoji)
+                        },
+                        onMore = {
+                            menuOpen = false
+                            onReact()
+                        }
+                    )
+                    HorizontalDivider()
+                }
                 DropdownMenuItem(
                     text = { Text("Reply") },
                     leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
@@ -642,16 +670,18 @@ internal fun MessageBubble(
                         menuOpen = false
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text("React") },
-                    leadingIcon = {
-                        Icon(Symbols.AddReaction, contentDescription = null)
-                    },
-                    onClick = {
-                        onReact()
-                        menuOpen = false
-                    }
-                )
+                if (quickReactions.isEmpty()) {
+                    DropdownMenuItem(
+                        text = { Text("React") },
+                        leadingIcon = {
+                            Icon(Symbols.AddReaction, contentDescription = null)
+                        },
+                        onClick = {
+                            onReact()
+                            menuOpen = false
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Copy") },
                     leadingIcon = { Icon(Symbols.ContentCopy, contentDescription = null) },
@@ -815,8 +845,18 @@ internal fun fullDate(epochSeconds: Long): String =
 @Composable
 internal fun ReactionRow(
     reactions: List<MessageReaction>,
+    outgoing: Boolean,
     onToggle: (String) -> Unit
 ) {
+    // In the accent, as the owner asked: this account's own reaction filled
+    // with it, the others in its container. Inside one of this account's
+    // messages the bubble is the accent already, so there the two turn
+    // round — onPrimary filled, and a wash of it.
+    val colors = MaterialTheme.colorScheme
+    val chosenFill = if (outgoing) colors.onPrimary else colors.primary
+    val chosenText = if (outgoing) colors.primary else colors.onPrimary
+    val restFill = if (outgoing) colors.onPrimary.copy(alpha = 0.18f) else colors.primaryContainer
+    val restText = if (outgoing) colors.onPrimary else colors.onPrimaryContainer
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.horizontalScroll(rememberScrollState())
@@ -836,13 +876,71 @@ internal fun ReactionRow(
                 // bubble reads as an annotation on the message rather than a
                 // second control bar.
                 shape = MaterialTheme.shapes.small,
+                border = null,
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.35f)
+                    containerColor = restFill,
+                    labelColor = restText,
+                    selectedContainerColor = chosenFill,
+                    selectedLabelColor = chosenText
                 )
             )
         }
     }
 }
+
+/**
+ * The row of reactions over a message's menu: Telegram's animation of
+ * each, playing, or the emoji where none has arrived — and an arrow to the
+ * full picker.
+ */
+@Composable
+private fun QuickReactions(
+    options: List<ReactionOption>,
+    chosen: String?,
+    onPick: (String) -> Unit,
+    onMore: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        options.forEach { option ->
+            ReactionCell(
+                option = option,
+                chosen = option.emoji == chosen,
+                size = 30.dp,
+                onClick = { onPick(option.emoji) }
+            )
+        }
+        IconButton(onClick = onMore, modifier = Modifier.size(40.dp)) {
+            Icon(Symbols.KeyboardArrowDown, contentDescription = "More reactions")
+        }
+    }
+}
+
+/** One reaction to choose: its animation or its emoji, ringed in the accent when it is ours. */
+@Composable
+internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onClick: () -> Unit) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(size + 12.dp)
+            .clip(CircleShape)
+            .background(if (chosen) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = option.emoji }
+    ) {
+        val animation = option.animation
+        if (animation != null) {
+            StickerView(animation, size = size)
+        } else {
+            Text(option.emoji, fontSize = (size.value * 0.8f).sp)
+        }
+    }
+}
+
+/** How many reactions the row over a message's menu shows before the arrow. */
+private const val QUICK_REACTIONS = 6
 
 /**
  * The quoted block inside a bubble.

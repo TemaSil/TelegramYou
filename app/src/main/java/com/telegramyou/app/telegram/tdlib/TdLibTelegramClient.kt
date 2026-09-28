@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.tdlib
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.async
+import com.telegramyou.app.telegram.model.ReactionOption
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -1868,6 +1872,54 @@ class TdLibTelegramClient(
      * list, or nothing at all. Offering the full set in a group that permits
      * three would be a tap the server refuses for a reason this already knows.
      */
+    /** Telegram's animation for each emoji reaction, fetched once for the run. */
+    private val reactionAnimations = java.util.concurrent.ConcurrentHashMap<String, StickerContent>()
+
+    override suspend fun messageReactions(chatId: Long, messageId: Long): List<ReactionOption> {
+        awaitReady()
+        val emojis = try {
+            val answer = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessageAvailableReactions")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+                    .put("row_size", QUICK_REACTION_COUNT)
+            )
+            // Top first — what this account and chat use most — then the
+            // rest; custom emoji (Premium's) are left out until this client
+            // can draw them in a message.
+            listOf("top_reactions", "recent_reactions", "popular_reactions")
+                .flatMap { key ->
+                    val list = answer.optJSONArray(key) ?: return@flatMap emptyList<String>()
+                    List(list.length()) { list.optJSONObject(it)?.optJSONObject("type") }
+                        .filter { it?.optString("@type") == "reactionTypeEmoji" }
+                        .mapNotNull { it?.optString("emoji")?.takeIf(String::isNotBlank) }
+                }
+                .distinct()
+        } catch (e: TdLibException) {
+            Log.w(TAG, "getMessageAvailableReactions: ${e.message}")
+            availableReactions(chatId)
+        }
+        return coroutineScope {
+            emojis.map { emoji ->
+                async { ReactionOption(emoji, reactionAnimation(emoji)) }
+            }.awaitAll()
+        }
+    }
+
+    /** The emoji's centre animation, which plays on its own in a small square. */
+    private suspend fun reactionAnimation(emoji: String): StickerContent? {
+        reactionAnimations[emoji]?.let { return it }
+        return try {
+            val reaction = requireEngine().send(JSONObject().put("@type", "getEmojiReaction").put("emoji", emoji))
+            val sticker = (reaction.optJSONObject("center_animation") ?: reaction.optJSONObject("static_icon"))
+                ?.let { stickerOf(it).copy(emoji = emoji) }
+            sticker?.also { reactionAnimations[emoji] = it }
+        } catch (e: TdLibException) {
+            null
+        }
+    }
+
     override suspend fun availableReactions(chatId: Long): List<String> {
         awaitReady()
         val available = chatsById[chatId]?.optJSONObject("available_reactions")
@@ -3712,6 +3764,9 @@ class TdLibTelegramClient(
          * defaults, in its order, and they are what a picker can reasonably
          * show without a grid and a search field.
          */
+        /** How many reactions the quick row over a message's menu offers. */
+        private const val QUICK_REACTION_COUNT = 7
+
         private val DEFAULT_REACTIONS =
             listOf("👍", "👎", "❤️", "🔥", "🎉", "😁", "🤔", "😢")
     }

@@ -1619,6 +1619,9 @@ class SmokeTest {
             device.wait(Until.hasObject(By.text("Unpin")), SHORT_WAIT)
         }
         waitFor(By.text("Unpin"), "the menu of a pinned message")
+        // The quick reactions sit over the menu, with the arrow to the rest.
+        waitFor(By.desc("More reactions"), "the reaction row over the menu")
+        screenshot("44a-message-menu")
         // Forward is on the message's own menu, not only behind a selection.
         tap(By.text("Forward"))
         waitFor(By.text("Forward to…"), "the forward sheet for one message")
@@ -1846,6 +1849,45 @@ class SmokeTest {
         device.pressBack()
         tap(By.text("Chats"))
         waitFor(By.text("Material Design"), "the chat list")
+    }
+
+    /**
+     * The smiley opens emoji, GIFs and stickers in the keyboard's place; the
+     * keyboard key that replaces it brings the keyboard back. A GIF sent
+     * from the panel arrives in the conversation.
+     */
+    @Test
+    fun emojiGifsAndStickersShareAPanel() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("Emoji, GIFs and stickers"), "the composer's smiley")
+        tap(By.desc("Emoji, GIFs and stickers"))
+        waitFor(By.desc("Emoji"), "the emoji picker")
+        waitFor(By.desc("Keyboard"), "the keyboard key in the smiley's place")
+        screenshot("57-panel-emoji")
+
+        tap(By.text("GIFs"))
+        waitFor(By.desc("GIF"), "a GIF in the panel")
+        screenshot("58-panel-gifs")
+        val before = device.findObjects(By.desc("GIF")).size
+        device.findObjects(By.desc("GIF")).last().click()
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        var arrived = false
+        while (!arrived && SystemClock.uptimeMillis() < deadline) {
+            arrived = device.findObjects(By.desc("GIF")).size > before
+            if (!arrived) SystemClock.sleep(250)
+        }
+        assertTrue("the GIF never arrived in the chat", arrived)
+
+        tap(By.text("Stickers"))
+        waitFor(By.desc("Recent stickers"), "the sticker tab")
+        screenshot("59-panel-stickers")
+
+        tap(By.desc("Keyboard"))
+        waitFor(By.desc("Emoji, GIFs and stickers"), "the smiley back, with the keyboard")
+        backTo(By.text("Material Design"), "the chat list")
     }
 
     /** Taps the highest of several matches — a screen's header over its content. */

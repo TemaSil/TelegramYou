@@ -4,6 +4,7 @@ import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.GifItem
+import com.telegramyou.app.telegram.model.ReactionOption
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -112,6 +113,12 @@ data class ChatUiState(
     val reactingTo: ChatMessage? = null,
     /** What this chat permits, fetched once — see TelegramMessages. */
     val availableReactions: List<String> = emptyList(),
+    /**
+     * What the message whose menu is open may be reacted with, with
+     * Telegram's animations — asked for as the menu opens. Empty until
+     * then, and the chat's list stands in.
+     */
+    val reactionOptions: List<ReactionOption> = emptyList(),
     /** Empty until someone chooses Select; non-empty puts the toolbar up. */
     val selection: MessageSelection = MessageSelection(),
     /**
@@ -1230,6 +1237,16 @@ class ChatViewModel(
      * MessagePermissions); the demo's messages carry it and answer null.
      */
     fun onMessageActionsNeeded(message: ChatMessage) {
+        viewModelScope.launch {
+            val options = try {
+                repository.messageReactions(chatId, message.id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                emptyList()
+            }
+            _uiState.update { it.copy(reactionOptions = options) }
+        }
         viewModelScope.launch {
             val permissions: MessagePermissions? = try {
                 repository.messagePermissions(chatId, message.id)

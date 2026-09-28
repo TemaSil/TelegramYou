@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.items
+import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.clickable
@@ -14,7 +19,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -405,9 +409,12 @@ internal fun DeleteSelectionDialog(
 }
 
 /**
- * The sheet that opens from "React".
+ * Every reaction the message may take, from the arrow at the end of the
+ * quick row over its menu: a grid of Telegram's own animations of them,
+ * playing, as every Telegram client shows them — each the emoji itself where
+ * its animation has not arrived.
  *
- * A bottom sheet rather than a popup row above the bubble: the popup is what
+ * A bottom sheet rather than a popup over the bubble: the popup is what
  * Telegram draws, and drawing it means positioning a floating surface against
  * a bubble that may be at either edge and near either end of the list. The
  * sheet is the platform's own answer to "choose one of these", and it is one
@@ -420,7 +427,7 @@ internal fun DeleteSelectionDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ReactionPicker(
-    available: List<String>,
+    available: List<ReactionOption>,
     chosen: String?,
     onDismiss: () -> Unit,
     onPick: (String) -> Unit
@@ -439,18 +446,20 @@ internal fun ReactionPicker(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
         } else {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 24.dp)
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 52.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                modifier = Modifier.heightIn(max = 420.dp)
             ) {
-                items(available, key = { it }) { emoji ->
-                    FilterChip(
-                        selected = emoji == chosen,
-                        onClick = { onPick(emoji) },
-                        label = {
-                            Text(emoji, style = MaterialTheme.typography.headlineSmall)
-                        }
-                    )
+                items(available, key = { it.emoji }) { option ->
+                    Box(Modifier.padding(2.dp), contentAlignment = Alignment.Center) {
+                        ReactionCell(
+                            option = option,
+                            chosen = option.emoji == chosen,
+                            size = 34.dp,
+                            onClick = { onPick(option.emoji) }
+                        )
+                    }
                 }
             }
         }
