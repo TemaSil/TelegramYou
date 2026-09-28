@@ -1777,7 +1777,6 @@ class SmokeTest {
         tap(By.text("Two-line previews"))
         scrollDownTo(By.text("Less motion"))
         tap(By.text("Less motion"))
-        scrollDownTo(By.desc("Violet icon"))
 
         // Back lands on the Settings tab, and back again would leave the
         // app: the chat list is its own tab.
@@ -1880,12 +1879,17 @@ class SmokeTest {
         tap(By.text("GIFs"))
         waitFor(By.desc("GIF"), "a GIF in the panel")
         screenshot("58-panel-gifs")
-        val before = device.findObjects(By.desc("GIF")).size
-        device.findObjects(By.desc("GIF")).last().click()
+        // Sent, it shows in the conversation — above the panel, where no
+        // GIF was before: Lina's own is further up, out of sight.
+        val panelTop = device.findObject(By.text("GIFs")).visibleBounds.top
+        device.findObjects(By.desc("GIF")).first { it.visibleBounds.top > panelTop }.click()
         val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
         var arrived = false
         while (!arrived && SystemClock.uptimeMillis() < deadline) {
-            arrived = device.findObjects(By.desc("GIF")).size > before
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            arrived = device.findObjects(By.desc("GIF")).any { it.visibleBounds.bottom <= panelTop }
             if (!arrived) SystemClock.sleep(250)
         }
         assertTrue("the GIF never arrived in the chat", arrived)

@@ -256,7 +256,6 @@ private fun GifTile(gif: GifItem, onVisible: () -> Unit, onPick: () -> Unit) {
             .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(onClick = onPick)
             .semantics { contentDescription = "GIF" }
     ) {
         video.thumbPath?.let { poster ->
@@ -270,5 +269,13 @@ private fun GifTile(gif: GifItem, onVisible: () -> Unit, onPick: () -> Unit) {
         video.path?.let { path ->
             InlineVideo(path = path, playing = true, muted = true, loop = true, modifier = Modifier.fillMaxSize())
         }
+        // The tap is taken on top of the clip, not by the tile under it: the
+        // player is an Android View, and a View takes the touches that land
+        // on it before anything behind it in Compose sees them.
+        Box(
+            Modifier
+                .matchParentSize()
+                .clickable(onClick = onPick)
+        )
     }
 }
