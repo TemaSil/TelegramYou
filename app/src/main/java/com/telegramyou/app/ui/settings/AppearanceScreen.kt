@@ -1,7 +1,14 @@
 package com.telegramyou.app.ui.settings
 
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +47,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.telegramyou.app.settings.AppIcon
 import com.telegramyou.app.settings.AppearanceSettings
 import com.telegramyou.app.settings.BubbleCorners
 import com.telegramyou.app.settings.ChatWallpaper
@@ -66,7 +74,10 @@ class AppearanceActions(
     val onChatWallpaperChange: (ChatWallpaper) -> Unit = {},
     val onOutgoingToneChange: (OutgoingTone) -> Unit = {},
     val onBubbleCornersChange: (Int) -> Unit = {},
-    val onMessageTextScaleChange: (Float) -> Unit = {}
+    val onMessageTextScaleChange: (Float) -> Unit = {},
+    val onTwoLinePreviewsChange: (Boolean) -> Unit = {},
+    val onAppIconChange: (AppIcon) -> Unit = {},
+    val onReduceMotionChange: (Boolean) -> Unit = {}
 )
 
 /**
@@ -178,6 +189,16 @@ fun AppearanceScreen(
                     checked = settings.chatColorsFromAvatar,
                     onChange = actions.onChatColorsFromAvatarChange
                 )
+                // The launcher only learns of it once the app is off screen;
+                // the summary says so, or the tap would look ignored.
+                item(
+                    title = "App icon",
+                    summary = "${settings.appIcon.label} · changes on the home screen when you leave the app",
+                    onClick = {},
+                    below = {
+                        IconSwatches(selected = settings.appIcon, onSelect = actions.onAppIconChange)
+                    }
+                )
             }
 
             SettingsGroup("Chat") {
@@ -185,10 +206,8 @@ fun AppearanceScreen(
                     title = "Wallpaper",
                     onClick = {},
                     below = {
-                        Choices(
-                            options = ChatWallpaper.entries,
+                        WallpaperPicker(
                             selected = settings.chatWallpaper,
-                            label = { it.label },
                             onSelect = actions.onChatWallpaperChange
                         )
                     }
@@ -239,12 +258,18 @@ fun AppearanceScreen(
                 )
             }
 
-            SettingsGroup("Avatars and text") {
+            SettingsGroup("Chat list and text") {
                 switch(
                     title = "Shaped avatars",
                     summary = "Everyone gets one of Material's shapes as well as a colour",
                     checked = settings.shapedAvatars,
                     onChange = actions.onShapedAvatarsChange
+                )
+                switch(
+                    title = "Two-line previews",
+                    summary = "Show more of the last message in the chat list",
+                    checked = settings.twoLinePreviews,
+                    onChange = actions.onTwoLinePreviewsChange
                 )
                 // Four stops, the way Android's own display settings offer it.
                 // The preview above follows as it moves.
@@ -263,6 +288,15 @@ fun AppearanceScreen(
                                 .semantics { contentDescription = "Text size" }
                         )
                     }
+                )
+            }
+
+            SettingsGroup("Motion") {
+                switch(
+                    title = "Less motion",
+                    summary = "Screens fade instead of opening out, and nothing bounces",
+                    checked = settings.reduceMotion,
+                    onChange = actions.onReduceMotionChange
                 )
             }
         }
@@ -369,6 +403,130 @@ private fun AccentSwatches(selected: Int, enabled: Boolean, dark: Boolean, onSel
                         modifier = Modifier.size(18.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * The wallpapers as small cards, each showing what it draws with two
+ * bubbles on it, in a row that scrolls sideways — the way Android's own
+ * wallpaper picker and the official client offer backgrounds. A picture is
+ * the choice here; a segmented row of names said nothing about how any of
+ * them looks. Stock cards: the chosen one takes the primary outline and a
+ * tick.
+ */
+@Composable
+private fun WallpaperPicker(selected: ChatWallpaper, onSelect: (ChatWallpaper) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        ChatWallpaper.entries.forEach { wallpaper ->
+            val chosen = wallpaper == selected
+            OutlinedCard(
+                onClick = { onSelect(wallpaper) },
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(
+                    if (chosen) 2.dp else 1.dp,
+                    if (chosen) colors.primary else colors.outlineVariant
+                ),
+                modifier = Modifier
+                    .width(84.dp)
+                    .semantics { this.selected = chosen }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(112.dp)
+                        .chatWallpaper(wallpaper)
+                        .padding(8.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Box(
+                            Modifier
+                                .size(width = 44.dp, height = 14.dp)
+                                .background(colors.surfaceContainerHighest, RoundedCornerShape(7.dp))
+                        )
+                        Box(
+                            Modifier
+                                .align(Alignment.End)
+                                .size(width = 50.dp, height = 14.dp)
+                                .background(colors.primary, RoundedCornerShape(7.dp))
+                        )
+                    }
+                    if (chosen) {
+                        Icon(
+                            Symbols.Check,
+                            contentDescription = null,
+                            tint = colors.onPrimary,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(22.dp)
+                                .background(colors.primary, CircleShape)
+                                .padding(3.dp)
+                        )
+                    }
+                }
+                Text(
+                    wallpaper.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The launcher icon's colours, each drawn as the icon is — its background
+ * with the paper plane on it, in the ink the icon itself uses — so the
+ * choice looks like what the home screen will show.
+ */
+@Composable
+private fun IconSwatches(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        AppIcon.entries.forEach { icon ->
+            val chosen = icon == selected
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(36.dp)
+                    .then(
+                        if (chosen) {
+                            Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .padding(4.dp)
+                    .background(Color(icon.background), CircleShape)
+                    .selectable(
+                        selected = chosen,
+                        role = Role.RadioButton,
+                        onClick = { onSelect(icon) }
+                    )
+                    .semantics { contentDescription = "${icon.label} icon" }
+            ) {
+                Icon(
+                    Symbols.Send,
+                    contentDescription = null,
+                    tint = if (icon.lightGlyph) Color.White else Color(AppIcon.ICON_INK),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }

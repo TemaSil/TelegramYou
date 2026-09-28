@@ -4,6 +4,8 @@ import com.telegramyou.app.ui.chat.ChatStyle
 import com.telegramyou.app.ui.chat.LocalChatStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import com.telegramyou.app.ui.components.LocalShapedAvatars
+import com.telegramyou.app.ui.components.LocalTwoLinePreviews
+import com.telegramyou.app.ui.motion.LocalReduceMotion
 import android.os.Build
 import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.ui.unit.Density
@@ -83,7 +85,8 @@ class MainActivity : ComponentActivity() {
                 darkTheme = isDark(appearance.theme, isSystemInDarkTheme()),
                 dynamicColor = appearance.dynamicColor,
                 accent = appearance.accent,
-                pureBlack = appearance.pureBlack
+                pureBlack = appearance.pureBlack,
+                reduceMotion = appearance.reduceMotion
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two
@@ -94,6 +97,8 @@ class MainActivity : ComponentActivity() {
                     val density = LocalDensity.current
                     CompositionLocalProvider(
                         LocalShapedAvatars provides appearance.shapedAvatars,
+                        LocalTwoLinePreviews provides appearance.twoLinePreviews,
+                        LocalReduceMotion provides appearance.reduceMotion,
                         LocalChatStyle provides ChatStyle(
                             wallpaper = appearance.chatWallpaper,
                             outgoingTone = appearance.outgoingTone,
@@ -140,6 +145,9 @@ class MainActivity : ComponentActivity() {
         // whatever is still composed.
         AppVisibility.isInForeground = false
         (application as TelegramYouApp).telegramRepository.setOnline(false)
+        // The icon chosen in Appearance reaches the launcher here, as the
+        // app leaves the screen, rather than on the tap; see setAppIcon.
+        if (!isChangingConfigurations) (application as TelegramYouApp).appearance.applyAppIcon()
         super.onStop()
     }
 }

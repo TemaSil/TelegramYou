@@ -109,6 +109,7 @@ fun TelegramYouTheme(
     dynamicColor: Boolean = true,
     accent: Int = Accents.TEAL,
     pureBlack: Boolean = false,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = appColorScheme(darkTheme, dynamicColor, accent, pureBlack)
@@ -124,7 +125,9 @@ fun TelegramYouTheme(
     // and was read by nothing, so it styled nothing.
     MaterialExpressiveTheme(
         colorScheme = colorScheme,
-        motionScheme = MotionScheme.expressive(),
+        // Less motion (Appearance): the standard scheme's springs, which
+        // settle without the expressive overshoot.
+        motionScheme = if (reduceMotion) MotionScheme.standard() else MotionScheme.expressive(),
         typography = TelegramYouTypography,
         shapes = TelegramYouShapes,
         content = content

@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +63,13 @@ import com.telegramyou.app.telegram.model.chatRemovalOf
  * between them. That panel is drawn by the list, not by the row: see
  * HomeScreen.
  */
+/**
+ * Appearance → Two-line previews: the last message gets a second line in
+ * the chat list. Provided at the root, like the avatar shapes, so every
+ * list of chats — the main one, the archive, search — follows it.
+ */
+val LocalTwoLinePreviews = staticCompositionLocalOf { false }
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChatListRow(
@@ -194,7 +202,7 @@ fun ChatListRow(
                     } else {
                         Text(
                             text = chat.lastMessage,
-                            maxLines = 1,
+                            maxLines = if (LocalTwoLinePreviews.current) 2 else 1,
                             overflow = TextOverflow.Ellipsis
                         )
                     }

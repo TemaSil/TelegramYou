@@ -10,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
 import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
 import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.LocalReduceMotion
 import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.storyContainerKey
 import com.telegramyou.app.ui.motion.ChatContainerShape
@@ -192,31 +193,33 @@ fun TelegramYouNavHost(
     // One layout around the whole graph, so a screen can open out of an
     // element on the one before it — a chat out of its row, a story out of
     // its circle. See containerTransform.
+    // Less motion: screens cross-fade in place rather than slide.
+    val reduceMotion = LocalReduceMotion.current
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(
         navController = navController,
         startDestination = Route.Auth.PATTERN,
         enterTransition = {
-            fadeIn(spring()) + slideIntoContainer(
+            if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
                 animationSpec = spring()
             )
         },
         exitTransition = {
-            fadeOut(spring()) + slideOutOfContainer(
+            if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
                 animationSpec = spring()
             )
         },
         popEnterTransition = {
-            fadeIn(spring()) + slideIntoContainer(
+            if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
                 animationSpec = spring()
             )
         },
         popExitTransition = {
-            fadeOut(spring()) + slideOutOfContainer(
+            if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
                 animationSpec = spring()
             )
@@ -463,7 +466,10 @@ fun TelegramYouNavHost(
                     onChatWallpaperChange = appearance::setChatWallpaper,
                     onOutgoingToneChange = appearance::setOutgoingTone,
                     onBubbleCornersChange = appearance::setBubbleCorners,
-                    onMessageTextScaleChange = appearance::setMessageTextScale
+                    onMessageTextScaleChange = appearance::setMessageTextScale,
+                    onTwoLinePreviewsChange = appearance::setTwoLinePreviews,
+                    onAppIconChange = appearance::setAppIcon,
+                    onReduceMotionChange = appearance::setReduceMotion
                 )
             )
         }

@@ -1,6 +1,8 @@
 package com.telegramyou.app.settings
 
+import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import com.telegramyou.app.ui.theme.Accents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +23,10 @@ import kotlinx.coroutines.flow.update
  */
 class AppearanceStore(context: Context) {
 
+    private val appContext = context.applicationContext
+
     private val preferences =
-        context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+        appContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     private val _settings = MutableStateFlow(read())
     val settings: StateFlow<AppearanceSettings> = _settings.asStateFlow()
@@ -40,6 +44,56 @@ class AppearanceStore(context: Context) {
     fun setShapedAvatars(enabled: Boolean) {
         _settings.update { it.copy(shapedAvatars = enabled) }
         preferences.edit().putBoolean(KEY_SHAPED_AVATARS, enabled).apply()
+    }
+
+    fun setTwoLinePreviews(enabled: Boolean) {
+        _settings.update { it.copy(twoLinePreviews = enabled) }
+        preferences.edit().putBoolean(KEY_TWO_LINE_PREVIEWS, enabled).apply()
+    }
+
+    fun setReduceMotion(enabled: Boolean) {
+        _settings.update { it.copy(reduceMotion = enabled) }
+        preferences.edit().putBoolean(KEY_REDUCE_MOTION, enabled).apply()
+    }
+
+    /**
+     * Remembered now, shown on the launcher only when the app leaves the
+     * screen — see [applyAppIcon]. Switching the alias the running task was
+     * started through closes that task on a good many launchers, which from
+     * the Appearance screen reads as the app crashing on a tap.
+     */
+    fun setAppIcon(icon: AppIcon) {
+        _settings.update { it.copy(appIcon = icon) }
+        preferences.edit().putString(KEY_APP_ICON, icon.name).apply()
+    }
+
+    /**
+     * Puts the chosen icon on the launcher: its alias on, every other one
+     * off. Called as the activity stops; does nothing when the launcher
+     * already shows the chosen one, which is nearly every time.
+     */
+    fun applyAppIcon() {
+        val chosen = _settings.value.appIcon
+        val packages = appContext.packageManager
+        AppIcon.entries.forEach { icon ->
+            val component = ComponentName(appContext, "$ALIAS_PACKAGE.${icon.alias}")
+            val wanted = if (icon == chosen) {
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            }
+            val current = packages.getComponentEnabledSetting(component)
+            // DEFAULT means whatever the manifest says: Teal on, others off.
+            val effective = if (current == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT) {
+                if (icon == AppIcon.Teal) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                else PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            } else {
+                current
+            }
+            if (effective != wanted) {
+                packages.setComponentEnabledSetting(component, wanted, PackageManager.DONT_KILL_APP)
+            }
+        }
     }
 
     fun setTextScale(scale: Float) {
@@ -93,6 +147,7 @@ class AppearanceStore(context: Context) {
             theme = ThemeChoice.entries.firstOrNull { it.name == stored } ?: ThemeChoice.System,
             dynamicColor = preferences.getBoolean(KEY_DYNAMIC, true),
             shapedAvatars = preferences.getBoolean(KEY_SHAPED_AVATARS, true),
+            twoLinePreviews = preferences.getBoolean(KEY_TWO_LINE_PREVIEWS, false),
             textScale = TextSize.nearest(preferences.getFloat(KEY_TEXT_SCALE, 1f)),
             accent = preferences.getInt(KEY_ACCENT, Accents.TEAL),
             pureBlack = preferences.getBoolean(KEY_PURE_BLACK, false),
@@ -106,7 +161,9 @@ class AppearanceStore(context: Context) {
             bubbleCorners = BubbleCorners.settle(
                 preferences.getInt(KEY_BUBBLE_CORNERS, BubbleCorners.DEFAULT).toFloat()
             ),
-            messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f))
+            messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f)),
+            appIcon = AppIcon.from(preferences.getString(KEY_APP_ICON, null)),
+            reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false)
         )
     }
 
@@ -123,5 +180,11 @@ class AppearanceStore(context: Context) {
         const val KEY_OUTGOING_TONE = "outgoing_tone"
         const val KEY_BUBBLE_CORNERS = "bubble_corners"
         const val KEY_MESSAGE_TEXT_SCALE = "message_text_scale"
+        const val KEY_TWO_LINE_PREVIEWS = "two_line_previews"
+        const val KEY_APP_ICON = "app_icon"
+        const val KEY_REDUCE_MOTION = "reduce_motion"
+
+        /** The namespace the manifest's launcher aliases are named in. */
+        const val ALIAS_PACKAGE = "com.telegramyou.app"
     }
 }

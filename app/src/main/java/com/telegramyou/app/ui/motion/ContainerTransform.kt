@@ -17,6 +17,7 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
@@ -30,6 +31,14 @@ import androidx.compose.ui.unit.dp
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 val LocalSharedTransitionScope = compositionLocalOf<SharedTransitionScope?> { null }
+
+/**
+ * Appearance → Less motion. Read by the few places that move more than
+ * they need to: the container transforms become the plain fade their
+ * screens already have, a typing avatar holds its shape, and the theme's
+ * springs lose their bounce (TelegramYouTheme).
+ */
+val LocalReduceMotion = staticCompositionLocalOf { false }
 
 /** The navigation destination's own enter-and-exit, which a shared transition runs on. */
 val LocalNavAnimatedScope = compositionLocalOf<AnimatedVisibilityScope?> { null }
@@ -59,7 +68,8 @@ val StoryContainerShape: Shape = RoundedCornerShape(32.dp)
  * [shape] clips the container while it travels. [isScreen] is the
  * full-screen side, which is scaled rather than laid out again each frame —
  * see the resize mode below. A no-op wherever there is no navigation
- * transition to ride on — previews, tests, the tablet's two panes.
+ * transition to ride on — previews, tests, the tablet's two panes — and
+ * with Less motion on, where the screen's own fade is all there is.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -69,6 +79,7 @@ fun Modifier.containerTransform(
     isScreen: Boolean = false,
     bounds: FiniteAnimationSpec<Rect> = ContainerSpring
 ): Modifier {
+    if (LocalReduceMotion.current) return this
     val shared = LocalSharedTransitionScope.current ?: return this
     val animated = LocalNavAnimatedScope.current ?: return this
     val fade = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()

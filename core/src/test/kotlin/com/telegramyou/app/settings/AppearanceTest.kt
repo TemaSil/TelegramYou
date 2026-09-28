@@ -54,4 +54,32 @@ class AppearanceTest {
         assertEquals(BubbleCorners.MAX, BubbleCorners.settle(99f))
         assertEquals(9, BubbleCorners.SLIDER_STEPS)
     }
+
+    @Test
+    fun `the rest of the look starts as it always was`() {
+        val defaults = AppearanceSettings()
+        assertTrue(defaults.shapedAvatars)
+        assertFalse(defaults.twoLinePreviews)
+        assertEquals(AppIcon.Teal, defaults.appIcon)
+        assertFalse(defaults.reduceMotion)
+    }
+
+    @Test
+    fun `the icon's glyph goes light only where the dark one cannot be read`() {
+        assertFalse(AppIcon.Teal.lightGlyph)
+        assertFalse(AppIcon.Amber.lightGlyph)
+        assertFalse(AppIcon.Orange.lightGlyph)
+        assertTrue(AppIcon.Violet.lightGlyph)
+        AppIcon.entries.forEach { icon ->
+            val ink = if (icon.lightGlyph) 0xFFFFFFFF.toInt() else AppIcon.ICON_INK
+            assertTrue("${icon.label} glyph contrast", contrast(icon.background, ink) >= 3.0)
+        }
+    }
+
+    @Test
+    fun `an unknown icon is teal`() {
+        assertEquals(AppIcon.Teal, AppIcon.from(null))
+        assertEquals(AppIcon.Pink, AppIcon.from("Pink"))
+        assertEquals(AppIcon.Teal, AppIcon.from("Plaid"))
+    }
 }

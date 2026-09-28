@@ -166,12 +166,11 @@ fun AvatarBubble(
                     model = File(photoPath),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    // Inside the story ring rather than over it: the ring is
-                    // drawn by this box, and a picture filling it would cover
-                    // the ring's inner half.
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .then(if (ring) Modifier.padding(4.dp).clip(outline) else Modifier)
+                    // The whole clipped box. The ring and its gap are outside
+                    // it already (the padding before the clip); a further
+                    // inset here, left from before the gap, showed a band of
+                    // the placeholder's colour round every story's picture.
+                    modifier = Modifier.fillMaxSize()
                 )
             }
         }

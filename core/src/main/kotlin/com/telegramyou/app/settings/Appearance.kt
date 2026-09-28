@@ -37,6 +37,8 @@ data class AppearanceSettings(
      * messenger looks like, and somebody may want that.
      */
     val shapedAvatars: Boolean = true,
+    /** Two lines of the last message in the chat list rather than one. */
+    val twoLinePreviews: Boolean = false,
     /**
      * How much larger or smaller than the system's own text this app's is,
      * as a multiple — on top of Android's font size, not instead of it, so
@@ -68,22 +70,87 @@ data class AppearanceSettings(
      * "Message text size", which leaves the rest of the interface alone.
      * The same stops as [textScale]; see TextSize.
      */
-    val messageTextScale: Float = 1f
+    val messageTextScale: Float = 1f,
+    /** Which colour the launcher shows the app's icon in; see AppIcon. */
+    val appIcon: AppIcon = AppIcon.Teal,
+    /**
+     * Calmer motion, on top of Android's own "Remove animations": screens
+     * fade rather than open out of what was tapped, springs settle without
+     * bouncing, and a typing avatar holds its shape.
+     */
+    val reduceMotion: Boolean = false
 )
+
+/**
+ * The launcher icon's colours: one per accent, each an `activity-alias` in
+ * the manifest named Launcher + [name], with its own adaptive icon. Only the
+ * background plane changes — the paper plane stays — and the glyph goes
+ * light where the colour is too deep for the dark one to read. Android 13's
+ * themed monochrome icon is the same in all of them, so a launcher that tints
+ * icons from the wallpaper ignores this, as it should.
+ */
+enum class AppIcon(val label: String, val background: Int) {
+    Teal("Teal", 0xFF1EE2A8.toInt()),
+    Blue("Blue", 0xFF4285F4.toInt()),
+    Violet("Violet", 0xFF7C4DFF.toInt()),
+    Pink("Pink", 0xFFE91E63.toInt()),
+    Red("Red", 0xFFE53935.toInt()),
+    Orange("Orange", 0xFFFF8A00.toInt()),
+    Amber("Amber", 0xFFFFC107.toInt()),
+    Green("Green", 0xFF4CAF50.toInt());
+
+    /** The alias's class name, relative to the app's namespace. */
+    val alias: String get() = "Launcher$name"
+
+    /**
+     * Whether the glyph on this background is drawn light. Decided by
+     * contrast against the dark ink the original icon uses, not by eye —
+     * the test holds the resources to the same answer.
+     */
+    val lightGlyph: Boolean get() = contrast(background, WHITE) > contrast(background, ICON_INK)
+
+    companion object {
+        /** The dark ink of the original icon's paper plane. */
+        const val ICON_INK = 0xFF0B1F1A.toInt()
+        private const val WHITE = 0xFFFFFFFF.toInt()
+
+        fun from(stored: String?): AppIcon = entries.firstOrNull { it.name == stored } ?: Teal
+    }
+}
+
+/** WCAG contrast ratio between two opaque ARGB colours. */
+fun contrast(a: Int, b: Int): Double {
+    val la = relativeLuminance(a)
+    val lb = relativeLuminance(b)
+    return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
+}
+
+private fun relativeLuminance(argb: Int): Double {
+    fun channel(shift: Int): Double {
+        val c = ((argb shr shift) and 0xFF) / 255.0
+        return if (c <= 0.03928) c / 12.92 else Math.pow((c + 0.055) / 1.055, 2.4)
+    }
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0)
+}
 
 /**
  * What a conversation is drawn on. All of it in the theme's own colours —
  * the wallpaper is on the short list of things this client draws by hand,
- * and a picture in somebody else's colours would fight the scheme.
+ * and a picture in somebody else's colours would fight the scheme. The
+ * names are stored, so an entry may be added but not renamed.
  */
 enum class ChatWallpaper(val label: String) {
-    /** The surface into a breath of the accent, as it has always been. */
+    /** The surface across into the accent's containers, corner to corner. */
     Gradient("Gradient"),
     /** The surface alone. */
     Plain("Plain"),
-    /** The gradient with a quiet grid of dots. */
+    /** Three soft glows of the scheme's colours. */
+    Aurora("Aurora"),
+    /** Material's own shapes, scattered. */
+    Shapes("Shapes"),
+    /** A quiet gradient with a grid of dots. */
     Dots("Dots"),
-    /** The gradient with soft lines of waves. */
+    /** A quiet gradient with flowing lines. */
     Waves("Waves")
 }
 

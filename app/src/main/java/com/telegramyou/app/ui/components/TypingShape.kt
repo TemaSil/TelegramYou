@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.graphics.shapes.Morph
 import androidx.graphics.shapes.toPath
 import com.telegramyou.app.ui.avatars.avatarShapeIndex
+import com.telegramyou.app.ui.motion.LocalReduceMotion
 
 /**
  * The outline of someone who is typing: their own shape, melting through
@@ -35,7 +36,8 @@ import com.telegramyou.app.ui.avatars.avatarShapeIndex
  * writing. It starts and ends on the person's own shape (see [personShape]),
  * so when they stop the avatar is theirs again rather than wherever the
  * cycle had got to. With shapes switched off in Appearance it starts from the
- * circle, and still moves: the motion is the signal, not the shapes.
+ * circle, and still moves: the motion is the signal, not the shapes. With
+ * Less motion on it does not move at all.
  *
  * Each step eases in and out, so the outline dwells on each shape before
  * leaving it — a steady linear morph reads as a wobble rather than as a
@@ -43,6 +45,8 @@ import com.telegramyou.app.ui.avatars.avatarShapeIndex
  */
 @Composable
 fun typingShape(seed: Long, typing: Boolean, rest: Shape): Shape {
+    // Less motion: the avatar holds still, and "typing…" in the row says it.
+    if (LocalReduceMotion.current) return rest
     val start = if (LocalShapedAvatars.current) avatarShapeIndex(seed, SHAPE_COUNT) else 0
     // Lazily: every avatar on screen comes through here, and matching two
     // polygons for a Morph is not free. Only someone typing pays for it.

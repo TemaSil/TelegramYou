@@ -129,8 +129,10 @@ Material's own parts:
    list of things worth drawing by hand); message text size, apart from the
    interface's; bubble corners as a slider (the official "Message
    corners"); which tone outgoing bubbles take.
-5. **Chat list:** two lines of preview or one; avatar shape — circles,
-   rounded squares, or Material's shapes per person (today's switch).
+5. **Chat list:** two lines of preview or one. Avatar shape stays the
+   switch it already was — Material's shapes or circles; a third choice of
+   rounded squares was written in here without being asked for, and the
+   owner struck it.
 6. **App icon** in the accent colours, chosen here, through
    `activity-alias`; Android 13's themed monochrome icon stays as it is.
 7. **Less motion** — container transforms become fades, the typing morph
@@ -146,8 +148,22 @@ its old values by `PaletteTest`), pure black, and the chat's wallpaper,
 message tone, corners and message text size (`LocalChatStyle`,
 `StyledMessage`). Added on the owner's word the same day: **colours from
 the avatar** — each conversation in a scheme seeded by the other side's
-photo (`seedFromPixels`) or placeholder colour. Still to do: the list's
-density and avatar shapes (5), the app icon (6), less motion (7).
+photo (`seedFromPixels`) or placeholder colour.
+
+**Done 28 September (1.4):** 5–7 — two-line previews
+(`LocalTwoLinePreviews`); the launcher icon in the eight accent colours,
+one `activity-alias` each, switched when the app leaves the screen
+(`AppearanceStore.applyAppIcon`, since switching the alias a task was
+started through closes it on many launchers); and Less motion
+(`LocalReduceMotion`): no container transforms, screens fade rather than
+slide, the standard motion scheme, a typing avatar holding still. On the
+owner's word the same day the wallpaper became a row of picture cards
+instead of a segmented row, Gradient and Waves were made bolder — Gradient
+and Plain could hardly be told apart — and two were added: Aurora and
+Shapes (Material's shapes, scattered). The same release fixes forward,
+delete and edit on live accounts (TDLib moved the permission flags to
+`getMessageProperties`) and reports voice and video notes as listened
+(`openMessageContent`).
 
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback

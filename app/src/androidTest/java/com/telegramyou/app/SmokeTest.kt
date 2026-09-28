@@ -1738,7 +1738,9 @@ class SmokeTest {
     /**
      * Settings → Appearance: its own screen, with the preview on top. The
      * wallpaper's colour off, an accent chosen, colours from the avatar on,
-     * the dotted wallpaper and soft bubbles — and a chat opened in all that — and everything put back, since
+     * the shapes wallpaper, soft bubbles, two-line previews and less motion
+     * — and a chat opened in all that, out of a row that no longer opens
+     * out — and everything put back, since
      * these settings outlive the test and would recolour every screenshot
      * after it.
      */
@@ -1762,10 +1764,15 @@ class SmokeTest {
         screenshot("52-appearance")
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
-        scrollDownTo(By.text("Dots"))
-        tap(By.text("Dots"))
+        scrollDownTo(By.text("Shapes"))
+        tap(By.text("Shapes"))
         tap(By.text("Soft"))
-        scrollDownTo(By.text("Text size"))
+        screenshot("52b-appearance-wallpapers")
+        scrollDownTo(By.text("Two-line previews"))
+        tap(By.text("Two-line previews"))
+        scrollDownTo(By.text("Less motion"))
+        tap(By.text("Less motion"))
+        scrollDownTo(By.desc("Violet icon"))
 
         // Back lands on the Settings tab, and back again would leave the
         // app: the chat list is its own tab.
@@ -1791,6 +1798,10 @@ class SmokeTest {
         scrollDownTo(By.text("Gradient"))
         tap(By.text("Gradient"))
         tap(By.text("Accent"))
+        scrollDownTo(By.text("Two-line previews"))
+        tap(By.text("Two-line previews"))
+        scrollDownTo(By.text("Less motion"))
+        tap(By.text("Less motion"))
         device.pressBack()
         tap(By.text("Chats"))
         waitFor(By.text("Material Design"), "the chat list")
