@@ -1915,6 +1915,30 @@ class SmokeTest {
         backTo(By.text("Material Design"), "the chat list")
     }
 
+    /**
+     * A photo opens among the chat's others, and a swipe goes to the next —
+     * the album in Kotlin Night, three photos, counted at the top.
+     */
+    @Test
+    fun photosAreASwipeApart() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("Kotlin Night"))
+        tap(By.text("Kotlin Night"))
+        waitFor(By.text("What do you reach for first?"), "the group")
+        scrollBackTo(By.text("Photos from the meetup"), "the album")
+        tapTopmost(By.desc("Photo"))
+        waitFor(By.text("1 of 3"), "the gallery on the album's first photo")
+        screenshot("60-gallery")
+        val width = device.displayWidth
+        val middle = device.displayHeight / 2
+        device.swipe((width * 0.85).toInt(), middle, (width * 0.15).toInt(), middle, 12)
+        waitFor(By.text("2 of 3"), "the next photo after a swipe")
+        device.pressBack()
+        waitFor(By.text("Photos from the meetup"), "the chat, the gallery closed")
+    }
+
     /** Taps the highest of several matches — a screen's header over its content. */
     private fun tapTopmost(selector: BySelector) {
         // A fresh tree first: straight after a screen changes, UiAutomator's

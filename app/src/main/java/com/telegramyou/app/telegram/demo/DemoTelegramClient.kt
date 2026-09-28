@@ -1933,12 +1933,15 @@ class DemoTelegramClient(
         // Formatting, a forward and an album, so all three draw offline.
         val bom = "Compose BOM tips: pin one version, see developer.android.com, ask @lina"
         chatMessages[7] = mutableListOf(
+            // With a picture behind them — the clip's poster, the one image
+            // the demo carries — so they open, and the gallery has three to
+            // swipe through.
             demoMessage(33, 7, "Photos from the meetup", false, yesterday - 3600, "Pavel",
-                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID, photoPath = DEMO_VIDEO_POSTER),
             demoMessage(34, 7, "", false, yesterday - 3600, "Pavel",
-                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID, photoPath = DEMO_VIDEO_POSTER),
             demoMessage(35, 7, "", false, yesterday - 3600, "Pavel",
-                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID),
+                contentType = MessageContentType.Photo).copy(albumId = DEMO_ALBUM_ID, photoPath = DEMO_VIDEO_POSTER),
             demoMessage(36, 7, DEMO_FORWARDED_TEXT, false, yesterday - 1800, "Nadia")
                 .copy(forwardedFrom = "Android Developers"),
             demoMessage(40, 7, bom, false, yesterday, "Pavel").copy(
