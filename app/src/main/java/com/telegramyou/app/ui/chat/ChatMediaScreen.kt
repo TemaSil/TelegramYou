@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.runtime.remember
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,7 +66,9 @@ fun ChatMediaScreen(
     viewingVideo: ChatMessage? = null,
     onVideoClosed: () -> Unit = {},
     /** Files in flight, by id, so a tile can show what it is waiting for. */
-    transfers: Map<Int, FileTransfer> = emptyMap()
+    transfers: Map<Int, FileTransfer> = emptyMap(),
+    /** A photo or video swiped to in the gallery; what it needs is fetched. */
+    onGalleryPage: (ChatMessage) -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -126,24 +129,19 @@ fun ChatMediaScreen(
             }
         }
 
-        // The conversation's viewer, not a second one: a photo opened from
-        // here zooms and is thrown away exactly as it is from a bubble, and
-        // two implementations would drift.
-        viewingPhoto?.let { photo ->
-            PhotoViewer(
-                path = photo.photoPath.orEmpty(),
-                caption = photo.text,
-                onDismiss = onPhotoClosed
-            )
-        }
-
-        // And the conversation's player, for the same reason.
-        viewingVideo?.video?.let { video ->
-            VideoPlayerScreen(
-                video = video,
-                title = viewingVideo.text,
-                transfer = video.fileId?.let { transfers[it] },
-                onClose = onVideoClosed
+        // The conversation's gallery, not a second one: opened from the
+        // grid, it pages through the grid's photos and videos the same way.
+        (viewingPhoto ?: viewingVideo)?.let { opened ->
+            val gallery = remember(media, opened) { galleryOf(media, opened) }
+            MediaGallery(
+                items = gallery,
+                startId = opened.id,
+                transfers = transfers,
+                onPage = onGalleryPage,
+                onDismiss = {
+                    onPhotoClosed()
+                    onVideoClosed()
+                }
             )
         }
     }

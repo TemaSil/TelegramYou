@@ -180,6 +180,8 @@ fun ChatScreen(
     onPhotoClosed: () -> Unit,
     onVideoOpened: (ChatMessage) -> Unit,
     onVideoClosed: () -> Unit,
+    /** A photo or video swiped to in the gallery; what it needs is fetched. */
+    onGalleryPage: (ChatMessage) -> Unit = {},
     /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit,
     /** The emoji, GIF and sticker panel, in the keyboard's place. */
@@ -1173,20 +1175,19 @@ fun ChatScreen(
                 )
             }
 
-            state.viewingPhoto?.let { photo ->
-                PhotoViewer(
-                    path = photo.photoPath.orEmpty(),
-                    caption = photo.text,
-                    onDismiss = onPhotoClosed
-                )
-            }
-
-            state.viewingVideo?.video?.let { video ->
-                VideoPlayerScreen(
-                    video = video,
-                    title = state.viewingVideo.text,
-                    transfer = video.fileId?.let { state.transfers[it] },
-                    onClose = onVideoClosed
+            // One gallery for both: a photo or a video opens among the
+            // chat's others, a swipe apart. See MediaGallery.
+            (state.viewingPhoto ?: state.viewingVideo)?.let { opened ->
+                val gallery = remember(state.messages, opened) { galleryOf(state.messages, opened) }
+                MediaGallery(
+                    items = gallery,
+                    startId = opened.id,
+                    transfers = state.transfers,
+                    onPage = onGalleryPage,
+                    onDismiss = {
+                        onPhotoClosed()
+                        onVideoClosed()
+                    }
                 )
             }
 

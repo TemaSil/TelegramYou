@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.input.pointer.positionChanged
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.layout.layout
@@ -94,6 +99,29 @@ fun PhotoViewer(
     caption: String,
     onDismiss: () -> Unit
 ) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        PhotoPage(path = path, caption = caption, onDismiss = onDismiss)
+    }
+}
+
+/**
+ * One photo, full-screen, zoomable and thrown away by a drag down — the
+ * viewer's page, on its own in [PhotoViewer] and one of many in
+ * MediaGallery. [path] null while the photo is still arriving. One finger
+ * pans only once the photo is zoomed: zoomed out, a sideways drag belongs
+ * to the gallery around it, to go to the next.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PhotoPage(
+    path: String?,
+    caption: String,
+    onDismiss: () -> Unit,
+    onZoomChanged: (Boolean) -> Unit = {}
+) {
     // Where the photo is and how big, and how far a drag has taken it towards
     // being let go. Both are remembered per photo rather than hoisted: a
     // viewer that reopened at yesterday's zoom would be answering a question
@@ -107,99 +135,109 @@ fun PhotoViewer(
     // visibly halfway rather than a state the gesture cannot show.
     val scrim = 0.92f * (1f - progress)
     val dismissScale = 1f - progress * 0.2f
+    LaunchedEffect(zoom.isZoomed) { onZoomChanged(zoom.isZoomed) }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onSizeChanged { viewport = it }
+            // Its own scrim, because the photo is the content rather than
+            // something sitting on a surface.
+            .background(Color.Black.copy(alpha = scrim)),
+        contentAlignment = Alignment.Center
     ) {
-        Box(
+        if (path == null) CircularProgressIndicator(color = Color.White)
+        AsyncImage(
+            model = path,
+            contentDescription = caption.ifBlank { "Photo" },
+            contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()
-                .onSizeChanged { viewport = it }
-                // Its own scrim, because the photo is the content rather than
-                // something sitting on a surface.
-                .background(Color.Black.copy(alpha = scrim)),
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = path,
-                contentDescription = caption.ifBlank { "Photo" },
-                contentScale = ContentScale.Fit,
+                .graphicsLayer {
+                    scaleX = zoom.scale * dismissScale
+                    scaleY = zoom.scale * dismissScale
+                    translationX = zoom.offsetX
+                    translationY = zoom.offsetY + dragY
+                }
+                // Pinch and drag, in one gesture detector because they are
+                // one gesture: two fingers scale, one pans, and which is
+                // happening changes mid-stroke.
+                .pointerInput(path) {
+                    // Two fingers always; one only once zoomed in. A
+                    // single finger on a photo at rest is a swipe to the
+                    // next in the gallery, and taking it here would stop
+                    // the pager from ever seeing it.
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        do {
+                            val event = awaitPointerEvent()
+                            val fingers = event.changes.count { it.pressed }
+                            if (fingers >= 2 || zoom.isZoomed) {
+                                val pan = event.calculatePan()
+                                zoom = zoomAfterGesture(
+                                    current = zoom,
+                                    scaleChange = event.calculateZoom(),
+                                    panX = pan.x,
+                                    panY = pan.y,
+                                    viewportWidth = size.width.toFloat(),
+                                    viewportHeight = size.height.toFloat()
+                                )
+                                event.changes.forEach { if (it.positionChanged()) it.consume() }
+                            }
+                        } while (event.changes.any { it.pressed })
+                    }
+                }
+                // Drag to dismiss, and only while zoomed out: once the
+                // photo is larger than the frame a vertical drag means
+                // "look further down", which is what the detector above
+                // is for.
+                .pointerInput(path, zoom.isZoomed) {
+                    if (zoom.isZoomed) return@pointerInput
+                    detectVerticalDragGestures(
+                        onDragEnd = {
+                            if (shouldDismiss(dragY, size.height.toFloat())) {
+                                onDismiss()
+                            } else {
+                                dragY = 0f
+                            }
+                        },
+                        onDragCancel = { dragY = 0f }
+                    ) { _, delta -> dragY += delta }
+                }
+                .pointerInput(path) {
+                    detectTapGestures(
+                        // A tap on the photo closes it, as it always has.
+                        // A tap while zoomed does not: the photo is being
+                        // looked at, and a stray finger should not end
+                        // that.
+                        onTap = { if (!zoom.isZoomed) onDismiss() },
+                        onDoubleTap = { zoom = zoomToggled(zoom) }
+                    )
+                }
+        )
+        if (caption.isNotBlank() && caption != "Photo") {
+            Text(
+                caption,
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        scaleX = zoom.scale * dismissScale
-                        scaleY = zoom.scale * dismissScale
-                        translationX = zoom.offsetX
-                        translationY = zoom.offsetY + dragY
-                    }
-                    // Pinch and drag, in one gesture detector because they are
-                    // one gesture: two fingers scale, one pans, and which is
-                    // happening changes mid-stroke.
-                    .pointerInput(path) {
-                        detectTransformGestures { _, pan, gestureZoom, _ ->
-                            zoom = zoomAfterGesture(
-                                current = zoom,
-                                scaleChange = gestureZoom,
-                                panX = pan.x,
-                                panY = pan.y,
-                                viewportWidth = size.width.toFloat(),
-                                viewportHeight = size.height.toFloat()
-                            )
-                        }
-                    }
-                    // Drag to dismiss, and only while zoomed out: once the
-                    // photo is larger than the frame a vertical drag means
-                    // "look further down", which is what the detector above
-                    // is for.
-                    .pointerInput(path, zoom.isZoomed) {
-                        if (zoom.isZoomed) return@pointerInput
-                        detectVerticalDragGestures(
-                            onDragEnd = {
-                                if (shouldDismiss(dragY, size.height.toFloat())) {
-                                    onDismiss()
-                                } else {
-                                    dragY = 0f
-                                }
-                            },
-                            onDragCancel = { dragY = 0f }
-                        ) { _, delta -> dragY += delta }
-                    }
-                    .pointerInput(path) {
-                        detectTapGestures(
-                            // A tap on the photo closes it, as it always has.
-                            // A tap while zoomed does not: the photo is being
-                            // looked at, and a stray finger should not end
-                            // that.
-                            onTap = { if (!zoom.isZoomed) onDismiss() },
-                            onDoubleTap = { zoom = zoomToggled(zoom) }
-                        )
-                    }
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(24.dp)
+                    // Out of the way of the photo itself once it is being
+                    // examined, and back when it is not.
+                    .alpha(if (zoom.isZoomed) 0f else 1f - progress)
             )
-            if (caption.isNotBlank() && caption != "Photo") {
-                Text(
-                    caption,
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
-                        .padding(24.dp)
-                        // Out of the way of the photo itself once it is being
-                        // examined, and back when it is not.
-                        .alpha(if (zoom.isZoomed) 0f else 1f - progress)
-                )
-            }
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(8.dp)
-                    .alpha(1f - progress)
-            ) {
-                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
-            }
+        }
+        IconButton(
+            onClick = onDismiss,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(8.dp)
+                .alpha(1f - progress)
+        ) {
+            Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
         }
     }
 }

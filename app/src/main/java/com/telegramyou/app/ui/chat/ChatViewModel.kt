@@ -1133,6 +1133,17 @@ class ChatViewModel(
     fun onPhotoClosed() = _uiState.update { it.copy(viewingPhoto = null) }
 
     /**
+     * A page of the gallery came into view: a video's file is fetched, as
+     * opening it would, and a photo still at its thumbnail gets its full size.
+     */
+    fun onGalleryPage(message: ChatMessage) {
+        when {
+            message.video != null && message.contentType == MessageContentType.Video -> fetchVideo(message)
+            message.photoPath == null -> onPhotoVisible(message)
+        }
+    }
+
+    /**
      * Opens a video full-screen, fetching it if it is not here yet.
      *
      * Unlike a photo, this opens before the file has arrived. A video is tens
