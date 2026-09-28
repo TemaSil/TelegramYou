@@ -1637,7 +1637,7 @@ class SmokeTest {
         tap(By.text(GROUP_CHAT))
         waitFor(By.textContains("Figma dump"), "the group")
         awaitNoHeadsUp()
-        tap(By.text(GROUP_CHAT))
+        tapTopmost(By.text(GROUP_CHAT))
         waitFor(By.text("Members"), "the member list")
         scrollDownTo(By.text("Nadia Orlova"))
         tap(By.text("Nadia Orlova"))
@@ -1794,6 +1794,13 @@ class SmokeTest {
 
     /** Taps the highest of several matches — a screen's header over its content. */
     private fun tapTopmost(selector: BySelector) {
+        // A fresh tree first: straight after a screen changes, UiAutomator's
+        // accessibility cache can still hold the screen before, and the
+        // header it was asked for "is not there" while it is on screen —
+        // which is how this test once failed on a chat that had opened fine.
+        if (Build.VERSION.SDK_INT >= 34) {
+            InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+        }
         device.wait(Until.hasObject(selector), STEP_TIMEOUT)
         val node = device.findObjects(selector).minByOrNull { it.visibleBounds.top }
             ?: error("nothing to tap: $selector")
