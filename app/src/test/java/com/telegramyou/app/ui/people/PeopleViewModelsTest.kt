@@ -35,7 +35,7 @@ class PeopleViewModelsTest {
     private val lina = TelegramUser(id = 11, firstName = "Lina", lastName = "Park", bio = "Swims at dawn")
 
     private fun client() = FakeTelegramClient().apply {
-        people[lina.id] = PersonProfile(lina, isContact = true, isBlocked = false)
+        profiles[lina.id] = PersonProfile(lina, isContact = true, isBlocked = false)
         contactList = listOf(lina)
     }
 
@@ -52,12 +52,12 @@ class PeopleViewModelsTest {
 
         vm.onBlockedChange(true)
         advanceUntilIdle()
-        assertTrue(lina.id in client.blocked)
+        assertTrue(lina.id in client.blockedIds)
         assertTrue(vm.uiState.value.profile!!.isBlocked)
 
         vm.onBlockedChange(false)
         advanceUntilIdle()
-        assertFalse(lina.id in client.blocked)
+        assertFalse(lina.id in client.blockedIds)
 
         vm.onSendMessage()
         advanceUntilIdle()
@@ -68,7 +68,7 @@ class PeopleViewModelsTest {
 
     @Test
     fun `unblocking from the list takes them off it and says so`() = runTest(dispatcher) {
-        val client = client().apply { blocked += lina.id }
+        val client = client().apply { blockedIds += lina.id }
         val vm = BlockedViewModel(TelegramRepository(client))
         vm.refresh()
         advanceUntilIdle()
@@ -78,7 +78,7 @@ class PeopleViewModelsTest {
         advanceUntilIdle()
         assertTrue(vm.uiState.value.people.isEmpty())
         assertEquals("Lina is unblocked", vm.uiState.value.message)
-        assertTrue(client.blocked.isEmpty())
+        assertTrue(client.blockedIds.isEmpty())
     }
 
     @Test

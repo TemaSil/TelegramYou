@@ -139,27 +139,30 @@ class FakeTelegramClient(
         _chats.value = _chats.value.filterNot { it.id == chatId }
     }
 
-    /** Who the profile screens find, by user id and by chat id. */
-    val people = mutableMapOf<Long, PersonProfile>()
-    val peopleByChat = mutableMapOf<Long, PersonProfile>()
-    val blocked = mutableSetOf<Long>()
+    /**
+     * Who the profile screens find, by user id and by chat id. Not "people":
+     * that name is taken by topPeople's list.
+     */
+    val profiles = mutableMapOf<Long, PersonProfile>()
+    val profilesByChat = mutableMapOf<Long, PersonProfile>()
+    val blockedIds = mutableSetOf<Long>()
     val addedContacts = mutableListOf<String>()
 
     /** What addContact answers; null plays a number not on Telegram. */
     var addContactResult: Long? = null
 
     override suspend fun person(userId: Long): PersonProfile? =
-        people[userId]?.let { it.copy(isBlocked = userId in blocked) }
+        profiles[userId]?.let { it.copy(isBlocked = userId in blockedIds) }
 
     override suspend fun personInChat(chatId: Long): PersonProfile? =
-        peopleByChat[chatId]?.let { it.copy(isBlocked = it.user.id in blocked) }
+        profilesByChat[chatId]?.let { it.copy(isBlocked = it.user.id in blockedIds) }
 
     override suspend fun setBlocked(userId: Long, blocked: Boolean) {
-        if (blocked) this.blocked += userId else this.blocked -= userId
+        if (blocked) blockedIds += userId else blockedIds -= userId
     }
 
     override suspend fun blockedPeople(): List<TelegramUser> =
-        blocked.mapNotNull { people[it]?.user }
+        blockedIds.mapNotNull { profiles[it]?.user }
 
     override suspend fun addContact(phone: String, firstName: String, lastName: String): Long? {
         addedContacts += phone
