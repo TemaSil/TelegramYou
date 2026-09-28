@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.animation.core.animateDpAsState
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -87,45 +92,41 @@ internal fun newCameraFile(context: Context): File {
 internal fun cameraUri(context: Context, file: File): Uri =
     FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
 
-/** The banner over the composer: what is being answered, or amended. */
+/**
+ * The banner over the composer: what is being answered, or amended.
+ *
+ * Joined to the capsule rather than laid across the screen. It is the same
+ * width and tone as the capsule, with its large corners on top and small
+ * ones where the two meet, two apart — and the capsule's own top corners go
+ * small while it is there (see ComposerBar's attachedAbove) — so the pair
+ * reads as one control the reply grew out of: Material 3 Expressive's way
+ * of joining things, as its segmented list rows are joined.
+ *
+ * It was a full-width band in the conversation's own colour, opaque, which
+ * the owner saw as a strip laid over the chat. Translucency and blur were
+ * tried before that and withdrawn — see CLAUDE.md.
+ */
 @Composable
 internal fun ComposerBanner(
     message: ChatMessage,
     isEditing: Boolean,
     onCancel: () -> Unit
 ) {
-    // The conversation's own colour, opaque — not transparent, and not a
-    // container tone.
-    //
-    // Two versions of this were wrong in opposite directions. A filled
-    // surfaceContainerHigh strip read as a bar welded to the top of the
-    // composer, a second band where there should be one floating control.
-    // Making it transparent fixed the band and broke something worse: the
-    // messages behind it showed through the text.
-    //
-    // So it paints what is behind it. Two layers rather than one, because the
-    // conversation's background is a gradient and this is the bottom of it:
-    // `surface` with primary at eight percent over it is exactly what that
-    // gradient ends on, so the banner disappears into it while still hiding
-    // whatever it covers.
-    //
-    // Not blur. Material 3 Expressive ships no blurred material — the effect
-    // exists in Compose as Modifier.blur, and it is the one thing CLAUDE.md
-    // rules out by name: glass belongs to another platform's design language
-    // and to the sibling project, not here.
-    Box(
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        shape = RoundedCornerShape(
+            topStart = BANNER_OUTER_CORNER,
+            topEnd = BANNER_OUTER_CORNER,
+            bottomStart = COMPOSER_JOIN_CORNER,
+            bottomEnd = COMPOSER_JOIN_CORNER
+        ),
         modifier = Modifier
             .fillMaxWidth()
-            // The conversation's own background, opaque. Not a tone of its
-            // own: the banner is not a strip attached to the composer, it is
-            // the place the reply is being written. Translucency was tried
-            // with the conversation blurred behind it and the owner asked for
-            // both to go — see CLAUDE.md.
-            .background(MaterialTheme.colorScheme.surface)
+            .padding(start = 16.dp, end = 16.dp, bottom = COMPOSER_JOIN_GAP)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 28.dp, vertical = 8.dp)
+            modifier = Modifier.padding(start = 20.dp, end = 6.dp, top = 6.dp, bottom = 6.dp)
         ) {
             Icon(
                 if (isEditing) Symbols.Edit else Symbols.Reply,
@@ -213,6 +214,7 @@ internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
  */
 internal val ComposerButtonLift = 4.dp
 
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun ComposerBar(
     value: String,
@@ -255,7 +257,12 @@ internal fun ComposerBar(
      * the field grows a button to raise or lower it.
      */
     botKeyboardShown: Boolean? = null,
-    onBotKeyboardToggle: () -> Unit = {}
+    onBotKeyboardToggle: () -> Unit = {},
+    /**
+     * A reply or edit banner sits on top, joined to the capsule: its top
+     * corners go small to meet it. See ComposerBanner.
+     */
+    attachedAbove: Boolean = false
 ) {
     // Floating, not a bar. It used to be a full-width surface welded to the
     // bottom of the screen with the buttons outside the field; this is one
@@ -299,7 +306,17 @@ internal fun ComposerBar(
     } else {
         with(density) { (restingHeight / 2).toDp() }
     }
-    val capsuleShape = RoundedCornerShape(corner)
+    val topCorner by animateDpAsState(
+        targetValue = if (attachedAbove) COMPOSER_JOIN_CORNER else corner,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "capsuleTop"
+    )
+    val capsuleShape = RoundedCornerShape(
+        topStart = topCorner,
+        topEnd = topCorner,
+        bottomStart = corner,
+        bottomEnd = corner
+    )
     // Concentric with the capsule: the field sits eight in from its edge, so
     // its corners are eight less. On one line that clamps to a round end;
     // taller, it is the capsule's curve followed inwards.
@@ -314,7 +331,18 @@ internal fun ComposerBar(
             // there was nothing for the inset to hold clear of. See the
             // colour below. Sixteen once the edge shows is simply the right
             // number.
-            .padding(horizontal = 16.dp, vertical = COMPOSER_MARGIN)
+            // Closer over the keyboard — or the emoji panel in its place —
+            // than over the bottom of the screen: the owner found the
+            // capsule sitting too high above the keys, and right where it
+            // was with the keyboard down. Nothing above it when a banner is
+            // joined on.
+            .padding(
+                start = 16.dp,
+                end = 16.dp,
+                top = if (attachedAbove) 0.dp else COMPOSER_MARGIN,
+                bottom = if (WindowInsets.isImeVisible || expressionsOpen) COMPOSER_MARGIN_OVER_KEYBOARD
+                else COMPOSER_MARGIN
+            )
     ) {
         // No shadow, and that is the correction rather than an omission. The
         // first version of this carried shadowElevation = 6.dp, inherited
@@ -586,8 +614,18 @@ internal fun ComposerBar(
     }
 }
 
-/** The composer capsule's margin above and below; the list stops at its bottom edge. */
+/** The composer capsule's margin above and below. */
 internal val COMPOSER_MARGIN = 8.dp
+
+/** Below the capsule while the keyboard, or the panel in its place, is up. */
+internal val COMPOSER_MARGIN_OVER_KEYBOARD = 4.dp
+
+/** The reply banner's own corners, away from the capsule. */
+internal val BANNER_OUTER_CORNER = 24.dp
+
+/** Where the banner and the capsule meet: small corners, and a hairline between. */
+internal val COMPOSER_JOIN_CORNER = 6.dp
+internal val COMPOSER_JOIN_GAP = 2.dp
 
 /** Past any half-height the composer reaches on one line: a round end. */
 internal val COMPOSER_PILL_CORNER = 64.dp

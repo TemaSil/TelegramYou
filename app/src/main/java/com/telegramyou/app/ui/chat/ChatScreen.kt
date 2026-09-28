@@ -691,15 +691,10 @@ fun ChatScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
-                    // Ending where the capsule ends, not at the bottom of the
-                    // screen. The conversation shows around the composer's
-                    // sides and above it, which is what floating it is for,
-                    // but not in the margin beneath it: a bubble scrolled
-                    // there showed as a stray strip between the capsule and
-                    // the gesture bar.
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = COMPOSER_MARGIN),
+                    // To the bottom of the screen: the conversation shows
+                    // under the capsule's margin too, rather than a band of
+                    // bare background beneath it, on the owner's word.
+                    modifier = Modifier.fillMaxSize(),
                     // Sixteen on three sides, and room for the composer on
                     // the fourth. The list runs underneath it now, so without
                     // this the newest message would sit behind the capsule
@@ -708,7 +703,7 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 96.dp - COMPOSER_MARGIN + botPanelPadding
+                        bottom = 92.dp + botPanelPadding
                     ),
                     // Bottom, as a list laid out from the bottom has by
                     // default: a short conversation sits on the composer.
@@ -1134,7 +1129,8 @@ fun ChatScreen(
                         },
                         onSampleAmplitude = recorder::sample,
                         hasAttachment = state.pendingAttachment != null,
-                        focusRequester = composerFocus
+                        focusRequester = composerFocus,
+                        attachedAbove = state.replyTo != null || state.editing != null
                     )
                 }
             }
