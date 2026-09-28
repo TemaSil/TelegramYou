@@ -1196,7 +1196,19 @@ class SmokeTest {
     }
 
     private fun waitFor(selector: BySelector, what: String) {
-        val found = device.wait(Until.hasObject(selector), STEP_TIMEOUT)
+        // Looked for through a fresh tree each time, not waited for through
+        // UiAutomator's cache: three times on one day it held a screen
+        // without what was plainly on it — "Soft", a chat's header, "31
+        // votes" under a poll that had counted the vote — and failed a test
+        // on something that had worked.
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        var found = false
+        while (!found && SystemClock.uptimeMillis() < deadline) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            found = device.wait(Until.hasObject(selector), FRESH_LOOK_MILLIS)
+        }
         if (!found) {
             // The shot is taken before failing, because what is on screen
             // instead is the whole question.
@@ -2041,6 +2053,9 @@ class SmokeTest {
         // and the difference was a failure rather than a wait.
         const val LAUNCH_TIMEOUT = 30_000L
         const val STEP_TIMEOUT = 20_000L
+
+        /** How long one look through a fresh tree waits before the next. */
+        const val FRESH_LOOK_MILLIS = 1_000L
 
         /** A look rather than a wait: whether something is already there. */
         const val SHORT_WAIT = 2_000L
