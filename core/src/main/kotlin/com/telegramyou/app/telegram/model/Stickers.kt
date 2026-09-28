@@ -40,3 +40,16 @@ data class StickerSetPreview(
     /** The set's own picture, or its first sticker's; null while unknown. */
     val cover: StickerContent? = null
 )
+
+/**
+ * A GIF the picker offers — one the account saved, or one Telegram's @gif
+ * bot found. [video] is the same shape a GIF message carries, so the picker
+ * draws it the way the chat does; [id] tells two apart, and [width] and
+ * [height] go along when it is sent, which TDLib asks for.
+ */
+data class GifItem(
+    val id: String,
+    val video: VideoContent,
+    val width: Int = 0,
+    val height: Int = 0
+)

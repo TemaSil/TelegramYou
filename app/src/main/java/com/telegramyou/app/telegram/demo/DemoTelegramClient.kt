@@ -21,6 +21,7 @@ import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
@@ -1358,6 +1359,46 @@ class DemoTelegramClient(
 
     override suspend fun recentStickers(): List<StickerContent> = sentStickers.value
 
+    /**
+     * The demo's one clip, offered as a few GIFs — enough to fill a row of
+     * the picker and to send one. Searching finds the same clip, whatever
+     * was typed: there is no bot offline to ask.
+     */
+    private fun demoGifs(prefix: String): List<GifItem> = List(4) { index ->
+        GifItem(
+            id = "$prefix-$index",
+            video = VideoContent(
+                durationSeconds = 8,
+                aspect = 360f / 202f,
+                thumbPath = DEMO_VIDEO_POSTER,
+                path = DEMO_VIDEO
+            ),
+            width = 360,
+            height = 202
+        )
+    }
+
+    override suspend fun savedGifs(): List<GifItem> {
+        delay(120)
+        return demoGifs("saved")
+    }
+
+    override suspend fun searchGifs(query: String): List<GifItem> {
+        delay(250)
+        return if (query.isBlank()) demoGifs("saved") else demoGifs("found")
+    }
+
+    override suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long?) {
+        delay(150)
+        appendOutgoing(
+            chatId = chatId,
+            text = "GIF",
+            type = MessageContentType.Animation,
+            replyToId = replyToId,
+            video = gif.video
+        )
+    }
+
     override suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long?) {
         delay(150)
         sentStickers.update { list -> (listOf(sticker) + list.filterNot { it.id == sticker.id }).take(20) }
@@ -1434,7 +1475,8 @@ class DemoTelegramClient(
         photoFileId: Int? = null,
         sticker: StickerContent? = null,
         poll: PollContent? = null,
-        entities: List<TextEntity> = emptyList()
+        entities: List<TextEntity> = emptyList(),
+        video: VideoContent? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -1463,7 +1505,8 @@ class DemoTelegramClient(
             photoFileId = photoFileId,
             sticker = sticker,
             poll = poll,
-            entities = entities
+            entities = entities,
+            video = video
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)

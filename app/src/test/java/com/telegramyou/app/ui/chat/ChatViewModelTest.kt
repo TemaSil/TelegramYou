@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.VideoContent
+import com.telegramyou.app.telegram.model.GifItem
 import androidx.lifecycle.SavedStateHandle
 import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.FakeTelegramClient
@@ -764,6 +766,45 @@ class ChatViewModelTest {
         advanceUntilIdle()
         assertNull(vm.uiState.value.detail?.pinnedMessage)
     }
+
+    @Test
+    fun `the panel opens on emoji, and again on the tab it was left on`() = runTest {
+        val (vm, _) = viewModel(listOf(message(10)))
+        advanceUntilIdle()
+
+        vm.onExpressionsOpen()
+        assertEquals(ExpressionTab.Emoji, vm.uiState.value.expressions)
+        vm.onExpressionTab(ExpressionTab.Stickers)
+        vm.onExpressionsClose()
+        assertNull(vm.uiState.value.expressions)
+
+        vm.onExpressionsOpen()
+        assertEquals(ExpressionTab.Stickers, vm.uiState.value.expressions)
+    }
+
+    @Test
+    fun `the GIF tab shows saved GIFs, searches once typing pauses, and sends`() =
+        runTest(mainDispatcher.scheduler) {
+            val (vm, client) = viewModel(listOf(message(10)))
+            val gif = GifItem(id = "g1", video = VideoContent(fileId = 5), width = 320, height = 240)
+            client.gifs = listOf(gif)
+            advanceUntilIdle()
+
+            vm.onExpressionsOpen()
+            vm.onExpressionTab(ExpressionTab.Gifs)
+            advanceUntilIdle()
+            assertEquals(listOf(gif), vm.uiState.value.gifPicker?.gifs)
+            assertTrue("saved GIFs are not a search", client.gifQueries.isEmpty())
+
+            "cats".forEachIndexed { index, _ -> vm.onGifQueryChange("cats".take(index + 1)) }
+            advanceUntilIdle()
+            assertEquals(listOf("cats"), client.gifQueries)
+
+            vm.onGifPicked(gif)
+            advanceUntilIdle()
+            assertEquals(listOf(gif), client.sentGifs)
+            assertEquals("the panel stays up", ExpressionTab.Gifs, vm.uiState.value.expressions)
+        }
 
     private companion object {
         const val CHAT_ID = 1L

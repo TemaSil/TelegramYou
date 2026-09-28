@@ -5,7 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -16,11 +17,11 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,28 +45,28 @@ data class StickerPickerState(
 const val RECENT_STICKERS = -1L
 
 /**
- * The stickers, in a sheet from the composer: a scrollable tab row of the
- * account's sets — recent first — over a grid of the chosen one. A tap sends
- * and closes, which is what every Telegram client does; a sticker is not
- * something anybody captions.
+ * The panel's sticker tab: a scrollable tab row of the account's sets —
+ * recent first — over a grid of the chosen one. A tap sends, which is what
+ * every Telegram client does; a sticker is not something anybody captions.
  *
- * Material's own parts for it: `ModalBottomSheet`, `PrimaryScrollableTabRow`
- * with the set's cover as each tab's icon, and a lazy grid.
+ * Material's own parts for it: `PrimaryScrollableTabRow` with each set's
+ * cover as its tab's icon, and a lazy grid. It was a sheet of its own until
+ * the emoji, GIFs and stickers came together in the keyboard's place.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun StickerPickerSheet(
+fun StickerTab(
     state: StickerPickerState,
     onSetSelected: (Long) -> Unit,
     onPick: (StickerContent) -> Unit,
-    onDismiss: () -> Unit
+    modifier: Modifier = Modifier
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    Column(modifier = modifier) {
         val tabs = listOf(RECENT_STICKERS) + state.sets.map { it.id }
         PrimaryScrollableTabRow(
             selectedTabIndex = tabs.indexOf(state.selected).coerceAtLeast(0),
             edgePadding = 12.dp,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = Color.Transparent
         ) {
             Tab(
                 selected = state.selected == RECENT_STICKERS,
@@ -91,7 +92,7 @@ fun StickerPickerSheet(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(360.dp),
+                .weight(1f),
             contentAlignment = Alignment.Center
         ) {
             when {
@@ -109,7 +110,8 @@ fun StickerPickerSheet(
                 )
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 76.dp),
-                    contentPadding = PaddingValues(12.dp)
+                    contentPadding = PaddingValues(12.dp),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.stickers, key = { it.id to it.fileId }) { sticker ->
                         Box(

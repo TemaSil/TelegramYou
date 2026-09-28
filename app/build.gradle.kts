@@ -384,6 +384,9 @@ dependencies {
     // catalogue of thirty-five named shapes lives in material3 and every one
     // of them is `internal` there, so the shapes are built from this instead.
     implementation("androidx.graphics:graphics-shapes:1.0.1")
+    // Android's own emoji picker — categories, recents, skin tones — for
+    // the emoji tab of the composer's panel, rather than a grid of our own.
+    implementation("androidx.emoji2:emoji2-emojipicker:1.5.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

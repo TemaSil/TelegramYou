@@ -218,8 +218,14 @@ internal fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAttach: () -> Unit,
-    /** The sticker sheet, from the smiley at the end of the field. */
-    onStickers: () -> Unit,
+    /**
+     * The emoji, GIF and sticker panel, from the smiley at the end of the
+     * field — and [onKeyboard], from the keyboard key that stands there
+     * while the panel is up, back to the keyboard.
+     */
+    onExpressions: () -> Unit,
+    expressionsOpen: Boolean = false,
+    onKeyboard: () -> Unit = {},
     /** The camera, straight from the composer rather than through the sheet. */
     onCamera: () -> Unit,
     onSend: () -> Unit,
@@ -442,8 +448,14 @@ internal fun ComposerBar(
                                         )
                                     }
                                 }
-                                IconButton(onClick = onStickers) {
-                                    Icon(Symbols.EmojiEmotions, contentDescription = "Stickers")
+                                if (expressionsOpen) {
+                                    IconButton(onClick = onKeyboard) {
+                                        Icon(Symbols.Keyboard, contentDescription = "Keyboard")
+                                    }
+                                } else {
+                                    IconButton(onClick = onExpressions) {
+                                        Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
+                                    }
                                 }
                             }
                         },

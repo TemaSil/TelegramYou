@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.chat
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StickerContent
+import com.telegramyou.app.telegram.model.GifItem
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -180,8 +181,15 @@ data class ChatUiState(
      * scope and take the app down with it.
      */
     val errorMessage: String? = null,
-    /** The sticker sheet, while it is up. */
+    /**
+     * Which tab of the emoji, GIF and sticker panel is up in the keyboard's
+     * place; null while it is down.
+     */
+    val expressions: ExpressionTab? = null,
+    /** The sticker tab's sets and stickers, once it has been opened. */
     val stickerPicker: StickerPickerState? = null,
+    /** The GIF tab's search and results, once it has been opened. */
+    val gifPicker: GifPickerState? = null,
     /** The bot's keyboard under the composer, in a chat that has one. */
     val replyKeyboard: ReplyKeyboard? = null,
     /** What a bot said back to a pressed button, until it has been shown. */
@@ -442,14 +450,37 @@ class ChatViewModel(
         }
     }
 
-    // ── stickers ─────────────────────────────────────────────────────────
+    // ── emoji, GIFs and stickers ─────────────────────────────────────────
+
+    /** The tab the panel opened on last, so it comes back where it was left. */
+    private var lastExpressionTab = ExpressionTab.Emoji
+
+    /** The panel, in the keyboard's place, on the tab it was left on. */
+    fun onExpressionsOpen() = onExpressionTab(lastExpressionTab)
+
+    fun onExpressionsClose() = _uiState.update { it.copy(expressions = null) }
+
+    /** A tab chosen; stickers and GIFs are fetched the first time theirs opens. */
+    fun onExpressionTab(tab: ExpressionTab) {
+        lastExpressionTab = tab
+        _uiState.update { it.copy(expressions = tab) }
+        val state = _uiState.value
+        when (tab) {
+            ExpressionTab.Stickers -> if (state.stickerPicker == null) loadStickers()
+            ExpressionTab.Gifs -> if (state.gifPicker == null) {
+                _uiState.update { it.copy(gifPicker = GifPickerState()) }
+                searchGifs("")
+            }
+            ExpressionTab.Emoji -> Unit
+        }
+    }
 
     /**
-     * The sticker sheet, opening on what was sent lately — or on the first
+     * The sticker tab, opening on what was sent lately — or on the first
      * set, for an account that has sent none yet, rather than on an empty
      * tab explaining why it is empty.
      */
-    fun onStickerPickerOpen() {
+    private fun loadStickers() {
         _uiState.update { it.copy(stickerPicker = StickerPickerState()) }
         viewModelScope.launch {
             var sets = emptyList<StickerSetPreview>()
@@ -495,15 +526,77 @@ class ChatViewModel(
         }
     }
 
-    fun onStickerPickerDismiss() = _uiState.update { it.copy(stickerPicker = null) }
-
-    /** Sent at once, answering the message being replied to, if any. */
+    /**
+     * Sent at once, answering the message being replied to, if any. The
+     * panel stays up, as it does in every Telegram client: stickers are
+     * often sent two at a time.
+     */
     fun onStickerPicked(sticker: StickerContent) {
         val answering = _uiState.value.replyTo
-        _uiState.update { it.copy(stickerPicker = null, replyTo = null) }
+        _uiState.update { it.copy(replyTo = null) }
         viewModelScope.launch {
             attempt("Could not send the sticker") {
                 repository.sendSticker(chatId, sticker, answering?.id)
+            }
+        }
+    }
+
+    private var gifSearch: Job? = null
+
+    /**
+     * What is typed into the GIF search, asked of Telegram once typing
+     * pauses — each letter a request to a bot would be most of them wasted.
+     * Empty goes back to the saved GIFs.
+     */
+    fun onGifQueryChange(query: String) {
+        _uiState.update { it.copy(gifPicker = (it.gifPicker ?: GifPickerState()).copy(query = query)) }
+        searchGifs(query, pause = GIF_SEARCH_PAUSE_MILLIS)
+    }
+
+    private fun searchGifs(query: String, pause: Long = 0) {
+        gifSearch?.cancel()
+        gifSearch = viewModelScope.launch {
+            delay(pause)
+            _uiState.update { it.copy(gifPicker = it.gifPicker?.copy(isLoading = true)) }
+            var gifs = emptyList<GifItem>()
+            attempt("Could not load GIFs") {
+                gifs = if (query.isBlank()) repository.savedGifs() else repository.searchGifs(query)
+            }
+            _uiState.update { state ->
+                if (state.gifPicker?.query != query) state
+                else state.copy(gifPicker = state.gifPicker.copy(gifs = gifs, isLoading = false))
+            }
+        }
+    }
+
+    /** A GIF on screen: its poster and its clip fetched, and put in its place. */
+    fun onGifVisible(gif: GifItem) {
+        val video = gif.video
+        if (video.path != null) return
+        viewModelScope.launch {
+            val thumb = video.thumbPath ?: video.thumbFileId?.let { repository.downloadFile(it) }
+            val clip = video.fileId?.let { repository.downloadFile(it) }
+            _uiState.update { state ->
+                val picker = state.gifPicker ?: return@update state
+                state.copy(
+                    gifPicker = picker.copy(
+                        gifs = picker.gifs.map {
+                            if (it.id != gif.id) it
+                            else it.copy(video = it.video.copy(thumbPath = thumb ?: it.video.thumbPath, path = clip))
+                        }
+                    )
+                )
+            }
+        }
+    }
+
+    /** Sent at once, like a sticker, and the panel stays up. */
+    fun onGifPicked(gif: GifItem) {
+        val answering = _uiState.value.replyTo
+        _uiState.update { it.copy(replyTo = null) }
+        viewModelScope.launch {
+            attempt("Could not send the GIF") {
+                repository.sendGif(chatId, gif, answering?.id)
             }
         }
     }
@@ -1472,6 +1565,9 @@ class ChatViewModel(
 
         /** How long typing pauses before the draft is saved. */
         const val DRAFT_SAVE_MS = 1_000L
+
+        /** How long typing in the GIF search pauses before the bot is asked. */
+        const val GIF_SEARCH_PAUSE_MILLIS = 400L
     }
 
     private fun reload() {

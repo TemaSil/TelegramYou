@@ -1,5 +1,14 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.GifItem
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.activity.compose.BackHandler
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.animation.scaleIn
@@ -170,10 +179,15 @@ fun ChatScreen(
     onVideoClosed: () -> Unit,
     /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit,
-    onStickerPickerOpen: () -> Unit = {},
+    /** The emoji, GIF and sticker panel, in the keyboard's place. */
+    onExpressionsOpen: () -> Unit = {},
+    onExpressionsClose: () -> Unit = {},
+    onExpressionTab: (ExpressionTab) -> Unit = {},
     onStickerSetSelected: (Long) -> Unit = {},
     onStickerPicked: (StickerContent) -> Unit = {},
-    onStickerPickerDismiss: () -> Unit = {},
+    onGifQueryChange: (String) -> Unit = {},
+    onGifVisible: (GifItem) -> Unit = {},
+    onGifPicked: (GifItem) -> Unit = {},
     onVote: (ChatMessage, Set<Int>) -> Unit = { _, _ -> },
     /** A bot button that talks to the bot or fills the composer. */
     onBotButton: (ChatMessage, InlineButton) -> Unit = { _, _ -> },
@@ -341,6 +355,36 @@ fun ChatScreen(
     var botPanelHeight by remember { mutableIntStateOf(0) }
     val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
     val botPanelPadding = if (botPanelVisible) with(LocalDensity.current) { botPanelHeight.toDp() } else 0.dp
+
+    // The emoji, GIF and sticker panel stands where the keyboard stood, at
+    // the keyboard's height — the tallest it has been seen, less the
+    // navigation bar it sits over — so switching between the two moves
+    // nothing above them. Read through snapshotFlow rather than in
+    // composition: the inset changes every frame the keyboard slides, and
+    // this whole screen recomposing with it is what that would cost.
+    val expressionsOpen = state.expressions != null
+    val density = LocalDensity.current
+    val imeInsets = WindowInsets.ime
+    val navInsets = WindowInsets.navigationBars
+    var keyboardHeight by rememberSaveable { mutableIntStateOf(0) }
+    val latestExpressionsOpen by rememberUpdatedState(expressionsOpen)
+    LaunchedEffect(imeInsets, navInsets) {
+        snapshotFlow { imeInsets.getBottom(density) - navInsets.getBottom(density) }
+            .collect { height -> if (height > keyboardHeight) keyboardHeight = height }
+    }
+    // The keyboard coming up — the field tapped, a reply started — puts the
+    // panel away: one keyboard at a time, as with the bot's.
+    LaunchedEffect(imeInsets) {
+        snapshotFlow { imeInsets.getBottom(density) > 0 }
+            .collect { up -> if (up && latestExpressionsOpen) onExpressionsClose() }
+    }
+    val panelHeight = if (keyboardHeight > 0) {
+        with(density) { keyboardHeight.toDp() }.coerceAtLeast(PANEL_MIN_HEIGHT)
+    } else {
+        PANEL_DEFAULT_HEIGHT
+    }
+    val navBarHeight = with(density) { navInsets.getBottom(density).toDp() }
+    BackHandler(enabled = expressionsOpen) { onExpressionsClose() }
     val microphone = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -593,7 +637,15 @@ fun ChatScreen(
                 // The wallpaper chosen in Appearance — the gradient that was
                 // always here unless another was picked; see chatWallpaper.
                 .chatWallpaper(LocalChatStyle.current.wallpaper)
-                .padding(padding)
+                // With the panel up it runs to the bottom of the screen,
+                // under the navigation bar as the keyboard does, so the
+                // inset below is left to the panel.
+                .padding(
+                    start = padding.calculateStartPadding(LocalLayoutDirection.current),
+                    top = padding.calculateTopPadding(),
+                    end = padding.calculateEndPadding(LocalLayoutDirection.current),
+                    bottom = if (expressionsOpen) 0.dp else padding.calculateBottomPadding()
+                )
                 .imePadding()
         ) {
             detail?.pinnedMessage?.let { pinned ->
@@ -985,14 +1037,6 @@ fun ChatScreen(
                         onClear = onSelectionCleared
                     )
                 } else {
-                    state.stickerPicker?.let { picker ->
-                        StickerPickerSheet(
-                            state = picker,
-                            onSetSelected = onStickerSetSelected,
-                            onPick = onStickerPicked,
-                            onDismiss = onStickerPickerDismiss
-                        )
-                    }
                     if (state.attachmentSheetOpen) {
                         AttachmentSheet(
                             onDismiss = { onAttachmentSheetOpenChange(false) },
@@ -1033,7 +1077,17 @@ fun ChatScreen(
                         value = state.draft,
                         onValueChange = onDraftChange,
                         onAttach = { onAttachmentSheetOpenChange(true) },
-                        onStickers = onStickerPickerOpen,
+                        expressionsOpen = expressionsOpen,
+                        onExpressions = {
+                            keyboardController?.hide()
+                            botKeyboardShown = false
+                            onExpressionsOpen()
+                        },
+                        onKeyboard = {
+                            onExpressionsClose()
+                            composerFocus.requestFocus()
+                            keyboardController?.show()
+                        },
                         onCamera = {
                             // The same launch the sheet's camera entry makes. Kept
                             // as one expression rather than shared with it: this
@@ -1084,6 +1138,25 @@ fun ChatScreen(
                     )
                 }
             }
+            }
+
+            // Under the composer, in the keyboard's place; see keyboardHeight.
+            state.expressions?.let { tab ->
+                ExpressionPanel(
+                    tab = tab,
+                    height = panelHeight + navBarHeight,
+                    stickers = state.stickerPicker,
+                    gifs = state.gifPicker,
+                    onTab = onExpressionTab,
+                    onEmoji = { emoji -> onDraftChange(state.draft + emoji) },
+                    onBackspace = { onDraftChange(dropLastGrapheme(state.draft)) },
+                    onStickerSetSelected = onStickerSetSelected,
+                    onStickerPicked = onStickerPicked,
+                    onGifQueryChange = onGifQueryChange,
+                    onGifVisible = onGifVisible,
+                    onGifPicked = onGifPicked,
+                    bottomInset = navBarHeight
+                )
             }
 
             state.pendingDelete?.let { target ->
@@ -1290,3 +1363,9 @@ internal fun listIndexOf(index: Int, messages: List<ChatMessage>): Int = message
 internal const val HIGHLIGHT_ALPHA = 0.16f
 
 internal val HIGHLIGHT_CORNER = 20.dp
+
+/** The panel's height before the keyboard has been seen: a keyboard's, near enough. */
+private val PANEL_DEFAULT_HEIGHT = 300.dp
+
+/** No shorter than this, whatever a floating or split keyboard measured. */
+private val PANEL_MIN_HEIGHT = 240.dp

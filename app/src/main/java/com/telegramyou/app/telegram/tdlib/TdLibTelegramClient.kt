@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatPositions
 import com.telegramyou.app.telegram.model.MessageUpdate
@@ -2241,6 +2242,82 @@ class TdLibTelegramClient(
                         .put("emoji", sticker.emoji)
                 )
         )
+    }
+
+    // ── GIFs ─────────────────────────────────────────────────────────────
+
+    override suspend fun savedGifs(): List<GifItem> {
+        awaitReady()
+        val answer = requireEngine().send(JSONObject().put("@type", "getSavedAnimations"))
+        val animations = answer.optJSONArray("animations") ?: return emptyList()
+        return List(animations.length()) { animations.optJSONObject(it) }.mapNotNull { gifItem(it) }
+    }
+
+    /** The @gif bot's user id, found once; the bot's handle does not change. */
+    @Volatile
+    private var gifBotId: Long? = null
+
+    override suspend fun searchGifs(query: String): List<GifItem> {
+        awaitReady()
+        val botId = gifBotId ?: requireEngine()
+            .send(JSONObject().put("@type", "searchPublicChat").put("username", "gif"))
+            .optJSONObject("type")
+            ?.optLong("user_id")
+            ?.takeIf { it != 0L }
+            ?.also { gifBotId = it }
+            ?: return emptyList()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getInlineQueryResults")
+                .put("bot_user_id", botId)
+                .put("chat_id", 0)
+                .put("query", query.trim())
+                .put("offset", "")
+        )
+        val results = answer.optJSONArray("results") ?: return emptyList()
+        return List(results.length()) { results.optJSONObject(it) }
+            .filter { it?.optString("@type") == "inlineQueryResultAnimation" }
+            .mapNotNull { gifItem(it.optJSONObject("animation")) }
+    }
+
+    override suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long?) {
+        awaitReady()
+        val fileId = gif.video.fileId ?: error("This GIF has no file to send")
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .withReplyTo(replyToId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageAnimation")
+                        .put(
+                            "animation",
+                            JSONObject()
+                                .put("@type", "inputAnimation")
+                                .put("animation", JSONObject().put("@type", "inputFileId").put("id", fileId))
+                                .put("added_sticker_file_ids", JSONArray())
+                                .put("duration", gif.video.durationSeconds)
+                                .put("width", gif.width)
+                                .put("height", gif.height)
+                        )
+                        .put("show_caption_above_media", false)
+                        .put("has_spoiler", false)
+                )
+        )
+    }
+
+    /** A TDLib `animation` as the picker's item, read the way a GIF message is. */
+    private fun gifItem(animation: JSONObject?): GifItem? {
+        if (animation == null) return null
+        val video = videoContent(JSONObject().put("@type", "messageAnimation").put("animation", animation))
+            ?: return null
+        val file = animation.optJSONObject("animation")
+        val id = file?.optJSONObject("remote")?.optString("unique_id")?.takeIf { it.isNotBlank() }
+            ?: video.fileId?.toString()
+            ?: return null
+        return GifItem(id = id, video = video, width = animation.optInt("width"), height = animation.optInt("height"))
     }
 
     override suspend fun logout() {

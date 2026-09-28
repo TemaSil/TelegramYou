@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.stickers
 
+import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerSetPreview
 
@@ -15,4 +16,12 @@ interface TelegramStickers {
     suspend fun recentStickers(): List<StickerContent>
 
     suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long? = null)
+
+    /** The GIFs this account saved, newest first — the GIF tab before anything is typed. */
+    suspend fun savedGifs(): List<GifItem> = emptyList()
+
+    /** GIFs for [query], found by Telegram's own @gif bot, as every client finds them. */
+    suspend fun searchGifs(query: String): List<GifItem> = emptyList()
+
+    suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long? = null)
 }

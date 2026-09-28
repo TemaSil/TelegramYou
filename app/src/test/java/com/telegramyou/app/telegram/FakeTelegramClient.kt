@@ -10,6 +10,7 @@ import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
@@ -587,6 +588,22 @@ class FakeTelegramClient(
     override suspend fun stickerSets(): List<StickerSetPreview> = emptyList()
     override suspend fun stickerSet(setId: Long): List<StickerContent> = emptyList()
     override suspend fun recentStickers(): List<StickerContent> = emptyList()
+    /** GIFs sent, and what the GIF tab is offered. */
+    val sentGifs = mutableListOf<GifItem>()
+    var gifs: List<GifItem> = emptyList()
+    val gifQueries = mutableListOf<String>()
+
+    override suspend fun savedGifs(): List<GifItem> = gifs
+
+    override suspend fun searchGifs(query: String): List<GifItem> {
+        gifQueries += query
+        return gifs
+    }
+
+    override suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long?) {
+        sentGifs += gif
+    }
+
     override suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long?) = Unit
 
     override suspend fun proxies(): List<ProxyServer> = emptyList()
