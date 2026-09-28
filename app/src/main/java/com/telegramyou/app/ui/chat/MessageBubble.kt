@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
