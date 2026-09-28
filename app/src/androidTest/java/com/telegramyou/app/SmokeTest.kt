@@ -1833,6 +1833,13 @@ class SmokeTest {
         scrollDownTo(By.text("Groups"))
         tap(By.text("Groups"))
         tap(By.text("Save"))
+        // Gone first: "Friends" is also in the editor's own name field, and
+        // waiting for the text alone found it there and tapped the field.
+        assertTrue(
+            "the editor did not close after saving",
+            device.wait(Until.gone(By.desc("Folder name")), STEP_TIMEOUT)
+        )
+        waitFor(By.text("Your folders"), "the folder list")
         waitFor(By.text("Friends"), "the new folder in the list")
         screenshot("56-folders")
 
@@ -1864,7 +1871,9 @@ class SmokeTest {
         tap(By.text("Lina Park"))
         waitFor(By.desc("Emoji, GIFs and stickers"), "the composer's smiley")
         tap(By.desc("Emoji, GIFs and stickers"))
-        waitFor(By.desc("Emoji"), "the emoji picker")
+        // Its own button, not the picker: the picker is an Android View,
+        // and the description set on its Compose wrapper is not published.
+        waitFor(By.desc("Backspace"), "the emoji tab")
         waitFor(By.desc("Keyboard"), "the keyboard key in the smiley's place")
         screenshot("57-panel-emoji")
 
@@ -1934,9 +1943,19 @@ class SmokeTest {
     /** Scrolls whatever scrolls on screen down until [selector] shows. */
     private fun scrollDownTo(selector: BySelector) {
         repeat(5) {
+            // A fresh tree each look, as tapTopmost takes: Appearance once
+            // had "Soft" on screen and UiAutomator's cache still without it.
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
             if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
             try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+                // The tallest thing that scrolls, which is the page: a row
+                // that scrolls sideways — the wallpaper cards — is scrollable
+                // too, and scrolling it down does nothing.
+                device.findObjects(By.scrollable(true))
+                    .maxByOrNull { it.visibleBounds.height() }
+                    ?.scroll(Direction.DOWN, 0.6f)
             } catch (_: StaleObjectException) {
             }
         }
