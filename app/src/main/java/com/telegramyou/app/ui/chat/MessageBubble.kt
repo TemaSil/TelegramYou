@@ -353,7 +353,11 @@ internal fun MessageBubble(
                 // nullable properties — a public property of another module can
                 // change under a compiled caller.
                 val sender = message.senderName?.takeIf { it.isNotBlank() }
-                if (!outgoing && isFirstInRun && sender != null) {
+                // Only where several people write — the same test as the
+                // avatar beside the run. In a private chat the header already
+                // says who, and TDLib names the sender of every message, so
+                // the name sat over each of the other person's runs.
+                if (showAvatar && !outgoing && isFirstInRun && sender != null) {
                     Text(
                         sender,
                         style = MaterialTheme.typography.labelMedium,
