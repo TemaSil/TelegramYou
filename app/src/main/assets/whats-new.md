@@ -1,5 +1,5 @@
-# People, properly
-- Tap anyone to see who they are: number, username, bio
-- Block from a profile; unblock in Settings → Privacy → Blocked users
-- Clear or delete a chat from its long-press menu 🧹
-- Contacts live in the ⋮ menu now, and you can add anyone by number
+# Make it yours
+- A new Appearance screen, with a live chat preview up top
+- Pick an accent colour or keep your wallpaper's, and pure black for OLED
+- Chat wallpapers, softer bubbles, rounder corners and bigger message text
+- Each chat can take its colours from the other person's avatar 🎨

@@ -140,6 +140,15 @@ Material's own parts:
 All of it in `AppearanceSettings`, with the rules and defaults in `:core`
 and tested; each lands visible in the preview first.
 
+**Done 28 September (1.3):** 1–4 — the screen and its preview, the eight
+accents (`schemeFromSeed`, with the hand-written teal replaced and held to
+its old values by `PaletteTest`), pure black, and the chat's wallpaper,
+message tone, corners and message text size (`LocalChatStyle`,
+`StyledMessage`). Added on the owner's word the same day: **colours from
+the avatar** — each conversation in a scheme seeded by the other side's
+photo (`seedFromPixels`) or placeholder colour. Still to do: the list's
+density and avatar shapes (5), the app icon (6), less motion (7).
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback
 speed and picture-in-picture; recording round video messages; a photo

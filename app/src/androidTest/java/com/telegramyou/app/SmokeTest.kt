@@ -1749,8 +1749,12 @@ class SmokeTest {
         waitFor(By.desc("Preview"), "the preview")
         waitFor(By.text("Accent colour"), "the accents")
         tap(By.text("Colour from your wallpaper"))
+        // The swatches answer only once the wallpaper's colour is off, which
+        // the accent row's summary says by naming the accent.
+        waitFor(By.text("Teal"), "the accents enabled")
         tap(By.desc("Pink"))
         waitFor(By.text("Pink"), "Pink as the accent")
+        SystemClock.sleep(700)
         screenshot("52-appearance")
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
@@ -1759,7 +1763,11 @@ class SmokeTest {
         tap(By.text("Soft"))
         scrollDownTo(By.text("Text size"))
 
-        backTo(By.text("Material Design"), "the chat list")
+        // Back lands on the Settings tab, and back again would leave the
+        // app: the chat list is its own tab.
+        device.pressBack()
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list")
         tap(By.text("Lina Park"))
         waitFor(By.desc("GIF"), "Lina's chat, in her colours")
         screenshot("53-chat-avatar-colours")
@@ -1772,12 +1780,16 @@ class SmokeTest {
         tap(By.text("Appearance"))
         waitFor(By.text("Accent colour"), "the accents again")
         tap(By.desc("Teal"))
+        waitFor(By.text("Teal"), "Teal again")
         tap(By.text("Colour from your wallpaper"))
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
         scrollDownTo(By.text("Gradient"))
         tap(By.text("Gradient"))
         tap(By.text("Accent"))
+        device.pressBack()
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list")
     }
 
     /** Taps the highest of several matches — a screen's header over its content. */
