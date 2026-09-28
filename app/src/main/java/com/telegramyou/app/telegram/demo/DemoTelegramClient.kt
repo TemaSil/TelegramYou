@@ -21,6 +21,7 @@ import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.MessageHit
@@ -1634,6 +1635,62 @@ class DemoTelegramClient(
 
     override suspend fun leaveChat(chatId: Long) {
         _chats.update { list -> list.filterNot { it.id == chatId } }
+    }
+
+    /**
+     * Each folder's rules, made on first asking from which chats the seed
+     * put in it — one by one, as a folder of hand-picked chats. Saved rules
+     * replace them, and membership is then worked out by the same rule the
+     * server applies (FolderRules.contains).
+     */
+    private val demoFolderRules = mutableMapOf<Int, FolderRules>()
+
+    private fun rulesOf(folderId: Int): FolderRules = demoFolderRules.getOrPut(folderId) {
+        val folder = _folders.value.first { it.id == folderId }
+        FolderRules(
+            name = folder.title,
+            iconName = folder.iconName,
+            includedChatIds = _chats.value.filter { folderId in it.folderIds }.map { it.id }
+        )
+    }
+
+    override suspend fun folderRules(folderId: Int): FolderRules {
+        delay(120)
+        return rulesOf(folderId)
+    }
+
+    override suspend fun saveFolder(folderId: Int?, rules: FolderRules): Int {
+        delay(200)
+        val id = folderId ?: ((_folders.value.maxOfOrNull { it.id } ?: 0) + 1)
+        val saved = rules.copy(name = rules.name.trim())
+        // Every other folder's rules pinned down first, while the chats still
+        // say what is in them; working membership out again below would
+        // otherwise empty the ones never opened.
+        _folders.value.forEach { rulesOf(it.id) }
+        demoFolderRules[id] = saved
+        _folders.update { list ->
+            val folder = ChatFolder(id, saved.name, iconName = saved.iconName)
+            if (list.any { it.id == id }) list.map { if (it.id == id) folder else it } else list + folder
+        }
+        _chats.update { chats ->
+            chats.map { chat ->
+                val inIt = saved.contains(chat, isContact = !chat.isGroup && !chat.isChannel && !chat.isBot)
+                chat.copy(folderIds = if (inIt) chat.folderIds + id else chat.folderIds - id)
+            }
+        }
+        return id
+    }
+
+    override suspend fun deleteFolder(folderId: Int) {
+        delay(150)
+        demoFolderRules.remove(folderId)
+        _folders.update { list -> list.filterNot { it.id == folderId } }
+        _chats.update { chats -> chats.map { it.copy(folderIds = it.folderIds - folderId) } }
+    }
+
+    override suspend fun reorderFolders(folderIds: List<Int>) {
+        delay(100)
+        _folders.update { list -> folderIds.mapNotNull { id -> list.firstOrNull { it.id == id } } }
     }
 
     private fun seedFolders(): List<ChatFolder> = listOf(

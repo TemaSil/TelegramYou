@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.EmailReset
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatPositions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.CallbackAnswer
@@ -2532,6 +2533,7 @@ class TdLibTelegramClient(
                 // only for the lists that have been loaded — which is why
                 // refreshChats loads each folder as well as the main list.
                 _folders.value = parseFolders(update.optJSONArray("chat_folders"))
+                mainListPosition = update.optInt("main_chat_list_position")
                 // Loading waits on the server, and this thread must not: the
                 // positions it brings back arrive as updates of their own.
                 scope.launch { loadFolderChats() }
@@ -3013,6 +3015,119 @@ class TdLibTelegramClient(
      * three lines; guessing wrong is a client whose folder tabs are all
      * blank.
      */
+    /**
+     * Where the main list sits among the folder tabs, as updateChatFolders
+     * last said. reorderChatFolders asks for it back, and sending 0 would
+     * move somebody's "All chats" tab to the front behind their back.
+     */
+    @Volatile
+    private var mainListPosition = 0
+
+    override suspend fun folderRules(folderId: Int): FolderRules {
+        awaitReady()
+        return parseFolderRules(
+            requireEngine().send(JSONObject().put("@type", "getChatFolder").put("chat_folder_id", folderId))
+        )
+    }
+
+    override suspend fun saveFolder(folderId: Int?, rules: FolderRules): Int {
+        awaitReady()
+        // Editing starts from the folder as it is, so what this client does
+        // not show — its colour tag, whether it is shared — stays as set.
+        val base = if (folderId != null) {
+            requireEngine().send(JSONObject().put("@type", "getChatFolder").put("chat_folder_id", folderId))
+        } else {
+            JSONObject().put("@type", "chatFolder").put("color_id", -1).put("is_shareable", false)
+        }
+        val folder = folderJson(base, rules)
+        val info = if (folderId == null) {
+            requireEngine().send(JSONObject().put("@type", "createChatFolder").put("folder", folder))
+        } else {
+            requireEngine().send(
+                JSONObject().put("@type", "editChatFolder").put("chat_folder_id", folderId).put("folder", folder)
+            )
+        }
+        return info.optInt("id")
+    }
+
+    override suspend fun deleteFolder(folderId: Int) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "deleteChatFolder")
+                .put("chat_folder_id", folderId)
+                // Leaving chats along with a shared folder is a question for
+                // shared folders, which this client does not make.
+                .put("leave_chat_ids", JSONArray())
+        )
+    }
+
+    override suspend fun reorderFolders(folderIds: List<Int>) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "reorderChatFolders")
+                .put("chat_folder_ids", JSONArray(folderIds))
+                .put("main_chat_list_position", mainListPosition)
+        )
+    }
+
+    private fun parseFolderRules(folder: JSONObject): FolderRules {
+        fun ids(key: String): List<Long> {
+            val array = folder.optJSONArray(key) ?: return emptyList()
+            return List(array.length()) { array.optLong(it) }
+        }
+        return FolderRules(
+            name = folder.optJSONObject("name")?.optJSONObject("text")?.optString("text").orEmpty(),
+            iconName = folder.optJSONObject("icon")?.optString("name").orEmpty(),
+            includedChatIds = ids("included_chat_ids"),
+            excludedChatIds = ids("excluded_chat_ids"),
+            pinnedChatIds = ids("pinned_chat_ids"),
+            includeContacts = folder.optBoolean("include_contacts"),
+            includeNonContacts = folder.optBoolean("include_non_contacts"),
+            includeGroups = folder.optBoolean("include_groups"),
+            includeChannels = folder.optBoolean("include_channels"),
+            includeBots = folder.optBoolean("include_bots"),
+            excludeMuted = folder.optBoolean("exclude_muted"),
+            excludeRead = folder.optBoolean("exclude_read"),
+            excludeArchived = folder.optBoolean("exclude_archived")
+        )
+    }
+
+    /** [rules] written over [base], a chatFolder, keeping the fields they do not cover. */
+    private fun folderJson(base: JSONObject, rules: FolderRules): JSONObject {
+        val folder = JSONObject(base.toString())
+        folder.remove("@extra")
+        folder.put("@type", "chatFolder")
+        folder.put(
+            "name",
+            JSONObject()
+                .put("@type", "chatFolderName")
+                .put("text", JSONObject().put("@type", "formattedText").put("text", rules.name.trim()).put("entities", JSONArray()))
+                .put("animate_custom_emoji", false)
+        )
+        // A null icon asks TDLib for the default one for the folder's rules.
+        if (rules.iconName.isBlank()) {
+            folder.remove("icon")
+        } else {
+            folder.put("icon", JSONObject().put("@type", "chatFolderIcon").put("name", rules.iconName))
+        }
+        // A pinned chat that is no longer included would be refused.
+        val pinned = rules.pinnedChatIds.filter { it in rules.includedChatIds }
+        folder.put("pinned_chat_ids", JSONArray(pinned))
+        folder.put("included_chat_ids", JSONArray(rules.includedChatIds.filterNot { it in pinned }))
+        folder.put("excluded_chat_ids", JSONArray(rules.excludedChatIds))
+        folder.put("include_contacts", rules.includeContacts)
+        folder.put("include_non_contacts", rules.includeNonContacts)
+        folder.put("include_groups", rules.includeGroups)
+        folder.put("include_channels", rules.includeChannels)
+        folder.put("include_bots", rules.includeBots)
+        folder.put("exclude_muted", rules.excludeMuted)
+        folder.put("exclude_read", rules.excludeRead)
+        folder.put("exclude_archived", rules.excludeArchived)
+        return folder
+    }
+
     private fun parseFolders(array: JSONArray?): List<ChatFolder> {
         if (array == null) return emptyList()
         val folders = ArrayList<ChatFolder>(array.length())

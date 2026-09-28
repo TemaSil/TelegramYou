@@ -1,5 +1,9 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.ui.folders.FolderEditScreen
+import com.telegramyou.app.ui.folders.FolderEditViewModel
+import com.telegramyou.app.ui.folders.FoldersScreen
+import com.telegramyou.app.ui.folders.FoldersViewModel
 import com.telegramyou.app.ui.chat.LocalFileLoader
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExitTransition
@@ -333,6 +337,7 @@ fun TelegramYouNavHost(
                 onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
                 onOpenContacts = { navController.navigateTo(Route.Contacts) },
                 onOpenAppearance = { navController.navigateTo(Route.Appearance) },
+                onOpenFolders = { navController.navigateTo(Route.Folders) },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
@@ -445,7 +450,8 @@ fun TelegramYouNavHost(
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenUpdates = { navController.navigateTo(Route.Updates) },
-                onOpenAppearance = { navController.navigateTo(Route.Appearance) }
+                onOpenAppearance = { navController.navigateTo(Route.Appearance) },
+                onOpenFolders = { navController.navigateTo(Route.Folders) }
             )
         }
         composable(Route.Appearance.PATTERN) {
@@ -523,6 +529,42 @@ fun TelegramYouNavHost(
                 onUnblock = blockedViewModel::onUnblock,
                 onOpenPerson = { navController.navigateTo(Route.Person(it)) },
                 onMessageShown = blockedViewModel::onMessageShown
+            )
+        }
+        composable(Route.Folders.PATTERN) {
+            val foldersViewModel: FoldersViewModel = viewModel(factory = viewModelFactory)
+            val state by foldersViewModel.uiState.collectAsStateWithLifecycle()
+            FoldersScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onOpenFolder = { navController.navigateTo(Route.FolderEdit(it)) },
+                onNewFolder = { navController.navigateTo(Route.FolderEdit(Route.FolderEdit.NEW)) },
+                onMove = foldersViewModel::onMove,
+                onDeleteRequested = foldersViewModel::onDeleteRequested,
+                onDeleteDismissed = foldersViewModel::onDeleteDismissed,
+                onDeleteConfirmed = foldersViewModel::onDeleteConfirmed,
+                onMessageShown = foldersViewModel::onMessageShown
+            )
+        }
+        composable(
+            route = Route.FolderEdit.PATTERN,
+            arguments = Route.FolderEdit.arguments
+        ) {
+            val editViewModel: FolderEditViewModel = viewModel(factory = viewModelFactory)
+            val state by editViewModel.uiState.collectAsStateWithLifecycle()
+            FolderEditScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onNameChange = editViewModel::onNameChange,
+                onRulesChange = editViewModel::onRulesChange,
+                onPickerOpen = editViewModel::onPickerOpen,
+                onPickerDismiss = editViewModel::onPickerDismiss,
+                onChatToggled = editViewModel::onChatToggled,
+                onSave = editViewModel::onSave,
+                onDeleteRequested = editViewModel::onDeleteRequested,
+                onDeleteDismissed = editViewModel::onDeleteDismissed,
+                onDeleteConfirmed = editViewModel::onDeleteConfirmed,
+                onMessageShown = editViewModel::onMessageShown
             )
         }
         composable(Route.Contacts.PATTERN) {

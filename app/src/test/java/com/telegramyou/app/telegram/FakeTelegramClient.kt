@@ -10,6 +10,7 @@ import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ChatFolder
+import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
@@ -133,6 +134,38 @@ class FakeTelegramClient(
 
     override suspend fun clearHistory(chatId: Long, forEveryone: Boolean) {
         clearedChats += chatId to forEveryone
+    }
+
+    /** Folder rules by id, what saveFolder was last given, and what went. */
+    val folderRulesById = mutableMapOf<Int, FolderRules>()
+    val savedFolders = mutableListOf<Pair<Int?, FolderRules>>()
+    val deletedFolders = mutableListOf<Int>()
+    var folderOrder: List<Int>? = null
+
+    override suspend fun folderRules(folderId: Int): FolderRules =
+        folderRulesById[folderId] ?: error("no folder $folderId")
+
+    override suspend fun saveFolder(folderId: Int?, rules: FolderRules): Int {
+        savedFolders += folderId to rules
+        val id = folderId ?: ((_folders.value.maxOfOrNull { it.id } ?: 0) + 1)
+        folderRulesById[id] = rules
+        val folder = ChatFolder(id, rules.name)
+        _folders.value = if (_folders.value.any { it.id == id }) {
+            _folders.value.map { if (it.id == id) folder else it }
+        } else {
+            _folders.value + folder
+        }
+        return id
+    }
+
+    override suspend fun deleteFolder(folderId: Int) {
+        deletedFolders += folderId
+        _folders.value = _folders.value.filterNot { it.id == folderId }
+    }
+
+    override suspend fun reorderFolders(folderIds: List<Int>) {
+        folderOrder = folderIds
+        _folders.value = folderIds.mapNotNull { id -> _folders.value.firstOrNull { it.id == id } }
     }
 
     override suspend fun deleteChat(chatId: Long, forEveryone: Boolean) {

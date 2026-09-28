@@ -1807,6 +1807,44 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
     }
 
+    /**
+     * Settings → Chat folders: a folder made from a name and a type of chat,
+     * found in the list with the chats it took in, opened again and
+     * deleted — so no later test meets a fourth tab.
+     */
+    @Test
+    fun aFolderIsMadeAndDeleted() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Chat folders"), "the settings")
+        tap(By.text("Chat folders"))
+        waitFor(By.text("Work"), "the demo's folders")
+        tap(By.desc("New folder"))
+        waitFor(By.text("New folder"), "the folder editor")
+        typeInto("Folder name", "Friends")
+        scrollDownTo(By.text("Groups"))
+        tap(By.text("Groups"))
+        tap(By.text("Save"))
+        waitFor(By.text("Friends"), "the new folder in the list")
+        screenshot("56-folders")
+
+        tap(By.text("Friends"))
+        waitFor(By.text("Edit folder"), "the folder opened again")
+        scrollDownTo(By.text("Delete folder"))
+        tap(By.text("Delete folder"))
+        tap(By.text("Delete"))
+        waitFor(By.text("Work"), "the folder list")
+        assertTrue(
+            "the folder is still listed after deleting it",
+            device.wait(Until.gone(By.text("Friends")), STEP_TIMEOUT)
+        )
+        device.pressBack()
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list")
+    }
+
     /** Taps the highest of several matches — a screen's header over its content. */
     private fun tapTopmost(selector: BySelector) {
         // A fresh tree first: straight after a screen changes, UiAutomator's

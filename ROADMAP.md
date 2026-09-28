@@ -84,7 +84,12 @@ notices within a day. Roughly in the order to do them:
    tapping one opens the chat, and Add contact takes a number and a name
    (`importContacts`); a number not on Telegram is said so, not an error.
 9. ~~Your own profile, properly~~ — done the same day; see section 3.
-10. **Editing folders** — see section 2.
+10. ~~**Editing folders**~~ — done 28 September (1.4): Settings → Chat
+    folders lists them in tab order, moves them up and down from each
+    row's menu and deletes them; the editor takes a name, chats by hand
+    (a sheet of the chat list with ticks), chat types and what to leave
+    out (`FolderRules` in `:core`, with Telegram's membership rule in
+    `contains`). Colour tags and shared folders are not offered yet.
 11. **Posting a story** — they can be watched, not made.
 12. **App lock** — a passcode or the fingerprint in front of the app.
 

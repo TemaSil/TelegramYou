@@ -113,6 +113,25 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → Chat folders: the folders in tab order. */
+    data object Folders : Route {
+        const val PATTERN = "settings/folders"
+        override val path = PATTERN
+    }
+
+    /** One folder's editor; [NEW] for a folder not made yet. */
+    data class FolderEdit(val folderId: Int) : Route {
+        override val path = "settings/folders/$folderId"
+
+        companion object {
+            const val ARG_FOLDER_ID = "folderId"
+            const val NEW = -1
+            const val PATTERN = "settings/folders/{$ARG_FOLDER_ID}"
+            val arguments: List<NamedNavArgument> =
+                listOf(navArgument(ARG_FOLDER_ID) { type = NavType.IntType })
+        }
+    }
+
     /** The people this account knows, and adding one by number. */
     data object Contacts : Route {
         const val PATTERN = "contacts"

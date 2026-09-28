@@ -62,7 +62,8 @@ fun SettingsScreen(
     onOpenGeeks: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
-    onOpenAppearance: () -> Unit = {}
+    onOpenAppearance: () -> Unit = {},
+    onOpenFolders: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = settingsBackground(),
@@ -92,7 +93,8 @@ fun SettingsScreen(
             onOpenGeeks = onOpenGeeks,
             onOpenProxy = onOpenProxy,
             onOpenUpdates = onOpenUpdates,
-            onOpenAppearance = onOpenAppearance
+            onOpenAppearance = onOpenAppearance,
+            onOpenFolders = onOpenFolders
         )
     }
 }
@@ -120,7 +122,8 @@ fun SettingsContent(
     onOpenProxy: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
-    onOpenAppearance: () -> Unit = {}
+    onOpenAppearance: () -> Unit = {},
+    onOpenFolders: () -> Unit = {}
 ) {
     // In the order Android's own Settings uses: who you are, then how it
     // looks, then who can see what, then data and the network, then the
@@ -176,6 +179,12 @@ fun SettingsContent(
                 summary = appearanceSummary,
                 icon = Symbols.Palette,
                 onClick = onOpenAppearance
+            )
+            link(
+                title = "Chat folders",
+                summary = "Sort chats into tabs",
+                icon = Symbols.Folder,
+                onClick = onOpenFolders
             )
         }
 

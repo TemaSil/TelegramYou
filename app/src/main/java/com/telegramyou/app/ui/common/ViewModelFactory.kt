@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.common
 
+import com.telegramyou.app.ui.folders.FolderEditViewModel
+import com.telegramyou.app.ui.folders.FoldersViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
@@ -49,4 +51,6 @@ fun telegramViewModelFactory(
         initializer { PersonViewModel(repository, createSavedStateHandle()) }
         initializer { BlockedViewModel(repository) }
         initializer { ContactsViewModel(repository) }
+        initializer { FoldersViewModel(repository) }
+        initializer { FolderEditViewModel(repository, createSavedStateHandle()) }
     }

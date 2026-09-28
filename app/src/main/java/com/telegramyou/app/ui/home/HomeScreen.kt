@@ -183,6 +183,7 @@ fun HomeScreen(
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
+    onOpenFolders: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
@@ -420,7 +421,8 @@ fun HomeScreen(
                         onOpenProxy = onOpenProxy,
                         onOpenUpdates = onOpenUpdates,
                         onOpenProfile = { onTabSelected(HomeTab.Profile) },
-                        onOpenAppearance = onOpenAppearance
+                        onOpenAppearance = onOpenAppearance,
+                        onOpenFolders = onOpenFolders
                     )
                     return@AnimatedContent
                 }

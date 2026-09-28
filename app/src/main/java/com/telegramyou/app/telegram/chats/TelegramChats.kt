@@ -4,6 +4,7 @@ import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.TelegramUser
 import kotlinx.coroutines.flow.StateFlow
@@ -170,6 +171,22 @@ interface TelegramChats {
      * left and then removed. See chatRemovalOf for which is which.
      */
     suspend fun deleteChat(chatId: Long, forEveryone: Boolean)
+
+    /** [folderId]'s name and rules, for editing it. */
+    suspend fun folderRules(folderId: Int): FolderRules
+
+    /**
+     * Makes a folder, for a null [folderId], or changes one; answers with
+     * its id. The folder list itself arrives through [folders], as every
+     * change to it does.
+     */
+    suspend fun saveFolder(folderId: Int?, rules: FolderRules): Int
+
+    /** Deletes the folder. Its chats stay where they are; a folder is a filter. */
+    suspend fun deleteFolder(folderId: Int)
+
+    /** Puts the folders in the order of [folderIds]. */
+    suspend fun reorderFolders(folderIds: List<Int>)
 
     /**
      * Makes a group with [memberIds] in it and answers with its chat id.
