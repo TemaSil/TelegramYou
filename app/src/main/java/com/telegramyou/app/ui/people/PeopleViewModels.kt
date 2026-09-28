@@ -201,7 +201,14 @@ class ContactsViewModel(private val repository: TelegramRepository) : ViewModel(
 
     fun onAddRequested() = _uiState.update { it.copy(draft = ContactDraft()) }
 
-    fun onDraftChange(draft: ContactDraft) = _uiState.update { it.copy(draft = draft) }
+    /**
+     * A change to one field, applied to the draft as it is now rather than
+     * a whole draft from the screen: three fields each sending their copy
+     * of the draft lose each other's edits when they arrive faster than a
+     * recomposition — which the emulator's test did, keeping only the last.
+     */
+    fun onDraftChange(change: (ContactDraft) -> ContactDraft) =
+        _uiState.update { it.copy(draft = it.draft?.let(change)) }
 
     fun onAddDismissed() = _uiState.update { it.copy(draft = null, isSaving = false) }
 

@@ -88,7 +88,7 @@ class PeopleViewModelsTest {
         advanceUntilIdle()
 
         vm.onAddRequested()
-        vm.onDraftChange(ContactDraft(phone = "+15550100404", firstName = "Nobody"))
+        vm.onDraftChange { ContactDraft(phone = "+15550100404", firstName = "Nobody") }
         vm.onAddConfirmed()
         advanceUntilIdle()
 
@@ -105,12 +105,23 @@ class PeopleViewModelsTest {
         advanceUntilIdle()
 
         vm.onAddRequested()
-        vm.onDraftChange(ContactDraft(phone = "+15550100077", firstName = "Pavel"))
+        vm.onDraftChange { ContactDraft(phone = "+15550100077", firstName = "Pavel") }
         vm.onAddConfirmed()
         advanceUntilIdle()
 
         assertNull("the dialog closes", vm.uiState.value.draft)
         assertEquals(77L, vm.uiState.value.openChatId)
+    }
+
+    @Test
+    fun `fields edited faster than the screen redraws keep each other's text`() = runTest(dispatcher) {
+        val vm = ContactsViewModel(TelegramRepository(client()))
+        advanceUntilIdle()
+        vm.onAddRequested()
+        vm.onDraftChange { it.copy(phone = "+15550109999") }
+        vm.onDraftChange { it.copy(firstName = "Tess") }
+        vm.onDraftChange { it.copy(lastName = "Probe") }
+        assertEquals(ContactDraft("+15550109999", "Tess", "Probe"), vm.uiState.value.draft)
     }
 
     @Test

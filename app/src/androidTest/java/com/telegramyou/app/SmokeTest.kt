@@ -1701,6 +1701,7 @@ class SmokeTest {
         first.text = "Tess"
         last.text = "Probe"
         device.waitForIdle(IDLE_TIMEOUT)
+        waitFor(By.text("Tess"), "the name kept beside the number")
         tap(By.text("Add"))
         waitFor(By.text("Tess Probe"), "the chat with the new contact")
         type("Hello, Tess")

@@ -276,7 +276,7 @@ fun ContactsScreen(
     onBack: () -> Unit,
     onContactClick: (Long) -> Unit,
     onAddRequested: () -> Unit,
-    onDraftChange: (ContactDraft) -> Unit,
+    onDraftChange: ((ContactDraft) -> ContactDraft) -> Unit,
     onAddDismissed: () -> Unit,
     onAddConfirmed: () -> Unit,
     onOpenChat: (Long) -> Unit,
@@ -383,7 +383,7 @@ private fun PersonListItem(
 private fun AddContactDialog(
     draft: ContactDraft,
     isSaving: Boolean,
-    onChange: (ContactDraft) -> Unit,
+    onChange: ((ContactDraft) -> ContactDraft) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -397,7 +397,7 @@ private fun AddContactDialog(
                 // it. The sign-in screen's field does that with an offset map.
                 OutlinedTextField(
                     value = draft.phone,
-                    onValueChange = { onChange(draft.copy(phone = PhoneEntry.normalize(it))) },
+                    onValueChange = { text -> onChange { it.copy(phone = PhoneEntry.normalize(text)) } },
                     label = { Text("Phone number") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
@@ -405,7 +405,7 @@ private fun AddContactDialog(
                 )
                 OutlinedTextField(
                     value = draft.firstName,
-                    onValueChange = { onChange(draft.copy(firstName = it)) },
+                    onValueChange = { text -> onChange { it.copy(firstName = text) } },
                     label = { Text("First name") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -413,7 +413,7 @@ private fun AddContactDialog(
                 )
                 OutlinedTextField(
                     value = draft.lastName,
-                    onValueChange = { onChange(draft.copy(lastName = it)) },
+                    onValueChange = { text -> onChange { it.copy(lastName = text) } },
                     label = { Text("Last name (optional)") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
