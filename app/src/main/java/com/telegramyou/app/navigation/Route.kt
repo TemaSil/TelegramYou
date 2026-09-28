@@ -107,6 +107,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → Appearance: colour, theme, avatars, text. */
+    data object Appearance : Route {
+        const val PATTERN = "settings/appearance"
+        override val path = PATTERN
+    }
+
     /** The people this account knows, and adding one by number. */
     data object Contacts : Route {
         const val PATTERN = "contacts"

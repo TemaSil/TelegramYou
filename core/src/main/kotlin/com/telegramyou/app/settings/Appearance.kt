@@ -1,5 +1,7 @@
 package com.telegramyou.app.settings
 
+import com.telegramyou.app.ui.theme.Accents
+
 /**
  * Light, dark, or whatever the phone is doing.
  *
@@ -40,7 +42,21 @@ data class AppearanceSettings(
      * as a multiple — on top of Android's font size, not instead of it, so
      * somebody who has already made the whole phone larger is not put back.
      */
-    val textScale: Float = 1f
+    val textScale: Float = 1f,
+    /**
+     * The seed the scheme is built from when it is not the wallpaper's —
+     * dynamic colour off, or below Android 12. Teal unless chosen; see
+     * Accents.
+     */
+    val accent: Int = Accents.TEAL,
+    /** In the dark theme, black rather than the scheme's near-black page. */
+    val pureBlack: Boolean = false,
+    /**
+     * Each conversation in its own colours, taken from the other side's
+     * avatar — the photo's main colour, or the placeholder's colour where
+     * there is no photo. The rest of the app keeps the app's colours.
+     */
+    val chatColorsFromAvatar: Boolean = false
 )
 
 /**

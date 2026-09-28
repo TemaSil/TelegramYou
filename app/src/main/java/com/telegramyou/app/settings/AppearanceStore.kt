@@ -1,6 +1,7 @@
 package com.telegramyou.app.settings
 
 import android.content.Context
+import com.telegramyou.app.ui.theme.Accents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,21 @@ class AppearanceStore(context: Context) {
         preferences.edit().putFloat(KEY_TEXT_SCALE, step).apply()
     }
 
+    fun setAccent(seed: Int) {
+        _settings.update { it.copy(accent = seed) }
+        preferences.edit().putInt(KEY_ACCENT, seed).apply()
+    }
+
+    fun setPureBlack(enabled: Boolean) {
+        _settings.update { it.copy(pureBlack = enabled) }
+        preferences.edit().putBoolean(KEY_PURE_BLACK, enabled).apply()
+    }
+
+    fun setChatColorsFromAvatar(enabled: Boolean) {
+        _settings.update { it.copy(chatColorsFromAvatar = enabled) }
+        preferences.edit().putBoolean(KEY_CHAT_COLORS, enabled).apply()
+    }
+
     private fun read(): AppearanceSettings {
         val stored = preferences.getString(KEY_THEME, null)
         return AppearanceSettings(
@@ -55,7 +71,10 @@ class AppearanceStore(context: Context) {
             theme = ThemeChoice.entries.firstOrNull { it.name == stored } ?: ThemeChoice.System,
             dynamicColor = preferences.getBoolean(KEY_DYNAMIC, true),
             shapedAvatars = preferences.getBoolean(KEY_SHAPED_AVATARS, true),
-            textScale = TextSize.nearest(preferences.getFloat(KEY_TEXT_SCALE, 1f))
+            textScale = TextSize.nearest(preferences.getFloat(KEY_TEXT_SCALE, 1f)),
+            accent = preferences.getInt(KEY_ACCENT, Accents.TEAL),
+            pureBlack = preferences.getBoolean(KEY_PURE_BLACK, false),
+            chatColorsFromAvatar = preferences.getBoolean(KEY_CHAT_COLORS, false)
         )
     }
 
@@ -65,5 +84,8 @@ class AppearanceStore(context: Context) {
         const val KEY_DYNAMIC = "dynamic_color"
         const val KEY_SHAPED_AVATARS = "shaped_avatars"
         const val KEY_TEXT_SCALE = "text_scale"
+        const val KEY_ACCENT = "accent"
+        const val KEY_PURE_BLACK = "pure_black"
+        const val KEY_CHAT_COLORS = "chat_colors_from_avatar"
     }
 }

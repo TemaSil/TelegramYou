@@ -21,26 +21,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.contentDescription
-import com.telegramyou.app.settings.TextSize
-import androidx.compose.material3.Slider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.settings.AppearanceSettings
-import com.telegramyou.app.settings.ThemeChoice
 import com.telegramyou.app.settings.dynamicColorAvailable
+import com.telegramyou.app.ui.theme.Accents
 import com.telegramyou.app.telegram.model.TelegramUser
 import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.avatars.avatarShapeIndex
@@ -62,17 +55,14 @@ fun SettingsScreen(
     settings: AppearanceSettings,
     me: TelegramUser?,
     onBack: () -> Unit,
-    onThemeChange: (ThemeChoice) -> Unit,
-    onDynamicColorChange: (Boolean) -> Unit,
-    onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
-    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
-    onOpenUpdates: () -> Unit = {}
+    onOpenUpdates: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {}
 ) {
     Scaffold(
         containerColor = settingsBackground(),
@@ -94,18 +84,15 @@ fun SettingsScreen(
         SettingsContent(
             settings = settings,
             me = me,
-            onThemeChange = onThemeChange,
-            onDynamicColorChange = onDynamicColorChange,
-            onShapedAvatarsChange = onShapedAvatarsChange,
             onLogout = onLogout,
             contentPadding = padding,
             onOpenDevices = onOpenDevices,
             onOpenStorage = onOpenStorage,
             onOpenPrivacy = onOpenPrivacy,
-            onTextScaleChange = onTextScaleChange,
             onOpenGeeks = onOpenGeeks,
             onOpenProxy = onOpenProxy,
-            onOpenUpdates = onOpenUpdates
+            onOpenUpdates = onOpenUpdates,
+            onOpenAppearance = onOpenAppearance
         )
     }
 }
@@ -123,20 +110,17 @@ fun SettingsScreen(
 fun SettingsContent(
     settings: AppearanceSettings,
     me: TelegramUser?,
-    onThemeChange: (ThemeChoice) -> Unit,
-    onDynamicColorChange: (Boolean) -> Unit,
-    onShapedAvatarsChange: (Boolean) -> Unit,
     onLogout: () -> Unit,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
-    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
-    onOpenProfile: () -> Unit = {}
+    onOpenProfile: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {}
 ) {
     // In the order Android's own Settings uses: who you are, then how it
     // looks, then who can see what, then data and the network, then the
@@ -175,73 +159,24 @@ fun SettingsContent(
             }
         }
 
-        SettingsGroup("Appearance") {
-            // The switch this client exists for, so it says what it does.
-            val available = dynamicColorAvailable(Build.VERSION.SDK_INT)
-            switch(
-                title = "Colour from your wallpaper",
-                summary = if (available) {
-                    "Material You: the palette comes from your wallpaper"
-                } else {
-                    // Shown rather than hidden: hiding it would leave the
-                    // client's own premise unexplained where it does not apply.
-                    "Needs Android 12 or newer"
-                },
-                checked = settings.dynamicColor && available,
-                enabled = available,
-                onChange = onDynamicColorChange
+        // Its own screen now, like Android's Display: colour, theme,
+        // avatars and text, with a live preview — see AppearanceScreen. The
+        // row says what is set, so the common answer needs no visit.
+        val appearanceSummary = listOf(
+            if (settings.dynamicColor && dynamicColorAvailable(Build.VERSION.SDK_INT)) {
+                "Wallpaper colours"
+            } else {
+                Accents.nameOf(settings.accent) ?: "Custom colour"
+            },
+            settings.theme.name + if (settings.pureBlack) ", black" else ""
+        ).joinToString(" · ")
+        SettingsGroup {
+            link(
+                title = "Appearance",
+                summary = appearanceSummary,
+                icon = Symbols.Palette,
+                onClick = onOpenAppearance
             )
-            // Three short choices side by side: exactly what a segmented
-            // button row is for, set under the row's title.
-            item(
-                    title = "Theme",
-                    onClick = {},
-                    below = {
-                        SingleChoiceSegmentedButtonRow(
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                        ) {
-                            ThemeChoice.entries.forEachIndexed { choiceIndex, choice ->
-                                SegmentedButton(
-                                    selected = settings.theme == choice,
-                                    onClick = { onThemeChange(choice) },
-                                    shape = SegmentedButtonDefaults.itemShape(
-                                        index = choiceIndex,
-                                        count = ThemeChoice.entries.size
-                                    )
-                                ) {
-                                    Text(choice.name)
-                                }
-                            }
-                        }
-                    }
-                )
-            // No preview of its own: the account's avatar at the top of this
-            // screen changes shape as the switch moves, and a second one here
-            // was the only thing leading a row in a group of plain controls.
-            switch(
-                title = "Shaped avatars",
-                summary = "Everyone gets one of Material's shapes as well as a colour",
-                checked = settings.shapedAvatars,
-                onChange = onShapedAvatarsChange
-            )
-            // Four stops, the way Android's own display settings offer it.
-            // The whole app follows as it moves — this screen included.
-            item(
-                    title = "Text size",
-                    summary = TextSize.label(settings.textScale),
-                    onClick = {},
-                    below = {
-                        Slider(
-                            value = TextSize.nearest(settings.textScale),
-                            onValueChange = { onTextScaleChange(TextSize.nearest(it)) },
-                            valueRange = TextSize.steps.first()..TextSize.steps.last(),
-                            steps = TextSize.steps.size - 2,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics { contentDescription = "Text size" }
-                        )
-                    }
-                )
         }
 
         SettingsGroup("Privacy and security") {

@@ -50,6 +50,9 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatInfoScreen
+import com.telegramyou.app.ui.theme.ChatColors
+import com.telegramyou.app.ui.settings.AppearanceActions
+import com.telegramyou.app.ui.settings.AppearanceScreen
 import com.telegramyou.app.ui.people.BlockedScreen
 import com.telegramyou.app.ui.people.BlockedViewModel
 import com.telegramyou.app.ui.people.ContactsScreen
@@ -309,8 +312,6 @@ fun TelegramYouNavHost(
                 onOpenArchive = { navController.navigateTo(Route.Archive) },
                 onFolderSelected = homeViewModel::onFolderSelected,
                 onThemeChange = appearance::setTheme,
-                onDynamicColorChange = appearance::setDynamicColor,
-                onShapedAvatarsChange = appearance::setShapedAvatars,
                 onProfileDraftChange = homeViewModel::onProfileDraftChange,
                 onProfileSave = homeViewModel::saveProfile,
                 onProfileErrorShown = homeViewModel::onProfileErrorShown,
@@ -328,10 +329,10 @@ fun TelegramYouNavHost(
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
                 onOpenContacts = { navController.navigateTo(Route.Contacts) },
+                onOpenAppearance = { navController.navigateTo(Route.Appearance) },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
-                onTextScaleChange = appearance::setTextScale,
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
                 onOpenUpdates = { navController.navigateTo(Route.Updates) }
             )
@@ -429,9 +430,6 @@ fun TelegramYouNavHost(
                 settings = settings,
                 me = home.me,
                 onBack = { navController.popBackStack() },
-                onThemeChange = appearance::setTheme,
-                onDynamicColorChange = appearance::setDynamicColor,
-                onShapedAvatarsChange = appearance::setShapedAvatars,
                 onLogout = {
                     // The auth redirect above takes it from here: logging out
                     // moves the client's state, and the graph follows state
@@ -441,10 +439,28 @@ fun TelegramYouNavHost(
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
-                onTextScaleChange = appearance::setTextScale,
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
-                onOpenUpdates = { navController.navigateTo(Route.Updates) }
+                onOpenUpdates = { navController.navigateTo(Route.Updates) },
+                onOpenAppearance = { navController.navigateTo(Route.Appearance) }
+            )
+        }
+        composable(Route.Appearance.PATTERN) {
+            // Collected here so the screen redraws with each change — the
+            // theme around it redraws from MainActivity's own collection.
+            val settings by appearance.settings.collectAsStateWithLifecycle()
+            AppearanceScreen(
+                settings = settings,
+                onBack = { navController.popBackStack() },
+                actions = AppearanceActions(
+                    onThemeChange = appearance::setTheme,
+                    onDynamicColorChange = appearance::setDynamicColor,
+                    onAccentChange = appearance::setAccent,
+                    onPureBlackChange = appearance::setPureBlack,
+                    onChatColorsFromAvatarChange = appearance::setChatColorsFromAvatar,
+                    onShapedAvatarsChange = appearance::setShapedAvatars,
+                    onTextScaleChange = appearance::setTextScale
+                )
             )
         }
         composable(Route.Updates.PATTERN) {
@@ -669,11 +685,16 @@ fun TelegramYouNavHost(
                 // Stickers fetch their own files; see StickerView.
                 LocalFileLoader provides chatViewModel::loadFile
             ) {
+            // Collected here as well as at the top: the setting is read by
+            // the conversation, and a switch flipped in Appearance has to
+            // recolour a chat opened after it without a restart.
+            val chatAppearance by appearance.settings.collectAsStateWithLifecycle()
             Box(
                 Modifier
                     .fillMaxSize()
                     .containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true, bounds = ChatContainerSpring)
             ) {
+            ChatColors(chat = state.detail?.chat, enabled = chatAppearance.chatColorsFromAvatar) {
             ChatScreen(
                 state = state,
                 onBack = { navController.popBackStack() },
@@ -752,6 +773,7 @@ fun TelegramYouNavHost(
                     }
                 }
             )
+            }
             }
             }
         }

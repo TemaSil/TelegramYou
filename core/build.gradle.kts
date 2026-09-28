@@ -30,6 +30,14 @@ dependencies {
     // the JVM like everything else in this module.
     implementation("com.googlecode.libphonenumber:libphonenumber:9.0.40")
 
+    // Google's material-color-utilities, the Kotlin port: the tonal-spot
+    // scheme Android builds from a wallpaper, and the quantizer that picks a
+    // picture's colour — for the accent choices when dynamic colour is off,
+    // and for a chat coloured by its avatar. Apache 2.0; its only dependency
+    // is the Kotlin standard library. `api`, because :app reads SchemeColors
+    // and nothing of the library itself, but the JVM needs it at run time.
+    api("com.materialkolor:material-color-utilities:5.0.1")
+
     testImplementation("junit:junit:4.13.2")
 }
 

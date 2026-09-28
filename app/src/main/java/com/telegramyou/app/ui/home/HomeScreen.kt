@@ -164,8 +164,6 @@ fun HomeScreen(
     onOpenArchive: () -> Unit,
     onFolderSelected: (Int?) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
-    onDynamicColorChange: (Boolean) -> Unit,
-    onShapedAvatarsChange: (Boolean) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
     onProfileSave: () -> Unit,
     onProfileErrorShown: () -> Unit,
@@ -184,10 +182,10 @@ fun HomeScreen(
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
+    onOpenAppearance: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
-    onTextScaleChange: (Float) -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onProfilePhotoPicked: (String) -> Unit = {}
@@ -413,19 +411,16 @@ fun HomeScreen(
                     SettingsContent(
                         settings = settings,
                         me = state.me,
-                        onThemeChange = onThemeChange,
-                        onDynamicColorChange = onDynamicColorChange,
-                        onShapedAvatarsChange = onShapedAvatarsChange,
                         onLogout = onLogout,
                         contentPadding = padding,
                         onOpenDevices = onOpenDevices,
                         onOpenStorage = onOpenStorage,
                         onOpenPrivacy = onOpenPrivacy,
-                        onTextScaleChange = onTextScaleChange,
                         onOpenGeeks = onOpenGeeks,
                         onOpenProxy = onOpenProxy,
                         onOpenUpdates = onOpenUpdates,
-                        onOpenProfile = { onTabSelected(HomeTab.Profile) }
+                        onOpenProfile = { onTabSelected(HomeTab.Profile) },
+                        onOpenAppearance = onOpenAppearance
                     )
                     return@AnimatedContent
                 }

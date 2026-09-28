@@ -79,7 +79,9 @@ class MainActivity : ComponentActivity() {
             val geekSettings by app.geeks.settings.collectAsStateWithLifecycle()
             TelegramYouTheme(
                 darkTheme = isDark(appearance.theme, isSystemInDarkTheme()),
-                dynamicColor = appearance.dynamicColor
+                dynamicColor = appearance.dynamicColor,
+                accent = appearance.accent,
+                pureBlack = appearance.pureBlack
             ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two

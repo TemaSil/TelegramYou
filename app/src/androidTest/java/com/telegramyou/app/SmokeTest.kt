@@ -1295,7 +1295,8 @@ class SmokeTest {
     /**
      * Privacy: each rule says who it is set to, and choosing another audience
      * in its dialog changes the row. The demo's last-seen rule carries two
-     * exceptions made elsewhere, which the row has to show. Text size is
+     * exceptions made elsewhere, which the row has to show. Text size, now
+     * on Appearance, is checked there; this was the place it was offered.
      * checked for being offered; how large is for a person to judge.
      */
     @Test
@@ -1305,7 +1306,6 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text("Settings"))
         waitFor(By.text("Appearance"), "the settings")
-        waitFor(By.text("Text size"), "the text size setting")
 
         scrollSettingsTo(By.text("Privacy"))
         tap(By.text("Privacy"))
@@ -1729,6 +1729,49 @@ class SmokeTest {
             "the deleted chat should leave the list",
             device.wait(Until.gone(By.text("Tess Probe")), STEP_TIMEOUT)
         )
+    }
+
+    /**
+     * Settings → Appearance: its own screen, with the preview on top. The
+     * wallpaper's colour off, an accent chosen, then colours from the
+     * avatar on and a chat opened in them — and everything put back, since
+     * these settings outlive the test and would recolour every screenshot
+     * after it.
+     */
+    @Test
+    fun appearanceHasItsOwnScreen() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        tap(By.text("Appearance"))
+        waitFor(By.desc("Preview"), "the preview")
+        waitFor(By.text("Accent colour"), "the accents")
+        tap(By.text("Colour from your wallpaper"))
+        tap(By.desc("Pink"))
+        waitFor(By.text("Pink"), "Pink as the accent")
+        screenshot("52-appearance")
+        scrollDownTo(By.text("Colours from the avatar"))
+        tap(By.text("Colours from the avatar"))
+        scrollDownTo(By.text("Text size"))
+
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("GIF"), "Lina's chat, in her colours")
+        screenshot("53-chat-avatar-colours")
+
+        // Put back: each tap undoes one above, in the same order. Not in a
+        // finally — a toggle is blind, and undoing steps that never ran
+        // would set what the failure left alone.
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.text("Settings"))
+        tap(By.text("Appearance"))
+        waitFor(By.text("Accent colour"), "the accents again")
+        tap(By.desc("Teal"))
+        tap(By.text("Colour from your wallpaper"))
+        scrollDownTo(By.text("Colours from the avatar"))
+        tap(By.text("Colours from the avatar"))
     }
 
     /** Taps the highest of several matches — a screen's header over its content. */
