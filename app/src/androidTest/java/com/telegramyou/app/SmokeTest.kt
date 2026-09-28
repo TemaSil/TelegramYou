@@ -1766,6 +1766,8 @@ class SmokeTest {
         tap(By.text("Colours from the avatar"))
         scrollDownTo(By.text("Shapes"))
         tap(By.text("Shapes"))
+        // Below the wallpaper cards, which push it off a phone's screen.
+        scrollDownTo(By.text("Soft"))
         tap(By.text("Soft"))
         screenshot("52b-appearance-wallpapers")
         scrollDownTo(By.text("Two-line previews"))
@@ -1797,6 +1799,7 @@ class SmokeTest {
         tap(By.text("Colours from the avatar"))
         scrollDownTo(By.text("Gradient"))
         tap(By.text("Gradient"))
+        scrollDownTo(By.text("Accent"))
         tap(By.text("Accent"))
         scrollDownTo(By.text("Two-line previews"))
         tap(By.text("Two-line previews"))
