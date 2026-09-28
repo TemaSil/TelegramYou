@@ -41,6 +41,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.settings.AppearanceSettings
+import com.telegramyou.app.settings.BubbleCorners
+import com.telegramyou.app.settings.ChatWallpaper
+import com.telegramyou.app.settings.OutgoingTone
+import com.telegramyou.app.ui.chat.LocalChatStyle
+import com.telegramyou.app.ui.chat.StyledMessage
+import com.telegramyou.app.ui.chat.chatWallpaper
 import com.telegramyou.app.settings.TextSize
 import com.telegramyou.app.settings.ThemeChoice
 import com.telegramyou.app.settings.dynamicColorAvailable
@@ -56,7 +62,11 @@ class AppearanceActions(
     val onPureBlackChange: (Boolean) -> Unit = {},
     val onChatColorsFromAvatarChange: (Boolean) -> Unit = {},
     val onShapedAvatarsChange: (Boolean) -> Unit = {},
-    val onTextScaleChange: (Float) -> Unit = {}
+    val onTextScaleChange: (Float) -> Unit = {},
+    val onChatWallpaperChange: (ChatWallpaper) -> Unit = {},
+    val onOutgoingToneChange: (OutgoingTone) -> Unit = {},
+    val onBubbleCornersChange: (Int) -> Unit = {},
+    val onMessageTextScaleChange: (Float) -> Unit = {}
 )
 
 /**
@@ -170,6 +180,65 @@ fun AppearanceScreen(
                 )
             }
 
+            SettingsGroup("Chat") {
+                item(
+                    title = "Wallpaper",
+                    onClick = {},
+                    below = {
+                        Choices(
+                            options = ChatWallpaper.entries,
+                            selected = settings.chatWallpaper,
+                            label = { it.label },
+                            onSelect = actions.onChatWallpaperChange
+                        )
+                    }
+                )
+                item(
+                    title = "Your messages",
+                    onClick = {},
+                    below = {
+                        Choices(
+                            options = OutgoingTone.entries,
+                            selected = settings.outgoingTone,
+                            label = { it.label },
+                            onSelect = actions.onOutgoingToneChange
+                        )
+                    }
+                )
+                item(
+                    title = "Message corners",
+                    summary = "${settings.bubbleCorners} dp",
+                    onClick = {},
+                    below = {
+                        Slider(
+                            value = settings.bubbleCorners.toFloat(),
+                            onValueChange = { actions.onBubbleCornersChange(BubbleCorners.settle(it)) },
+                            valueRange = BubbleCorners.MIN.toFloat()..BubbleCorners.MAX.toFloat(),
+                            steps = BubbleCorners.SLIDER_STEPS,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "Message corners" }
+                        )
+                    }
+                )
+                item(
+                    title = "Message text size",
+                    summary = TextSize.label(settings.messageTextScale),
+                    onClick = {},
+                    below = {
+                        Slider(
+                            value = TextSize.nearest(settings.messageTextScale),
+                            onValueChange = { actions.onMessageTextScaleChange(TextSize.nearest(it)) },
+                            valueRange = TextSize.steps.first()..TextSize.steps.last(),
+                            steps = TextSize.steps.size - 2,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics { contentDescription = "Message text size" }
+                        )
+                    }
+                )
+            }
+
             SettingsGroup("Avatars and text") {
                 switch(
                     title = "Shaped avatars",
@@ -201,9 +270,10 @@ fun AppearanceScreen(
 }
 
 /**
- * Three messages in the app's current colours and text size — an incoming
- * one in the surface tone, an outgoing one in the primary, as the chat draws
- * them — so a change below shows here before anybody leaves the screen.
+ * Three messages as a chat will draw them — the wallpaper, the bubbles'
+ * corners and tone and the message text size come from the same
+ * LocalChatStyle and StyledMessage the conversation uses — so a change below
+ * shows here before anybody leaves the screen.
  */
 @Composable
 private fun ChatPreview(modifier: Modifier = Modifier) {
@@ -216,7 +286,9 @@ private fun ChatPreview(modifier: Modifier = Modifier) {
             .semantics { contentDescription = "Preview" }
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier
+                .chatWallpaper(LocalChatStyle.current.wallpaper)
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             PreviewBubble("Did the new colours land?", outgoing = false)
@@ -227,8 +299,9 @@ private fun ChatPreview(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PreviewBubble(text: String, outgoing: Boolean) {
+private fun PreviewBubble(text: String, outgoing: Boolean) = StyledMessage(outgoing) {
     val colors = MaterialTheme.colorScheme
+    val corners = LocalChatStyle.current.bubbleCorners.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start
@@ -240,8 +313,8 @@ private fun PreviewBubble(text: String, outgoing: Boolean) {
             modifier = Modifier
                 .widthIn(max = 260.dp)
                 .background(
-                    if (outgoing) colors.primary else colors.surfaceContainerHigh,
-                    RoundedCornerShape(20.dp)
+                    if (outgoing) colors.primary else colors.surfaceContainerHighest,
+                    RoundedCornerShape(corners)
                 )
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         )
@@ -296,6 +369,22 @@ private fun AccentSwatches(selected: Int, enabled: Boolean, dark: Boolean, onSel
                         modifier = Modifier.size(18.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+/** A few short choices side by side: Material's segmented button row. */
+@Composable
+private fun <T> Choices(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        options.forEachIndexed { index, option ->
+            SegmentedButton(
+                selected = option == selected,
+                onClick = { onSelect(option) },
+                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size)
+            ) {
+                Text(label(option), maxLines = 1)
             }
         }
     }

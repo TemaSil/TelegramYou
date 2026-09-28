@@ -63,6 +63,28 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_CHAT_COLORS, enabled).apply()
     }
 
+    fun setChatWallpaper(wallpaper: ChatWallpaper) {
+        _settings.update { it.copy(chatWallpaper = wallpaper) }
+        preferences.edit().putString(KEY_WALLPAPER, wallpaper.name).apply()
+    }
+
+    fun setOutgoingTone(tone: OutgoingTone) {
+        _settings.update { it.copy(outgoingTone = tone) }
+        preferences.edit().putString(KEY_OUTGOING_TONE, tone.name).apply()
+    }
+
+    fun setBubbleCorners(corners: Int) {
+        val settled = BubbleCorners.settle(corners.toFloat())
+        _settings.update { it.copy(bubbleCorners = settled) }
+        preferences.edit().putInt(KEY_BUBBLE_CORNERS, settled).apply()
+    }
+
+    fun setMessageTextScale(scale: Float) {
+        val step = TextSize.nearest(scale)
+        _settings.update { it.copy(messageTextScale = step) }
+        preferences.edit().putFloat(KEY_MESSAGE_TEXT_SCALE, step).apply()
+    }
+
     private fun read(): AppearanceSettings {
         val stored = preferences.getString(KEY_THEME, null)
         return AppearanceSettings(
@@ -74,7 +96,17 @@ class AppearanceStore(context: Context) {
             textScale = TextSize.nearest(preferences.getFloat(KEY_TEXT_SCALE, 1f)),
             accent = preferences.getInt(KEY_ACCENT, Accents.TEAL),
             pureBlack = preferences.getBoolean(KEY_PURE_BLACK, false),
-            chatColorsFromAvatar = preferences.getBoolean(KEY_CHAT_COLORS, false)
+            chatColorsFromAvatar = preferences.getBoolean(KEY_CHAT_COLORS, false),
+            chatWallpaper = preferences.getString(KEY_WALLPAPER, null)
+                .let { name -> ChatWallpaper.entries.firstOrNull { it.name == name } }
+                ?: ChatWallpaper.Gradient,
+            outgoingTone = preferences.getString(KEY_OUTGOING_TONE, null)
+                .let { name -> OutgoingTone.entries.firstOrNull { it.name == name } }
+                ?: OutgoingTone.Accent,
+            bubbleCorners = BubbleCorners.settle(
+                preferences.getInt(KEY_BUBBLE_CORNERS, BubbleCorners.DEFAULT).toFloat()
+            ),
+            messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f))
         )
     }
 
@@ -87,5 +119,9 @@ class AppearanceStore(context: Context) {
         const val KEY_ACCENT = "accent"
         const val KEY_PURE_BLACK = "pure_black"
         const val KEY_CHAT_COLORS = "chat_colors_from_avatar"
+        const val KEY_WALLPAPER = "chat_wallpaper"
+        const val KEY_OUTGOING_TONE = "outgoing_tone"
+        const val KEY_BUBBLE_CORNERS = "bubble_corners"
+        const val KEY_MESSAGE_TEXT_SCALE = "message_text_scale"
     }
 }

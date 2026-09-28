@@ -1,5 +1,6 @@
 package com.telegramyou.app.settings
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -34,5 +35,23 @@ class AppearanceTest {
         assertTrue(defaults.dynamicColor)
         assertFalse(isDark(defaults.theme, systemIsDark = false))
         assertTrue(isDark(defaults.theme, systemIsDark = true))
+    }
+
+    @Test
+    fun `the chat's own look starts as it always was`() {
+        val defaults = AppearanceSettings()
+        assertEquals(ChatWallpaper.Gradient, defaults.chatWallpaper)
+        assertEquals(OutgoingTone.Accent, defaults.outgoingTone)
+        assertEquals(20, defaults.bubbleCorners)
+        assertEquals(1f, defaults.messageTextScale)
+    }
+
+    @Test
+    fun `bubble corners settle on even stops inside the range`() {
+        assertEquals(20, BubbleCorners.settle(20.4f))
+        assertEquals(22, BubbleCorners.settle(21.2f))
+        assertEquals(BubbleCorners.MIN, BubbleCorners.settle(0f))
+        assertEquals(BubbleCorners.MAX, BubbleCorners.settle(99f))
+        assertEquals(9, BubbleCorners.SLIDER_STEPS)
     }
 }

@@ -1733,8 +1733,8 @@ class SmokeTest {
 
     /**
      * Settings → Appearance: its own screen, with the preview on top. The
-     * wallpaper's colour off, an accent chosen, then colours from the
-     * avatar on and a chat opened in them — and everything put back, since
+     * wallpaper's colour off, an accent chosen, colours from the avatar on,
+     * the dotted wallpaper and soft bubbles — and a chat opened in all that — and everything put back, since
      * these settings outlive the test and would recolour every screenshot
      * after it.
      */
@@ -1754,6 +1754,9 @@ class SmokeTest {
         screenshot("52-appearance")
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
+        scrollDownTo(By.text("Dots"))
+        tap(By.text("Dots"))
+        tap(By.text("Soft"))
         scrollDownTo(By.text("Text size"))
 
         backTo(By.text("Material Design"), "the chat list")
@@ -1772,6 +1775,9 @@ class SmokeTest {
         tap(By.text("Colour from your wallpaper"))
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
+        scrollDownTo(By.text("Gradient"))
+        tap(By.text("Gradient"))
+        tap(By.text("Accent"))
     }
 
     /** Taps the highest of several matches — a screen's header over its content. */

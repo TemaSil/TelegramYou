@@ -459,7 +459,11 @@ fun TelegramYouNavHost(
                     onPureBlackChange = appearance::setPureBlack,
                     onChatColorsFromAvatarChange = appearance::setChatColorsFromAvatar,
                     onShapedAvatarsChange = appearance::setShapedAvatars,
-                    onTextScaleChange = appearance::setTextScale
+                    onTextScaleChange = appearance::setTextScale,
+                    onChatWallpaperChange = appearance::setChatWallpaper,
+                    onOutgoingToneChange = appearance::setOutgoingTone,
+                    onBubbleCornersChange = appearance::setBubbleCorners,
+                    onMessageTextScaleChange = appearance::setMessageTextScale
                 )
             )
         }

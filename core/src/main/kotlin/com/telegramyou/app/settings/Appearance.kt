@@ -56,8 +56,65 @@ data class AppearanceSettings(
      * avatar — the photo's main colour, or the placeholder's colour where
      * there is no photo. The rest of the app keeps the app's colours.
      */
-    val chatColorsFromAvatar: Boolean = false
+    val chatColorsFromAvatar: Boolean = false,
+    /** What the conversation is drawn on; see ChatWallpaper. */
+    val chatWallpaper: ChatWallpaper = ChatWallpaper.Gradient,
+    /** Which tone the account's own messages are filled with. */
+    val outgoingTone: OutgoingTone = OutgoingTone.Accent,
+    /** How round a message's corners are, in dp; see BubbleCorners. */
+    val bubbleCorners: Int = BubbleCorners.DEFAULT,
+    /**
+     * Messages' own text size, on top of the app's — the official client's
+     * "Message text size", which leaves the rest of the interface alone.
+     * The same stops as [textScale]; see TextSize.
+     */
+    val messageTextScale: Float = 1f
 )
+
+/**
+ * What a conversation is drawn on. All of it in the theme's own colours —
+ * the wallpaper is on the short list of things this client draws by hand,
+ * and a picture in somebody else's colours would fight the scheme.
+ */
+enum class ChatWallpaper(val label: String) {
+    /** The surface into a breath of the accent, as it has always been. */
+    Gradient("Gradient"),
+    /** The surface alone. */
+    Plain("Plain"),
+    /** The gradient with a quiet grid of dots. */
+    Dots("Dots"),
+    /** The gradient with soft lines of waves. */
+    Waves("Waves")
+}
+
+/**
+ * The fill of the account's own messages: Material's primary (the loud
+ * default), its container (softer, for a calmer chat), or the tertiary
+ * container (a second colour against the other side's grey).
+ */
+enum class OutgoingTone(val label: String) {
+    Accent("Accent"),
+    Soft("Soft"),
+    Tertiary("Tertiary")
+}
+
+/**
+ * The corner slider's range. The tail — the tighter corner where a run of
+ * messages continues — stays as it is unless the corners go below it.
+ */
+object BubbleCorners {
+    const val MIN = 6
+    const val MAX = 26
+    const val DEFAULT = 20
+    const val STEP = 2
+
+    /** Stops between the ends, as a Slider counts them. */
+    const val SLIDER_STEPS = (MAX - MIN) / STEP - 1
+
+    /** [value] on a stop, inside the range — what a drag or a stored value settles on. */
+    fun settle(value: Float): Int =
+        (Math.round((value - MIN) / STEP) * STEP + MIN).coerceIn(MIN, MAX)
+}
 
 /**
  * The steps the text size slider stops at. Four rather than a continuous

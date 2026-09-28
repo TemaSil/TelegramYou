@@ -1,5 +1,7 @@
 package com.telegramyou.app
 
+import com.telegramyou.app.ui.chat.ChatStyle
+import com.telegramyou.app.ui.chat.LocalChatStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import com.telegramyou.app.ui.components.LocalShapedAvatars
 import android.os.Build
@@ -92,6 +94,12 @@ class MainActivity : ComponentActivity() {
                     val density = LocalDensity.current
                     CompositionLocalProvider(
                         LocalShapedAvatars provides appearance.shapedAvatars,
+                        LocalChatStyle provides ChatStyle(
+                            wallpaper = appearance.chatWallpaper,
+                            outgoingTone = appearance.outgoingTone,
+                            bubbleCorners = appearance.bubbleCorners,
+                            messageTextScale = appearance.messageTextScale
+                        ),
                         LocalAppUpdates provides app.updates,
                         LocalGeekSettings provides geekSettings,
                         LocalDensity provides Density(density.density, density.fontScale * appearance.textScale)

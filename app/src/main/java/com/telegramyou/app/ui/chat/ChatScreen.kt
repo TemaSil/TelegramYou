@@ -73,7 +73,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import com.telegramyou.app.ui.common.rememberTextCopier
@@ -584,15 +583,9 @@ fun ChatScreen(
                 // which is exactly what a transparent system bar shows
                 // through. Painting first and insetting after puts the
                 // conversation under the bar and the content clear of it.
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.surfaceContainerLow,
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                        )
-                    )
-                )
+                // The wallpaper chosen in Appearance — the gradient that was
+                // always here unless another was picked; see chatWallpaper.
+                .chatWallpaper(LocalChatStyle.current.wallpaper)
                 .padding(padding)
                 .imePadding()
         ) {
@@ -764,66 +757,70 @@ fun ChatScreen(
                             UnreadSeparator()
                         }
 
-                        MessageBubble(
-                            message = message,
-                            // Only the last message of a run carries the tail, so a
-                            // burst from one person reads as one block.
-                            isLastInRun = endsRun(message, next),
-                            isFirstInRun = endsRun(previous, message),
-                            // An avatar per message would be a column of repeats;
-                            // one against the last of a run is what reads right.
-                            showAvatar = detail?.chat?.isGroup == true,
-                            onCopy = {
-                                copyToClipboard(message.text)
-                            },
-                            onReply = { onReplyTo(message) },
-                            onEdit = { onEdit(message) },
-                            onDelete = { onDeleteRequested(message) },
-                            onReact = { onReactionsRequested(message) },
-                            onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
-                            isSelected = message.id in state.selection,
-                            isSelecting = state.selection.isActive,
-                            onSelect = { onSelectionToggled(message) },
-                            voiceState = when (message.id) {
-                                state.playingVoiceId -> VoiceState.Playing
-                                state.loadingVoiceId -> VoiceState.Loading
-                                else -> VoiceState.Idle
-                            },
-                            onVoiceToggled = { onVoiceToggled(message) },
-                            voiceProgress = if (message.id == state.playingVoiceId) {
-                                state.voiceProgress
-                            } else {
-                                0f
-                            },
-                            onVoiceSeek = { at -> onVoiceSeek(message, at) },
-                            onPhotoVisible = { onPhotoVisible(message) },
-                            onPhotoOpened = { onPhotoOpened(message) },
-                            onVideoOpened = { onVideoOpened(message) },
-                            album = album,
-                            onAlbumPhotoVisible = onPhotoVisible,
-                            onAlbumPhotoOpened = onPhotoOpened,
-                            onMention = onMention,
-                            onHashtag = { tag ->
-                                onSearchOpenChange(true)
-                                onSearchQueryChange(tag)
-                            },
-                            onPinToggled = { onPinToggled(message) },
-                            transfers = state.transfers,
-                            onVote = { chosen -> onVote(message, chosen) },
-                            onButton = { button ->
-                                when (val action = button.action) {
-                                    // Done here, not in the view model: both
-                                    // are the platform's, and neither talks
-                                    // to Telegram.
-                                    is ButtonAction.OpenUrl -> runCatching { uriHandler.openUri(action.url) }
-                                    is ButtonAction.CopyText -> {
-                                        copyToClipboard(action.text)
-                                        scope.launch { snackbarHostState.showSnackbar("Copied") }
+                        // In the message size and, for the account's own,
+                        // the tone chosen in Appearance; see StyledMessage.
+                        StyledMessage(outgoing = message.isOutgoing) {
+                            MessageBubble(
+                                message = message,
+                                // Only the last message of a run carries the tail, so a
+                                // burst from one person reads as one block.
+                                isLastInRun = endsRun(message, next),
+                                isFirstInRun = endsRun(previous, message),
+                                // An avatar per message would be a column of repeats;
+                                // one against the last of a run is what reads right.
+                                showAvatar = detail?.chat?.isGroup == true,
+                                onCopy = {
+                                    copyToClipboard(message.text)
+                                },
+                                onReply = { onReplyTo(message) },
+                                onEdit = { onEdit(message) },
+                                onDelete = { onDeleteRequested(message) },
+                                onReact = { onReactionsRequested(message) },
+                                onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
+                                isSelected = message.id in state.selection,
+                                isSelecting = state.selection.isActive,
+                                onSelect = { onSelectionToggled(message) },
+                                voiceState = when (message.id) {
+                                    state.playingVoiceId -> VoiceState.Playing
+                                    state.loadingVoiceId -> VoiceState.Loading
+                                    else -> VoiceState.Idle
+                                },
+                                onVoiceToggled = { onVoiceToggled(message) },
+                                voiceProgress = if (message.id == state.playingVoiceId) {
+                                    state.voiceProgress
+                                } else {
+                                    0f
+                                },
+                                onVoiceSeek = { at -> onVoiceSeek(message, at) },
+                                onPhotoVisible = { onPhotoVisible(message) },
+                                onPhotoOpened = { onPhotoOpened(message) },
+                                onVideoOpened = { onVideoOpened(message) },
+                                album = album,
+                                onAlbumPhotoVisible = onPhotoVisible,
+                                onAlbumPhotoOpened = onPhotoOpened,
+                                onMention = onMention,
+                                onHashtag = { tag ->
+                                    onSearchOpenChange(true)
+                                    onSearchQueryChange(tag)
+                                },
+                                onPinToggled = { onPinToggled(message) },
+                                transfers = state.transfers,
+                                onVote = { chosen -> onVote(message, chosen) },
+                                onButton = { button ->
+                                    when (val action = button.action) {
+                                        // Done here, not in the view model: both
+                                        // are the platform's, and neither talks
+                                        // to Telegram.
+                                        is ButtonAction.OpenUrl -> runCatching { uriHandler.openUri(action.url) }
+                                        is ButtonAction.CopyText -> {
+                                            copyToClipboard(action.text)
+                                            scope.launch { snackbarHostState.showSnackbar("Copied") }
+                                        }
+                                        else -> onBotButton(message, button)
                                     }
-                                    else -> onBotButton(message, button)
                                 }
-                            }
-                        )
+                            )
+                        }
                         }
                     }
 

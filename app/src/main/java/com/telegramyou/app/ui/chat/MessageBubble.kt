@@ -156,8 +156,10 @@ internal fun MessageBubble(
         if (armed) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
     }
 
-    val corner = 20.dp
-    val tail = 6.dp
+    // Round as Appearance says, the tail as tight as ever unless the
+    // corners themselves go tighter.
+    val corner = LocalChatStyle.current.bubbleCorners.dp
+    val tail = minOf(6.dp, corner)
     // Tight corners where a run continues, the tail only on its last message.
     val shape = RoundedCornerShape(
         topStart = if (outgoing || isFirstInRun) corner else tail,
