@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
@@ -105,27 +104,28 @@ fun AvatarBubble(
                 .size(size)
                 .then(
                     if (ring) {
-                        Modifier.border(
-                            width = 2.5.dp,
-                            brush = if (ringSeen) {
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                                    )
-                                )
-                            } else {
-                                // One colour, the scheme's primary. It swept
-                                // primary into secondary into tertiary, which
-                                // in some schemes — dynamic ones included —
-                                // puts a brown or an orange a third of the way
-                                // round every unseen story. An unseen ring is
-                                // a state, not a decoration, and one accent
-                                // says it.
-                                SolidColor(MaterialTheme.colorScheme.primary)
-                            },
-                            shape = outline
-                        )
+                        // Two states, two flat colours: the accent for a
+                        // story not yet seen, grey for one that has been.
+                        // The unseen ring swept primary into secondary into
+                        // tertiary once, and the seen one was a fade of
+                        // grey into lighter grey — gradients where a state
+                        // was meant.
+                        //
+                        // And a gap inside the ring, the page's colour
+                        // between it and the picture, as Telegram draws it:
+                        // pressed against a coloured avatar the ring read
+                        // as a second colour of the avatar itself.
+                        Modifier
+                            .border(
+                                width = RING_WIDTH,
+                                color = if (ringSeen) {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                                shape = outline
+                            )
+                            .padding(RING_WIDTH + RING_GAP)
                     } else Modifier
                 )
                 .clip(outline)
@@ -192,3 +192,7 @@ fun AvatarBubble(
         }
     }
 }
+
+/** The story ring's stroke, and the gap between it and the picture. */
+private val RING_WIDTH = 2.5.dp
+private val RING_GAP = 2.dp
