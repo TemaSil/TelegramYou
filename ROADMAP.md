@@ -109,6 +109,37 @@ for every kind of message, so a new kind knows where it goes:
   `VideoSticker` decodes both with the platform's VP9 decoder into frames
   at the size drawn.
 
+**Appearance — next, on the owner's list of 28 September 2026.** Today
+Appearance is four rows in Settings: colour from the wallpaper, theme,
+shaped avatars, text size. It becomes a screen of its own, measured
+against the official client's Chat settings and the forks, and kept to
+Material's own parts:
+
+1. **Its own screen** — Settings → Appearance, one row where the group is
+   now. At the top a live preview: a few bubbles on the chosen wallpaper,
+   redrawn as anything below changes, as the official client shows it.
+2. **Colour.** Material You from the wallpaper stays the default on
+   Android 12+. Off — or below 12 — a row of accent swatches (teal, blue,
+   violet, pink, red, orange, amber, green) instead of teal alone, the whole
+   scheme built from the chosen seed the way the fallback already is
+   (tonal spot, material-color-utilities), at run time rather than by hand.
+3. **Pure black** for the dark theme: surfaces to black, for OLED.
+4. **Chat:** a wallpaper — none, or one of a few patterns and gradients
+   drawn in the theme's own colours (the wallpaper is on CLAUDE.md's short
+   list of things worth drawing by hand); message text size, apart from the
+   interface's; bubble corners as a slider (the official "Message
+   corners"); which tone outgoing bubbles take.
+5. **Chat list:** two lines of preview or one; avatar shape — circles,
+   rounded squares, or Material's shapes per person (today's switch).
+6. **App icon** in the accent colours, chosen here, through
+   `activity-alias`; Android 13's themed monochrome icon stays as it is.
+7. **Less motion** — container transforms become fades, the typing morph
+   holds still, springs settle faster; on top of Android's own "Remove
+   animations", which is honoured already.
+
+All of it in `AppearanceSettings`, with the rules and defaults in `:core`
+and tested; each lands visible in the preview first.
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback
 speed and picture-in-picture; recording round video messages; a photo
