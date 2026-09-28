@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.ui.semantics.semantics
+import com.telegramyou.app.telegram.model.customEmojiIdOf
 import androidx.compose.material3.IconButton
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
@@ -867,11 +868,16 @@ internal fun ReactionRow(
                 selected = reaction.isChosen,
                 onClick = { onToggle(reaction.emoji) },
                 label = {
-                    Text(
-                        if (reaction.count > 1) "${reaction.emoji} ${reaction.count}"
-                        else reaction.emoji,
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                    // A custom emoji (Premium's) is its sticker; see ReactionGlyph.
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        ReactionGlyph(reaction.emoji, size = 18.dp)
+                        if (reaction.count > 1) {
+                            Text(
+                                " ${reaction.count}",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
                 },
                 // Tighter than the default pill, so a row of chips inside a
                 // bubble reads as an annotation on the message rather than a
@@ -919,9 +925,14 @@ private fun QuickReactions(
     }
 }
 
-/** One reaction to choose: its animation or its emoji, ringed in the accent when it is ours. */
+/**
+ * One reaction to choose: its animation or its emoji, ringed in the accent
+ * when it is ours. One only Premium may use is dimmed, with a lock in its
+ * corner, as the official client marks it.
+ */
 @Composable
 internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onClick: () -> Unit) {
+    val custom = customEmojiIdOf(option.emoji) != null
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -929,13 +940,31 @@ internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onC
             .clip(CircleShape)
             .background(if (chosen) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
             .clickable(onClick = onClick)
-            .semantics { contentDescription = option.emoji }
+            .semantics {
+                contentDescription = when {
+                    !custom -> option.emoji
+                    option.needsPremium -> "Custom emoji, Premium"
+                    else -> "Custom emoji"
+                }
+            }
     ) {
-        val animation = option.animation
-        if (animation != null) {
-            StickerView(animation, size = size)
-        } else {
-            Text(option.emoji, fontSize = (size.value * 0.8f).sp)
+        Box(Modifier.alpha(if (option.needsPremium) 0.45f else 1f), contentAlignment = Alignment.Center) {
+            val animation = option.animation
+            if (animation != null) {
+                StickerView(animation, size = size)
+            } else {
+                ReactionGlyph(option.emoji, size = size)
+            }
+        }
+        if (option.needsPremium) {
+            Icon(
+                Symbols.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(14.dp)
+            )
         }
     }
 }

@@ -995,8 +995,9 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       quick row over every message's menu, with an arrow to a grid of all
       the message may take (`getMessageAvailableReactions`), each drawn as
       Telegram's own animation of it (`getEmojiReaction`, centre animation,
-      TGS through Lottie). Custom-emoji reactions (Premium) are not offered
-      yet
+      TGS through Lottie). Custom-emoji reactions (Premium's) are read,
+      drawn as their stickers (`getCustomEmojiStickers`) and offered in the
+      picker — dimmed and locked where the account has no Premium
 - [x] Select several messages — `HorizontalFloatingToolbar`, copy and delete
       in one go; what it offers is computed from what every message allows
 - [x] Search inside a chat — the field takes the app bar's title, results as
@@ -1330,11 +1331,10 @@ them. Ticks are only worth something if somebody moves them.
       Since 28 September the smiley opens a panel in the keyboard's place
       with Emoji (Jetpack's `EmojiPickerView`), GIFs (saved, and searched
       through the @gif bot) and Stickers (recent and each set as a tab); a
-      keyboard key takes the smiley's place to go back. Video (WEBM) stickers show their still
-      thumbnail, and custom emoji are not in yet. A video sticker with its
-      transparency needs a VP9 decoder that keeps the alpha channel, which
-      Android's own do not — played through them it would be a sticker in a
-      black square — so it waits for a native decoder
+      keyboard key takes the smiley's place to go back. Video (WEBM) stickers
+      play with their transparency — see "Video stickers play" above; this
+      line said they waited on a native decoder long after they stopped
+      waiting. Custom emoji inside message text are not drawn yet
 - [x] Videos out to the bubble's edges, as photos are, with the caption
       and time beneath — they were a smaller rounded frame inside the bubble
 - [x] GIFs — TDLib's `messageAnimation`, which used to show as a word. Out

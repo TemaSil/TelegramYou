@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.customEmojiIdOf
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
@@ -31,6 +32,37 @@ import java.util.zip.GZIPInputStream
  * previews, where a sticker falls back to its emoji.
  */
 val LocalFileLoader = staticCompositionLocalOf<(suspend (Int) -> String?)?> { null }
+
+/**
+ * The sticker behind a custom emoji, by its id — what a Premium reaction is
+ * drawn as. Provided with [LocalFileLoader]; null in previews.
+ */
+val LocalCustomEmojiLoader = staticCompositionLocalOf<(suspend (Long) -> StickerContent?)?> { null }
+
+/**
+ * A reaction by its key: a plain emoji as text, a custom one as its sticker
+ * — [preloaded] when the caller has it already, fetched otherwise, and an
+ * empty square of the same size until it arrives, so the chip does not
+ * change width when it does.
+ */
+@Composable
+fun ReactionGlyph(key: String, size: Dp, preloaded: StickerContent? = null, animate: Boolean = true) {
+    val customId = customEmojiIdOf(key)
+    if (customId == null) {
+        Text(key, fontSize = with(LocalDensity.current) { (size * 0.8f).toSp() })
+        return
+    }
+    val loader = LocalCustomEmojiLoader.current
+    val sticker by produceState(preloaded, customId) {
+        if (value == null && loader != null) value = loader(customId)
+    }
+    val drawn = sticker
+    if (drawn != null) {
+        StickerView(drawn, size = size, animate = animate)
+    } else {
+        Box(Modifier.size(size))
+    }
+}
 
 /**
  * One sticker, [size] square: a picture drawn by Coil, a Lottie animation

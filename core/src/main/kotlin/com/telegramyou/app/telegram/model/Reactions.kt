@@ -53,3 +53,17 @@ fun toggleReaction(
     // never allowed to go negative: it cannot reach zero and stay.
     return updated.filter { it.count > 0 }
 }
+
+/**
+ * A custom-emoji reaction as the rest of this client carries it: a key in
+ * the same string the emoji reactions use, so the row, the toggle above and
+ * the repository take both alike. Telegram names one by its custom emoji's
+ * id; drawing it means fetching that emoji's sticker (see the chips).
+ */
+fun customReactionKey(customEmojiId: Long): String = "$CUSTOM_REACTION_PREFIX$customEmojiId"
+
+/** The custom emoji's id behind [key], or null for a plain emoji reaction. */
+fun customEmojiIdOf(key: String): Long? =
+    if (key.startsWith(CUSTOM_REACTION_PREFIX)) key.removePrefix(CUSTOM_REACTION_PREFIX).toLongOrNull() else null
+
+private const val CUSTOM_REACTION_PREFIX = "custom:"

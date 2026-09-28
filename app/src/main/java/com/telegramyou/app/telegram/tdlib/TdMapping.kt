@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.customEmojiIdOf
+import com.telegramyou.app.telegram.model.customReactionKey
 import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.PollContent
@@ -465,10 +467,28 @@ internal fun JSONObject.localPathIfDownloaded(): String? = optJSONObject("local"
  * Reactions hang off interaction_info, alongside view and forward counts,
  * and are absent on the overwhelming majority of messages.
  *
- * Only emoji reactions are read. A custom reaction is a sticker id that
- * means nothing without fetching the sticker, and a chip showing a
- * numeric id would be worse than showing nothing.
+ * Custom-emoji reactions (Premium's) are read too, under their key
+ * (customReactionKey); the chip fetches the emoji's sticker to draw it.
+ * They were left out once, which hid every one a friend with Premium put
+ * on a message.
  */
+/** A TDLib ReactionType as this client's key, or null for one it does not draw (paid stars). */
+internal fun reactionKeyOf(type: JSONObject?): String? = when (type?.optString("@type")) {
+    "reactionTypeEmoji" -> type.optString("emoji").takeIf { it.isNotBlank() }
+    "reactionTypeCustomEmoji" -> type.optInt64("custom_emoji_id").takeIf { it != 0L }?.let(::customReactionKey)
+    else -> null
+}
+
+/** This client's key as a TDLib ReactionType. */
+internal fun reactionTypeOf(key: String): JSONObject {
+    val customId = customEmojiIdOf(key)
+    return if (customId != null) {
+        JSONObject().put("@type", "reactionTypeCustomEmoji").put("custom_emoji_id", customId)
+    } else {
+        JSONObject().put("@type", "reactionTypeEmoji").put("emoji", key)
+    }
+}
+
 internal fun parseReactions(interactionInfo: JSONObject?): List<MessageReaction> {
     val array = interactionInfo
         ?.optJSONObject("reactions")
@@ -476,11 +496,7 @@ internal fun parseReactions(interactionInfo: JSONObject?): List<MessageReaction>
         ?: return emptyList()
     return (0 until array.length()).mapNotNull { index ->
         val reaction = array.optJSONObject(index) ?: return@mapNotNull null
-        val emoji = reaction.optJSONObject("type")
-            ?.takeIf { it.optString("@type") == "reactionTypeEmoji" }
-            ?.optString("emoji")
-            ?.takeIf { it.isNotBlank() }
-            ?: return@mapNotNull null
+        val emoji = reactionKeyOf(reaction.optJSONObject("type")) ?: return@mapNotNull null
         MessageReaction(
             emoji = emoji,
             count = reaction.optInt("total_count"),

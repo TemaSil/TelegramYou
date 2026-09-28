@@ -24,4 +24,10 @@ interface TelegramStickers {
     suspend fun searchGifs(query: String): List<GifItem> = emptyList()
 
     suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long? = null)
+
+    /**
+     * The stickers behind custom emoji, by id — what a custom-emoji reaction
+     * is drawn as. Those not found are simply missing from the answer.
+     */
+    suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> = emptyMap()
 }

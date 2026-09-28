@@ -611,6 +611,16 @@ class ChatViewModel(
     /** A file by TDLib's id, for what draws one without a state holder; see LocalFileLoader. */
     suspend fun loadFile(fileId: Int): String? = repository.downloadFile(fileId)
 
+    /** A custom emoji's sticker, for a Premium reaction; see LocalCustomEmojiLoader. */
+    suspend fun loadCustomEmoji(id: Long): StickerContent? =
+        try {
+            repository.customEmoji(listOf(id))[id]
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            null
+        }
+
     fun onAttachmentSheetOpenChange(open: Boolean) =
         _uiState.update { it.copy(attachmentSheetOpen = open) }
 

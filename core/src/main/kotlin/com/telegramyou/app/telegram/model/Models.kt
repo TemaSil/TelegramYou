@@ -484,8 +484,15 @@ data class MessageReaction(
  * Without one it is drawn as the emoji.
  */
 data class ReactionOption(
+    /** The emoji, or a custom emoji's key (customReactionKey). */
     val emoji: String,
-    val animation: StickerContent? = null
+    val animation: StickerContent? = null,
+    /**
+     * A custom emoji only Telegram Premium may react with. Offered anyway,
+     * dimmed and locked, as the official client offers it — the server has
+     * the last word, and says so if tapped.
+     */
+    val needsPremium: Boolean = false
 )
 
 data class ChatDetail(

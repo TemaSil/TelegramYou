@@ -103,4 +103,20 @@ class ReactionsTest {
             result
         )
     }
+
+    @Test
+    fun `a custom emoji reaction round-trips through its key`() {
+        val key = customReactionKey(5368324170671202286)
+        assertEquals(5368324170671202286, customEmojiIdOf(key))
+        assertEquals(null, customEmojiIdOf("👍"))
+        assertEquals(null, customEmojiIdOf("custom:not-a-number"))
+    }
+
+    @Test
+    fun `a custom reaction toggles like any other`() {
+        val key = customReactionKey(42)
+        val on = toggleReaction(listOf(MessageReaction("👍", count = 1, isChosen = true)), key)
+        assertEquals(listOf(MessageReaction(key, count = 1, isChosen = true)), on)
+        assertEquals(emptyList<MessageReaction>(), toggleReaction(on, key))
+    }
 }

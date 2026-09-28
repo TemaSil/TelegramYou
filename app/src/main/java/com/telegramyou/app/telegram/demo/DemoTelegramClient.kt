@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.ReactionOption
+import com.telegramyou.app.telegram.model.customReactionKey
 import com.telegramyou.app.telegram.model.StickerFormat
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.BuildConfig
@@ -109,6 +111,8 @@ class DemoTelegramClient(
      * every chat joined it, and all four tabs showed the same count. The
      * compiler says nothing about it; the emulator did.
      */
+    private val DEMO_CUSTOM_EMOJI = 5_000_000_001L
+
     private val FOLDER_WORK = 1
     private val FOLDER_PEOPLE = 2
     private val FOLDER_NEWS = 3
@@ -1378,6 +1382,22 @@ class DemoTelegramClient(
         )
     }
 
+    /**
+     * One custom emoji, the demo's stand-in for a Premium reaction: a
+     * unicorn with no file behind it, so it draws as its emoji wherever a
+     * custom emoji's sticker would go.
+     */
+    override suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> =
+        ids.filter { it == DEMO_CUSTOM_EMOJI }.associateWith { StickerContent(id = it, emoji = "🦄") }
+
+    override suspend fun messageReactions(chatId: Long, messageId: Long): List<ReactionOption> =
+        availableReactions(chatId).map { ReactionOption(it) } +
+            ReactionOption(
+                customReactionKey(DEMO_CUSTOM_EMOJI),
+                StickerContent(id = DEMO_CUSTOM_EMOJI, emoji = "🦄"),
+                needsPremium = true
+            )
+
     override suspend fun savedGifs(): List<GifItem> {
         delay(120)
         return demoGifs("saved")
@@ -1766,7 +1786,7 @@ class DemoTelegramClient(
 
         chatMessages[1] = mutableListOf(
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
-            demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true))),
+            demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true), MessageReaction(customReactionKey(DEMO_CUSTOM_EMOJI), count = 2))),
             demoMessage(3, 1, "Attach files from the composer. Stories sit on top of the chat list.", false, today + 120, "Material Design"),
             // One message with a card, so the link preview is visible offline.
             // Its text still holds the URL: the card is an addition to the

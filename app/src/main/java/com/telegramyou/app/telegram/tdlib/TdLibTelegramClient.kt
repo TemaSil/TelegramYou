@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.customEmojiIdOf
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.async
@@ -1775,9 +1776,7 @@ class TdLibTelegramClient(
         awaitReady()
         val known = messagesByChat[chatId]?.firstOrNull { it.id == messageId }
         val chosen = known?.reactions?.any { it.emoji == emoji && it.isChosen } == true
-        val reactionType = JSONObject()
-            .put("@type", "reactionTypeEmoji")
-            .put("emoji", emoji)
+        val reactionType = reactionTypeOf(emoji)
 
         requireEngine().send(
             JSONObject()
@@ -1877,7 +1876,8 @@ class TdLibTelegramClient(
 
     override suspend fun messageReactions(chatId: Long, messageId: Long): List<ReactionOption> {
         awaitReady()
-        val emojis = try {
+        // Key to whether it needs Premium, in Telegram's order.
+        val offered: List<Pair<String, Boolean>> = try {
             val answer = requireEngine().send(
                 JSONObject()
                     .put("@type", "getMessageAvailableReactions")
@@ -1886,25 +1886,59 @@ class TdLibTelegramClient(
                     .put("row_size", QUICK_REACTION_COUNT)
             )
             // Top first — what this account and chat use most — then the
-            // rest; custom emoji (Premium's) are left out until this client
-            // can draw them in a message.
+            // rest, custom emoji (Premium's) among them.
             listOf("top_reactions", "recent_reactions", "popular_reactions")
                 .flatMap { key ->
-                    val list = answer.optJSONArray(key) ?: return@flatMap emptyList<String>()
-                    List(list.length()) { list.optJSONObject(it)?.optJSONObject("type") }
-                        .filter { it?.optString("@type") == "reactionTypeEmoji" }
-                        .mapNotNull { it?.optString("emoji")?.takeIf(String::isNotBlank) }
+                    val list = answer.optJSONArray(key) ?: return@flatMap emptyList<Pair<String, Boolean>>()
+                    List(list.length()) { list.optJSONObject(it) }.mapNotNull { available ->
+                        reactionKeyOf(available?.optJSONObject("type"))
+                            ?.let { it to available!!.optBoolean("needs_premium") }
+                    }
                 }
-                .distinct()
+                .distinctBy { it.first }
         } catch (e: TdLibException) {
             Log.w(TAG, "getMessageAvailableReactions: ${e.message}")
-            availableReactions(chatId)
+            availableReactions(chatId).map { it to false }
         }
+        val custom = customEmoji(offered.mapNotNull { customEmojiIdOf(it.first) })
         return coroutineScope {
-            emojis.map { emoji ->
-                async { ReactionOption(emoji, reactionAnimation(emoji)) }
+            offered.map { (key, premium) ->
+                async {
+                    val customId = customEmojiIdOf(key)
+                    ReactionOption(
+                        emoji = key,
+                        animation = if (customId != null) custom[customId] else reactionAnimation(key),
+                        needsPremium = premium
+                    )
+                }
             }.awaitAll()
         }
+    }
+
+    /** Custom emoji fetched this run, by id; they do not change. */
+    private val customEmojiCache = java.util.concurrent.ConcurrentHashMap<Long, StickerContent>()
+
+    override suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> {
+        val missing = ids.distinct().filterNot { it in customEmojiCache }
+        if (missing.isNotEmpty()) {
+            awaitReady()
+            try {
+                val answer = requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getCustomEmojiStickers")
+                        .put("custom_emoji_ids", JSONArray(missing))
+                )
+                val stickers = answer.optJSONArray("stickers")
+                for (i in 0 until (stickers?.length() ?: 0)) {
+                    val sticker = stickers!!.optJSONObject(i) ?: continue
+                    val id = sticker.optJSONObject("full_type")?.optInt64("custom_emoji_id") ?: continue
+                    if (id != 0L) customEmojiCache[id] = stickerOf(sticker)
+                }
+            } catch (e: TdLibException) {
+                Log.w(TAG, "getCustomEmojiStickers: ${e.message}")
+            }
+        }
+        return ids.mapNotNull { id -> customEmojiCache[id]?.let { id to it } }.toMap()
     }
 
     /** The emoji's centre animation, which plays on its own in a small square. */

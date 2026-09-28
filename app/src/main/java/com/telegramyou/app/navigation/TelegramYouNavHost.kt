@@ -1,5 +1,6 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.ui.chat.LocalCustomEmojiLoader
 import com.telegramyou.app.ui.folders.FolderEditScreen
 import com.telegramyou.app.ui.folders.FolderEditViewModel
 import com.telegramyou.app.ui.folders.FoldersScreen
@@ -735,7 +736,8 @@ fun TelegramYouNavHost(
             CompositionLocalProvider(
                 LocalNavAnimatedScope provides this@composable,
                 // Stickers fetch their own files; see StickerView.
-                LocalFileLoader provides chatViewModel::loadFile
+                LocalFileLoader provides chatViewModel::loadFile,
+                LocalCustomEmojiLoader provides chatViewModel::loadCustomEmoji
             ) {
             // Collected here as well as at the top: the setting is read by
             // the conversation, and a switch flipped in Appearance has to
