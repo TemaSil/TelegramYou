@@ -7,6 +7,7 @@ import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.PrivacySetting
 import com.telegramyou.app.telegram.model.PrivacyRules
 import com.telegramyou.app.telegram.model.PrivacyException
@@ -110,7 +111,14 @@ class DemoTelegramClient(
     private val FOLDER_PEOPLE = 2
     private val FOLDER_NEWS = 3
 
-    private val _chats = MutableStateFlow(seedChats())
+    // Private chats with people can be emptied on both sides, as on Telegram;
+    // bots, Saved Messages, groups and channels cannot.
+    private val _chats = MutableStateFlow(
+        seedChats().map { chat ->
+            val withPerson = !chat.isGroup && !chat.isChannel && !chat.isSavedMessages && !chat.isBot
+            if (withPerson) chat.copy(canDeleteForEveryone = true) else chat
+        }
+    )
     override val chats: StateFlow<List<ChatPreview>> = _chats.asStateFlow()
 
     // Seeded rather than empty, which is the interesting half: an account
@@ -544,7 +552,128 @@ class DemoTelegramClient(
 
     override suspend fun contacts(): List<TelegramUser> {
         delay(150)
-        return demoContacts
+        return (demoContacts + addedContacts).sortedBy { it.displayName.lowercase() }
+    }
+
+    /** People added from the Contacts screen this session. */
+    private val addedContacts = mutableListOf<TelegramUser>()
+
+    /** Who is blocked, by user id; the demo's copy of Telegram's block list. */
+    private val blockedIds = linkedSetOf<Long>()
+
+    /**
+     * Bios for the people the demo seeds, so a profile has something to say.
+     * Keyed by first name, which is all the demo's identity amounts to.
+     */
+    private val demoBios = mapOf(
+        "Lina" to "Designing calm interfaces. Swims at dawn 🌊",
+        "Artem" to "Ships Android builds. Asks for the apk.",
+        "Mom" to "💚",
+        "Nadia" to "Motion and springs",
+        "Build" to "Builds TelegramYou on every push"
+    )
+
+    /**
+     * A person for a demo chat or contact: the same user every time they are
+     * asked for, with a made-up but well-formed number and, for most, a
+     * username — Mom has none, which is the case worth seeing.
+     */
+    private fun demoUser(base: TelegramUser): TelegramUser {
+        val first = base.firstName
+        return base.copy(
+            username = base.username ?: if (first == "Mom") null
+            else listOf(first, base.lastName).filter { it.isNotBlank() }.joinToString("_").lowercase(),
+            phoneNumber = base.phoneNumber ?: ("1555010" + (base.id % 10000).toString().padStart(4, '0')),
+            bio = base.bio.ifBlank { demoBios[first].orEmpty() }
+        )
+    }
+
+    /** Everyone the demo knows of, by user id. */
+    private fun demoPeople(): Map<Long, Pair<TelegramUser, Boolean>> {
+        val known = (demoContacts + addedContacts + demoMembers).associateBy { it.id }
+        val fromChats = _chats.value
+            .filter { !it.isGroup && !it.isChannel && !it.isSavedMessages }
+            .map { chat ->
+                known.values.firstOrNull { it.displayName == chat.title }
+                    ?: TelegramUser(
+                        id = DEMO_PERSON_BASE + chat.id,
+                        firstName = chat.title.substringBefore(' '),
+                        lastName = chat.title.substringAfter(' ', ""),
+                        avatarColor = chat.avatarColor,
+                        photoPath = chat.photoPath
+                    )
+            }
+        val bots = _chats.value.filter { it.isBot }.map { DEMO_PERSON_BASE + it.id }.toSet()
+        return (known.values + fromChats).associate { user -> user.id to (demoUser(user) to (user.id in bots)) }
+    }
+
+    private fun profileOf(userId: Long): PersonProfile? {
+        val (user, isBot) = demoPeople()[userId] ?: return null
+        return PersonProfile(
+            user = user,
+            isContact = (demoContacts + addedContacts).any { it.id == userId },
+            isBlocked = userId in blockedIds,
+            isBot = isBot
+        )
+    }
+
+    override suspend fun person(userId: Long): PersonProfile? {
+        delay(120)
+        return profileOf(userId)
+    }
+
+    override suspend fun personInChat(chatId: Long): PersonProfile? {
+        delay(120)
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return null
+        if (chat.isGroup || chat.isChannel || chat.isSavedMessages) return null
+        val userId = demoPeople().values.firstOrNull { it.first.displayName == chat.title }?.first?.id
+            ?: (DEMO_PERSON_BASE + chatId)
+        return profileOf(userId)
+    }
+
+    override suspend fun setBlocked(userId: Long, blocked: Boolean) {
+        delay(120)
+        if (blocked) blockedIds += userId else blockedIds -= userId
+    }
+
+    override suspend fun blockedPeople(): List<TelegramUser> {
+        delay(150)
+        val people = demoPeople()
+        return blockedIds.mapNotNull { people[it]?.first }
+    }
+
+    /**
+     * Any well-formed number is "on Telegram" here, except one ending in 404,
+     * which is the demo's way to show what happens when it is not.
+     */
+    override suspend fun addContact(phone: String, firstName: String, lastName: String): Long? {
+        delay(300)
+        val digits = phone.filter(Char::isDigit)
+        if (digits.length < 8 || digits.endsWith("404")) return null
+        (demoContacts + addedContacts).firstOrNull { it.phoneNumber?.filter(Char::isDigit) == digits }
+            ?.let { return it.id }
+        val user = TelegramUser(
+            id = DEMO_ADDED_BASE + addedContacts.size,
+            firstName = firstName.trim(),
+            lastName = lastName.trim(),
+            phoneNumber = digits
+        )
+        addedContacts += user
+        return user.id
+    }
+
+    override suspend fun clearHistory(chatId: Long, forEveryone: Boolean) {
+        delay(150)
+        chatMessages[chatId]?.clear()
+        _chats.update { list ->
+            list.map { if (it.id == chatId) it.copy(lastMessage = "", unreadCount = 0, draft = "") else it }
+        }
+    }
+
+    override suspend fun deleteChat(chatId: Long, forEveryone: Boolean) {
+        delay(150)
+        chatMessages.remove(chatId)
+        _chats.update { list -> list.filterNot { it.id == chatId } }
     }
 
     override suspend fun openPrivateChat(userId: Long): Long {
@@ -553,7 +682,9 @@ class DemoTelegramClient(
         if (userId == _authState.value.me?.id) {
             _chats.value.firstOrNull { it.title == "Saved Messages" }?.let { return it.id }
         }
-        val contact = demoContacts.firstOrNull { it.id == userId } ?: return 1L
+        val contact = (demoContacts + addedContacts + demoMembers).firstOrNull { it.id == userId }
+            ?: demoPeople()[userId]?.first
+            ?: return 1L
         // An existing conversation with that person if there is one, so the
         // picker lands where the chat list would have. Matching on the title
         // is the demo backend's whole idea of identity; a real one has user
@@ -571,7 +702,8 @@ class DemoTelegramClient(
                 title = contact.displayName,
                 lastMessage = "",
                 timestampLabel = "now",
-                avatarColor = contact.id
+                avatarColor = contact.id,
+                canDeleteForEveryone = true
             )
         }
         chatMessages[id] = mutableListOf()
@@ -1932,6 +2064,12 @@ private const val DEMO_ARCHIVE_SIZE = 120
 
 /** The oldest line in Design Circle — well outside what opening it loads. */
 const val DEMO_ARCHIVE_FIRST_LINE = "Kickoff: first sketches of the floating composer"
+
+/** User ids for demo people known only from a private chat: this plus the chat id. */
+private const val DEMO_PERSON_BASE = 2000L
+
+/** User ids for contacts added in the demo. */
+private const val DEMO_ADDED_BASE = 3000L
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L

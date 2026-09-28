@@ -71,12 +71,18 @@ notices within a day. Roughly in the order to do them:
 5. ~~**Drafts**~~ — done 27 September: saved a second after typing stops
    and on leaving, through `setChatDraftMessage`, so they follow the account
    to other devices; "Draft:" in the chat list, back in the field on return.
-6. **Someone else's profile** — tapping a person opens their info: photo,
-   bio, username, phone, shared media, mute, **block** (no block list
-   exists anywhere yet).
-7. **Delete a chat, clear its history** — from the list's long-press menu.
-8. **Contacts** — a screen of them, and adding one by phone number; today
-   they are only reachable from New message.
+6. ~~**Someone else's profile**~~ — done 28 September: a private chat's
+   info shows the number, username and bio, photos and videos, mute and
+   **block**; a group member tapped opens their profile by user id, with
+   Send message; Settings → Privacy → Blocked users lists everyone blocked
+   and unblocks them.
+7. ~~**Delete a chat, clear its history**~~ — done 28 September, from the
+   list's long-press menu: clear or delete a private chat (for both sides
+   where Telegram allows it), leave a group or channel. `chatRemovalOf` in
+   `:core` decides which, and the dialogs confirm.
+8. ~~**Contacts**~~ — done 28 September: a screen in the chat list's ⋮ menu,
+   tapping one opens the chat, and Add contact takes a number and a name
+   (`importContacts`); a number not on Telegram is said so, not an error.
 9. ~~Your own profile, properly~~ — done the same day; see section 3.
 10. **Editing folders** — see section 2.
 11. **Posting a story** — they can be watched, not made.

@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.MessageHit
+import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
 import com.telegramyou.app.telegram.model.PrivacyAudience
@@ -123,6 +124,46 @@ class FakeTelegramClient(
     override suspend fun leaveChat(chatId: Long) {
         leftChats += chatId
         _chats.value = _chats.value.filterNot { it.id == chatId }
+    }
+
+    /** Chat ids cleared, and whether for everyone. */
+    val clearedChats = mutableListOf<Pair<Long, Boolean>>()
+    val deletedChats = mutableListOf<Pair<Long, Boolean>>()
+
+    override suspend fun clearHistory(chatId: Long, forEveryone: Boolean) {
+        clearedChats += chatId to forEveryone
+    }
+
+    override suspend fun deleteChat(chatId: Long, forEveryone: Boolean) {
+        deletedChats += chatId to forEveryone
+        _chats.value = _chats.value.filterNot { it.id == chatId }
+    }
+
+    /** Who the profile screens find, by user id and by chat id. */
+    val people = mutableMapOf<Long, PersonProfile>()
+    val peopleByChat = mutableMapOf<Long, PersonProfile>()
+    val blocked = mutableSetOf<Long>()
+    val addedContacts = mutableListOf<String>()
+
+    /** What addContact answers; null plays a number not on Telegram. */
+    var addContactResult: Long? = null
+
+    override suspend fun person(userId: Long): PersonProfile? =
+        people[userId]?.let { it.copy(isBlocked = userId in blocked) }
+
+    override suspend fun personInChat(chatId: Long): PersonProfile? =
+        peopleByChat[chatId]?.let { it.copy(isBlocked = it.user.id in blocked) }
+
+    override suspend fun setBlocked(userId: Long, blocked: Boolean) {
+        if (blocked) this.blocked += userId else this.blocked -= userId
+    }
+
+    override suspend fun blockedPeople(): List<TelegramUser> =
+        blocked.mapNotNull { people[it]?.user }
+
+    override suspend fun addContact(phone: String, firstName: String, lastName: String): Long? {
+        addedContacts += phone
+        return addContactResult
     }
     override val stories: StateFlow<List<StoryItem>> = MutableStateFlow(emptyList())
 

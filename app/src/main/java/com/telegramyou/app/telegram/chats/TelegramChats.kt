@@ -158,6 +158,20 @@ interface TelegramChats {
     suspend fun leaveChat(chatId: Long)
 
     /**
+     * Empties a private chat or Saved Messages and keeps it in the list —
+     * for the other person too when [forEveryone], which Telegram allows
+     * where ChatPreview.canDeleteForEveryone says so.
+     */
+    suspend fun clearHistory(chatId: Long, forEveryone: Boolean)
+
+    /**
+     * Takes a chat out of the list for good: a private chat's history is
+     * deleted (for both sides when [forEveryone]), and a group or channel is
+     * left and then removed. See chatRemovalOf for which is which.
+     */
+    suspend fun deleteChat(chatId: Long, forEveryone: Boolean)
+
+    /**
      * Makes a group with [memberIds] in it and answers with its chat id.
      *
      * The id rather than the chat, because the caller's next move is to open

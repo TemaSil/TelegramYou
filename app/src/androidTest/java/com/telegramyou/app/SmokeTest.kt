@@ -1623,6 +1623,149 @@ class SmokeTest {
     }
 
     /**
+     * Other people. A group member tapped opens their profile; a private
+     * chat's info says who the person is — number, username, bio — and
+     * blocks them; Settings → Privacy → Blocked users lists them and gives
+     * them back. Unblocked at the end, so no later test in this process
+     * meets a blocked Lina.
+     */
+    @Test
+    fun peopleHaveProfilesAndCanBeBlocked() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.text("Members"), "the member list")
+        scrollDownTo(By.text("Nadia Orlova"))
+        tap(By.text("Nadia Orlova"))
+        waitFor(By.text("Send message"), "Nadia's profile")
+        waitFor(By.text("Motion and springs"), "her bio")
+        screenshot("47-person")
+
+        backTo(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("GIF"), "Lina's chat")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.text("Mobile"), "Lina's number")
+        waitFor(By.textContains("Swims at dawn"), "her bio")
+        screenshot("48-private-info")
+        scrollDownTo(By.text("Block user"))
+        tap(By.text("Block user"))
+        waitFor(By.text("Block Lina?"), "the block question")
+        tap(By.text("Block"))
+        waitFor(By.text("Unblock user"), "Lina blocked")
+
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        waitFor(By.text("Phone number"), "the privacy rules")
+        scrollDownTo(By.text("Blocked users"))
+        tap(By.text("Blocked users"))
+        waitFor(By.text("Lina Park"), "Lina in the block list")
+        screenshot("49-blocked")
+        tap(By.text("Unblock"))
+        waitFor(By.text("Nobody is blocked"), "the list empty again")
+    }
+
+    /**
+     * Contacts, from the chat list's menu: one added by number, whose chat
+     * opens at once — and that chat then cleared and deleted from the list's
+     * long-press menu. A chat of its own making, so no other test's chat
+     * is taken away from it.
+     */
+    @Test
+    fun aContactIsAddedAndTheirChatClearedAndDeleted() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.desc("More"))
+        tap(By.text("Contacts"))
+        waitFor(By.text("Lina Park"), "the contacts")
+        screenshot("50-contacts")
+
+        tap(By.text("Add contact"))
+        waitFor(By.text("Phone number"), "the add-contact dialog")
+        val fields = By.clazz("android.widget.EditText")
+        device.wait(Until.hasObject(fields), STEP_TIMEOUT)
+        val (phone, first, last) = device.findObjects(fields)
+        phone.text = "+15550109999"
+        first.text = "Tess"
+        last.text = "Probe"
+        device.waitForIdle(IDLE_TIMEOUT)
+        tap(By.text("Add"))
+        waitFor(By.text("Tess Probe"), "the chat with the new contact")
+        type("Hello, Tess")
+        tap(By.desc("Send"))
+        waitFor(By.text("Hello, Tess"), "the message sent")
+
+        backTo(By.text("Material Design"), "the chat list")
+        scrollChatsTo(By.text("Tess Probe"))
+        longPressChat("Tess Probe", "Clear history")
+        tap(By.text("Clear history"))
+        waitFor(By.text("Clear history?"), "the clear question")
+        tap(By.text("Clear"))
+        assertTrue(
+            "the cleared chat should lose its last message",
+            device.wait(Until.gone(By.textContains("Hello, Tess")), STEP_TIMEOUT)
+        )
+
+        longPressChat("Tess Probe", "Delete chat")
+        tap(By.text("Delete chat"))
+        waitFor(By.text("Delete the chat with Tess?"), "the delete question")
+        waitFor(By.text("Also delete for Tess"), "the choice to delete for both")
+        screenshot("51-delete-chat")
+        tap(By.text("Delete"))
+        assertTrue(
+            "the deleted chat should leave the list",
+            device.wait(Until.gone(By.text("Tess Probe")), STEP_TIMEOUT)
+        )
+    }
+
+    /** Long-presses the row titled [title] until its menu shows [entry]. */
+    private fun longPressChat(title: String, entry: String) {
+        repeat(3) {
+            if (device.hasObject(By.text(entry))) return
+            try {
+                device.findObject(By.text(title))?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text(entry)), SHORT_WAIT)
+        }
+        waitFor(By.text(entry), "the menu's $entry")
+    }
+
+    /**
+     * Back, one press at a time, until [selector] is on screen — never one
+     * press past it, which on the chat list would leave the app.
+     */
+    private fun backTo(selector: BySelector, what: String) {
+        repeat(6) {
+            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
+            device.pressBack()
+        }
+        waitFor(selector, what)
+    }
+
+    /** Scrolls whatever scrolls on screen down until [selector] shows. */
+    private fun scrollDownTo(selector: BySelector) {
+        repeat(5) {
+            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
+            try {
+                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        waitFor(selector, selector.toString().filter { it.isLetterOrDigit() })
+    }
+
+    /**
      * Types into the field named [description]. The name sits on the
      * field's wrapper, not on the EditText inside it, and setting text on the
      * wrapper does nothing — so the field is tapped, and the text goes into

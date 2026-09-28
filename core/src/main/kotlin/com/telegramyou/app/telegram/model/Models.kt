@@ -143,7 +143,14 @@ data class ChatPreview(
      * is why this is empty by default and why an account with no folders
      * needs nothing here.
      */
-    val folderIds: Set<Int> = emptySet()
+    val folderIds: Set<Int> = emptySet(),
+    /**
+     * Its history can be deleted for the other side as well as this one —
+     * Telegram's can_be_deleted_for_all_users. True for most private chats
+     * with people; false for bots, Saved Messages, groups and channels. See
+     * chatRemovalOf.
+     */
+    val canDeleteForEveryone: Boolean = false
 )
 
 /**

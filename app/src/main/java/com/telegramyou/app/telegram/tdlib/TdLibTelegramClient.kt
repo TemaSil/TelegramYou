@@ -51,6 +51,7 @@ import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.ui.media.FileTransfer
 // Aliased: this class has a toggleReaction of its own, with a different job.
@@ -1072,6 +1073,152 @@ class TdLibTelegramClient(
                 .put("invite_link", link)
         )
         return chat.optLong("id")
+    }
+
+    override suspend fun clearHistory(chatId: Long, forEveryone: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "deleteChatHistory")
+                .put("chat_id", chatId)
+                .put("remove_from_chat_list", false)
+                .put("revoke", forEveryone)
+        )
+    }
+
+    override suspend fun deleteChat(chatId: Long, forEveryone: Boolean) {
+        awaitReady()
+        val type = chatsById[chatId]?.optJSONObject("type")?.optString("@type")
+        if (type == "chatTypeBasicGroup" || type == "chatTypeSupergroup") {
+            // A group or channel is left, and then its history taken off the
+            // list. Leaving a supergroup already removes it, and TDLib then
+            // refuses the second call — which is the outcome wanted, so
+            // neither refusal is an error here. A basic group stays in the
+            // list after leaving until its history goes.
+            try {
+                requireEngine().send(JSONObject().put("@type", "leaveChat").put("chat_id", chatId))
+            } catch (e: Throwable) {
+                Log.w(TAG, "deleteChat leave: ${e.message}")
+            }
+            try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "deleteChatHistory")
+                        .put("chat_id", chatId)
+                        .put("remove_from_chat_list", true)
+                        .put("revoke", false)
+                )
+            } catch (e: Throwable) {
+                Log.w(TAG, "deleteChat history: ${e.message}")
+            }
+            return
+        }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "deleteChatHistory")
+                .put("chat_id", chatId)
+                .put("remove_from_chat_list", true)
+                .put("revoke", forEveryone)
+        )
+    }
+
+    /** A user this client has heard of, or asks TDLib for; null when it cannot say. */
+    private suspend fun userObject(userId: Long): JSONObject? =
+        usersById[userId] ?: try {
+            requireEngine()
+                .send(JSONObject().put("@type", "getUser").put("user_id", userId))
+                .also { usersById[userId] = it }
+        } catch (_: Throwable) {
+            null
+        }
+
+    override suspend fun person(userId: Long): PersonProfile? {
+        awaitReady()
+        val raw = userObject(userId) ?: return null
+        // The bio and the block list live on userFullInfo, not on user. A
+        // failure there still shows the person, with neither.
+        val full = try {
+            requireEngine().send(JSONObject().put("@type", "getUserFullInfo").put("user_id", userId))
+        } catch (e: Throwable) {
+            Log.w(TAG, "person full info: ${e.message}")
+            null
+        }
+        return PersonProfile(
+            user = mapUser(raw).copy(bio = full?.optJSONObject("bio")?.optString("text").orEmpty()),
+            isContact = raw.optBoolean("is_contact"),
+            // A BlockList object when blocked, absent when not.
+            isBlocked = full?.optJSONObject("block_list") != null,
+            isBot = raw.optJSONObject("type")?.optString("@type") == "userTypeBot"
+        )
+    }
+
+    override suspend fun personInChat(chatId: Long): PersonProfile? {
+        awaitReady()
+        val chat = chatsById[chatId] ?: try {
+            requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", chatId))
+                .also { chatsById[chatId] = it }
+        } catch (_: Throwable) {
+            return null
+        }
+        if (isSavedMessages(chat)) return null
+        val type = chat.optJSONObject("type") ?: return null
+        // A secret chat has a person behind it too, under the same field.
+        if (type.optString("@type") != "chatTypePrivate" && type.optString("@type") != "chatTypeSecret") {
+            return null
+        }
+        return person(type.optLong("user_id"))
+    }
+
+    override suspend fun setBlocked(userId: Long, blocked: Boolean) {
+        awaitReady()
+        val request = JSONObject()
+            .put("@type", "setMessageSenderBlockList")
+            .put("sender_id", JSONObject().put("@type", "messageSenderUser").put("user_id", userId))
+        // Absent, not an empty object, to unblock: TDLib reads a missing
+        // block_list as null, which is what unblocking is.
+        if (blocked) request.put("block_list", JSONObject().put("@type", "blockListMain"))
+        requireEngine().send(request)
+    }
+
+    override suspend fun blockedPeople(): List<TelegramUser> {
+        awaitReady()
+        return try {
+            val senders = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getBlockedMessageSenders")
+                    .put("block_list", JSONObject().put("@type", "blockListMain"))
+                    .put("offset", 0)
+                    .put("limit", BLOCKED_LIMIT)
+            ).optJSONArray("senders") ?: return emptyList()
+            // Users only: a blocked supergroup is a sender too, and this list
+            // is of people.
+            (0 until senders.length())
+                .mapNotNull { senders.optJSONObject(it) }
+                .filter { it.optString("@type") == "messageSenderUser" }
+                .mapNotNull { userObject(it.optLong("user_id")) }
+                .map(::mapUser)
+        } catch (e: Throwable) {
+            Log.w(TAG, "blockedPeople: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun addContact(phone: String, firstName: String, lastName: String): Long? {
+        awaitReady()
+        val contact = JSONObject()
+            .put("@type", "importedContact")
+            .put("phone_number", phone.filter(Char::isDigit))
+            .put("first_name", firstName.trim())
+            .put("last_name", lastName.trim())
+            .put(
+                "note",
+                JSONObject().put("@type", "formattedText").put("text", "").put("entities", JSONArray())
+            )
+        val ids = requireEngine().send(
+            JSONObject().put("@type", "importContacts").put("contacts", JSONArray().put(contact))
+        ).optJSONArray("user_ids")
+        // 0 is Telegram's answer for a number nobody has signed up with.
+        return ids?.optLong(0)?.takeIf { it != 0L }
     }
 
     override suspend fun leaveChat(chatId: Long) {
@@ -2931,7 +3078,8 @@ class TdLibTelegramClient(
             hasScheduledMessages = chat.optBoolean("has_scheduled_messages"),
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
-            isArchived = positions.isArchived(id)
+            isArchived = positions.isArchived(id),
+            canDeleteForEveryone = chat.optBoolean("can_be_deleted_for_all_users")
         )
     }
 
@@ -3316,6 +3464,9 @@ class TdLibTelegramClient(
          * list's. Search across chats already exists for the rest.
          */
         private const val CONTACT_LIMIT = 100
+
+        /** Blocked people fetched at once; TDLib answers at most a hundred. */
+        private const val BLOCKED_LIMIT = 100
 
         /**
          * What a chat offers when it does not restrict reactions.

@@ -11,6 +11,9 @@ import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.newchat.NewChatViewModel
+import com.telegramyou.app.ui.people.BlockedViewModel
+import com.telegramyou.app.ui.people.ContactsViewModel
+import com.telegramyou.app.ui.people.PersonViewModel
 import com.telegramyou.app.ui.proxy.ProxyViewModel
 import com.telegramyou.app.ui.settings.DevicesViewModel
 import com.telegramyou.app.ui.settings.StorageViewModel
@@ -43,4 +46,7 @@ fun telegramViewModelFactory(
         initializer { DevicesViewModel(repository) }
         initializer { StorageViewModel(repository) }
         initializer { PrivacyViewModel(repository) }
+        initializer { PersonViewModel(repository, createSavedStateHandle()) }
+        initializer { BlockedViewModel(repository) }
+        initializer { ContactsViewModel(repository) }
     }

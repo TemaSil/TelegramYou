@@ -50,6 +50,12 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatInfoScreen
+import com.telegramyou.app.ui.people.BlockedScreen
+import com.telegramyou.app.ui.people.BlockedViewModel
+import com.telegramyou.app.ui.people.ContactsScreen
+import com.telegramyou.app.ui.people.ContactsViewModel
+import com.telegramyou.app.ui.people.PersonScreen
+import com.telegramyou.app.ui.people.PersonViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatMediaScreen
 import com.telegramyou.app.ui.chat.ChatViewModel
@@ -298,6 +304,8 @@ fun TelegramYouNavHost(
                 onPinnedChange = homeViewModel::onPinnedChange,
                 onMarkRead = homeViewModel::onMarkRead,
                 onArchivedChange = homeViewModel::onArchivedChange,
+                onClearHistory = homeViewModel::onClearHistory,
+                onDeleteChat = homeViewModel::onDeleteChat,
                 onOpenArchive = { navController.navigateTo(Route.Archive) },
                 onFolderSelected = homeViewModel::onFolderSelected,
                 onThemeChange = appearance::setTheme,
@@ -319,6 +327,7 @@ fun TelegramYouNavHost(
                 onListEndReached = homeViewModel::onListEndReached,
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenSavedMessages = homeViewModel::onOpenSavedMessages,
+                onOpenContacts = { navController.navigateTo(Route.Contacts) },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
@@ -473,7 +482,53 @@ fun TelegramYouNavHost(
                 onEdit = privacyViewModel::onEdit,
                 onDismiss = privacyViewModel::onDismiss,
                 onAudienceChosen = privacyViewModel::onAudienceChosen,
-                onMessageShown = privacyViewModel::onMessageShown
+                onMessageShown = privacyViewModel::onMessageShown,
+                onOpenBlocked = { navController.navigateTo(Route.Blocked) }
+            )
+        }
+        composable(Route.Blocked.PATTERN) {
+            val blockedViewModel: BlockedViewModel = viewModel(factory = viewModelFactory)
+            val state by blockedViewModel.uiState.collectAsStateWithLifecycle()
+            // On every visit: see BlockedViewModel.refresh.
+            LaunchedEffect(Unit) { blockedViewModel.refresh() }
+            BlockedScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onUnblock = blockedViewModel::onUnblock,
+                onOpenPerson = { navController.navigateTo(Route.Person(it)) },
+                onMessageShown = blockedViewModel::onMessageShown
+            )
+        }
+        composable(Route.Contacts.PATTERN) {
+            val contactsViewModel: ContactsViewModel = viewModel(factory = viewModelFactory)
+            val state by contactsViewModel.uiState.collectAsStateWithLifecycle()
+            ContactsScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onContactClick = contactsViewModel::onContactClick,
+                onAddRequested = contactsViewModel::onAddRequested,
+                onDraftChange = contactsViewModel::onDraftChange,
+                onAddDismissed = contactsViewModel::onAddDismissed,
+                onAddConfirmed = contactsViewModel::onAddConfirmed,
+                onOpenChat = { navController.navigateTo(Route.Chat(it)) },
+                onChatOpened = contactsViewModel::onChatOpened,
+                onMessageShown = contactsViewModel::onMessageShown
+            )
+        }
+        composable(
+            route = Route.Person.PATTERN,
+            arguments = Route.Person.arguments
+        ) {
+            val personViewModel: PersonViewModel = viewModel(factory = viewModelFactory)
+            val state by personViewModel.uiState.collectAsStateWithLifecycle()
+            PersonScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onBlockedChange = personViewModel::onBlockedChange,
+                onSendMessage = personViewModel::onSendMessage,
+                onOpenChat = { navController.navigateTo(Route.Chat(it)) },
+                onChatOpened = personViewModel::onChatOpened,
+                onMessageShown = personViewModel::onMessageShown
             )
         }
         composable(Route.Storage.PATTERN) {
@@ -529,7 +584,10 @@ fun TelegramYouNavHost(
             val state by chatViewModel.uiState.collectAsStateWithLifecycle()
             // On every visit: an invite link can be revoked, and a member can
             // join, while this screen is closed.
-            LaunchedEffect(Unit) { chatViewModel.loadInviteLink() }
+            LaunchedEffect(Unit) {
+                chatViewModel.loadInviteLink()
+                chatViewModel.loadPerson()
+            }
             // Out of the conversation as well as out of this screen — the
             // chat behind it is one this account is no longer in. Popping to
             // the list rather than back one step, which would land there.
@@ -547,7 +605,15 @@ fun TelegramYouNavHost(
                 onLeaveRequested = chatViewModel::onLeaveRequested,
                 onLeaveDismissed = chatViewModel::onLeaveDismissed,
                 onLeaveConfirmed = chatViewModel::onLeaveConfirmed,
-                onNotificationsChange = chatViewModel::onNotificationsChange
+                onNotificationsChange = chatViewModel::onNotificationsChange,
+                person = state.person,
+                onBlockedChange = chatViewModel::onBlockedChange,
+                onOpenMedia = {
+                    state.detail?.chat?.id?.let { navController.navigateTo(Route.ChatMedia(it)) }
+                },
+                onMemberClick = { navController.navigateTo(Route.Person(it)) },
+                errorMessage = state.errorMessage,
+                onErrorShown = chatViewModel::onErrorShown
             )
         }
 

@@ -107,6 +107,34 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** The people this account knows, and adding one by number. */
+    data object Contacts : Route {
+        const val PATTERN = "contacts"
+        override val path = PATTERN
+    }
+
+    /** Everyone this account has blocked, from Settings → Privacy. */
+    data object Blocked : Route {
+        const val PATTERN = "privacy/blocked"
+        override val path = PATTERN
+    }
+
+    /**
+     * Somebody by user id — a group member, a blocked person — who may have
+     * no chat with this account. A private chat's own info screen shows the
+     * same things from the chat's side.
+     */
+    data class Person(val userId: Long) : Route {
+        override val path = "person/$userId"
+
+        companion object {
+            const val ARG_USER_ID = "userId"
+            const val PATTERN = "person/{$ARG_USER_ID}"
+            val arguments: List<NamedNavArgument> =
+                listOf(navArgument(ARG_USER_ID) { type = NavType.LongType })
+        }
+    }
+
     /** Getting into somebody else's chat through its invite link. */
     data object JoinLink : Route {
         const val PATTERN = "join"

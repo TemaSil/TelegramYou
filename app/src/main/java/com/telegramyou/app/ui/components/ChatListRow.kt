@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Badge
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.shape.CircleShape
 import com.telegramyou.app.ui.avatars.avatarShapeIndex
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.chatRemovalOf
 
 /**
  * One chat in the list.
@@ -96,6 +98,13 @@ fun ChatListRow(
     onMarkRead: (() -> Unit)? = null,
     /** Move into the archive, or back out. */
     onArchivedChange: ((Boolean) -> Unit)? = null,
+    /**
+     * Asks to empty the chat, or to take it away — delete or leave, by what
+     * the chat is (see chatRemovalOf). Asks, because both are for good: the
+     * list confirms before anything happens.
+     */
+    onClearHistory: (() -> Unit)? = null,
+    onRemove: (() -> Unit)? = null,
     /**
      * Whether a sideways drag on the row is the row's own.
      *
@@ -353,6 +362,40 @@ fun ChatListRow(
                         onClick = {
                             onMarkRead()
                             menuOpen = false
+                        }
+                    )
+                }
+                // Last, and the removal in the error colour: the two entries
+                // here that cannot be taken back, below everything that can.
+                val removal = chatRemovalOf(chat)
+                // A local, so it smart-casts: the model is in another module.
+                val removeLabel = removal.removeLabel
+                if (onClearHistory != null && removal.canClearHistory) {
+                    DropdownMenuItem(
+                        text = { Text("Clear history") },
+                        leadingIcon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onClearHistory()
+                        }
+                    )
+                }
+                if (onRemove != null && removeLabel != null) {
+                    DropdownMenuItem(
+                        text = { Text(removeLabel) },
+                        leadingIcon = {
+                            Icon(
+                                if (removal.leaves) Symbols.Logout else Symbols.Delete,
+                                contentDescription = null
+                            )
+                        },
+                        colors = MenuDefaults.itemColors(
+                            textColor = MaterialTheme.colorScheme.error,
+                            leadingIconColor = MaterialTheme.colorScheme.error
+                        ),
+                        onClick = {
+                            menuOpen = false
+                            onRemove()
                         }
                     )
                 }

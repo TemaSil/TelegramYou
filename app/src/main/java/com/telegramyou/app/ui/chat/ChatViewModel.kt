@@ -14,6 +14,7 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.ButtonAction
 import com.telegramyou.app.telegram.model.CallbackAnswer
@@ -150,6 +151,12 @@ data class ChatUiState(
      * and for a group this account may not invite to — see `chatInviteLink`.
      */
     val inviteLink: String? = null,
+    /**
+     * The person behind a private chat, for the info screen: their bio,
+     * number and username, and whether they are blocked. Null for groups,
+     * channels and Saved Messages, and until loadPerson answers.
+     */
+    val person: PersonProfile? = null,
     /** True while the "leave this group" confirmation is up. */
     val confirmingLeave: Boolean = false,
     /**
@@ -1185,6 +1192,30 @@ class ChatViewModel(
         viewModelScope.launch {
             val link = repository.chatInviteLink(chatId)
             _uiState.update { it.copy(inviteLink = link) }
+        }
+    }
+
+    /**
+     * Fetches who is behind a private chat, for the info screen — on
+     * opening it, like the invite link, and again on each visit: a bio or a
+     * block can change while it is closed.
+     */
+    fun loadPerson() {
+        viewModelScope.launch {
+            var person: PersonProfile? = null
+            attempt("Could not load the profile") { person = repository.personInChat(chatId) }
+            _uiState.update { it.copy(person = person) }
+        }
+    }
+
+    /** Blocks or unblocks the person behind this chat; confirmed by the screen. */
+    fun onBlockedChange(blocked: Boolean) {
+        val person = _uiState.value.person ?: return
+        viewModelScope.launch {
+            val done = attempt(if (blocked) "Could not block" else "Could not unblock") {
+                repository.setBlocked(person.user.id, blocked)
+            }
+            if (done) _uiState.update { it.copy(person = it.person?.copy(isBlocked = blocked)) }
         }
     }
 

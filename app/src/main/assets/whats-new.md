@@ -1,5 +1,5 @@
-# Nothing gets lost, nothing gets framed
-- Drafts stay put and sync: leave mid-sentence, it's waiting when you're back
-- Photos and videos without a caption are just the picture now 🖼️
-- Video stickers move, and search got its own page — chats grow right out of it
-- Calmer type everywhere: plain Material, no shouting
+# People, properly
+- Tap anyone to see who they are: number, username, bio
+- Block from a profile; unblock in Settings → Privacy → Blocked users
+- Clear or delete a chat from its long-press menu 🧹
+- Contacts live in the ⋮ menu now, and you can add anyone by number

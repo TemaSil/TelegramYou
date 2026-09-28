@@ -53,7 +53,8 @@ fun PrivacyScreen(
     onEdit: (PrivacySetting) -> Unit,
     onDismiss: () -> Unit,
     onAudienceChosen: (PrivacySetting, PrivacyAudience) -> Unit,
-    onMessageShown: () -> Unit
+    onMessageShown: () -> Unit,
+    onOpenBlocked: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
@@ -136,6 +137,17 @@ fun PrivacyScreen(
             item(key = "reach") {
                 SettingsGroup("Who can reach me") {
                     REACH.forEach { setting -> privacyRow(setting, state.rules[setting], onEdit) }
+                }
+            }
+            // After the rules, as its own group: the rules are about
+            // everyone, and this is the people who are the exception.
+            item(key = "blocked") {
+                SettingsGroup {
+                    link(
+                        title = "Blocked users",
+                        summary = "People who cannot message or call you",
+                        onClick = onOpenBlocked
+                    )
                 }
             }
         }

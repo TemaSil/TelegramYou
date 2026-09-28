@@ -651,6 +651,27 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Empties a chat and keeps it — for the other person too when
+     * [forEveryone]. Confirmed by the list before it gets here.
+     */
+    fun onClearHistory(chatId: Long, forEveryone: Boolean) {
+        viewModelScope.launch {
+            attempt("Could not clear the history") { repository.clearHistory(chatId, forEveryone) }
+        }
+    }
+
+    /**
+     * Deletes a private chat or leaves a group or channel; which is the
+     * backend's to know from the chat. Nothing is removed here: the chat
+     * leaves the list through the client's own flow, as for archiving.
+     */
+    fun onDeleteChat(chatId: Long, forEveryone: Boolean) {
+        viewModelScope.launch {
+            attempt("Could not delete the chat") { repository.deleteChat(chatId, forEveryone) }
+        }
+    }
+
     /** Lists that answered "nothing more", by folder id; null is the main list. */
     private val exhaustedLists = mutableSetOf<Int?>()
     private var loadingMore = false

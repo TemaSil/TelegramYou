@@ -12,6 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
+import com.telegramyou.app.telegram.model.PersonProfile
+import com.telegramyou.app.ui.people.BlockDialog
+import com.telegramyou.app.ui.people.blockRow
+import com.telegramyou.app.ui.people.personRows
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +53,8 @@ import com.telegramyou.app.ui.components.AvatarBubble
 import kotlinx.coroutines.launch
 
 /**
- * Who is in this conversation, how to invite somebody, and the way out.
+ * Who is in this conversation, how to invite somebody, and the way out —
+ * and, for a private chat, who the other person is and blocking them.
  *
  * Its own screen rather than a sheet over the chat: it is a place to look
  * around in, it has a destructive action at the bottom of it, and leaving
@@ -68,12 +75,39 @@ fun ChatInfoScreen(
     onLeaveRequested: () -> Unit,
     onLeaveDismissed: () -> Unit,
     onLeaveConfirmed: () -> Unit,
-    onNotificationsChange: (ChatNotificationSettings) -> Unit = {}
+    onNotificationsChange: (ChatNotificationSettings) -> Unit = {},
+    /** The person behind a private chat; null for everything else. */
+    person: PersonProfile? = null,
+    onBlockedChange: (Boolean) -> Unit = {},
+    /** Every photo and video in the chat, on its own screen. */
+    onOpenMedia: () -> Unit = {},
+    /** A member of a group, tapped: their profile. */
+    onMemberClick: (Long) -> Unit = {},
+    errorMessage: String? = null,
+    onErrorShown: () -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var confirmingBlock by rememberSaveable { mutableStateOf(false) }
+
+    errorMessage?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onErrorShown()
+        }
+    }
+    if (confirmingBlock && person != null) {
+        BlockDialog(
+            profile = person,
+            onDismiss = { confirmingBlock = false },
+            onConfirm = {
+                confirmingBlock = false
+                onBlockedChange(true)
+            }
+        )
+    }
 
     if (confirmingLeave) {
         AlertDialog(
@@ -145,6 +179,15 @@ fun ChatInfoScreen(
                 }
             }
 
+            // Who they are, right under their name: the number, the
+            // username, the bio — before anything this screen can change.
+            person?.let { profile ->
+                personRows(profile) { what, text ->
+                    copyToClipboard(text)
+                    scope.launch { snackbarHostState.showSnackbar("$what copied") }
+                }
+            }
+
             inviteLink?.let { link ->
                 item(key = "invite") {
                     ListItem(
@@ -175,6 +218,28 @@ fun ChatInfoScreen(
                         settings = current.notifications,
                         onChange = onNotificationsChange
                     )
+                }
+            }
+
+            // Everything sent here that is a picture. The chat's bar has a
+            // button for it too; this is where a profile is expected to have it.
+            if (chat != null) {
+                item(key = "media") {
+                    ListItem(
+                        headlineContent = { Text("Photos and videos") },
+                        leadingContent = { Icon(Symbols.PhotoLibrary, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = onOpenMedia)
+                    )
+                }
+            }
+
+            person?.let { profile ->
+                blockRow(profile) {
+                    if (profile.isBlocked) {
+                        onBlockedChange(false)
+                    } else {
+                        confirmingBlock = true
+                    }
                 }
             }
 
@@ -217,6 +282,7 @@ fun ChatInfoScreen(
                 }
                 items(members, key = { it.id }) { member ->
                     ListItem(
+                        modifier = Modifier.clickable { onMemberClick(member.id) },
                         headlineContent = { Text(member.displayName) },
                         supportingContent = member.username
                             ?.takeIf { it.isNotBlank() }

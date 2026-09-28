@@ -157,6 +157,10 @@ fun HomeScreen(
     onPinnedChange: (Long, Boolean) -> Unit,
     onMarkRead: (Long) -> Unit,
     onArchivedChange: (Long, Boolean) -> Unit,
+    /** Empty a chat, keeping it; for the other side too when the flag says. */
+    onClearHistory: (Long, Boolean) -> Unit = { _, _ -> },
+    /** Delete or leave a chat, by what it is; see chatRemovalOf. */
+    onDeleteChat: (Long, Boolean) -> Unit = { _, _ -> },
     onOpenArchive: () -> Unit,
     onFolderSelected: (Int?) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
@@ -179,6 +183,7 @@ fun HomeScreen(
     onListEndReached: (Int?) -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
+    onOpenContacts: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
@@ -193,6 +198,24 @@ fun HomeScreen(
     // success has nothing to show once the form has gone back to matching the
     // account — without this, saving would look like nothing happening.
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // The chat a long-press asked to clear, delete or leave, until the
+    // dialog is answered. Here rather than in the page: the pager keeps
+    // several pages composed, and one dialog belongs to the screen.
+    var pendingRemoval by remember { mutableStateOf<PendingRemoval?>(null) }
+    pendingRemoval?.let { pending ->
+        ChatRemovalDialog(
+            pending = pending,
+            onDismiss = { pendingRemoval = null },
+            onConfirm = { forEveryone ->
+                pendingRemoval = null
+                when (pending) {
+                    is PendingRemoval.Clear -> onClearHistory(pending.chat.id, forEveryone)
+                    is PendingRemoval.Remove -> onDeleteChat(pending.chat.id, forEveryone)
+                }
+            }
+        )
+    }
 
     // One-shot: navigate, then tell the view model it happened. Leaving the id
     // in state would reopen the conversation on the next rotation.
@@ -508,7 +531,8 @@ fun HomeScreen(
                             isDark = isDark(settings.theme, isSystemInDarkTheme()),
                             onThemeChange = onThemeChange,
                             onOpenProxy = onOpenProxy,
-                            onOpenSavedMessages = onOpenSavedMessages
+                            onOpenSavedMessages = onOpenSavedMessages,
+                            onOpenContacts = onOpenContacts
                         )
                         // Stories first, then the folders: the tabs choose what
                         // the list below shows, so they sit against it, and the
@@ -564,7 +588,9 @@ fun HomeScreen(
                                     onMutedChange = onMutedChange,
                                     onPinnedChange = onPinnedChange,
                                     onMarkRead = onMarkRead,
-                                    onArchivedChange = onArchivedChange
+                                    onArchivedChange = onArchivedChange,
+                                    onClearHistory = { chat -> pendingRemoval = PendingRemoval.Clear(chat) },
+                                    onRemove = { chat -> pendingRemoval = PendingRemoval.Remove(chat) }
                                 )
                             }
                         // The panel under the chats, rounded where it meets the
@@ -675,7 +701,9 @@ private fun ChatListPage(
     onMutedChange: (Long, Boolean) -> Unit,
     onPinnedChange: (Long, Boolean) -> Unit,
     onMarkRead: (Long) -> Unit,
-    onArchivedChange: (Long, Boolean) -> Unit
+    onArchivedChange: (Long, Boolean) -> Unit,
+    onClearHistory: (ChatPreview) -> Unit,
+    onRemove: (ChatPreview) -> Unit
 ) {
     val listState = rememberLazyListState()
     // Near the end rather than at it, so the next chats are on their way
@@ -765,7 +793,9 @@ private fun ChatListPage(
                     onMarkRead = { onMarkRead(chat.id) },
                     onArchivedChange = { archived ->
                         onArchivedChange(chat.id, archived)
-                    }
+                    },
+                    onClearHistory = { onClearHistory(chat) },
+                    onRemove = { onRemove(chat) }
                 )
             }
             // Between containers, not between rows: the gap is
@@ -794,13 +824,14 @@ private fun HomeTitleBar(
     isDark: Boolean = false,
     onThemeChange: (ThemeChoice) -> Unit = {},
     onOpenProxy: () -> Unit = {},
-    onOpenSavedMessages: () -> Unit = {}
+    onOpenSavedMessages: () -> Unit = {},
+    onOpenContacts: () -> Unit = {}
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
-        // The overflow: three things reached for from the chat list that are
-        // not chats — the light, a way round a block, and the chat with
-        // oneself. A menu rather than three icons, which would crowd the
+        // The overflow: things reached for from the chat list that are not
+        // chats — the light, a way round a block, the chat with oneself and
+        // the people one knows. A menu rather than icons, which would crowd the
         // name the bar exists to carry.
         actions = {
             Box {
@@ -830,6 +861,14 @@ private fun HomeTitleBar(
                         onClick = {
                             menuOpen = false
                             onOpenProxy()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Contacts") },
+                        leadingIcon = { Icon(Symbols.Contacts, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenContacts()
                         }
                     )
                     DropdownMenuItem(
