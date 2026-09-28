@@ -1919,7 +1919,7 @@ class TdLibTelegramClient(
     private val customEmojiCache = java.util.concurrent.ConcurrentHashMap<Long, StickerContent>()
 
     override suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> {
-        val missing = ids.distinct().filterNot { it in customEmojiCache }
+        val missing = ids.distinct().filterNot { customEmojiCache.containsKey(it) }
         if (missing.isNotEmpty()) {
             awaitReady()
             try {
