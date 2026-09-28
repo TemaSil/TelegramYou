@@ -49,7 +49,11 @@ def fetch(symbol, filled):
     paths = re.findall(r'android:pathData="([^"]+)"', xml)
     if len(paths) != 1:
         sys.exit(f"{symbol}: expected one path, found {len(paths)}")
-    return paths[0], 'autoMirrored="true"' in xml
+    # Most symbols are drawn on a 960 grid, but not every one: push_pin
+    # came on a 24 grid, and drawn on 960 it was a speck — the Unpin item
+    # had an empty space where its icon was.
+    viewport = re.search(r'android:viewportWidth="([0-9.]+)"', xml)
+    return paths[0], 'autoMirrored="true"' in xml, float(viewport.group(1)) if viewport else 960.0
 
 
 def main():
@@ -57,15 +61,17 @@ def main():
     for name in sorted(ICONS):
         symbol = RENAMED.get(name, snake(name))
         for suffix, filled in (("", False), ("Filled", True)):
-            path, mirrored = fetch(symbol, filled)
+            path, mirrored, viewport = fetch(symbol, filled)
+            grid = "" if viewport == 960.0 else f", viewport = {viewport:g}f"
             lines.append(
                 f'    val {name}{suffix}: ImageVector by lazy {{ symbol("{name}{suffix}", '
-                f'{"true" if mirrored else "false"}, "{path}") }}'
+                f'{"true" if mirrored else "false"}, "{path}"{grid}) }}'
             )
     with open(OUT) as f:
         current = f.read()
     head = current[: current.index("object Symbols {") + len("object Symbols {")]
-    tail = current[current.index("\n}\n\nprivate fun symbol"):]
+    # The object's closing brace: every entry inside it is one line.
+    tail = current[current.index("\n}\n", len(head)):]
     with open(OUT, "w") as f:
         f.write(head + "\n" + "\n".join(lines) + tail)
     print(f"{len(ICONS)} icons written to {OUT}")
