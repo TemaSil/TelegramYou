@@ -60,6 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.telegramyou.app.telegram.model.ADMIN_TITLE_MAX
 import com.telegramyou.app.telegram.model.AdminRight
 import com.telegramyou.app.telegram.model.AdminRights
@@ -347,6 +349,9 @@ fun InviteLinksScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { creating = true },
+                // Named explicitly: the alpha's extended button publishes an
+                // empty node otherwise — see ProxyScreen.
+                modifier = Modifier.semantics { contentDescription = "New link" },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
                 text = { Text("New link") }
             )
@@ -605,6 +610,9 @@ fun TopicsScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { creating = true },
+                // Named explicitly: the alpha's extended button publishes an
+                // empty node otherwise — see ProxyScreen.
+                modifier = Modifier.semantics { contentDescription = "New topic" },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
                 text = { Text("New topic") }
             )
