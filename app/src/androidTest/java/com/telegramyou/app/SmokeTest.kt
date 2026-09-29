@@ -1929,12 +1929,20 @@ class SmokeTest {
         waitFor(By.text("What do you reach for first?"), "the group")
         scrollBackTo(By.text("Photos from the meetup"), "the album")
         tapTopmost(By.desc("Photo"))
-        waitFor(By.text("1 of 3"), "the gallery on the album's first photo")
+        // Whichever photo the tap landed on — the album lays its cells out
+        // by their shapes, so "topmost" is not always the first.
+        waitFor(By.textEndsWith(" of 3"), "the gallery on one of the album's photos")
         screenshot("60-gallery")
+        val opened = device.findObject(By.textEndsWith(" of 3")).text.substringBefore(" of").toInt()
         val width = device.displayWidth
         val middle = device.displayHeight / 2
-        device.swipe((width * 0.85).toInt(), middle, (width * 0.15).toInt(), middle, 12)
-        waitFor(By.text("2 of 3"), "the next photo after a swipe")
+        val next = if (opened < 3) opened + 1 else opened - 1
+        if (next > opened) {
+            device.swipe((width * 0.85).toInt(), middle, (width * 0.15).toInt(), middle, 12)
+        } else {
+            device.swipe((width * 0.15).toInt(), middle, (width * 0.85).toInt(), middle, 12)
+        }
+        waitFor(By.text("$next of 3"), "the neighbouring photo after a swipe")
         device.pressBack()
         waitFor(By.text("Photos from the meetup"), "the chat, the gallery closed")
     }
