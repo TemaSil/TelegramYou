@@ -246,6 +246,9 @@ private fun EmojiTab(onEmoji: (String) -> Unit, onBackspace: () -> Unit) {
                         else android.R.style.Theme_Material_Light_NoActionBar
                     )
                     EmojiPickerView(themed).apply {
+                        // Eight a row, as the official client has them, not
+                        // the picker's nine: each emoji comes out larger.
+                        emojiGridColumns = EMOJI_COLUMNS
                         setBackgroundColor(android.graphics.Color.TRANSPARENT)
                         setOnEmojiPickedListener { item -> picked.value(item.emoji) }
                     }
@@ -362,3 +365,6 @@ private val HANDLE_BAND = 20.dp
 
 /** A flick faster than this, in pixels a second, decides by its direction. */
 private const val FLING = 1200f
+
+/** Emoji a row in the picker; its own default is nine. */
+private const val EMOJI_COLUMNS = 8

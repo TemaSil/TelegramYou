@@ -22,6 +22,7 @@ import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.forwardedLabel
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import com.telegramyou.app.telegram.model.jumboEmojiCount
 import androidx.compose.ui.semantics.selected
 import androidx.compose.material3.Checkbox
@@ -1015,7 +1016,9 @@ private fun QuickReactions(
             ReactionCell(
                 option = option,
                 chosen = option.emoji == chosen,
-                size = 30.dp,
+                // Up from 30dp with the rest of the reactions: the owner
+                // found every emoji in them small.
+                size = 36.dp,
                 onClick = { onPick(option.emoji) }
             )
         }
@@ -1051,7 +1054,19 @@ internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onC
         Box(Modifier.alpha(if (option.needsPremium) 0.45f else 1f), contentAlignment = Alignment.Center) {
             val animation = option.animation
             if (animation != null) {
-                StickerView(animation, size = size)
+                // Telegram's centre animation fills only the middle of its
+                // canvas — the rest is room for the effect around it — so
+                // drawn one to one it came out half the size of an emoji.
+                // Scaled up here as the official client does; the cell's
+                // circle clips whatever reaches past it.
+                StickerView(
+                    animation,
+                    size = size,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = CENTER_ANIMATION_SCALE
+                        scaleY = CENTER_ANIMATION_SCALE
+                    }
+                )
             } else {
                 ReactionGlyph(option.emoji, size = size)
             }
@@ -1068,6 +1083,9 @@ internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onC
         }
     }
 }
+
+/** How much a reaction's centre animation is enlarged to fill its cell. */
+private const val CENTER_ANIMATION_SCALE = 1.7f
 
 /** How many reactions the row over a message's menu shows before the arrow. */
 private const val QUICK_REACTIONS = 6

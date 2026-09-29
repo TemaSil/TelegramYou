@@ -529,7 +529,7 @@ internal fun ReactionPicker(
             )
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 52.dp),
+                columns = GridCells.Adaptive(minSize = 60.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.heightIn(max = 420.dp)
             ) {
@@ -538,7 +538,7 @@ internal fun ReactionPicker(
                         ReactionCell(
                             option = option,
                             chosen = option.emoji == chosen,
-                            size = 34.dp,
+                            size = 42.dp,
                             onClick = { onPick(option.emoji) }
                         )
                     }
