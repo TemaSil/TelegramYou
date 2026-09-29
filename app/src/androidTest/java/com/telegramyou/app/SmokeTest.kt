@@ -1792,6 +1792,17 @@ class SmokeTest {
 
         // Every chat's music in one place, from the chat list's menu.
         backTo(By.text("Material Design"), "the chat list")
+        // The list comes back scrolled to where the channel was, low down,
+        // with the collapsing header — and its menu — scrolled away above.
+        repeat(4) {
+            if (device.wait(Until.hasObject(By.desc("More")), SHORT_WAIT)) return@repeat
+            try {
+                device.findObjects(By.scrollable(true))
+                    .maxByOrNull { it.visibleBounds.height() }
+                    ?.scroll(Direction.UP, 0.8f)
+            } catch (_: StaleObjectException) {
+            }
+        }
         tap(By.desc("More"))
         tap(By.text("My music"))
         waitFor(By.text("Morning Light"), "the channel's tracks in My music")
