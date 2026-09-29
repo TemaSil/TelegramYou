@@ -1,7 +1,9 @@
 package com.telegramyou.app.ui.chat
 
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.util.Log
+import com.telegramyou.app.music.AudioFocus
 
 /**
  * Plays one voice message at a time.
@@ -20,6 +22,9 @@ class VoicePlayer {
 
     private var player: MediaPlayer? = null
 
+    /** Music turned down while this talks; see AudioFocus. */
+    private var focus: AudioFocus.Hold? = null
+
     /** The message currently playing, so the right bubble can show it. */
     var playingId: Long? = null
         private set
@@ -35,12 +40,21 @@ class VoicePlayer {
         stop()
         return try {
             player = MediaPlayer().apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
                 setDataSource(path)
                 setOnCompletionListener {
                     stop()
                     onFinished()
                 }
                 prepare()
+                // The music under the voice goes quiet rather than stopping,
+                // and comes back when this ends — stop() gives it back.
+                focus = AudioFocus.duck()
                 start()
             }
             playingId = messageId
@@ -116,6 +130,8 @@ class VoicePlayer {
         }
         player = null
         playingId = null
+        focus?.release()
+        focus = null
     }
 
     private companion object {

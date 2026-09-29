@@ -107,6 +107,8 @@ class MusicPlayer(
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                .add(Player.COMMAND_SET_SHUFFLE_MODE)
+                .add(Player.COMMAND_SET_REPEAT_MODE)
                 .build()
 
             override fun isCommandAvailable(command: Int): Boolean =
@@ -118,6 +120,27 @@ class MusicPlayer(
             override fun seekToPreviousMediaItem() = previous()
             override fun hasNextMediaItem(): Boolean = true
             override fun hasPreviousMediaItem(): Boolean = true
+
+            // Shuffle and repeat are the queue's, not ExoPlayer's: the
+            // shade's and the lock screen's buttons, a watch's and a car's,
+            // change the same order the player screen does.
+            override fun getShuffleModeEnabled(): Boolean = _state.value.queue.order == QueueOrder.Shuffled
+            override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) =
+                setOrder(if (shuffleModeEnabled) QueueOrder.Shuffled else QueueOrder.Listed)
+
+            override fun getRepeatMode(): Int = when (_state.value.queue.repeat) {
+                RepeatMode.Off -> Player.REPEAT_MODE_OFF
+                RepeatMode.All -> Player.REPEAT_MODE_ALL
+                RepeatMode.One -> Player.REPEAT_MODE_ONE
+            }
+
+            override fun setRepeatMode(repeatMode: Int) = setRepeat(
+                when (repeatMode) {
+                    Player.REPEAT_MODE_ALL -> RepeatMode.All
+                    Player.REPEAT_MODE_ONE -> RepeatMode.One
+                    else -> RepeatMode.Off
+                }
+            )
         }
     }
 
@@ -235,6 +258,8 @@ class MusicPlayer(
     }
 
     fun setOrder(order: QueueOrder) = _state.update { it.copy(queue = it.queue.ordered(order)) }
+
+    fun setRepeat(mode: RepeatMode) = _state.update { it.copy(queue = it.queue.copy(repeat = mode)) }
 
     fun cycleRepeat() = _state.update {
         val next = RepeatMode.entries[(it.queue.repeat.ordinal + 1) % RepeatMode.entries.size]

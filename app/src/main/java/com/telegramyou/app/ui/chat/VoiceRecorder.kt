@@ -21,6 +21,9 @@ import java.io.File
 class VoiceRecorder(private val context: Context) {
 
     private var recorder: MediaRecorder? = null
+
+    /** Music paused while the microphone is open, so it is not recorded; see AudioFocus. */
+    private var focus: com.telegramyou.app.music.AudioFocus.Hold? = null
     private var target: File? = null
     private var startedAt = 0L
     private val amplitudes = mutableListOf<Int>()
@@ -38,6 +41,7 @@ class VoiceRecorder(private val context: Context) {
         val directory = File(context.cacheDir, "voice").apply { mkdirs() }
         val file = File(directory, "voice-${System.currentTimeMillis()}.$extension")
         return try {
+            focus = com.telegramyou.app.music.AudioFocus.pause()
             val created = newRecorder().apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
                 if (useOpus) {
@@ -141,6 +145,8 @@ class VoiceRecorder(private val context: Context) {
         recorder?.release()
         recorder = null
         target = null
+        focus?.release()
+        focus = null
     }
 
     @Suppress("DEPRECATION")

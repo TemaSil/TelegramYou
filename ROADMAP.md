@@ -279,6 +279,19 @@ these notes on how:
   restarts and updates. Only what a person asked for goes in — a file
   opened, music kept for offline — never thumbnails or stickers. A pause or
   cancel is not reported as a failure in the chat that started it.
+- **The music pains found in Telegram's tracker, fixed before release:**
+  - a voice message stopped the music for good there, and here played
+    over it; now `AudioFocus` asks the system to *duck* other audio under
+    a voice message or a round video with sound (the owner's call: "like
+    KION's music going quiet under a voice message"), and to *pause* it for
+    recording and for a full-screen video, which ExoPlayer and every other
+    player then resume;
+  - tracks posted as an album played backwards, or out of it — the list is
+    newest first; `MusicQueue` now plays an album first to last in either
+    direction (tested);
+  - shuffle and repeat are media buttons in the shade and on the lock
+    screen, and the session answers a watch's or a car's shuffle and
+    repeat, because they are the queue's own.
 - The tabs of shared media and search are as wide as their names, as the
   folders are (`minTabWidth = 0.dp`); Material's 90dp minimum made "Files"
   and "Voice" take a third of the phone.

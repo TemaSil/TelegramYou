@@ -23,6 +23,28 @@ class MusicTest {
     }
 
     @Test
+    fun `an album plays as it was posted, whichever way the queue goes`() {
+        // Newest first, as the chat's music comes: a single after an album
+        // of three posted 1, 2, 3, after an older single.
+        val list = listOf(
+            Track(50, 1, "Single, newer"),
+            Track(43, 1, "Album 3", albumId = 7),
+            Track(42, 1, "Album 2", albumId = 7),
+            Track(41, 1, "Album 1", albumId = 7),
+            Track(30, 1, "Single, older")
+        )
+        val listed = MusicQueue(chatId = 1).withMore(list, complete = true).startingAt(0)
+        val played = generateSequence(listed) { q -> q.following(auto = true)?.let { q.startingAt(it) } }
+            .map { it.playing!!.title }.toList()
+        assertEquals(listOf("Single, newer", "Album 1", "Album 2", "Album 3", "Single, older"), played)
+
+        val reversed = listed.startingAt(4).ordered(QueueOrder.Reversed)
+        val back = generateSequence(reversed) { q -> q.following(auto = true)?.let { q.startingAt(it) } }
+            .map { it.playing!!.title }.toList()
+        assertEquals(listOf("Single, older", "Album 1", "Album 2", "Album 3", "Single, newer"), back)
+    }
+
+    @Test
     fun `reversed plays up the list`() {
         val q = queue(30, 20, 10).startingAt(2).ordered(QueueOrder.Reversed)
         assertEquals(1, q.following(auto = false))

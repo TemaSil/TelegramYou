@@ -138,6 +138,13 @@ fun VideoPage(
 
     LaunchedEffect(player, speed) { player?.setPlaybackSpeed(speed) }
 
+    // Music pauses for a video watched full screen, and plays on after it is
+    // closed; see AudioFocus.
+    DisposableEffect(player) {
+        val focus = player?.let { com.telegramyou.app.music.AudioFocus.pause() }
+        onDispose { focus?.release() }
+    }
+
     // Picture-in-picture: wanted while this page's video is playing, so
     // leaving the app keeps it going in a small window; in that window the
     // controls have no room and are left out.

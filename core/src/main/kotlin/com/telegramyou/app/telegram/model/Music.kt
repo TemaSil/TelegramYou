@@ -18,7 +18,9 @@ data class Track(
     /** The cover's file id, for fetching it. */
     val coverFileId: Int? = null,
     /** Who sent it into the chat. */
-    val senderName: String = ""
+    val senderName: String = "",
+    /** Telegram's album, when the track was posted as one of several together. */
+    val albumId: Long? = null
 )
 
 /** A music message as a track; null for anything else. */
@@ -34,7 +36,8 @@ fun ChatMessage.asTrack(): Track? {
         path = audio.path ?: voicePath,
         coverPath = audio.coverPath,
         coverFileId = audio.coverFileId,
-        senderName = if (isOutgoing) "You" else senderName.orEmpty()
+        senderName = if (isOutgoing) "You" else senderName.orEmpty(),
+        albumId = albumId
     )
 }
 
@@ -137,8 +140,33 @@ data class MusicQueue(
     fun needsMore(within: Int = 0): Boolean =
         !isComplete && order == QueueOrder.Listed && current >= tracks.lastIndex - within
 
+    /**
+     * Down the list, post by post — but an album, tracks posted together,
+     * plays as it was posted, first to last. The list is newest first, so
+     * straight down it an album would arrive at its last track and play
+     * backwards: Telegram's own "wrong order across playlists".
+     */
+    private fun listedOrder(): List<Int> {
+        val order = ArrayList<Int>(tracks.size)
+        var i = 0
+        while (i < tracks.size) {
+            val album = tracks[i].albumId
+            var end = i
+            if (album != null) {
+                while (end + 1 < tracks.size && tracks[end + 1].albumId == album) end++
+            }
+            for (j in end downTo i) order += j
+            i = end + 1
+        }
+        return order
+    }
+
     private fun step(by: Int): Int? = when (order) {
-        QueueOrder.Listed -> (current + by).takeIf { it in tracks.indices }
+        QueueOrder.Listed -> {
+            val listed = listedOrder()
+            listed.getOrNull(listed.indexOf(current) + by)
+        }
+        // Up the list is oldest first, which is already every album's order.
         QueueOrder.Reversed -> (current - by).takeIf { it in tracks.indices }
         QueueOrder.Shuffled -> {
             val at = shuffled.indexOf(current)
@@ -147,13 +175,13 @@ data class MusicQueue(
     }
 
     private fun first(): Int? = when (order) {
-        QueueOrder.Listed -> 0
+        QueueOrder.Listed -> listedOrder().firstOrNull()
         QueueOrder.Reversed -> tracks.lastIndex
         QueueOrder.Shuffled -> shuffled.firstOrNull()
     }?.takeIf { it in tracks.indices }
 
     private fun last(): Int? = when (order) {
-        QueueOrder.Listed -> tracks.lastIndex
+        QueueOrder.Listed -> listedOrder().lastOrNull()
         QueueOrder.Reversed -> 0
         QueueOrder.Shuffled -> shuffled.lastOrNull()
     }?.takeIf { it in tracks.indices }

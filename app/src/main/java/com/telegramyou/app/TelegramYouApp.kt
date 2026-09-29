@@ -70,6 +70,7 @@ class TelegramYouApp : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        com.telegramyou.app.music.AudioFocus.init(this)
         appearance = AppearanceStore(this)
         geeks = GeekStore(this)
         appLock = AppLockStore(this)

@@ -2,10 +2,23 @@ package com.telegramyou.app.music
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.annotation.OptIn
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.telegramyou.app.MainActivity
 import com.telegramyou.app.TelegramYouApp
+import com.telegramyou.app.telegram.model.QueueOrder
+import com.telegramyou.app.telegram.model.RepeatMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * The music player as the system sees it: a Media3 session, so the shade,
@@ -16,7 +29,9 @@ import com.telegramyou.app.TelegramYouApp
 class PlaybackService : MediaSessionService() {
 
     private var session: MediaSession? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
         val music = (application as TelegramYouApp).music
@@ -26,10 +41,48 @@ class PlaybackService : MediaSessionService() {
             Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        session = MediaSession.Builder(this, music.sessionPlayer)
+        val built = MediaSession.Builder(this, music.sessionPlayer)
             .setSessionActivity(open)
             .build()
+        session = built
+        // Shuffle and repeat beside the track buttons in the shade and on the
+        // lock screen — asked for of Telegram's player, which has neither
+        // there. Each button shows the state now and sets the next one.
+        scope.launch {
+            music.state
+                .map { it.queue.order == QueueOrder.Shuffled to it.queue.repeat }
+                .distinctUntilChanged()
+                .collect { (shuffled, repeat) ->
+                    runCatching { built.setMediaButtonPreferences(orderButtons(shuffled, repeat)) }
+                }
+        }
     }
+
+    @OptIn(UnstableApi::class)
+    private fun orderButtons(shuffled: Boolean, repeat: RepeatMode): List<CommandButton> = listOf(
+        CommandButton.Builder(if (shuffled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
+            .setDisplayName(if (shuffled) "Shuffle on" else "Shuffle off")
+            .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE, !shuffled)
+            .build(),
+        CommandButton.Builder(
+            when (repeat) {
+                RepeatMode.Off -> CommandButton.ICON_REPEAT_OFF
+                RepeatMode.All -> CommandButton.ICON_REPEAT_ALL
+                RepeatMode.One -> CommandButton.ICON_REPEAT_ONE
+            }
+        )
+            .setDisplayName(repeat.label)
+            .setPlayerCommand(
+                Player.COMMAND_SET_REPEAT_MODE,
+                // The same round the player screen's button goes: off, all, one.
+                when (repeat) {
+                    RepeatMode.Off -> Player.REPEAT_MODE_ALL
+                    RepeatMode.All -> Player.REPEAT_MODE_ONE
+                    RepeatMode.One -> Player.REPEAT_MODE_OFF
+                }
+            )
+            .build()
+    )
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
 
@@ -41,6 +94,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         // The session goes; the player is the app's and stays with it.
+        scope.cancel()
         session?.release()
         session = null
         super.onDestroy()

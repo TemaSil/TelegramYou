@@ -115,7 +115,8 @@ a wide screen the navigation becomes a rail.
 - **Downloads** — everything you downloaded in one place, on the main menu: pause, resume or cancel, a notification while it runs, save a copy to the phone's Downloads, and files cleared from storage stay listed to fetch again.
 - **A music player** in Material 3 Expressive: a mini player that follows you, a full player in each track's own colours, and the chat's whole music as a queue that never jumps.
 - **My music** — every chat's tracks in one place, searchable, and a Music tab in search.
-- **Play it your way** — in order, reversed or shuffled, repeat one or all, 0.5× to 2×.
+- **Play it your way** — in order, reversed or shuffled, repeat one or all, 0.5× to 2×; an album plays as it was posted, and shuffle and repeat are in the shade and on the lock screen too.
+- **Music makes room** — it turns down under a voice message or a round video and comes back after, and pauses while you record or watch a video full screen, then plays on.
 - **Sleep timer, equaliser, Saved Messages as a library, offline** — save a track and play on from your saved music; a whole chat's music onto the phone; long tracks carry on where they stopped.
 
 ## New in 1.6.2

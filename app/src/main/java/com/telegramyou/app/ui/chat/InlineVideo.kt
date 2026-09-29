@@ -72,6 +72,12 @@ fun InlineVideo(
             player.release()
         }
     }
+    // A round video with its sound on is a voice message with a picture:
+    // music turns down under it, as under a voice message; see AudioFocus.
+    DisposableEffect(playing, muted) {
+        val focus = if (playing && !muted) com.telegramyou.app.music.AudioFocus.duck() else null
+        onDispose { focus?.release() }
+    }
     LifecycleResumeEffect(player, playing) {
         player.playWhenReady = playing
         onPauseOrDispose { player.playWhenReady = false }
