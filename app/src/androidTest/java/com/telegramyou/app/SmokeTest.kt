@@ -557,6 +557,12 @@ class SmokeTest {
         screenshot("68-new-story")
         tap(By.text("Post story"))
         waitFor(By.text("Material Design"), "the chat list after posting")
+        // Up in the rail beside the add entry, and it opens like anybody's.
+        waitFor(By.text("Add story"), "the add entry renamed")
+        tap(By.text("My story"))
+        waitFor(By.desc("Story"), "the story just posted")
+        screenshot("75-my-story")
+        device.pressBack()
     }
 
     /**
@@ -1585,7 +1591,11 @@ class SmokeTest {
         waitFor(By.text("Saved Messages"), "the chat list again")
         tap(By.text("Saved Messages"))
         waitFor(By.text("Expressive Motion"), "the music file")
+        // It plays, and while it plays it has a position to drag.
+        tap(By.desc("Play Expressive Motion"))
+        waitFor(By.desc("Position in Expressive Motion"), "the music playing")
         screenshot("40-audio")
+        tap(By.desc("Pause"))
     }
 
     /**

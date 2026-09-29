@@ -3745,7 +3745,26 @@ class TdLibTelegramClient(
             previewEmoji = "＋",
             caption = "Add"
         )
+        // This account's own, whatever list TDLib files them in: its private
+        // chat with itself carries the account's id.
+        val myId = _authState.value.me?.id
+        val mine = activeStories.values
+            .firstOrNull { it.optLong("chat_id") == myId && activeStoryIds(it).isNotEmpty() }
+            ?.let { active ->
+                val chatId = active.optLong("chat_id")
+                StoryItem(
+                    id = storyKey(chatId),
+                    authorName = "My story",
+                    hasUnseen = false,
+                    avatarColor = chatId,
+                    previewEmoji = "✨",
+                    caption = "My story",
+                    photoPath = photoPath(chatsById[chatId]?.optJSONObject("photo")?.optJSONObject("small")),
+                    isMine = true
+                )
+            }
         val others = activeStories.values
+            .filter { it.optLong("chat_id") != myId }
             .filter { it.optJSONObject("list")?.optString("@type") == "storyListMain" }
             .sortedByDescending { it.optLong("order") }
             .mapNotNull { active ->
@@ -3766,7 +3785,7 @@ class TdLibTelegramClient(
                 )
             }
             .take(STORY_RAIL_LIMIT)
-        _stories.value = listOf(own) + others
+        _stories.value = listOfNotNull(own, mine) + others
     }
 
     /** The ids of a `chatActiveStories`, in the order TDLib lists them. */

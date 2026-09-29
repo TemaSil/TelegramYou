@@ -212,7 +212,13 @@ data class StoryItem(
     val previewEmoji: String = "✨",
     val caption: String = "",
     /** The poster's picture, for the circle; see ChatPreview.photoPath. */
-    val photoPath: String? = null
+    val photoPath: String? = null,
+    /**
+     * The stories this account has posted and are still up — opened in the
+     * viewer like anybody's. [isOwn] is the other entry of this account's,
+     * the one that adds a story.
+     */
+    val isMine: Boolean = false
 )
 
 /**

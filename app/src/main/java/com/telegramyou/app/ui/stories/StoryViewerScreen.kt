@@ -121,7 +121,9 @@ fun StoryViewerScreen(
             path == null -> TextStory(story, frame)
             frame.isVideo -> StoryVideo(path, Modifier.fillMaxSize())
             else -> AsyncImage(
-                model = File(path),
+                // A file TDLib keeps, or — for a story this account just
+                // posted offline — the picture's own content URI.
+                model = if ("://" in path) path else File(path),
                 contentDescription = frame.caption.ifBlank { "Story" },
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()

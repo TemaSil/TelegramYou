@@ -45,8 +45,11 @@ fun StoriesRail(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // With a story of this account's up, the add entry says what it
+            // does, and "My story" is the one that opens what was posted.
+            val hasMine = stories.any { it.isMine }
             stories.forEach { story ->
-                StoryOrb(story = story, onClick = { onStoryClick(story) })
+                StoryOrb(story = story, addLabel = if (hasMine) "Add story" else "My story", onClick = { onStoryClick(story) })
             }
         }
     }
@@ -54,7 +57,7 @@ fun StoriesRail(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
+private fun StoryOrb(story: StoryItem, addLabel: String, onClick: () -> Unit) {
     val alpha by animateFloatAsState(
         targetValue = if (story.hasUnseen || story.isOwn) 1f else 0.72f,
         // Fading a seen story is a change of appearance, not of position,
@@ -91,7 +94,7 @@ private fun StoryOrb(story: StoryItem, onClick: () -> Unit) {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = if (story.isOwn) "My story" else story.authorName,
+            text = if (story.isOwn) addLabel else story.authorName,
             style = MaterialTheme.typography.labelMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

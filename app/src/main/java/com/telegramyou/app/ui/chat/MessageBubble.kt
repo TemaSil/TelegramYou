@@ -617,7 +617,8 @@ internal fun MessageBubble(
                                 outgoing = outgoing,
                                 state = voiceState,
                                 progress = voiceProgress,
-                                onToggle = onVoiceToggled
+                                onToggle = onVoiceToggled,
+                                onSeek = onVoiceSeek
                             )
                         } else {
                             Text(message.text.ifBlank { "Audio" })

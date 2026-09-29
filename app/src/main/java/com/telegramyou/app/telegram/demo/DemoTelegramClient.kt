@@ -78,6 +78,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -1532,6 +1533,7 @@ class DemoTelegramClient(
      * one CI can make.
      */
     override suspend fun downloadFile(fileId: Int): String? {
+        if (fileId == DEMO_AUDIO_FILE_ID) return withContext(Dispatchers.IO) { demoAudioFile().absolutePath }
         if (fileId != DEMO_VIDEO_FILE_ID) return null
         val total = DEMO_VIDEO_BYTES
         var done = 0L
@@ -1573,16 +1575,44 @@ class DemoTelegramClient(
      * those.
      */
     override suspend fun storyFrames(storyId: Long): List<StoryFrame> {
+        if (storyId == MY_STORIES_ID) {
+            return postedStories.mapIndexed { index, posted ->
+                StoryFrame(
+                    id = index + 1,
+                    caption = posted.caption,
+                    date = posted.date,
+                    localPath = posted.uri,
+                    isVideo = posted.isVideo,
+                    durationSeconds = if (posted.isVideo) 5.0 else 0.0,
+                    isSeen = true
+                )
+            }
+        }
         val story = _stories.value.firstOrNull { it.id == storyId } ?: return emptyList()
         return listOf(StoryFrame(id = 1, caption = story.caption, isSeen = !story.hasUnseen))
     }
 
-    /** Stories posted in the demo: kept, not shown anywhere yet. */
-    private val postedStories = mutableListOf<String>()
+    /** A story posted in the demo, as the viewer will show it. */
+    private data class PostedStory(val uri: String, val isVideo: Boolean, val caption: String, val date: Long)
+
+    /** Stories posted in the demo, oldest first: "My story" in the rail. */
+    private val postedStories = mutableListOf<PostedStory>()
 
     override suspend fun postStory(uri: String, isVideo: Boolean, caption: String, audience: StoryAudience) {
         delay(600)
-        postedStories += uri
+        postedStories += PostedStory(uri, isVideo, caption, System.currentTimeMillis() / 1000)
+        // Beside the add entry, as the official client puts one's own.
+        _stories.update { list ->
+            if (list.any { it.isMine }) {
+                list
+            } else {
+                val mine = StoryItem(
+                    MY_STORIES_ID, "My story", hasUnseen = false, avatarColor = 1,
+                    previewEmoji = "✨", caption = caption, isMine = true
+                )
+                list.take(1) + mine + list.drop(1)
+            }
+        }
     }
 
     override suspend fun markStorySeen(storyId: Long, frameId: Int) {
@@ -2419,8 +2449,8 @@ class DemoTelegramClient(
             demoMessage(90, PUBLIC_CHANNEL_ID + 3, "Send a colour, get a palette", false, yesterday, "Material Colour Bot")
         )
         // Saved Messages keeps a song, so the music bubble has something to
-        // show offline. No file stands behind it: the demo has no audio to
-        // ship, and the bubble is what there is to look at.
+        // show and play offline: a few seconds of chime the demo writes
+        // itself on first play (demoAudioFile), rather than a file shipped.
         chatMessages[6] = mutableListOf(
             demoMessage(95, 6, "Color tokens & springs", true, yesterday, isRead = true),
             demoMessage(96, 6, "", true, today - 50 * 60, isRead = true).copy(
@@ -2428,9 +2458,11 @@ class DemoTelegramClient(
                 audio = AudioContent(
                     title = DEMO_AUDIO_TITLE,
                     performer = "Material Sound",
-                    durationSeconds = 214,
-                    fileName = "expressive-motion.mp3"
-                )
+                    durationSeconds = DEMO_AUDIO_SECONDS,
+                    fileName = "expressive-motion.wav",
+                    fileId = DEMO_AUDIO_FILE_ID
+                ),
+                voiceFileId = DEMO_AUDIO_FILE_ID
             )
         )
         chatMessages[BOT_CHAT_ID] = mutableListOf(
@@ -2542,6 +2574,47 @@ private val DEMO_TYPING_MS = 3_000L
 private val DEMO_JOIN_TITLE = "Expressive Design Club"
 
 private val DEMO_VIDEO_FILE_ID = 1601
+private const val DEMO_AUDIO_FILE_ID = 1602
+
+/** The rail entry for the demo account's own posted stories. */
+private const val MY_STORIES_ID = 99L
+private const val DEMO_AUDIO_SECONDS = 12
+
+/**
+ * The demo song: a soft arpeggio of sine tones, written as a WAV into the
+ * app's temporary directory (Android points java.io.tmpdir at the cache)
+ * the first time it is asked for. Twelve seconds at 8 kHz, 16-bit mono —
+ * under 200 KB, and made rather than shipped.
+ */
+private fun demoAudioFile(): java.io.File {
+    val file = java.io.File(System.getProperty("java.io.tmpdir") ?: "/tmp", "demo-expressive-motion.wav")
+    if (file.exists() && file.length() > 0) return file
+    val rate = 8_000
+    val samples = rate * DEMO_AUDIO_SECONDS
+    // C major, up and back: C E G C' G E, half a second a note.
+    val notes = doubleArrayOf(261.63, 329.63, 392.0, 523.25, 392.0, 329.63)
+    val noteLength = rate / 2
+    val pcm = java.nio.ByteBuffer.allocate(samples * 2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+    for (i in 0 until samples) {
+        val within = i % noteLength
+        val frequency = notes[(i / noteLength) % notes.size]
+        // A quick rise and a long fall, so each note chimes rather than beeps.
+        val envelope = minOf(1.0, within / 80.0) * Math.exp(-3.0 * within / noteLength)
+        val value = Math.sin(2 * Math.PI * frequency * i / rate) * envelope * 0.35
+        pcm.putShort((value * Short.MAX_VALUE).toInt().toShort())
+    }
+    val header = java.nio.ByteBuffer.allocate(44).order(java.nio.ByteOrder.LITTLE_ENDIAN).apply {
+        put("RIFF".toByteArray()); putInt(36 + samples * 2); put("WAVE".toByteArray())
+        put("fmt ".toByteArray()); putInt(16); putShort(1); putShort(1)
+        putInt(rate); putInt(rate * 2); putShort(2); putShort(16)
+        put("data".toByteArray()); putInt(samples * 2)
+    }
+    file.outputStream().use { out ->
+        out.write(header.array())
+        out.write(pcm.array())
+    }
+    return file
+}
 
 /** Ids for the files a demo send pretends to upload, and their pretend size. */
 private val uploadFileId = java.util.concurrent.atomic.AtomicInteger(9_000)

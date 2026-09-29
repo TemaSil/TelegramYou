@@ -2,7 +2,6 @@ package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -25,7 +24,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Slider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -306,8 +306,9 @@ internal fun ScheduledSheet(
 
 /**
  * A music file in its bubble: the play button, the title and who it is by,
- * its length, and while it plays a bar of how far through it is. The same
- * player as a voice message, and the same one button for play and pause.
+ * its length, and while it plays Material's slider of how far through it
+ * is, which moves the playback where it is dragged to. The same player as a
+ * voice message, and the same one button for play and pause.
  */
 @Composable
 internal fun AudioMessage(
@@ -315,7 +316,8 @@ internal fun AudioMessage(
     outgoing: Boolean,
     state: VoiceState,
     progress: Float,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onSeek: (Float) -> Unit = {}
 ) {
     val onTint = if (outgoing) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     Column(modifier = Modifier.widthIn(min = 220.dp)) {
@@ -354,14 +356,25 @@ internal fun AudioMessage(
             }
         }
         if (state == VoiceState.Playing) {
-            Box(Modifier.padding(top = 8.dp)) {
-                LinearProgressIndicator(
-                    progress = { progress },
-                    color = onTint,
-                    trackColor = onTint.copy(alpha = 0.2f),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            // Where the thumb is dragged, the song goes — on release, so a
+            // drag is one seek rather than a stutter of them.
+            var dragging by remember { mutableStateOf<Float?>(null) }
+            Slider(
+                value = dragging ?: progress,
+                onValueChange = { dragging = it },
+                onValueChangeFinished = {
+                    dragging?.let(onSeek)
+                    dragging = null
+                },
+                colors = SliderDefaults.colors(
+                    thumbColor = onTint,
+                    activeTrackColor = onTint,
+                    inactiveTrackColor = onTint.copy(alpha = 0.2f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { contentDescription = "Position in ${audio.displayTitle}" }
+            )
         }
     }
 }

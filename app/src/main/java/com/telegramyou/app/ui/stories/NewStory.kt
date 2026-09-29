@@ -52,7 +52,10 @@ import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.StoryAudience
+import com.telegramyou.app.ui.chat.InlineVideo
 import com.telegramyou.app.ui.chat.RecentPhotoCarousel
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.telegramyou.app.ui.failureText
 import com.telegramyou.app.ui.icons.Symbols
 import kotlinx.coroutines.CancellationException
@@ -226,7 +229,7 @@ fun NewStoryScreen(
     }
 }
 
-/** The chosen picture at a story's shape; a video, until there is a player here, by its icon. */
+/** The chosen picture or video at a story's shape. */
 @Composable
 private fun StoryPreview(uri: String, isVideo: Boolean) {
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -238,13 +241,18 @@ private fun StoryPreview(uri: String, isVideo: Boolean) {
                 .aspectRatio(STORY_ASPECT)
         ) {
             if (isVideo) {
-                Box(contentAlignment = Alignment.Center) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Symbols.PlayArrow, contentDescription = null)
-                        Spacer(Modifier.size(8.dp))
-                        Text("Video")
-                    }
-                }
+                // The video itself, silent and on a loop, as the story will
+                // start — the chat's own inline player, cropped to the shape.
+                InlineVideo(
+                    path = uri,
+                    playing = true,
+                    muted = true,
+                    loop = true,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(28.dp))
+                        .semantics { contentDescription = "Story video" }
+                )
             } else {
                 AsyncImage(
                     model = uri,
