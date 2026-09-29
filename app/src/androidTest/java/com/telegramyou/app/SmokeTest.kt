@@ -1733,6 +1733,47 @@ class SmokeTest {
     }
 
     /**
+     * Listening through a music channel: a track tapped plays in the app's
+     * player; the mini player follows; the full player opens from it; its
+     * queue is the channel's whole music and another track starts from it
+     * without the list moving; and Stop takes the mini player away.
+     */
+    @Test
+    fun musicPlaysThroughAChannel() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text(MUSIC_CHANNEL))
+        tap(By.text(MUSIC_CHANNEL))
+        waitFor(By.desc("Play Morning Light"), "the newest track")
+        tap(By.desc("Play Morning Light"))
+        waitFor(By.desc("Now playing: Morning Light"), "the mini player")
+        screenshot("77-mini-player")
+
+        tap(By.desc("Now playing: Morning Light"))
+        waitFor(By.desc("Close player"), "the full player")
+        waitFor(By.desc("Pause"), "the track playing")
+        screenshot("78-player")
+
+        tap(By.desc("Queue"))
+        waitFor(By.textContains("12 tracks"), "the channel's whole music in the queue")
+        tap(By.text("Tonal Spot"))
+        // The queue stays open and in place; the new track is the one playing.
+        waitFor(By.text("Tonal Spot"), "the queue still there")
+        screenshot("79-queue")
+        device.pressBack()
+        waitFor(By.text("Tonal Spot"), "the player on the new track")
+
+        tap(By.desc("Close player"))
+        waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
+        tap(By.desc("Stop music"))
+        assertTrue(
+            "the mini player stayed after Stop",
+            device.wait(Until.gone(By.descStartsWith("Now playing")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
      * A chat's shared media, a tab per kind: its files, one of them opened in
      * whatever the phone reads it with; its links; and a tab with nothing in
      * it saying so rather than spinning.
@@ -2635,6 +2676,7 @@ class SmokeTest {
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
         const val FORUM_CHAT = "Compose Forum"
+        const val MUSIC_CHANNEL = "Material Sound"
 
         /** The start of the demo group's oldest line; see DEMO_ARCHIVE_FIRST_LINE. */
         const val OLD_HIT_QUERY = "Kickoff"

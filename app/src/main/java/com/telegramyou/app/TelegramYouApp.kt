@@ -54,6 +54,11 @@ class TelegramYouApp : Application() {
     lateinit var updates: AppUpdates
         private set
 
+    /** The music player, one for the app; see MusicPlayer. */
+    val music: com.telegramyou.app.music.MusicPlayer by lazy {
+        com.telegramyou.app.music.MusicPlayer(this, telegramRepository)
+    }
+
     /**
      * The demo, entered from the login screen of the live client by tapping
      * its mark ten times — see [setDemoMode]. False in the demo build, which

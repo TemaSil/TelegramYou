@@ -140,6 +140,12 @@ sealed interface Route {
 
     /** Settings → Privacy → App lock. */
     /** Posting a story, from "My story" at the head of the rail. */
+    /** The full music player; see PlayerScreen. */
+    data object Player : Route {
+        const val PATTERN = "player"
+        override val path = PATTERN
+    }
+
     data object NewStory : Route {
         const val PATTERN = "stories/new"
         override val path = PATTERN

@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
                             appLock = app.appLock,
                             geeks = app.geeks,
                             queryHistory = app.queryHistory,
+                            music = app.music,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }

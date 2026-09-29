@@ -1088,6 +1088,35 @@ class DemoTelegramClient(
         return topic
     }
 
+    /**
+     * The demo music channel: a dozen tracks over as many days, oldest
+     * first, every one the demo's chime under its own name — enough of a
+     * queue to play through, shuffle and scroll.
+     */
+    private fun musicChannel(now: Long, day: Long): MutableList<ChatMessage> {
+        val names = listOf(
+            "Tonal Spot", "Container Transform", "Spring Back", "Shape Morph", "Wavy Line",
+            "Surface Tint", "Emphasized Easing", "Cookie Nine", "Motion Scheme", "Pure Black",
+            "Night Palette", "Morning Light"
+        )
+        return names.mapIndexed { index, name ->
+            demoMessage(
+                95_000L + index, MUSIC_CHANNEL_ID, "", false,
+                now - (names.size - index) * day, DEMO_MUSIC_CHANNEL
+            ).copy(
+                contentType = MessageContentType.Audio,
+                audio = AudioContent(
+                    title = name,
+                    performer = "Material Sound",
+                    durationSeconds = DEMO_AUDIO_SECONDS,
+                    fileName = "${name.lowercase().replace(' ', '-')}.wav",
+                    fileId = DEMO_AUDIO_FILE_ID
+                ),
+                voiceFileId = DEMO_AUDIO_FILE_ID
+            )
+        }.toMutableList()
+    }
+
     /** What has been said in each of the forum's topics. */
     private fun forumMessages(today: Long, yesterday: Long): MutableList<ChatMessage> {
         fun said(id: Long, topic: Int, text: String, at: Long, who: String) =
@@ -2030,6 +2059,12 @@ class DemoTelegramClient(
             BOT_CHAT_ID, "Build Bot", "Build 1.0.366 is ready", "Thu",
             isBot = true, avatarColor = 121
         ),
+        // A music channel, so the player has a queue offline: the case the
+        // owner's brother described, a channel of tracks to listen through.
+        ChatPreview(
+            MUSIC_CHANNEL_ID, DEMO_MUSIC_CHANNEL, "🎵 Morning Light", "Wed",
+            isChannel = true, isMuted = true, avatarColor = 141
+        ),
         // A forum, so topics open offline: a group split into threads.
         ChatPreview(
             FORUM_CHAT_ID, DEMO_FORUM, "Releases: 1.6 is out", "Thu",
@@ -2236,6 +2271,7 @@ class DemoTelegramClient(
         val yesterday = now - day - 2 * 60 * 60
 
         chatMessages[FORUM_CHAT_ID] = forumMessages(today, yesterday)
+        chatMessages[MUSIC_CHANNEL_ID] = musicChannel(now, day)
         chatMessages[1] = mutableListOf(
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
             demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true), MessageReaction(customReactionKey(DEMO_CUSTOM_EMOJI), count = 2))),
@@ -2723,6 +2759,10 @@ private const val DEMO_ADDED_BASE = 3000L
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L
+
+/** The demo's music channel; see musicChannel. */
+private const val MUSIC_CHANNEL_ID = 13L
+internal const val DEMO_MUSIC_CHANNEL = "Material Sound"
 
 /** The demo's forum, a group whose conversation is split into topics. */
 private const val FORUM_CHAT_ID = 12L

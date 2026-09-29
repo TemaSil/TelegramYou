@@ -104,6 +104,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.music.NowPlaying
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.components.AvatarBubble
@@ -181,6 +182,11 @@ fun ChatScreen(
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
     onDocumentOpened: (ChatMessage) -> Unit = {},
+    /** The app's music player, for the tracks in this chat's bubbles. */
+    music: NowPlaying = NowPlaying(),
+    onMusicSeek: (Float) -> Unit = {},
+    /** The mini player, under the header while something plays. */
+    musicBar: @Composable () -> Unit = {},
     onFileOpened: () -> Unit = {},
     onFileRefused: (String?) -> Unit = {},
     onPhotoVisible: (ChatMessage) -> Unit,
@@ -746,6 +752,7 @@ fun ChatScreen(
                 .consumeWindowInsets(WindowInsets.navigationBars)
                 .imePadding()
         ) {
+            musicBar()
             detail?.pinnedMessage?.let { pinned ->
                 PinnedMessageBar(
                     message = pinned,
@@ -941,18 +948,27 @@ fun ChatScreen(
                                 onMenuOpened = { onMessageMenuOpened(message) },
                                 onForward = { onForwardOne(message) },
                                 onContentOpened = { onContentOpened(message) },
-                                voiceState = when (message.id) {
-                                    state.playingVoiceId -> VoiceState.Playing
-                                    state.loadingVoiceId -> VoiceState.Loading
+                                // A track is the music player's, which outlives
+                                // this screen; a voice note is the chat's own.
+                                voiceState = when {
+                                    message.audio != null && music.track?.messageId == message.id -> when {
+                                        music.isLoading -> VoiceState.Loading
+                                        music.isPlaying -> VoiceState.Playing
+                                        else -> VoiceState.Idle
+                                    }
+                                    message.id == state.playingVoiceId -> VoiceState.Playing
+                                    message.id == state.loadingVoiceId -> VoiceState.Loading
                                     else -> VoiceState.Idle
                                 },
                                 onVoiceToggled = { onVoiceToggled(message) },
-                                voiceProgress = if (message.id == state.playingVoiceId) {
-                                    state.voiceProgress
-                                } else {
-                                    0f
+                                voiceProgress = when {
+                                    message.audio != null && music.track?.messageId == message.id -> music.progress
+                                    message.id == state.playingVoiceId -> state.voiceProgress
+                                    else -> 0f
                                 },
-                                onVoiceSeek = { at -> onVoiceSeek(message, at) },
+                                onVoiceSeek = { at ->
+                                    if (message.audio != null) onMusicSeek(at) else onVoiceSeek(message, at)
+                                },
                                 onDocumentOpen = { onDocumentOpened(message) },
                                 documentOpening = state.openingFileId == message.id,
                                 onPhotoVisible = { onPhotoVisible(message) },

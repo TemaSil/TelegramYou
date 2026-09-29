@@ -77,6 +77,16 @@ import com.telegramyou.app.ui.people.PersonViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatMediaScreen
 import com.telegramyou.app.ui.chat.SharedMediaViewModel
+import com.telegramyou.app.music.MusicPlayer
+import com.telegramyou.app.music.NowPlaying
+import com.telegramyou.app.ui.music.MiniPlayer
+import com.telegramyou.app.ui.music.MusicActions
+import com.telegramyou.app.ui.music.PlayerScreen
+import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.SharedMediaKind
+import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
@@ -122,6 +132,8 @@ fun TelegramYouNavHost(
     geeks: GeekStore? = null,
     /** Search's recent queries; kept in memory where none is given. */
     queryHistory: QueryHistory? = null,
+    /** The app's music player; absent in previews. */
+    music: MusicPlayer? = null,
     /** A chat a notification asked to open, or null. */
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
@@ -137,6 +149,36 @@ fun TelegramYouNavHost(
         telegramViewModelFactory(repository, queryHistory ?: InMemoryQueryHistory())
     }
     val geekSettings = LocalGeekSettings.current
+
+    // The music player's state, for the mini player on the screens that
+    // carry one and the full player behind it.
+    val nowPlayingFlow = remember(music) { music?.state ?: MutableStateFlow(NowPlaying()) }
+    val nowPlaying by nowPlayingFlow.collectAsStateWithLifecycle()
+    val musicActions = remember(music) {
+        MusicActions(
+            onToggle = { music?.toggle() },
+            onNext = { music?.next() },
+            onPrevious = { music?.previous() },
+            onSeek = { music?.seekTo(it) },
+            onOrder = { music?.setOrder(it) },
+            onRepeat = { music?.cycleRepeat() },
+            onSpeed = { music?.cycleSpeed() },
+            onPlayAt = { music?.playAt(it) },
+            onLoadMore = { music?.loadMore() },
+            onStop = { music?.stop() }
+        )
+    }
+    val musicBar: @Composable () -> Unit = {
+        MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
+    }
+    /** A track tapped: the player's, and the same track again is play and pause. */
+    val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
+        if (nowPlaying.track?.messageId == message.id) {
+            music?.toggle()
+        } else {
+            music?.play(message, source, loaded, complete)
+        }
+    }
 
     // A chat opened from a list: its messages first, then the screen — so the
     // container transform grows a finished conversation out of the row
@@ -302,6 +344,7 @@ fun TelegramYouNavHost(
 
             CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
             HomeScreen(
+                musicBar = musicBar,
                 state = state,
                 tab = tab,
                 onTabSelected = { picked ->
@@ -667,6 +710,16 @@ fun TelegramYouNavHost(
             )
         }
         composable(
+            route = Route.Player.PATTERN,
+            // Up from the mini player and back down into it, as a sheet of
+            // the screen would.
+            enterTransition = { slideInVertically { it } },
+            popExitTransition = { slideOutVertically { it } }
+        ) {
+            PlayerScreen(nowPlaying, musicActions, onBack = { navController.popBackStack() })
+        }
+
+        composable(
             route = Route.ChatMedia.PATTERN,
             arguments = Route.ChatMedia.arguments
         ) {
@@ -685,18 +738,26 @@ fun TelegramYouNavHost(
                 onErrorShown = mediaViewModel::onErrorShown,
                 // The chat's own player for now: one voice note or track at
                 // a time, the same as in the conversation.
-                playingId = state.playingVoiceId,
-                loadingId = state.loadingVoiceId,
-                progress = state.voiceProgress,
                 // A round video message opens in the player; a voice note or
                 // a track plays in place.
                 onPlayToggled = { message ->
-                    if (message.contentType == MessageContentType.VideoNote) {
-                        chatViewModel.onVideoOpened(message)
-                    } else {
-                        chatViewModel.onVoiceToggled(message)
+                    val musicTab = media.tab(SharedMediaKind.Music)
+                    when {
+                        message.contentType == MessageContentType.VideoNote -> chatViewModel.onVideoOpened(message)
+                        // The tab's tracks are the queue, as far as they are
+                        // loaded; the player pages in the rest itself.
+                        message.audio != null -> playTrack(
+                            message,
+                            state.detail?.chat?.title ?: media.title,
+                            musicTab.items,
+                            musicTab.isComplete
+                        )
+                        else -> chatViewModel.onVoiceToggled(message)
                     }
                 },
+                playingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isPlaying } ?: state.playingVoiceId,
+                loadingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isLoading } ?: state.loadingVoiceId,
+                progress = if (nowPlaying.track != null && nowPlaying.isPlaying) nowPlaying.progress else state.voiceProgress,
                 onBack = { navController.popBackStack() },
                 // One entry point, two kinds of thing behind it: the grid
                 // holds photos and videos alike, and which viewer opens is
@@ -967,7 +1028,18 @@ fun TelegramYouNavHost(
                 onForwardTo = { target ->
                     chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote)
                 },
-                onVoiceToggled = chatViewModel::onVoiceToggled,
+                // A track goes to the music player, with this chat's music
+                // as its queue; a voice note plays in the chat.
+                onVoiceToggled = { message ->
+                    if (message.audio != null) {
+                        playTrack(message, state.detail?.chat?.title.orEmpty(), emptyList(), false)
+                    } else {
+                        chatViewModel.onVoiceToggled(message)
+                    }
+                },
+                music = nowPlaying,
+                onMusicSeek = { music?.seekTo(it) },
+                musicBar = musicBar,
                 onVoiceSeek = chatViewModel::onVoiceSeek,
                 onDocumentOpened = chatViewModel::onDocumentOpened,
                 onFileOpened = chatViewModel::onFileOpened,

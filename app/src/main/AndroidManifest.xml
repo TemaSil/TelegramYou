@@ -34,6 +34,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Music keeps playing with the app closed; see PlaybackService. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 
     <application
         android:name=".TelegramYouApp"
@@ -200,5 +202,19 @@
             android:name=".telegram.TelegramForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!--
+            The music player's Media3 session. Exported with Media3's action,
+            as its documentation requires: that is how the system's media
+            controls, Bluetooth and a paired watch find the session.
+        -->
+        <service
+            android:name=".music.PlaybackService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

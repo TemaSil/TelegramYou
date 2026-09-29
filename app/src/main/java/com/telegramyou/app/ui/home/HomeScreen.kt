@@ -142,6 +142,8 @@ import com.telegramyou.app.ui.theme.AppTitleStyle
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
+    /** The mini player, while something plays; see MiniPlayer. */
+    musicBar: @Composable () -> Unit = {},
     state: HomeUiState,
     tab: HomeTab,
     onTabSelected: (HomeTab) -> Unit,
@@ -559,6 +561,9 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                     }
+                    // Under the header rather than in it: the header folds
+                    // away as the chats scroll, and the music should not.
+                    musicBar()
                     PullToRefreshBox(
                         isRefreshing = state.isRefreshing,
                         onRefresh = onRefresh,
