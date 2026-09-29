@@ -2574,11 +2574,11 @@ private val DEMO_TYPING_MS = 3_000L
 private val DEMO_JOIN_TITLE = "Expressive Design Club"
 
 private val DEMO_VIDEO_FILE_ID = 1601
-private const val DEMO_AUDIO_FILE_ID = 1602
+private val DEMO_AUDIO_FILE_ID = 1602
 
 /** The rail entry for the demo account's own posted stories. */
-private const val MY_STORIES_ID = 99L
-private const val DEMO_AUDIO_SECONDS = 12
+private val MY_STORIES_ID = 99L
+private val DEMO_AUDIO_SECONDS = 12
 
 /**
  * The demo song: a soft arpeggio of sine tones, written as a WAV into the
