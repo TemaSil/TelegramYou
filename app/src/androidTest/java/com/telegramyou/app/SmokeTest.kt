@@ -1894,14 +1894,29 @@ class SmokeTest {
         // Sent, it shows in the conversation — above the panel, where no
         // GIF was before: Lina's own is further up, out of sight.
         val panelTop = device.findObject(By.text("GIFs")).visibleBounds.top
-        device.findObjects(By.desc("GIF")).first { it.visibleBounds.top > panelTop }.click()
+        // The GIFs play, and a node can go stale between being found and
+        // being asked where it is; asked again, then.
+        var sent = false
+        repeat(3) {
+            if (sent) return@repeat
+            try {
+                device.findObjects(By.desc("GIF")).first { it.visibleBounds.top > panelTop }.click()
+                sent = true
+            } catch (_: StaleObjectException) {
+            }
+        }
+        assertTrue("no GIF in the panel could be tapped", sent)
         val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
         var arrived = false
         while (!arrived && SystemClock.uptimeMillis() < deadline) {
             if (Build.VERSION.SDK_INT >= 34) {
                 InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
             }
-            arrived = device.findObjects(By.desc("GIF")).any { it.visibleBounds.bottom <= panelTop }
+            arrived = try {
+                device.findObjects(By.desc("GIF")).any { it.visibleBounds.bottom <= panelTop }
+            } catch (_: StaleObjectException) {
+                false
+            }
             if (!arrived) SystemClock.sleep(250)
         }
         assertTrue("the GIF never arrived in the chat", arrived)
