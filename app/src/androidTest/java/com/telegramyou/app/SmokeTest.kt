@@ -1757,11 +1757,20 @@ class SmokeTest {
 
         tap(By.desc("Queue"))
         waitFor(By.textContains("12 tracks"), "the channel's whole music in the queue")
+        // The oldest track is at the far end of the queue: found by its
+        // search rather than by scrolling to it.
+        type("Tonal")
+        waitFor(By.text("Tonal Spot"), "the queue searched")
         tap(By.text("Tonal Spot"))
-        // The queue stays open and in place; the new track is the one playing.
-        waitFor(By.text("Tonal Spot"), "the queue still there")
+        // The queue stays open; the new track is the one playing.
+        waitFor(By.desc("Playing"), "the new track marked playing in the queue")
         screenshot("79-queue")
-        device.pressBack()
+        // Back past the keyboard, then the sheet.
+        repeat(3) {
+            if (!device.hasObject(By.textContains("12 tracks"))) return@repeat
+            device.pressBack()
+            SystemClock.sleep(600)
+        }
         waitFor(By.text("Tonal Spot"), "the player on the new track")
 
         // Kept in Saved Messages, and a sleep timer for the end of the track.
