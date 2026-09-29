@@ -1762,8 +1762,10 @@ class SmokeTest {
         screenshot("70-group-members")
 
         // The members found by name, the rest out of the list meanwhile.
+        // The keyboard comes up over the results, so it goes first.
         type("orl")
-        waitFor(By.text("Nadia Orlova"), "Nadia found")
+        device.pressBack()
+        scrollDownTo(By.text("Nadia Orlova"))
         assertTrue(
             "Pavel still listed while searching for Nadia",
             device.wait(Until.gone(By.text("Pavel Gromov")), SHORT_WAIT)
@@ -1790,7 +1792,7 @@ class SmokeTest {
         scrollBackTo(By.text("Invite links"), "the invite links row")
         tap(By.text("Invite links"))
         waitFor(By.text("Design review"), "the group's links")
-        tap(By.text("New link"))
+        tap(By.desc("New link"))
         waitFor(By.text("New invite link"), "the new link dialog")
         tap(By.text("1 day"))
         tap(By.text("10"))
@@ -1811,7 +1813,7 @@ class SmokeTest {
         awaitNoHeadsUp()
         scrollChatsTo(By.text(FORUM_CHAT))
         tap(By.text(FORUM_CHAT))
-        waitFor(By.text("New topic"), "the forum's topics")
+        waitFor(By.desc("New topic"), "the forum's topics")
         waitFor(By.text("General"), "General among them")
         screenshot("73-forum-topics")
 
@@ -1831,9 +1833,9 @@ class SmokeTest {
         type("Half a thought")
         SystemClock.sleep(1_800)
 
-        backTo(By.text("New topic"), "the topics again")
+        backTo(By.desc("New topic"), "the topics again")
         waitFor(By.text("Draft: Half a thought"), "the topic's draft in the list")
-        tap(By.text("New topic"))
+        tap(By.desc("New topic"))
         waitFor(By.text("Topic name"), "the new topic dialog")
         type("Screenshots")
         tap(By.text("Create"))
