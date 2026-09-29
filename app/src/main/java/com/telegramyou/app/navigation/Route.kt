@@ -210,14 +210,55 @@ sealed interface Route {
         }
     }
 
-    data class Chat(val chatId: Long) : Route {
-        override val path = "chat/$chatId"
+    /** What members of a group may do. */
+    data class GroupPermissions(val chatId: Long) : Route {
+        override val path = "chat/$chatId/permissions"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/permissions"
+            val arguments = Chat.arguments
+        }
+    }
+
+    /** A group's invite links, beyond the primary one. */
+    data class InviteLinks(val chatId: Long) : Route {
+        override val path = "chat/$chatId/links"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/links"
+            val arguments = Chat.arguments
+        }
+    }
+
+    /** A forum's topics, which is where a forum opens. */
+    data class Topics(val chatId: Long) : Route {
+        override val path = "chat/$chatId/topics"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/topics"
+            val arguments = Chat.arguments
+        }
+    }
+
+    /**
+     * A conversation — or, with [topicId], one topic of a forum. The topic
+     * is an optional query argument so every existing `chat/{id}` still
+     * means the whole chat.
+     */
+    data class Chat(val chatId: Long, val topicId: Int = 0) : Route {
+        override val path = if (topicId == 0) "chat/$chatId" else "chat/$chatId?$ARG_TOPIC_ID=$topicId"
 
         companion object {
             const val ARG_CHAT_ID = "chatId"
-            const val PATTERN = "chat/{$ARG_CHAT_ID}"
+            const val ARG_TOPIC_ID = "topicId"
+            const val PATTERN = "chat/{$ARG_CHAT_ID}?$ARG_TOPIC_ID={$ARG_TOPIC_ID}"
             val arguments: List<NamedNavArgument> =
                 listOf(navArgument(ARG_CHAT_ID) { type = NavType.LongType })
+            /** The conversation's own, with the topic that is optional there. */
+            val chatArguments: List<NamedNavArgument> = arguments + navArgument(ARG_TOPIC_ID) {
+                type = NavType.IntType
+                defaultValue = 0
+            }
         }
     }
 

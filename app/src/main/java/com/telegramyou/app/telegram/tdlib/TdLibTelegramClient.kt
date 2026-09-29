@@ -68,6 +68,14 @@ import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
+import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.GroupManagement
+import com.telegramyou.app.telegram.model.GroupMember
+import com.telegramyou.app.telegram.model.GroupPermissions
+import com.telegramyou.app.telegram.model.InviteLink
+import com.telegramyou.app.telegram.model.MemberAction
+import com.telegramyou.app.telegram.model.MemberRole
+import com.telegramyou.app.telegram.model.TOPIC_COLORS
 import com.telegramyou.app.ui.media.FileTransfer
 // Aliased: this class has a toggleReaction of its own, with a different job.
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
@@ -966,6 +974,7 @@ class TdLibTelegramClient(
                 JSONObject()
                     .put("@type", "getChatHistory")
                     .put("chat_id", chatId)
+                    .inOpenTopic(chatId)
                     .put("from_message_id", from)
                     .put("offset", 0)
                     .put("limit", HISTORY_PAGE - page.length())
@@ -1012,6 +1021,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
@@ -1037,6 +1047,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
@@ -1344,6 +1355,269 @@ class TdLibTelegramClient(
         // would arrive if this happened on another device.
     }
 
+    // ── running a group ─────────────────────────────────────────────────
+
+    /** The forum topic each chat's conversation screen is on; see setOpenTopic. */
+    private val openTopics = ConcurrentHashMap<Long, Int>()
+
+    override fun setOpenTopic(chatId: Long, topicId: Int?) {
+        if (topicId == null) openTopics.remove(chatId) else openTopics[chatId] = topicId
+    }
+
+    override fun closeOpenTopic(chatId: Long, topicId: Int) {
+        openTopics.remove(chatId, topicId)
+    }
+
+    /**
+     * A history request or a send, pointed at the topic [chatId]'s screen is
+     * on, if it is on one: history becomes that topic's history, and a send
+     * or a draft carries the topic. Anything else passes through unchanged.
+     */
+    private fun JSONObject.inOpenTopic(chatId: Long): JSONObject = apply {
+        val topic = openTopics[chatId] ?: return@apply
+        if (optString("@type") == "getChatHistory") {
+            put("@type", "getForumTopicHistory")
+            put("forum_topic_id", topic)
+        } else {
+            put("topic_id", forumTopic(topic))
+        }
+    }
+
+    /**
+     * The group behind [chatId]: whether it is a basic group, its id, and
+     * the `basicGroup` or `supergroup` object — from the cache the updates
+     * keep, or asked for when an update has not brought it yet.
+     */
+    private suspend fun groupOf(chatId: Long): Triple<Boolean, Long, JSONObject>? {
+        val type = (chatsById[chatId] ?: runCatching {
+            requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", chatId))
+        }.getOrNull())?.optJSONObject("type") ?: return null
+        return when (type.optString("@type")) {
+            "chatTypeBasicGroup" -> {
+                val id = type.optLong("basic_group_id")
+                val group = basicGroups[id] ?: requireEngine().send(
+                    JSONObject().put("@type", "getBasicGroup").put("basic_group_id", id)
+                ).also { basicGroups[id] = it }
+                Triple(true, id, group)
+            }
+            "chatTypeSupergroup" -> {
+                if (type.optBoolean("is_channel")) return null
+                val id = type.optLong("supergroup_id")
+                val group = supergroups[id] ?: requireEngine().send(
+                    JSONObject().put("@type", "getSupergroup").put("supergroup_id", id)
+                ).also { supergroups[id] = it }
+                Triple(false, id, group)
+            }
+            else -> null
+        }
+    }
+
+    /** A user, from the cache or the server; null when neither knows them. */
+    private suspend fun userOf(userId: Long): TelegramUser? {
+        val raw = usersById[userId] ?: runCatching {
+            requireEngine().send(JSONObject().put("@type", "getUser").put("user_id", userId))
+                .also { usersById[userId] = it }
+        }.getOrNull() ?: return null
+        return mapUser(raw)
+    }
+
+    override suspend fun groupManagement(chatId: Long): GroupManagement? {
+        awaitReady()
+        return try {
+            val (isBasic, groupId, group) = groupOf(chatId) ?: return null
+            val chat = chatsById[chatId]
+            val entries = if (isBasic) {
+                requireEngine().send(
+                    JSONObject().put("@type", "getBasicGroupFullInfo").put("basic_group_id", groupId)
+                ).optJSONArray("members")
+            } else {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getSupergroupMembers")
+                        .put("supergroup_id", groupId)
+                        .put("filter", JSONObject().put("@type", "supergroupMembersFilterRecent"))
+                        .put("offset", 0)
+                        .put("limit", MANAGED_MEMBER_LIMIT)
+                ).optJSONArray("members")
+            }
+            val members = mutableListOf<GroupMember>()
+            for (index in 0 until (entries?.length() ?: 0)) {
+                val entry = entries?.optJSONObject(index) ?: continue
+                val sender = entry.optJSONObject("member_id") ?: continue
+                if (sender.optString("@type") != "messageSenderUser") continue
+                val status = entry.optJSONObject("status")
+                val role = roleOf(status) ?: continue
+                val user = userOf(sender.optLong("user_id")) ?: continue
+                members += GroupMember(
+                    user = user,
+                    role = role,
+                    // The admin's title is the member's tag since TDLib moved it.
+                    title = entry.optString("tag"),
+                    canBeEdited = status?.optBoolean("can_be_edited") == true
+                )
+            }
+            GroupManagement(
+                rights = rightsOf(group.optJSONObject("status"), isBasic),
+                members = members,
+                permissions = permissionsOf(chat?.optJSONObject("permissions")),
+                isBasicGroup = isBasic,
+                isForum = !isBasic && group.optBoolean("is_forum")
+            )
+        } catch (e: Throwable) {
+            Log.w(TAG, "groupManagement: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun applyMemberAction(chatId: Long, userId: Long, action: MemberAction) {
+        awaitReady()
+        val member = JSONObject().put("@type", "messageSenderUser").put("user_id", userId)
+        val status = when (action) {
+            MemberAction.MakeAdmin -> JSONObject()
+                .put("@type", "chatMemberStatusAdministrator")
+                .put("can_be_edited", true)
+                .put("rights", defaultAdminRights())
+            MemberAction.RemoveAdmin, MemberAction.Unrestrict -> JSONObject()
+                .put("@type", "chatMemberStatusMember")
+                .put("member_until_date", 0)
+            MemberAction.Restrict -> JSONObject()
+                .put("@type", "chatMemberStatusRestricted")
+                .put("is_member", true)
+                .put("restricted_until_date", 0)
+                .put("permissions", silencedPermissions())
+            MemberAction.Remove -> {
+                // Removed, not banned for good: banned for a moment, which
+                // takes them out and lets them be invited back.
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "banChatMember")
+                        .put("chat_id", chatId)
+                        .put("member_id", member)
+                        .put("banned_until_date", nowSeconds() + REMOVE_BAN_SECONDS)
+                        .put("revoke_messages", false)
+                )
+                return
+            }
+        }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatMemberStatus")
+                .put("chat_id", chatId)
+                .put("member_id", member)
+                .put("status", status)
+        )
+    }
+
+    override suspend fun setGroupPermissions(chatId: Long, permissions: GroupPermissions) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatPermissions")
+                .put("chat_id", chatId)
+                .put("permissions", permissions.toJson())
+        )
+    }
+
+    override suspend fun inviteLinks(chatId: Long): List<InviteLink> {
+        awaitReady()
+        val me = _authState.value.me?.id ?: return emptyList()
+        val out = mutableListOf<InviteLink>()
+        for (revoked in listOf(false, true)) {
+            val answer = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getChatInviteLinks")
+                    .put("chat_id", chatId)
+                    .put("creator_user_id", me)
+                    .put("is_revoked", revoked)
+                    .put("offset_date", 0)
+                    .put("offset_invite_link", "")
+                    .put("limit", INVITE_LINK_LIMIT)
+            )
+            val links = answer.optJSONArray("invite_links") ?: continue
+            for (index in 0 until links.length()) {
+                links.optJSONObject(index)?.let { out += inviteLinkOf(it) }
+            }
+        }
+        return out
+    }
+
+    override suspend fun createInviteLink(chatId: Long, name: String, expiresAt: Long, memberLimit: Int): InviteLink? {
+        awaitReady()
+        val link = requireEngine().send(
+            JSONObject()
+                .put("@type", "createChatInviteLink")
+                .put("chat_id", chatId)
+                .put("name", name.trim())
+                .put("expiration_date", expiresAt)
+                .put("member_limit", memberLimit)
+                .put("creates_join_request", false)
+        )
+        return inviteLinkOf(link)
+    }
+
+    override suspend fun revokeInviteLink(chatId: Long, link: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "revokeChatInviteLink")
+                .put("chat_id", chatId)
+                .put("invite_link", link)
+        )
+    }
+
+    override suspend fun forumTopics(chatId: Long): List<ForumTopic> {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getForumTopics")
+                .put("chat_id", chatId)
+                .put("query", "")
+                .put("offset_date", 0)
+                .put("offset_message_id", 0)
+                .put("offset_forum_topic_id", 0)
+                .put("limit", TOPIC_LIMIT)
+        )
+        val topics = answer.optJSONArray("topics") ?: return emptyList()
+        return (0 until topics.length()).mapNotNull { index ->
+            val topic = topics.optJSONObject(index) ?: return@mapNotNull null
+            val info = topic.optJSONObject("info") ?: return@mapNotNull null
+            if (info.optBoolean("is_hidden")) return@mapNotNull null
+            val last = topic.optJSONObject("last_message")
+            ForumTopic(
+                id = info.optInt("forum_topic_id"),
+                name = info.optString("name"),
+                iconColor = info.optJSONObject("icon")?.optInt("color") ?: TOPIC_COLORS.first(),
+                lastMessage = previewText(last),
+                timestampLabel = chatListTimeLabel(
+                    epochSeconds = last?.optLong("date") ?: 0L,
+                    nowSeconds = nowSeconds(),
+                    zone = ZoneId.systemDefault()
+                ),
+                unreadCount = topic.optInt("unread_count"),
+                isPinned = topic.optBoolean("is_pinned"),
+                isClosed = info.optBoolean("is_closed"),
+                isGeneral = info.optBoolean("is_general")
+            )
+        }
+    }
+
+    override suspend fun createForumTopic(chatId: Long, name: String): ForumTopic? {
+        awaitReady()
+        val color = TOPIC_COLORS[(name.hashCode() and Int.MAX_VALUE) % TOPIC_COLORS.size]
+        val info = requireEngine().send(
+            JSONObject()
+                .put("@type", "createForumTopic")
+                .put("chat_id", chatId)
+                .put("name", name.trim())
+                .put("is_name_implicit", false)
+                .put(
+                    "icon",
+                    JSONObject().put("@type", "forumTopicIcon").put("color", color).put("custom_emoji_id", 0)
+                )
+        )
+        return ForumTopic(id = info.optInt("forum_topic_id"), name = info.optString("name"), iconColor = color)
+    }
+
     /**
      * Who is in a group, from the server rather than from who has spoken.
      *
@@ -1458,6 +1732,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "getChatHistory")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put("from_message_id", beforeMessageId)
                 .put("offset", 0)
                 .put("limit", limit)
@@ -1492,6 +1767,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "getChatHistory")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put("from_message_id", messageId)
                 .put("offset", -(limit / 2))
                 .put("limit", limit)
@@ -1516,6 +1792,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "getChatHistory")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put("from_message_id", afterMessageId)
                 .put("offset", -limit)
                 .put("limit", limit)
@@ -1552,6 +1829,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "setChatDraftMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put("draft_message", draft)
         )
     }
@@ -1596,6 +1874,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .apply {
                     if (sendAt != null) {
@@ -1638,6 +1917,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put(
                     "input_message_content",
                     JSONObject()
@@ -1767,6 +2047,7 @@ class TdLibTelegramClient(
                 JSONObject()
                     .put("@type", "sendMessageAlbum")
                     .put("chat_id", chatId)
+                    .inOpenTopic(chatId)
                     .withReplyTo(replyToId.takeIf { chunkIndex == 0 })
                     .put("input_message_contents", contents)
             )
@@ -1803,6 +2084,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .put("input_message_content", content)
                 .withReplyTo(replyToId)
         )
@@ -1824,6 +2106,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "forwardMessages")
                 .put("chat_id", toChatId)
+                .inOpenTopic(toChatId)
                 .put("from_chat_id", fromChatId)
                 .put("message_ids", ids)
                 // The plain forward carries the author's name. A copy, asked
@@ -2532,6 +2815,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
@@ -2603,6 +2887,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
@@ -2725,6 +3010,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put(
                     "input_message_content",
@@ -2769,6 +3055,7 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
+                .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
                 .put("input_message_content", content)
         )
@@ -2791,7 +3078,10 @@ class TdLibTelegramClient(
             }
             "updateSupergroup" -> {
                 val group = update.optJSONObject("supergroup") ?: return
-                supergroups[group.optLong("id")] = group
+                val before = supergroups.put(group.optLong("id"), group)
+                // A group turned into a forum, or back, opens differently:
+                // the list has to learn it, and it often arrives after the chat.
+                if (before?.optBoolean("is_forum") != group.optBoolean("is_forum")) requestPublishChats()
             }
             "updateChatAction" -> {
                 val chatId = update.optLong("chat_id")
@@ -2880,11 +3170,13 @@ class TdLibTelegramClient(
             }
             "updateChatTitle", "updateChatPhoto", "updateChatLastMessage",
             "updateChatReadInbox", "updateChatReadOutbox", "updateChatNotificationSettings",
-            "updateChatUnreadMentionCount", "updateChatHasScheduledMessages" -> {
+            "updateChatUnreadMentionCount", "updateChatHasScheduledMessages", "updateChatPermissions" -> {
                 val chatId = update.optLong("chat_id")
                 val chat = chatsById[chatId] ?: return
                 when (update.optString("@type")) {
                     "updateChatTitle" -> chat.put("title", update.optString("title"))
+                    // Kept for the permissions screen, which reads it from here.
+                    "updateChatPermissions" -> chat.put("permissions", update.optJSONObject("permissions"))
                     "updateChatPhoto" -> chat.put("photo", update.optJSONObject("photo"))
                     "updateChatLastMessage" -> {
                         chat.put("last_message", update.optJSONObject("last_message"))
@@ -3628,7 +3920,9 @@ class TdLibTelegramClient(
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
             isArchived = positions.isArchived(id),
-            canDeleteForEveryone = chat.optBoolean("can_be_deleted_for_all_users")
+            canDeleteForEveryone = chat.optBoolean("can_be_deleted_for_all_users"),
+            isForum = type == "chatTypeSupergroup" &&
+                supergroups[chat.optJSONObject("type")?.optLong("supergroup_id")]?.optBoolean("is_forum") == true
         )
     }
 
@@ -3823,7 +4117,8 @@ class TdLibTelegramClient(
             entities = entitiesOf(formattedOf(content), text),
             forwardedFrom = forwardOrigin(message.optJSONObject("forward_info")),
             albumId = message.optInt64("media_album_id").takeIf { it != 0L },
-            isPinned = message.optBoolean("is_pinned")
+            isPinned = message.optBoolean("is_pinned"),
+            topicId = topicIdOf(message)
         )
     }
 
@@ -4021,6 +4316,22 @@ class TdLibTelegramClient(
          * thousand people in it, and each one not already cached costs a call.
          */
         private const val MEMBER_LIMIT = 12
+
+        /** Members listed for running a group — Telegram's page size for them. */
+        private const val MANAGED_MEMBER_LIMIT = 200
+
+        /** Links listed of each kind, working and revoked. */
+        private const val INVITE_LINK_LIMIT = 50
+
+        /** Topics listed in a forum; more than anybody scrolls. */
+        private const val TOPIC_LIMIT = 100
+
+        /**
+         * How long "Remove from group" bans for: past Telegram's 30-second
+         * floor, so it removes rather than bans for ever, and short enough
+         * that they can be invited back the same day.
+         */
+        private const val REMOVE_BAN_SECONDS = 60L
 
         /**
          * How many contacts the picker lists.

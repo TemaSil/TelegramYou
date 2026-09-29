@@ -74,6 +74,8 @@ data class ChatSearchState(
  */
 data class ChatUiState(
     val detail: ChatDetail? = null,
+    /** The forum topic this screen is on, by name; null in any other chat. */
+    val topicName: String? = null,
     val draft: String = "",
     val pendingAttachment: AttachmentDraft? = null,
     val replyTo: ChatMessage? = null,
@@ -251,6 +253,13 @@ class ChatViewModel(
         "ChatViewModel needs a ${Route.Chat.ARG_CHAT_ID} argument"
     }
 
+    /**
+     * The forum topic this screen is on, or 0 for a whole chat. Said to the
+     * repository before anything loads, so that the history, the sends and
+     * the paging are all the topic's; see TelegramGroups.setOpenTopic.
+     */
+    private val topicId: Int = savedStateHandle[Route.Chat.ARG_TOPIC_ID] ?: 0
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -258,10 +267,20 @@ class ChatViewModel(
         // Held open for as long as this state holder lives; released in
         // onCleared. See TelegramChats.retainChat for why it is counted.
         repository.retainChat(chatId)
-        // Messages from the first frame, where the tap fetched them ahead of
-        // the screen; the reload below still replaces them with a fresh window.
-        repository.takeWarmChat(chatId)?.let { warm ->
-            _uiState.update { it.copy(detail = warm) }
+        if (topicId != 0) {
+            repository.setOpenTopic(chatId, topicId)
+            viewModelScope.launch {
+                val name = runCatching { repository.forumTopics(chatId) }.getOrNull()
+                    ?.firstOrNull { it.id == topicId }?.name
+                _uiState.update { it.copy(topicName = name ?: "Topic") }
+            }
+        } else {
+            // Messages from the first frame, where the tap fetched them ahead
+            // of the screen; the reload below still replaces them with a
+            // fresh window. The whole chat's, so never for a topic.
+            repository.takeWarmChat(chatId)?.let { warm ->
+                _uiState.update { it.copy(detail = warm) }
+            }
         }
         reload()
         // The draft, kept as it is typed: a pause of a second and it is on
@@ -308,7 +327,7 @@ class ChatViewModel(
             // this the conversation is whatever openChat returned, and the
             // only way to see a change was to fetch the whole window again.
             repository.messageUpdates
-                .filter { it.chatId == chatId }
+                .filter { it.chatId == chatId && inThisTopic(it) }
                 .collect { update -> applyUpdate(update) }
         }
         viewModelScope.launch {
@@ -1226,6 +1245,20 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Whether an update belongs on this screen: in a topic, a new message
+     * only if it was written in the topic. Anything addressed by id — an
+     * edit, a deletion — is about a message already here, or about nothing.
+     */
+    private fun inThisTopic(update: MessageUpdate): Boolean {
+        if (topicId == 0) return true
+        return when (update) {
+            is MessageUpdate.Added -> update.message.topicId == topicId
+            is MessageUpdate.Replaced -> update.message.topicId == topicId
+            else -> true
+        }
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
     override fun onCleared() {
         super.onCleared()
@@ -1237,6 +1270,7 @@ class ChatViewModel(
             GlobalScope.launch { runCatching { repository.saveDraft(chatId, text) } }
         }
         repository.releaseChat(chatId)
+        if (topicId != 0) repository.closeOpenTopic(chatId, topicId)
         // The screen can go away mid-sentence, and a MediaPlayer left holding
         // a file handle outlives it.
         voicePlayer.stop()
@@ -1826,9 +1860,11 @@ class ChatViewModel(
             // The saved draft goes into the field once, on the first load,
             // and only if nothing has been typed yet. Decided outside the
             // update, whose block may run more than once.
-            val restoring = !draftRestored
+            // Never in a topic: the draft is the chat's, and it would
+            // follow the person into every topic they opened.
+            val restoring = !draftRestored && topicId == 0
             if (restoring) keptDraft = detail.chat.draft
-            draftRestored = true
+            if (topicId == 0) draftRestored = true
             _uiState.update {
                 val reloaded = it.copy(
                     draft = if (restoring && it.draft.isEmpty()) detail.chat.draft else it.draft,

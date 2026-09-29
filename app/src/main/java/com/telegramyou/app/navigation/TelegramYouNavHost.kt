@@ -60,6 +60,10 @@ import com.telegramyou.app.telegram.model.AuthState
 import com.telegramyou.app.ui.auth.AuthScreen
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatInfoScreen
+import com.telegramyou.app.ui.groups.GroupPermissionsScreen
+import com.telegramyou.app.ui.groups.GroupViewModel
+import com.telegramyou.app.ui.groups.InviteLinksScreen
+import com.telegramyou.app.ui.groups.TopicsScreen
 import com.telegramyou.app.ui.theme.ChatColors
 import com.telegramyou.app.ui.settings.AppearanceActions
 import com.telegramyou.app.ui.settings.AppearanceScreen
@@ -137,8 +141,15 @@ fun TelegramYouNavHost(
     // a time, or a second tap during the wait would open the chat twice.
     val openScope = rememberCoroutineScope()
     var opening by remember { mutableStateOf(false) }
+    // A forum opens onto its topics rather than onto one conversation;
+    // everything that opens a chat by id goes through this to find out which.
+    val chatRoute: (Long) -> Route = { id ->
+        if (repository.observeChats().value.firstOrNull { it.id == id }?.isForum == true) Route.Topics(id) else Route.Chat(id)
+    }
     val openChat: (Long) -> Unit = { id ->
-        if (!opening) {
+        if (chatRoute(id) is Route.Topics) {
+            navController.navigateTo(Route.Topics(id))
+        } else if (!opening) {
             opening = true
             openScope.launch {
                 try {
@@ -193,7 +204,7 @@ fun TelegramYouNavHost(
     LaunchedEffect(openChatId, auth.state) {
         val chatId = openChatId ?: return@LaunchedEffect
         if (auth.state != AuthState.Ready) return@LaunchedEffect
-        navController.navigateTo(Route.Chat(chatId)) {
+        navController.navigateTo(chatRoute(chatId)) {
             // Home underneath, so back from a chat opened out of the shade
             // lands on the chat list rather than leaving the app.
             popUpTo(Route.Home.PATTERN)
@@ -618,7 +629,7 @@ fun TelegramYouNavHost(
                 onDraftChange = contactsViewModel::onDraftChange,
                 onAddDismissed = contactsViewModel::onAddDismissed,
                 onAddConfirmed = contactsViewModel::onAddConfirmed,
-                onOpenChat = { navController.navigateTo(Route.Chat(it)) },
+                onOpenChat = { navController.navigateTo(chatRoute(it)) },
                 onChatOpened = contactsViewModel::onChatOpened,
                 onMessageShown = contactsViewModel::onMessageShown
             )
@@ -634,7 +645,7 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onBlockedChange = personViewModel::onBlockedChange,
                 onSendMessage = personViewModel::onSendMessage,
-                onOpenChat = { navController.navigateTo(Route.Chat(it)) },
+                onOpenChat = { navController.navigateTo(chatRoute(it)) },
                 onChatOpened = personViewModel::onChatOpened,
                 onMessageShown = personViewModel::onMessageShown
             )
@@ -685,6 +696,50 @@ fun TelegramYouNavHost(
             )
         }
 
+        composable(route = Route.GroupPermissions.PATTERN, arguments = Route.GroupPermissions.arguments) {
+            val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
+            val state by groupViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { groupViewModel.loadManagement() }
+            GroupPermissionsScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onChange = groupViewModel::onPermissionChange,
+                onErrorShown = groupViewModel::onErrorShown
+            )
+        }
+
+        composable(route = Route.InviteLinks.PATTERN, arguments = Route.InviteLinks.arguments) {
+            val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
+            val state by groupViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { groupViewModel.loadLinks() }
+            InviteLinksScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onCreate = groupViewModel::onCreateLink,
+                onRevoke = groupViewModel::onRevokeLink,
+                onNoticeShown = groupViewModel::onNoticeShown,
+                onErrorShown = groupViewModel::onErrorShown
+            )
+        }
+
+        composable(route = Route.Topics.PATTERN, arguments = Route.Topics.arguments) { entry ->
+            val chatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
+            val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
+            val state by groupViewModel.uiState.collectAsStateWithLifecycle()
+            // On every return too: a topic read or written in has a new
+            // last line and count.
+            LaunchedEffect(Unit) { groupViewModel.loadTopics() }
+            TopicsScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onOpenTopic = { topic -> navController.navigateTo(Route.Chat(chatId, topic.id)) },
+                onOpenInfo = { navController.navigateTo(Route.ChatInfo(chatId)) },
+                onCreateTopic = groupViewModel::onCreateTopic,
+                onNoticeShown = groupViewModel::onNoticeShown,
+                onErrorShown = groupViewModel::onErrorShown
+            )
+        }
+
         composable(
             route = Route.ChatInfo.PATTERN,
             arguments = Route.ChatInfo.arguments
@@ -706,7 +761,29 @@ fun TelegramYouNavHost(
                     navController.popBackStack(Route.Home.PATTERN, inclusive = false)
                 }
             }
+            val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
+            val group by groupViewModel.uiState.collectAsStateWithLifecycle()
+            val isGroup = state.detail?.chat?.isGroup == true
+            // Again on every visit, like the link: an admin screen behind
+            // this one may have changed who is what.
+            LaunchedEffect(isGroup) { if (isGroup) groupViewModel.loadManagement() }
             ChatInfoScreen(
+                group = if (isGroup) group else null,
+                selfId = groupViewModel.selfId,
+                onMemberAction = groupViewModel::onMemberAction,
+                onRemoveConfirmed = groupViewModel::onRemoveConfirmed,
+                onRemoveDismissed = groupViewModel::onRemoveDismissed,
+                onOpenPermissions = {
+                    state.detail?.chat?.id?.let { navController.navigateTo(Route.GroupPermissions(it)) }
+                },
+                onOpenInviteLinks = {
+                    state.detail?.chat?.id?.let { navController.navigateTo(Route.InviteLinks(it)) }
+                },
+                onOpenTopics = {
+                    state.detail?.chat?.id?.let { navController.navigateTo(Route.Topics(it)) }
+                },
+                onGroupNoticeShown = groupViewModel::onNoticeShown,
+                onGroupErrorShown = groupViewModel::onErrorShown,
                 detail = state.detail,
                 inviteLink = state.inviteLink,
                 confirmingLeave = state.confirmingLeave,
@@ -732,7 +809,7 @@ fun TelegramYouNavHost(
 
         composable(
             route = Route.Chat.PATTERN,
-            arguments = Route.Chat.arguments,
+            arguments = Route.Chat.chatArguments,
             // The row it opened out of does the moving; see containerTransform.
             enterTransition = { fadeIn(spring()) },
             // Kept on screen until the container transform has shrunk back

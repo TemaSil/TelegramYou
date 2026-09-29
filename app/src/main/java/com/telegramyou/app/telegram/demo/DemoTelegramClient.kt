@@ -1,5 +1,14 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.GroupManagement
+import com.telegramyou.app.telegram.model.GroupMember
+import com.telegramyou.app.telegram.model.GroupPermissions
+import com.telegramyou.app.telegram.model.GroupRights
+import com.telegramyou.app.telegram.model.InviteLink
+import com.telegramyou.app.telegram.model.MemberAction
+import com.telegramyou.app.telegram.model.MemberRole
+import com.telegramyou.app.telegram.model.TOPIC_COLORS
 import com.telegramyou.app.telegram.model.StoryAudience
 import com.telegramyou.app.telegram.model.placePickedEmoji
 import com.telegramyou.app.telegram.model.PickedEmoji
@@ -804,7 +813,8 @@ class DemoTelegramClient(
         // A public chat found by search is readable before it is joined.
         val chat = _chats.value.firstOrNull { it.id == chatId }
             ?: publicChats.first { it.id == chatId }
-        val messages = chatMessages.getOrPut(chatId) { mutableListOf() }
+        chatMessages.getOrPut(chatId) { mutableListOf() }
+        val messages = messagesIn(chatId)
         return ChatDetail(
             chat = chat,
             // The latest window, the way TDLib opens a chat; the rest pages
@@ -820,6 +830,182 @@ class DemoTelegramClient(
             // One chat has something pinned, so the bar is visible offline.
             pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null,
             members = if (chat.isGroup) demoMembers else emptyList()
+        )
+    }
+
+    // ── running a group ─────────────────────────────────────────────────
+
+    /** The topic each chat's conversation screen is on; see setOpenTopic. */
+    private val openTopics = mutableMapOf<Long, Int>()
+
+    override fun setOpenTopic(chatId: Long, topicId: Int?) {
+        if (topicId == null) openTopics.remove(chatId) else openTopics[chatId] = topicId
+    }
+
+    override fun closeOpenTopic(chatId: Long, topicId: Int) {
+        if (openTopics[chatId] == topicId) openTopics.remove(chatId)
+    }
+
+    /** A chat's messages, or the open topic's when its screen is on one. */
+    private fun messagesIn(chatId: Long): List<ChatMessage> {
+        val all = chatMessages[chatId].orEmpty()
+        val topic = openTopics[chatId] ?: return all
+        return all.filter { it.topicId == topic }
+    }
+
+    /**
+     * Where everybody stands, by group. The account owns Design Circle, so
+     * running a group can be tried offline; in Kotlin Night it is a plain
+     * member and sees nothing to run.
+     */
+    private val demoRoles = mutableMapOf(
+        3L to mutableMapOf(1L to MemberRole.Owner, 14L to MemberRole.Admin, 17L to MemberRole.Restricted),
+        7L to mutableMapOf(12L to MemberRole.Owner),
+        FORUM_CHAT_ID to mutableMapOf(1L to MemberRole.Owner)
+    )
+
+    /** Titles the demo's admins go by. */
+    private val demoTitles = mapOf(14L to "Motion")
+
+    /** People taken out of a group here, who stop being listed in it. */
+    private val removedMembers = mutableMapOf<Long, MutableSet<Long>>()
+
+    private val demoPermissions = mutableMapOf<Long, GroupPermissions>()
+
+    override suspend fun groupManagement(chatId: Long): GroupManagement? {
+        delay(150)
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return null
+        if (!chat.isGroup) return null
+        val roles = demoRoles.getOrPut(chatId) { mutableMapOf() }
+        val me = _authState.value.me ?: TelegramUser(id = 1, firstName = "You")
+        val people = listOf(me) + demoMembers
+        val gone = removedMembers[chatId].orEmpty()
+        val members = people.filter { it.id !in gone }.map { user ->
+            val role = roles[user.id] ?: MemberRole.Member
+            GroupMember(
+                user = user,
+                role = role,
+                title = demoTitles[user.id].orEmpty(),
+                // The owner may change every admin; nobody else here may.
+                canBeEdited = roles[1L] == MemberRole.Owner
+            )
+        }
+        return GroupManagement(
+            rights = if (roles[1L] == MemberRole.Owner) GroupRights.All else GroupRights.None,
+            members = members,
+            permissions = demoPermissions[chatId] ?: GroupPermissions(),
+            isForum = chat.isForum
+        )
+    }
+
+    override suspend fun applyMemberAction(chatId: Long, userId: Long, action: MemberAction) {
+        delay(200)
+        val roles = demoRoles.getOrPut(chatId) { mutableMapOf() }
+        when (action) {
+            MemberAction.MakeAdmin -> roles[userId] = MemberRole.Admin
+            MemberAction.RemoveAdmin, MemberAction.Unrestrict -> roles.remove(userId)
+            MemberAction.Restrict -> roles[userId] = MemberRole.Restricted
+            MemberAction.Remove -> {
+                roles.remove(userId)
+                removedMembers.getOrPut(chatId) { mutableSetOf() } += userId
+            }
+        }
+    }
+
+    override suspend fun setGroupPermissions(chatId: Long, permissions: GroupPermissions) {
+        delay(150)
+        demoPermissions[chatId] = permissions
+    }
+
+    /** Every group's links, the primary one first; made on first asking. */
+    private val demoLinks = mutableMapOf<Long, MutableList<InviteLink>>()
+
+    private fun linksOf(chatId: Long): MutableList<InviteLink> = demoLinks.getOrPut(chatId) {
+        mutableListOf(
+            InviteLink("https://t.me/+TelegramYouDemo$chatId", isPrimary = true, memberCount = 12),
+            InviteLink(
+                "https://t.me/+DesignReview$chatId",
+                name = "Design review",
+                memberCount = 3,
+                memberLimit = 10,
+                expiresAt = System.currentTimeMillis() / 1000 + 2 * 86_400 + 600
+            )
+        )
+    }
+
+    override suspend fun inviteLinks(chatId: Long): List<InviteLink> {
+        delay(150)
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return emptyList()
+        if (!chat.isGroup && !chat.isChannel) return emptyList()
+        return linksOf(chatId).sortedBy { it.isRevoked }
+    }
+
+    override suspend fun createInviteLink(chatId: Long, name: String, expiresAt: Long, memberLimit: Int): InviteLink {
+        delay(200)
+        val link = InviteLink(
+            link = "https://t.me/+Demo${chatId}n${messageId.incrementAndGet()}",
+            name = name.trim(),
+            expiresAt = expiresAt,
+            memberLimit = memberLimit
+        )
+        linksOf(chatId).add(link)
+        return link
+    }
+
+    override suspend fun revokeInviteLink(chatId: Long, link: String) {
+        delay(200)
+        val links = linksOf(chatId)
+        val at = links.indexOfFirst { it.link == link }
+        if (at < 0) return
+        val revoked = links[at]
+        links[at] = revoked.copy(isRevoked = true, isPrimary = false)
+        // The group always has a primary link: revoking it makes the next.
+        if (revoked.isPrimary) {
+            links.add(0, InviteLink("https://t.me/+TelegramYouDemo${chatId}r${messageId.incrementAndGet()}", isPrimary = true))
+        }
+    }
+
+    /** The demo forum's topics, in the order they were started. */
+    private val demoTopics = mutableListOf(
+        ForumTopic(1, "General", TOPIC_COLORS[0], isGeneral = true),
+        ForumTopic(2, DEMO_FORUM_TOPIC, TOPIC_COLORS[1], isPinned = true, unreadCount = 3),
+        ForumTopic(3, "Bugs", TOPIC_COLORS[5]),
+        ForumTopic(4, "Ideas", TOPIC_COLORS[3])
+    )
+
+    override suspend fun forumTopics(chatId: Long): List<ForumTopic> {
+        delay(150)
+        if (chatId != FORUM_CHAT_ID) return emptyList()
+        val messages = chatMessages[chatId].orEmpty()
+        // Each with its newest message, as the list shows a chat's.
+        return demoTopics.map { topic ->
+            val last = messages.lastOrNull { it.topicId == topic.id }
+            topic.copy(lastMessage = last?.text.orEmpty(), timestampLabel = last?.timeLabel.orEmpty())
+        }
+    }
+
+    override suspend fun createForumTopic(chatId: Long, name: String): ForumTopic {
+        delay(200)
+        val topic = ForumTopic(
+            id = (demoTopics.maxOfOrNull { it.id } ?: 0) + 1,
+            name = name.trim(),
+            iconColor = TOPIC_COLORS[demoTopics.size % TOPIC_COLORS.size]
+        )
+        demoTopics += topic
+        return topic
+    }
+
+    /** What has been said in each of the forum's topics. */
+    private fun forumMessages(today: Long, yesterday: Long): MutableList<ChatMessage> {
+        fun said(id: Long, topic: Int, text: String, at: Long, who: String) =
+            demoMessage(id, FORUM_CHAT_ID, text, false, at, who).copy(topicId = topic)
+        return mutableListOf(
+            said(90001, 1, "Welcome! Pick a topic, or just say hi here.", yesterday, "Nadia Orlova"),
+            said(90002, 3, "The composer jumps when the keyboard opens on Android 12", yesterday + 300, "Pavel Gromov"),
+            said(90003, 4, "Could chat folders get their own colours?", yesterday + 600, "Mira Solano"),
+            said(90004, 2, "1.5.1 is out: custom emoji and sending a location", yesterday + 900, "Nadia Orlova"),
+            said(90005, 2, "Releases: 1.6 is out", today, "Nadia Orlova"),
+            said(90006, 2, "Stories, video speed and picture-in-picture", today + 60, "Nadia Orlova")
         )
     }
 
@@ -937,7 +1123,7 @@ class DemoTelegramClient(
         limit: Int
     ): List<ChatMessage> {
         delay(220)
-        val all = chatMessages[chatId].orEmpty()
+        val all = messagesIn(chatId)
         val at = all.indexOfFirst { it.id == beforeMessageId }
         if (at <= 0) return emptyList()
         return all.subList((at - limit).coerceAtLeast(0), at).toList()
@@ -949,7 +1135,7 @@ class DemoTelegramClient(
         limit: Int
     ): List<ChatMessage> {
         delay(220)
-        val all = chatMessages[chatId].orEmpty()
+        val all = messagesIn(chatId)
         val at = all.indexOfFirst { it.id == messageId }
         if (at < 0) return emptyList()
         val from = (at - limit / 2).coerceAtLeast(0)
@@ -962,7 +1148,7 @@ class DemoTelegramClient(
         limit: Int
     ): List<ChatMessage> {
         delay(220)
-        val all = chatMessages[chatId].orEmpty()
+        val all = messagesIn(chatId)
         val at = all.indexOfFirst { it.id == afterMessageId }
         if (at < 0) return emptyList()
         return all.subList(at + 1, (at + 1 + limit).coerceAtMost(all.size)).toList()
@@ -1637,7 +1823,8 @@ class DemoTelegramClient(
             entities = entities,
             video = video,
             contact = contact,
-            location = location
+            location = location,
+            topicId = openTopics[chatId] ?: 0
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -1703,6 +1890,11 @@ class DemoTelegramClient(
         ChatPreview(
             BOT_CHAT_ID, "Build Bot", "Build 1.0.366 is ready", "Thu",
             isBot = true, avatarColor = 121
+        ),
+        // A forum, so topics open offline: a group split into threads.
+        ChatPreview(
+            FORUM_CHAT_ID, DEMO_FORUM, "Releases: 1.6 is out", "Thu",
+            isGroup = true, isForum = true, unreadCount = 3, avatarColor = 131
         ),
         // Two in the archive from the start, one of them unread, so the entry
         // row has both halves of its summary to show offline — and so the
@@ -1904,6 +2096,7 @@ class DemoTelegramClient(
         val today = now - 3 * 60 * 60
         val yesterday = now - day - 2 * 60 * 60
 
+        chatMessages[FORUM_CHAT_ID] = forumMessages(today, yesterday)
         chatMessages[1] = mutableListOf(
             demoMessage(1, 1, "Welcome to TelegramYou", false, today, "Material Design"),
             demoMessage(2, 1, "Material 3 Expressive: MaterialExpressiveTheme, the stock motion scheme, a real LoadingIndicator. On the alpha, since no stable release exposes any of it.", false, today + 60, "Material Design", reactions = listOf(MessageReaction("🔥", count = 12), MessageReaction("👍", count = 4, isChosen = true), MessageReaction(customReactionKey(DEMO_CUSTOM_EMOJI), count = 2))),
@@ -2331,6 +2524,11 @@ private const val DEMO_ADDED_BASE = 3000L
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L
+
+/** The demo's forum, a group whose conversation is split into topics. */
+private const val FORUM_CHAT_ID = 12L
+internal const val DEMO_FORUM = "Compose Forum"
+internal const val DEMO_FORUM_TOPIC = "Releases"
 
 /** The first of the public chats search finds; see publicChats. */
 private const val PUBLIC_CHANNEL_ID = 500L

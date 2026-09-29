@@ -150,7 +150,12 @@ data class ChatPreview(
      * with people; false for bots, Saved Messages, groups and channels. See
      * chatRemovalOf.
      */
-    val canDeleteForEveryone: Boolean = false
+    val canDeleteForEveryone: Boolean = false,
+    /**
+     * A forum: a supergroup split into topics. It opens onto its topics
+     * rather than onto one conversation — see ForumTopic.
+     */
+    val isForum: Boolean = false
 )
 
 /**
@@ -495,7 +500,9 @@ data class ChatMessage(
     /** Photos sent together share this; see `albumRuns`. */
     val albumId: Long? = null,
     /** Pinned in its chat. */
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+    /** The forum topic it was written in; 0 outside a forum. */
+    val topicId: Int = 0
 )
 
 /**

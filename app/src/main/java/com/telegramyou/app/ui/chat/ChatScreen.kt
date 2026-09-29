@@ -623,8 +623,16 @@ fun ChatScreen(
                                 }
                                 Spacer(Modifier.width(10.dp))
                                 Column {
-                                    Text(chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
-                                    if (detail?.isTyping == true) {
+                                    // In a forum's topic, the topic is the
+                                    // name and the group the line under it.
+                                    Text(state.topicName ?: chat.title, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    if (state.topicName != null) {
+                                        Text(
+                                            text = chat.title,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else if (detail?.isTyping == true) {
                                         // Drawn rather than written: "typing…"
                                         // is a word that has to be read, and
                                         // this is a thing that is happening.

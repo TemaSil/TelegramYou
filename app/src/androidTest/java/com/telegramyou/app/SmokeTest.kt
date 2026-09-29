@@ -1723,6 +1723,85 @@ class SmokeTest {
     }
 
     /**
+     * Running a group as its owner: a member made admin from their menu,
+     * what members may do switched on the permissions screen, and a link
+     * made that lasts a day and lets ten in.
+     */
+    @Test
+    fun aGroupIsRunByItsOwner() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        awaitNoHeadsUp()
+        tapTopmost(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the info screen")
+        scrollDownTo(By.text("Members"))
+        // Nadia is an admin, and says so by her title.
+        scrollDownTo(By.text("Motion"))
+        scrollDownTo(By.desc("Manage Pavel Gromov"))
+        tap(By.desc("Manage Pavel Gromov"))
+        tap(By.text("Make admin"))
+        waitFor(By.text("Pavel Gromov is an admin now"), "Pavel made an admin")
+        screenshot("70-group-members")
+
+        scrollBackTo(By.text("Permissions"), "the permissions row")
+        tap(By.text("Permissions"))
+        waitFor(By.text("What members can do"), "the permissions screen")
+        tap(By.text("Send polls"))
+        screenshot("71-group-permissions")
+        backTo(By.text("Info"), "the info screen again")
+
+        scrollBackTo(By.text("Invite links"), "the invite links row")
+        tap(By.text("Invite links"))
+        waitFor(By.text("Design review"), "the group's links")
+        tap(By.text("New link"))
+        waitFor(By.text("New invite link"), "the new link dialog")
+        tap(By.text("1 day"))
+        tap(By.text("10"))
+        tap(By.text("Create"))
+        waitFor(By.text("Link created"), "the link made")
+        screenshot("72-invite-links")
+    }
+
+    /**
+     * A forum opens onto its topics, a topic onto its own messages and not
+     * the others', what is written there stays there, and a topic can be
+     * started.
+     */
+    @Test
+    fun aForumOpensOnItsTopics() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text(FORUM_CHAT))
+        tap(By.text(FORUM_CHAT))
+        waitFor(By.text("New topic"), "the forum's topics")
+        waitFor(By.text("General"), "General among them")
+        screenshot("73-forum-topics")
+
+        tap(By.text("Releases"))
+        // Not the topic's newest line, which the topic list shows too.
+        waitFor(By.textContains("custom emoji and sending a location"), "the topic's messages")
+        assertNull(
+            "another topic's message in this one",
+            device.findObject(By.textContains("keyboard opens on Android 12"))
+        )
+        type("Screenshots next")
+        tap(By.desc("Send"))
+        waitFor(By.text("Screenshots next"), "the message sent into the topic")
+        screenshot("74-forum-topic")
+
+        backTo(By.text("New topic"), "the topics again")
+        tap(By.text("New topic"))
+        waitFor(By.text("Topic name"), "the new topic dialog")
+        type("Screenshots")
+        tap(By.text("Create"))
+        waitFor(By.text("Screenshots"), "the new topic in the list")
+    }
+
+    /**
      * Other people. A group member tapped opens their profile; a private
      * chat's info says who the person is — number, username, bio — and
      * blocks them; Settings → Privacy → Blocked users lists them and gives
@@ -2462,6 +2541,7 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+        const val FORUM_CHAT = "Compose Forum"
 
         /** The start of the demo group's oldest line; see DEMO_ARCHIVE_FIRST_LINE. */
         const val OLD_HIT_QUERY = "Kickoff"

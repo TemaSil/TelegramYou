@@ -54,6 +54,13 @@ import androidx.compose.ui.Modifier
 import com.telegramyou.app.ui.common.rememberTextCopier
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.ChatDetail
+import com.telegramyou.app.telegram.model.GroupMember
+import com.telegramyou.app.telegram.model.MemberAction
+import com.telegramyou.app.telegram.model.memberActions
+import com.telegramyou.app.telegram.model.sortedForList
+import com.telegramyou.app.ui.groups.GroupUiState
+import com.telegramyou.app.ui.groups.ManagedMemberRow
+import com.telegramyou.app.ui.groups.RemoveMemberDialog
 import com.telegramyou.app.ui.components.AvatarBubble
 import kotlinx.coroutines.launch
 
@@ -96,7 +103,22 @@ fun ChatInfoScreen(
     onErrorShown: () -> Unit = {},
     /** Something done — "12 messages deleted" — said once, in a snackbar. */
     notice: String? = null,
-    onNoticeShown: () -> Unit = {}
+    onNoticeShown: () -> Unit = {},
+    /**
+     * A group's running: this account's rights, members with their standing.
+     * Null for anything but a group, and until it has loaded — the plain
+     * member list above stands in meanwhile.
+     */
+    group: GroupUiState? = null,
+    selfId: Long = 0L,
+    onMemberAction: (GroupMember, MemberAction) -> Unit = { _, _ -> },
+    onRemoveConfirmed: () -> Unit = {},
+    onRemoveDismissed: () -> Unit = {},
+    onOpenPermissions: () -> Unit = {},
+    onOpenInviteLinks: () -> Unit = {},
+    onOpenTopics: () -> Unit = {},
+    onGroupNoticeShown: () -> Unit = {},
+    onGroupErrorShown: () -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -133,6 +155,26 @@ fun ChatInfoScreen(
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
             onNoticeShown()
+        }
+    }
+    group?.confirmingRemoval?.let { member ->
+        RemoveMemberDialog(
+            member = member,
+            groupTitle = chat?.title.orEmpty(),
+            onDismiss = onRemoveDismissed,
+            onConfirm = onRemoveConfirmed
+        )
+    }
+    group?.notice?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onGroupNoticeShown()
+        }
+    }
+    group?.errorMessage?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onGroupErrorShown()
         }
     }
     if (confirmingDeleteMine) {
@@ -313,6 +355,40 @@ fun ChatInfoScreen(
                 }
             }
 
+            // Running the group, for whoever may: what members can do, and
+            // the links in. A forum's topics for everybody — it is how one
+            // gets back to them from here.
+            val management = group?.management
+            if (management?.isForum == true) {
+                item(key = "topics") {
+                    ListItem(
+                        headlineContent = { Text("Topics") },
+                        leadingContent = { Icon(Symbols.Forum, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = onOpenTopics)
+                    )
+                }
+            }
+            if (management?.rights?.canRestrictMembers == true) {
+                item(key = "permissions") {
+                    ListItem(
+                        headlineContent = { Text("Permissions") },
+                        supportingContent = { Text("What members can do") },
+                        leadingContent = { Icon(Symbols.AdminPanelSettings, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = onOpenPermissions)
+                    )
+                }
+            }
+            if (management?.rights?.canInviteUsers == true) {
+                item(key = "invite-links") {
+                    ListItem(
+                        headlineContent = { Text("Invite links") },
+                        supportingContent = { Text("Links with a name, a time limit or a number of people") },
+                        leadingContent = { Icon(Symbols.Link, contentDescription = null) },
+                        modifier = Modifier.clickable(onClick = onOpenInviteLinks)
+                    )
+                }
+            }
+
             person?.let { profile ->
                 blockRow(profile) {
                     if (profile.isBlocked) {
@@ -367,7 +443,34 @@ fun ChatInfoScreen(
                 }
             }
 
-            val members = detail?.members.orEmpty()
+            // With the group's running loaded, the members come with their
+            // standing and, for an admin, a menu each; the plain list is what
+            // shows before that, and for anybody the server will not tell.
+            val managed = group?.management?.members.orEmpty()
+            if (managed.isNotEmpty()) {
+                val management = group?.management
+                item(key = "members-heading") {
+                    Text(
+                        "Members",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
+                    )
+                }
+                items(sortedForList(managed), key = { it.user.id }) { member ->
+                    ManagedMemberRow(
+                        member = member,
+                        actions = if (management == null) {
+                            emptyList()
+                        } else {
+                            memberActions(management.rights, member, selfId, management.isBasicGroup)
+                        },
+                        onClick = { onMemberClick(member.user.id) },
+                        onAction = { action -> onMemberAction(member, action) }
+                    )
+                }
+            }
+            val members = if (managed.isEmpty()) detail?.members.orEmpty() else emptyList()
             if (members.isNotEmpty()) {
                 item(key = "members-heading") {
                     Text(

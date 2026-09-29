@@ -25,6 +25,7 @@ Add AddAPhoto AddReaction AlternateEmail Archive ArrowBack AttachFile Block Book
 Campaign Chat Check CheckCircle Close Computer Contacts ContentCopy ContentPaste DarkMode
 Delete DeleteSweep Description DesktopWindows Devices Done DoneAll Download Edit EmojiEmotions Folder
 ArrowUpward ArrowDownward Backspace Fingerprint Gif LocationOn MyLocation Tag PictureInPictureAlt
+AdminPanelSettings Forum
 ErrorOutline Forward Group History Image Info InstallMobile Keyboard
 KeyboardArrowDown KeyboardHide Language LaptopMac LightMode Link Lock Logout
 MarkChatRead Mic MoreVert MusicNote Notifications NotificationsActive

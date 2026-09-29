@@ -109,6 +109,12 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.1
+
+- **Admins and permissions** — make an admin, stop someone writing or remove them; what members may do.
+- **Invite links** with a name, a time limit or a number of people.
+- **Forum topics** — a forum opens onto its topics; read, write and start one.
+
 ## New in 1.6
 
 - **Post your own story** from *My story* — a photo or a video, for everyone, contacts or close friends.

@@ -224,8 +224,12 @@ chat's top bar has a solid fill (`surfaceContainer`) so a pattern no longer
 shows through it, and the conversation runs under the navigation bar to the
 bottom of the screen instead of stopping on a strip of bare background.
 
-**Later, polish rather than basics:** forum topics in supergroups; admins
-and permissions; invite-link management; recording round video messages; a photo
+**1.6.1 — 29 September, groups (the owner's word: "1.7 is far too early"):**
+admins and permissions, invite links and forum topics, below in section 6.
+`GroupManagement` and friends in `:core` (`Groups.kt`, with tests) decide
+what the screens offer; `TelegramGroups` is the twelfth domain interface.
+
+**Later, polish rather than basics:** recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;
 translation; languages (last, on purpose).
@@ -1486,8 +1490,29 @@ a live-updating chat as much as it was groundwork for notifications.
       Open instead of Join when this account is already in. Every spelling
       of a link (t.me/+, t.me/joinchat/, telegram.me, tg://join) is
       canonicalised in `:core` first
-- [ ] Permissions and admins
-- [~] Invite links — the primary link is shown and copied where the server
+- [x] Permissions and admins — since 1.6.1 the info screen lists members
+      with their standing (owner, admin by title, "Can't write"), owner and
+      admins first, and for an admin a menu on each: Make admin (the
+      official client's default rights, not the right to make more admins),
+      Dismiss as admin where Telegram says it is theirs to, Don't let them
+      write (`chatMemberStatusRestricted`, supergroups only) and Remove from
+      group, which asks first and bans for a minute so they can come back.
+      Permissions is a screen of switches over `setChatPermissions`, media
+      folded into one. What is offered comes from `memberActions` in `:core`.
+      Custom admin rights and titles are not editable yet
+- [x] Invite links — since 1.6.1 a screen of every link this account made:
+      the primary one and others with a name, a time limit (hour, day,
+      week, never) and a number of people (1, 10, 100, any), each with who
+      joined and what is left (`inviteLinkSummary`); copy, share, revoke,
+      and revoked ones listed below. Join requests are not offered
+- [x] Forum topics — since 1.6.1 a forum opens onto its topics (General,
+      pinned, the rest, each in its colour with its newest line and unread
+      count) rather than onto one conversation. A topic opens in the usual
+      conversation screen: `setOpenTopic` points history, paging, every send
+      and the draft at it (`getForumTopicHistory`, `topic_id`), and arrivals
+      from other topics are left out. New topic starts one. Closing,
+      editing and icons are not offered yet; drafts are not kept per topic
+- [~] Invite links, the primary one — the primary link is shown and copied where the server
       offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
       and never created: a screen that minted a link because it wanted
       something to show would be handing out an invitation nobody asked for.

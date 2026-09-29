@@ -1,5 +1,5 @@
-# Stories and video
-- Post a story from My story: a photo or a video, for everyone or just a few
-- Videos play at 0.5×, 1.5× or 2×, and keep playing in a small window when you leave
-- Calmer chat backgrounds: Dots, Sparkles or Grid
-- The chat's top bar is solid, and the chat runs to the bottom of the screen
+# Groups
+- Make someone an admin, stop them writing or remove them, from their menu
+- Permissions: what everybody in a group may send and do
+- Invite links with a name, a time limit or a number of people
+- Forums open onto their topics: read, write and start one
