@@ -260,6 +260,17 @@ seven wanted:
 6. **Sleep timer** — stop after 15, 30 or 60 minutes, or at the end of a track.
 7. **Equaliser** — the platform's `AudioEffect`, nothing hand-rolled.
 
+What the brother finds maddening in the official player, and so the queue's
+first requirement: its track list shows a window of the chat, not the whole
+history, and it jumps or vanishes when a track is started. Here the queue is
+all of the chat's music — `searchChatMessages` with
+`searchMessagesFilterAudio`, paged in as it scrolls, back to the first track
+ever posted, with the count shown — and starting a track never rebuilds it:
+the track lights up where it is and the list stays where the thumb left it.
+Only opening another chat's music replaces the queue. A search over the queue
+and a jump back to what is playing come with it, and the list lives on its
+own screen or the player's sheet, not in a popup a stray tap closes.
+
 **Later, polish rather than basics:** recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;
