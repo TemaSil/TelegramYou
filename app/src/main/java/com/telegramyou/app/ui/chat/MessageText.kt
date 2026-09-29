@@ -230,6 +230,8 @@ private fun AlbumCell(
             .aspectRatio(if (wide) 16f / 9f else 1f)
             .combinedClickable(enabled = path != null, onClick = onOpen, onLongClick = onLongClick)
     ) {
+        val mini = photo.photoMini
+        if (mini != null) BlurredMini(mini, Modifier.fillMaxSize())
         if (path != null) {
             AsyncImage(
                 model = path,
@@ -237,7 +239,7 @@ private fun AlbumCell(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-        } else {
+        } else if (mini == null) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Symbols.Image,

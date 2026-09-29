@@ -1,5 +1,15 @@
 package com.telegramyou.app.ui.chat
 
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import com.telegramyou.app.media.MiniThumbnail
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.foundation.Image
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.calculatePan
@@ -261,6 +271,8 @@ internal fun PhotoMessage(
     bleedTop: Boolean,
     framed: Boolean = true,
     path: String?,
+    /** The minithumbnail, drawn blurred until [path] is here; see BlurredMini. */
+    mini: String? = null,
     aspect: Float,
     caption: String,
     outgoing: Boolean,
@@ -290,6 +302,10 @@ internal fun PhotoMessage(
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick),
             contentAlignment = Alignment.Center
         ) {
+            // Under the photo rather than instead of it: it stays while the
+            // decoded picture is on its way, so the blur sharpens into the
+            // photo instead of blinking out first.
+            mini?.let { BlurredMini(it, Modifier.fillMaxSize()) }
             if (path == null) {
                 // Only where nothing is known about the file. Once bytes are
                 // moving the bar below says it better, and two spinners for
@@ -428,6 +444,7 @@ internal fun VideoMessage(
                 .semantics(mergeDescendants = true) { contentDescription = label },
             contentAlignment = Alignment.Center
         ) {
+            video.mini?.let { BlurredMini(it, Modifier.fillMaxSize()) }
             video.thumbPath?.let { poster ->
                 AsyncImage(
                     model = poster,
@@ -533,6 +550,7 @@ internal fun AnimationMessage(
                 },
             contentAlignment = Alignment.Center
         ) {
+            gif.mini?.let { BlurredMini(it, Modifier.fillMaxSize()) }
             gif.thumbPath?.let { poster ->
                 AsyncImage(
                     model = poster,
@@ -843,3 +861,45 @@ internal fun Modifier.mediaEdges(framed: Boolean, bleedTop: Boolean): Modifier =
 
 /** The corners of a picture that is a message on its own. */
 internal val MEDIA_SHAPE = RoundedCornerShape(20.dp)
+
+/**
+ * Telegram's minithumbnail — the forty-pixel JPEG that comes inside a photo,
+ * video or GIF message — stretched over the space the picture will fill and
+ * softened, as every official client shows it while the real file comes
+ * down. The owner asked for exactly this on 29 September; it is a picture
+ * that has not arrived yet, not blur used as a surface (see CLAUDE.md).
+ *
+ * The blur is MiniThumbnail's, done on the pixels off the main thread, so
+ * it looks the same on Android 8 as on 15 — `Modifier.blur` does nothing
+ * below 12. Decoded once per [data] for as long as the bubble is composed.
+ */
+@Composable
+internal fun BlurredMini(data: String, modifier: Modifier = Modifier) {
+    val picture by produceState<ImageBitmap?>(null, data) {
+        value = withContext(Dispatchers.Default) { decodeMini(data) }
+    }
+    picture?.let {
+        Image(
+            bitmap = it,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            filterQuality = FilterQuality.Medium,
+            modifier = modifier
+        )
+    }
+}
+
+private fun decodeMini(data: String): ImageBitmap? = try {
+    val bytes = java.util.Base64.getDecoder().decode(data)
+    val source = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    source?.let { bitmap ->
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        val soft = MiniThumbnail.blur(pixels, width, height)
+        Bitmap.createBitmap(soft, width, height, Bitmap.Config.ARGB_8888).asImageBitmap()
+    }
+} catch (_: IllegalArgumentException) {
+    null
+}

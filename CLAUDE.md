@@ -50,9 +50,16 @@ Three consequences, and they decide arguments:
   its recents. It stays a decision the owner makes case by case, never a
   default and never a habit. Granted once, for the reply banner, on
   18 September 2026 — and **withdrawn on 19 September**, the day after, when
-  the owner saw it on a phone. The code is out, so the list of places blur is
-  used is empty again, and the exception now stands only as permission to ask
-  again with a mockup in hand.
+  the owner saw it on a phone. That code is out.
+
+  **Granted on 29 September 2026, for one place:** a photo, video or GIF that
+  has not downloaded yet shows Telegram's minithumbnail — the forty-pixel
+  JPEG that comes inside the message — softened, and sharpens into the real
+  picture, as the official client does; the owner asked for it by name. It is
+  a picture that has not arrived, not a surface pretending to be glass, and
+  it is blurred on the pixels (`MiniThumbnail` in `:core`, drawn by
+  `BlurredMini`), not with `Modifier.blur`. That is the whole list; anywhere
+  else still needs asking, with a mockup in hand.
   Material 3 Expressive ships no blurred material of its own — the effect is
   the platform's, through `Modifier.blur` and `RenderEffect`, and it does
   nothing below Android 12.

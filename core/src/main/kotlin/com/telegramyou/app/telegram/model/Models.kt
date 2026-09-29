@@ -319,7 +319,12 @@ data class VideoContent(
     /** The video itself on this device, once it is here. */
     val path: String? = null,
     /** TDLib's id for the video file. */
-    val fileId: Int? = null
+    val fileId: Int? = null,
+    /**
+     * Telegram's minithumbnail — a JPEG some forty pixels across, as
+     * Base64 — shown blurred until the poster arrives; see MiniThumbnail.
+     */
+    val mini: String? = null
 )
 
 data class ChatMessage(
@@ -431,6 +436,12 @@ data class ChatMessage(
      * jump, which in a list means everything below it jumps too.
      */
     val photoAspect: Float = 1f,
+    /**
+     * The photo's minithumbnail, a JPEG some forty pixels across as Base64,
+     * which comes with the message: drawn blurred where the photo will be
+     * until it arrives, as every Telegram client does.
+     */
+    val photoMini: String? = null,
     /**
      * The video, when this message is one.
      *

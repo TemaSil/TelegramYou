@@ -22,6 +22,14 @@ import com.telegramyou.app.telegram.model.InlineButton
 import com.telegramyou.app.telegram.model.forwardedLabel
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.animation.core.animateFloatAsState
+import com.telegramyou.app.telegram.model.jumboEmojiCount
+import androidx.compose.ui.semantics.selected
+import androidx.compose.material3.Checkbox
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -202,11 +210,28 @@ internal fun MessageBubble(
         bottomStart = if (outgoing || isLastInRun) corner else tail,
         bottomEnd = if (!outgoing || isLastInRun) corner else tail
     )
+    // Selecting, the whole row is the target — Material's list selection:
+    // a tap anywhere across the message's height, not only on the bubble,
+    // toggles it, and a chosen row is washed in the primary colour behind a
+    // leading checkbox. The wash sits under the swipe offset, so it stays
+    // put; there is no swiping to reply while selecting.
+    val selectionWash = MaterialTheme.colorScheme.primary.copy(alpha = SELECTED_WASH)
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (isSelecting) {
+                    Modifier
+                        .background(if (isSelected) selectionWash else Color.Transparent)
+                        .clickable(onClick = onSelect)
+                        .semantics { selected = isSelected }
+                } else {
+                    Modifier
+                }
+            )
             .offset { IntOffset(offset.roundToInt(), 0) }
-            .pointerInput(message.id) {
+            .pointerInput(message.id, isSelecting) {
+                if (isSelecting) return@pointerInput
                 detectHorizontalDragGestures(
                     onDragEnd = {
                         if (shouldTriggerReply(swipeOffset(rawDrag, maxOffsetPx), triggerOffsetPx)) {
@@ -225,6 +250,24 @@ internal fun MessageBubble(
         horizontalArrangement = if (outgoing) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
+        // At the start for everyone's messages, as Telegram and Material's
+        // lists both put it, sliding in as the selection begins. Display
+        // only: the row takes the tap.
+        AnimatedVisibility(
+            visible = isSelecting,
+            enter = expandHorizontally() + fadeIn(),
+            exit = shrinkHorizontally() + fadeOut(),
+            modifier = Modifier.align(Alignment.CenterVertically)
+        ) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = null,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+        }
+        // Pushes an outgoing message to the far edge now that the checkbox
+        // can sit at the near one.
+        if (outgoing) Spacer(Modifier.weight(1f))
         if (showAvatar && !outgoing) {
             // The gutter is held even where no avatar is drawn, so bubbles in a
             // run stay on one left edge instead of stepping in and out.
@@ -247,8 +290,17 @@ internal fun MessageBubble(
         }
         val isSticker = message.contentType == MessageContentType.Sticker && message.sticker != null
         val isVideoNote = message.contentType == MessageContentType.VideoNote && message.video != null
+        // One to three emoji and nothing else: drawn large, as Telegram does,
+        // where no animation came for them.
+        val jumbo = remember(message.text, message.contentType, message.entities) {
+            if (message.contentType == MessageContentType.Text && message.entities.isEmpty()) {
+                jumboEmojiCount(message.text)
+            } else {
+                0
+            }
+        }
         // What stands on the conversation with no bubble round it.
-        val standsAlone = isSticker || isVideoNote
+        val standsAlone = isSticker || isVideoNote || jumbo > 0
         // A photo, video, GIF or album with nothing written about it is the
         // message by itself: no bubble colour round it, its own corners, the
         // time on it. Words — a caption, a quote, "Forwarded from" — bring the
@@ -327,12 +379,10 @@ internal fun MessageBubble(
             WithInlineKeyboard(rows = message.inlineKeyboard, outgoing = outgoing, onPress = onButton) {
             Surface(
             shape = shape,
+            // Its own colour even when selected: the checkbox and the row's
+            // wash say that now. Recolouring the bubble made a chosen
+            // message look like somebody else's.
             color = when {
-                // Selected wins over the sender's own colour: which messages
-                // are about to be acted on has to be readable at a glance,
-                // and on an outgoing bubble the ordinary primary fill is
-                // already the loudest thing on screen.
-                isSelected && !frameless -> MaterialTheme.colorScheme.tertiaryContainer
                 // A sticker stands on the conversation itself, as it does in
                 // every Telegram client: it is its own shape, and a bubble
                 // around it would be a frame round a picture of a frame.
@@ -348,15 +398,6 @@ internal fun MessageBubble(
             shadowElevation = 0.dp,
             modifier = Modifier
                 .widthIn(max = 320.dp)
-                // Selected, a picture without a bubble is ringed rather than
-                // filled: there is no fill to change.
-                .then(
-                    if (isSelected && frameless) {
-                        Modifier.border(3.dp, MaterialTheme.colorScheme.tertiary, shape)
-                    } else {
-                        Modifier
-                    }
-                )
                 .combinedClickable(
                     // Once a selection is up, a tap adds to it. Opening the
                     // menu on a plain tap the rest of the time would fire on
@@ -462,6 +503,7 @@ internal fun MessageBubble(
                                 !(!outgoing && isFirstInRun && sender != null),
                             transfer = message.photoFileId?.let { transfers[it] },
                             path = message.photoPath,
+                            mini = message.photoMini,
                             aspect = message.photoAspect,
                             caption = message.text,
                             outgoing = outgoing,
@@ -599,7 +641,17 @@ internal fun MessageBubble(
                             onSeek = onVoiceSeek
                         )
                     }
-                    else -> FormattedText(
+                    else -> if (jumbo > 0) {
+                        Text(
+                            message.text.trim(),
+                            fontSize = when (jumbo) {
+                                1 -> 56.sp
+                                2 -> 44.sp
+                                else -> 36.sp
+                            },
+                            lineHeight = 64.sp
+                        )
+                    } else FormattedText(
                         text = message.text,
                         entities = message.entities,
                         color = if (outgoing) MaterialTheme.colorScheme.onPrimary
@@ -910,8 +962,15 @@ internal fun ReactionRow(
                 onClick = { onToggle(reaction.emoji) },
                 label = {
                     // A custom emoji (Premium's) is its sticker; see ReactionGlyph.
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        ReactionGlyph(reaction.emoji, size = 18.dp)
+                    // Larger than the label text, and with less of the chip's
+                    // own side padding around it — the owner found the
+                    // chips wide for what they hold. The chip stays
+                    // Material's; only the room around its label is trimmed.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.trimSides(REACTION_TRIM)
+                    ) {
+                        ReactionGlyph(reaction.emoji, size = REACTION_GLYPH)
                         if (reaction.count > 1) {
                             Text(
                                 " ${reaction.count}",
@@ -1155,5 +1214,27 @@ internal fun Modifier.bleed(horizontal: Dp, top: Dp): Modifier = layout { measur
     val placeable = measurable.measure(widened)
     layout(placeable.width - 2 * side, (placeable.height - up).coerceAtLeast(0)) {
         placeable.place(-side, -up)
+    }
+}
+
+/** How strongly a selected row is washed in the primary colour. */
+private const val SELECTED_WASH = 0.14f
+
+/** A reaction's emoji in its chip: up from 18dp, which read as small. */
+private val REACTION_GLYPH = 22.dp
+
+/** How much of a reaction chip's side padding goes, on each side. */
+private val REACTION_TRIM = 6.dp
+
+/**
+ * Takes [each] off both sides of what this reports as its width, drawing
+ * into that space: the way to narrow a chip whose padding is not a
+ * parameter without drawing the chip by hand.
+ */
+private fun Modifier.trimSides(each: Dp): Modifier = layout { measurable, constraints ->
+    val trim = each.roundToPx()
+    val placeable = measurable.measure(constraints)
+    layout((placeable.width - trim * 2).coerceAtLeast(0), placeable.height) {
+        placeable.place(-trim, 0)
     }
 }

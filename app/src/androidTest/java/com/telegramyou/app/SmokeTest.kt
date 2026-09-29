@@ -1897,6 +1897,14 @@ class SmokeTest {
         waitFor(By.desc("Backspace"), "the emoji tab")
         waitFor(By.desc("Keyboard"), "the keyboard key in the smiley's place")
         screenshot("57-panel-emoji")
+        // Pulled taller by its handle, and back.
+        tap(By.desc("Expand panel"))
+        waitFor(By.desc("Collapse panel"), "the panel taller")
+        SystemClock.sleep(700)
+        screenshot("57b-panel-expanded")
+        tap(By.desc("Collapse panel"))
+        waitFor(By.desc("Expand panel"), "the panel back to size")
+        SystemClock.sleep(500)
 
         tap(By.text("GIFs"))
         waitFor(By.desc("GIF"), "a GIF in the panel")
@@ -2021,6 +2029,43 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
     }
 
+    /**
+     * Selecting messages: Select from one's menu, then a tap on the empty
+     * part of another's row — beside the bubble, not on it — adds that one
+     * too, and the count says two. The row was not a target before, only
+     * the bubble, which the owner found by missing it.
+     */
+    @Test
+    fun messagesAreSelectedByTheirWholeRow() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        val first = By.text("Yes — and the split send button feels great.")
+        val second = By.text("Did you try the expressive loading indicator?")
+        scrollBackTo(second, "the two messages")
+        repeat(3) {
+            if (device.hasObject(By.text("Select"))) return@repeat
+            try {
+                device.findObject(first)?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Select")), SHORT_WAIT)
+        }
+        tap(By.text("Select"))
+        waitFor(By.desc("Clear selection"), "the selection toolbar")
+        // Lina's message sits at the start of its row; the far end of the
+        // row, well clear of the bubble, is empty conversation.
+        val row = device.findObject(second).visibleBounds.centerY()
+        device.click((device.displayWidth * 0.94).toInt(), row)
+        waitFor(By.text("2"), "two selected")
+        SystemClock.sleep(600)
+        screenshot("65-selection")
+        tap(By.desc("Clear selection"))
+        waitFor(By.text("Message"), "the composer back")
+        backTo(By.text("Material Design"), "the chat list")
+    }
+
     /** A GIF in a message kept among the saved ones, from its menu. */
     @Test
     fun aGifIsAddedToGifs() {
@@ -2084,6 +2129,9 @@ class SmokeTest {
             device.wait(Until.hasObject(answer), SHORT_WAIT)
         }
         waitFor(answer, "the answer to Add")
+        // Above them, a message that is one emoji, drawn large.
+        scrollBackTo(By.text("🎉"), "the lone emoji")
+        screenshot("66-jumbo-emoji")
         backTo(By.text("Material Design"), "the chat list")
     }
 

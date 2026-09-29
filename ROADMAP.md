@@ -186,6 +186,23 @@ added, each one mark in the same ink so the mark is the difference:
 Zigzag, Crosses, Rings and Sparkles. `AppearanceTest` holds every
 wallpaper that shipped, so none goes missing unasked.
 
+**Also 29 September (1.5), from the owner's use of 1.4.1:**
+- Selecting messages is Material's list selection: a leading `Checkbox`,
+  the whole row a target, a chosen row washed in the primary colour; the
+  bubble keeps its own colour. The count in the toolbar is centred and
+  rolls rather than shifting the buttons.
+- The expression panel pulls up to three quarters of the screen by
+  Material's drag handle, or a tap on it.
+- A message that is one emoji plays Telegram's animation of it
+  (`messageAnimatedEmoji`, drawn as a sticker); one to three emoji without
+  an animation are drawn large (`jumboEmojiCount`).
+- Photos, videos and GIFs show their minithumbnail, blurred, until the file
+  is here (`MiniThumbnail`, `BlurredMini`) — the one place blur is granted.
+- A sticker still loading is a breathing skeleton, not its emoji.
+- Reaction chips are narrower, with a larger emoji.
+- Still missing: Premium custom-emoji packs in the emoji tab, which the
+  official client shows animated above the standard set.
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback
 speed and picture-in-picture; recording round video messages; a photo

@@ -194,6 +194,7 @@ internal fun previewText(message: JSONObject?): String {
     val content = message.optJSONObject("content") ?: return ""
     return when (content.optString("@type")) {
         "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
+        "messageAnimatedEmoji" -> content.optString("emoji")
         "messagePhoto" -> "🖼 Photo"
         "messageVideo" -> "🎬 Video"
         "messageAnimation" -> "GIF"
@@ -273,6 +274,7 @@ internal fun resolveReplies(messages: List<ChatMessage>): List<ChatMessage> {
  */
 internal fun contentText(content: JSONObject?): String? = when (content?.optString("@type")) {
     "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
+    "messageAnimatedEmoji" -> content.optString("emoji")
     "messagePhoto" -> content.optJSONObject("caption")?.optString("text").orEmpty()
         .ifBlank { "Photo" }
     "messageDocument" -> content.optJSONObject("caption")?.optString("text").orEmpty()
@@ -454,9 +456,17 @@ internal fun videoContent(content: JSONObject?): VideoContent? {
         thumbFileId = thumbnail?.optInt("id")?.takeIf { it != 0 },
         thumbPath = thumbnail?.localPathIfDownloaded(),
         fileId = file?.optInt("id")?.takeIf { it != 0 },
-        path = file?.localPathIfDownloaded()
+        path = file?.localPathIfDownloaded(),
+        mini = video.miniThumbnail()
     )
 }
+
+/**
+ * A `minithumbnail`'s JPEG, as the Base64 TDLib's JSON already carries it
+ * in; null where the object has none.
+ */
+internal fun JSONObject.miniThumbnail(): String? =
+    optJSONObject("minithumbnail")?.optString("data")?.takeIf { it.isNotBlank() }
 
 /**
  * The path of a TDLib `file`, but only once all of it is here.
@@ -563,3 +573,13 @@ internal fun locationOf(content: JSONObject): LocationContent? = when (content.o
     }
     else -> null
 }
+
+/**
+ * The animation behind a `messageAnimatedEmoji` — Telegram's own sticker
+ * for a message that is one emoji — or null when the content is something
+ * else or the server sent none for this emoji.
+ */
+internal fun animatedEmojiSticker(content: JSONObject?): JSONObject? =
+    content?.takeIf { it.optString("@type") == "messageAnimatedEmoji" }
+        ?.optJSONObject("animated_emoji")
+        ?.optJSONObject("sticker")

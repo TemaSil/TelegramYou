@@ -29,6 +29,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import kotlinx.coroutines.launch
+import com.telegramyou.app.ui.motion.LocalReduceMotion
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -74,11 +89,17 @@ data class GifPickerState(
  * recents and skin tones, rather than a grid of our own — and lazy grids
  * for the rest.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExpressionPanel(
     tab: ExpressionTab,
     height: Dp,
+    /**
+     * How tall it may be pulled: the keyboard's height is a cramped room for
+     * forty stickers, so, as in the official client, the handle on top
+     * draws the panel up the screen — and a tap on it does the same.
+     */
+    expandedHeight: Dp = height,
     stickers: StickerPickerState?,
     gifs: GifPickerState?,
     onTab: (ExpressionTab) -> Unit,
@@ -93,13 +114,68 @@ fun ExpressionPanel(
     bottomInset: Dp = 0.dp,
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current
+    val low = with(density) { height.toPx() }
+    val high = with(density) { expandedHeight.toPx() }.coerceAtLeast(low)
+    // The panel's height in pixels, followed by the finger while it drags
+    // and carried by the theme's spatial spring when it lets go.
+    val shown = remember { Animatable(low) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val spring = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    val still = LocalReduceMotion.current
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(low, high) {
+        shown.updateBounds(low, high)
+        shown.snapTo(if (expanded) high else low)
+    }
+    fun settle(up: Boolean) {
+        expanded = up
+        scope.launch {
+            val target = if (up) high else low
+            if (still) shown.snapTo(target) else shown.animateTo(target, spring)
+        }
+    }
+    val drag = rememberDraggableState { delta ->
+        scope.launch { shown.snapTo(shown.value - delta) }
+    }
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .height(with(density) { shown.value.toDp() })
     ) {
         Column(Modifier.padding(bottom = bottomInset)) {
+            // The handle and the tabs under it are what drags: the grids
+            // below scroll, and a drag there is theirs. Let go past halfway,
+            // or flung, and it goes the rest of the way.
+            Column(
+                Modifier.draggable(
+                    state = drag,
+                    orientation = Orientation.Vertical,
+                    onDragStopped = { velocity ->
+                        val halfway = (low + high) / 2
+                        settle(
+                            when {
+                                velocity < -FLING -> true
+                                velocity > FLING -> false
+                                else -> shown.value > halfway
+                            }
+                        )
+                    }
+                )
+            ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(HANDLE_BAND)
+                    .clickable(onClickLabel = if (expanded) "Make smaller" else "Make taller") { settle(!expanded) }
+                    .semantics { contentDescription = if (expanded) "Collapse panel" else "Expand panel" }
+            ) {
+                // Material's own handle; its padding is for a sheet's top,
+                // and here the band around it is the target instead.
+                BottomSheetDefaults.DragHandle(Modifier.wrapContentHeight(unbounded = true))
+            }
             SecondaryTabRow(
                 selectedTabIndex = tab.ordinal,
                 containerColor = Color.Transparent
@@ -111,6 +187,7 @@ fun ExpressionPanel(
                         text = { Text(entry.label) }
                     )
                 }
+            }
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
@@ -279,3 +356,9 @@ private fun GifTile(gif: GifItem, onVisible: () -> Unit, onPick: () -> Unit) {
         )
     }
 }
+
+/** The strip the handle sits in: a thumb's height, most of it empty. */
+private val HANDLE_BAND = 20.dp
+
+/** A flick faster than this, in pixels a second, decides by its direction. */
+private const val FLING = 1200f

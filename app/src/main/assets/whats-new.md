@@ -1,6 +1,5 @@
 # Locked in
 - App lock: a PIN or your fingerprint in front of the app, in Settings → Privacy
-- Contacts and places in chats show as cards; send a contact from the paperclip
-- Group invite links: share them, or revoke one for a new link
-- Add to GIFs, and Premium custom emoji drawn right in the text
-- Chat wallpapers in one grid, with new patterns: zigzag, crosses, rings, sparkles
+- Contacts and places show as cards; share a group's invite link or revoke it
+- New chat wallpapers, a panel of emoji and stickers that pulls up taller
+- Animated emoji, Add to GIFs, and photos that sharpen as they load

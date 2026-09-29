@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.AnimatedContent
 import com.telegramyou.app.ui.auth.PhoneEntry
 import com.telegramyou.app.telegram.model.TelegramUser
 import androidx.compose.foundation.layout.heightIn
@@ -385,11 +393,29 @@ internal fun SelectionToolbar(
             IconButton(onClick = onClear) {
                 Icon(Symbols.Close, contentDescription = "Clear selection")
             }
-            Text(
-                count.toString(),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
+            // Centred on the icons, and as wide at 9 as at 10, so the buttons
+            // beside it do not shift as it counts; the number itself rolls
+            // up or down with the theme's spring rather than blinking over.
+            AnimatedContent(
+                targetState = count,
+                transitionSpec = {
+                    val up = targetState > initialState
+                    (slideInVertically { if (up) it else -it } + fadeIn()) togetherWith
+                        (slideOutVertically { if (up) -it else it } + fadeOut())
+                },
+                contentAlignment = Alignment.Center,
+                label = "selectionCount",
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .widthIn(min = COUNT_MIN_WIDTH)
+                    .padding(horizontal = 4.dp)
+            ) { shown ->
+                Text(
+                    shown.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
             if (actions.canCopy) {
                 IconButton(onClick = onCopy) {
                     Icon(Symbols.ContentCopy, contentDescription = "Copy")
@@ -570,3 +596,6 @@ internal fun DeleteMessageDialog(
         }
     )
 }
+
+/** Room for two digits, so the toolbar does not grow as the count does. */
+private val COUNT_MIN_WIDTH = 28.dp

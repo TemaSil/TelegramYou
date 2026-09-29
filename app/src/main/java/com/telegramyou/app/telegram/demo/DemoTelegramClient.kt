@@ -1901,6 +1901,9 @@ class DemoTelegramClient(
         )
 
         chatMessages[2] = mutableListOf(
+            // One emoji and nothing else, drawn large and without a bubble;
+            // a live account plays Telegram's animation of it instead.
+            demoMessage(900, 2, "🎉", false, yesterday - 900, "Lina Park"),
             // A contact card and a place, before anything else in the chat:
             // how both draw, offline — the place opens in whatever maps app
             // the phone has.

@@ -3512,6 +3512,14 @@ class TdLibTelegramClient(
             "messageDocument" -> MessageContentType.Document
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
+            // A lone emoji, which Telegram plays as an animation: a sticker
+            // here when the animation came with it, the emoji drawn large
+            // (jumboEmojiCount) when it did not.
+            "messageAnimatedEmoji" -> if (animatedEmojiSticker(content) != null) {
+                MessageContentType.Sticker
+            } else {
+                MessageContentType.Text
+            }
             "messagePoll" -> MessageContentType.Poll
             "messageContact" -> MessageContentType.Contact
             "messageLocation", "messageVenue" -> MessageContentType.Location
@@ -3566,9 +3574,10 @@ class TdLibTelegramClient(
                 else -> SendState.Sent
             },
             contentType = contentType,
-            sticker = content?.takeIf { type == "messageSticker" }
-                ?.optJSONObject("sticker")
-                ?.let(::stickerOf),
+            sticker = (
+                content?.takeIf { type == "messageSticker" }?.optJSONObject("sticker")
+                    ?: animatedEmojiSticker(content)
+                )?.let(::stickerOf),
             fileName = content?.optJSONObject("document")?.optString("file_name"),
             fileSizeLabel = null,
             mediaEmoji = when (contentType) {
@@ -3606,6 +3615,7 @@ class TdLibTelegramClient(
                 val height = size.optInt("height")
                 if (width > 0 && height > 0) width.toFloat() / height else 1f
             } ?: 1f,
+            photoMini = content?.takeIf { type == "messagePhoto" }?.optJSONObject("photo")?.miniThumbnail(),
             video = videoContent(content),
             poll = content?.takeIf { type == "messagePoll" }?.optJSONObject("poll")?.let(::pollOf),
             contact = content?.takeIf { type == "messageContact" }?.optJSONObject("contact")?.let(::contactOf),

@@ -95,6 +95,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -1172,6 +1173,9 @@ fun ChatScreen(
                 ExpressionPanel(
                     tab = tab,
                     height = panelHeight + navBarHeight,
+                    // Up to three quarters of the screen, pulled by its
+                    // handle; the header and the composer stay in view.
+                    expandedHeight = LocalConfiguration.current.screenHeightDp.dp * PANEL_EXPANDED_SHARE + navBarHeight,
                     stickers = state.stickerPicker,
                     gifs = state.gifPicker,
                     onTab = onExpressionTab,
@@ -1391,6 +1395,8 @@ internal const val HIGHLIGHT_ALPHA = 0.16f
 internal val HIGHLIGHT_CORNER = 20.dp
 
 /** The panel's height before the keyboard has been seen: a keyboard's, near enough. */
+/** How much of the screen the expression panel may be pulled up to. */
+private const val PANEL_EXPANDED_SHARE = 0.72f
 private val PANEL_DEFAULT_HEIGHT = 300.dp
 
 /** No shorter than this, whatever a floating or split keyboard measured. */
