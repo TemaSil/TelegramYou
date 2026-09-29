@@ -190,7 +190,10 @@ internal fun SearchPage(
             SecondaryScrollableTabRow(
                 selectedTabIndex = search.scope.ordinal,
                 edgePadding = 16.dp,
-                containerColor = settingsBackground()
+                containerColor = settingsBackground(),
+                // As wide as their names, as the folders are: eight tabs at
+                // 90dp each was two screens of strip.
+                minTabWidth = 0.dp
             ) {
                 SearchScope.entries.forEach { scope ->
                     Tab(

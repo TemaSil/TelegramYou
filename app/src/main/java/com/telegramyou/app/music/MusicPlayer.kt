@@ -448,10 +448,13 @@ class MusicPlayer(
                 if (page.size < PAGE) break
                 before = page.last().id
             }
-            val files = all.mapNotNull { it.asTrack()?.takeIf { track -> track.path == null }?.fileId }.distinct()
+            val files = all.mapNotNull { it.asTrack()?.takeIf { track -> track.path == null && track.fileId != null } }
+                .distinctBy { it.fileId }
             _state.update { it.copy(offline = OfflineProgress(chatId, 0, files.size)) }
-            files.forEachIndexed { index, fileId ->
-                runCatching { repository.downloadFile(fileId) }
+            files.forEachIndexed { index, track ->
+                // Into Downloads, where each can be paused, and where they
+                // are listed afterwards.
+                runCatching { repository.downloadToList(track.chatId, track.messageId, track.fileId!!) }
                 _state.update { it.copy(offline = OfflineProgress(chatId, index + 1, files.size)) }
             }
             _state.update {

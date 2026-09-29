@@ -8,7 +8,17 @@ import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.ui.media.FileTransfer
+import com.telegramyou.app.telegram.model.DownloadOutcome
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 
@@ -21,6 +31,49 @@ class TelegramRepository(
     fun observeStories(): StateFlow<List<StoryItem>> = stories
     fun observeFolders(): StateFlow<List<ChatFolder>> = folders
     fun observeTransfers(): StateFlow<Map<Int, FileTransfer>> = fileTransfers
+
+    // ── downloads a person asked for ─────────────────────────────────────
+
+    /** Outlives any one screen: a download started in a chat finishes after it closes. */
+    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val listRuns = ConcurrentHashMap<Int, Deferred<DownloadOutcome>>()
+    private val _listDownloads = MutableStateFlow<Set<Int>>(emptySet())
+
+    /**
+     * Files downloading through the download list now — what the
+     * notification counts, as against the thumbnails and stickers the app
+     * fetches for itself, which it must not.
+     */
+    val listDownloads: StateFlow<Set<Int>> = _listDownloads.asStateFlow()
+
+    /**
+     * Into the download list, and fetched. The run belongs to the
+     * repository rather than to the caller: a screen that stops waiting —
+     * the chat closed, the tab left — stops waiting, and the file still
+     * arrives.
+     */
+    override suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): DownloadOutcome {
+        val run = listRuns.getOrPut(fileId) {
+            _listDownloads.update { it + fileId }
+            downloadScope.async {
+                try {
+                    client.downloadToList(chatId, messageId, fileId)
+                } finally {
+                    listRuns.remove(fileId)
+                    _listDownloads.update { it - fileId }
+                }
+            }
+        }
+        return run.await()
+    }
+
+    /** A paused download going again, from the Downloads screen, followed to the end. */
+    fun resumeDownload(chatId: Long, messageId: Long, fileId: Int) {
+        downloadScope.launch {
+            client.setDownloadPaused(fileId, false)
+            downloadToList(chatId, messageId, fileId)
+        }
+    }
 
     /** Opening windows fetched ahead of their screen; see [warmChat]. */
     private val warmed = ConcurrentHashMap<Long, ChatDetail>()

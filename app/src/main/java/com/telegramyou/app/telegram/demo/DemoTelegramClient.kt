@@ -2,6 +2,8 @@ package com.telegramyou.app.telegram.demo
 
 import com.telegramyou.app.telegram.model.ForumTopic
 import com.telegramyou.app.telegram.model.SharedMediaKind
+import com.telegramyou.app.telegram.model.DownloadEntry
+import com.telegramyou.app.telegram.model.DownloadOutcome
 import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.JoinRequest
 import com.telegramyou.app.telegram.model.adminTitle
@@ -95,6 +97,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -1587,6 +1591,134 @@ class DemoTelegramClient(
      * the message itself — which is why playing back your own voice message
      * works offline, and why nothing else does.
      */
+    // ── the download manager ─────────────────────────────────────────────
+
+    /**
+     * The demo's download list, seeded with what a phone that has used the
+     * app a while would have: a file finished, and one paused half-way.
+     */
+    private val demoDownloads = MutableStateFlow(
+        run {
+            val now = System.currentTimeMillis() / 1000
+            mapOf(
+                DEMO_NOTES_FILE_ID to DownloadEntry(
+                    fileId = DEMO_NOTES_FILE_ID, chatId = 3, messageId = 1903, name = "release-notes.txt",
+                    sizeBytes = 1_024, downloadedBytes = 1_024, mimeType = "text/plain", chatTitle = "Design Circle",
+                    addedAt = now - 3_600, completedAt = now - 3_590
+                ),
+                DEMO_GUIDE_FILE_ID to DownloadEntry(
+                    fileId = DEMO_GUIDE_FILE_ID, chatId = 3, messageId = 1901, name = "Expressive-guidelines.pdf",
+                    sizeBytes = DEMO_GUIDE_BYTES, downloadedBytes = DEMO_GUIDE_BYTES * 2 / 5,
+                    mimeType = "application/pdf", chatTitle = "Design Circle", addedAt = now - 600, isPaused = true
+                )
+            )
+        }
+    )
+
+    /** Downloads running now, by file id, so a resumed one and its opener share one run. */
+    private val demoRuns = java.util.concurrent.ConcurrentHashMap<Int, Deferred<DownloadOutcome>>()
+
+    private fun demoRun(fileId: Int): Deferred<DownloadOutcome> = demoRuns.getOrPut(fileId) {
+        scope.async {
+            try {
+                val start = demoDownloads.value[fileId] ?: return@async DownloadOutcome.Failed
+                val total = start.sizeBytes
+                var done = start.downloadedBytes
+                while (done < total) {
+                    delay(DEMO_DOWNLOAD_STEP_MS)
+                    val now = demoDownloads.value[fileId]
+                    if (now == null || now.isPaused) {
+                        _fileTransfers.update { it - fileId }
+                        return@async DownloadOutcome.Stopped
+                    }
+                    done = (done + total / DEMO_DOWNLOAD_STEPS).coerceAtMost(total)
+                    demoDownloads.update { it + (fileId to now.copy(downloadedBytes = done)) }
+                    _fileTransfers.update { it + (fileId to FileTransfer(fileId, done, total)) }
+                }
+                _fileTransfers.update { it - fileId }
+                val path = withContext(Dispatchers.IO) { demoDownloadedFile(start.name).absolutePath }
+                demoDownloads.update { list ->
+                    list[fileId]?.let { list + (fileId to it.copy(completedAt = System.currentTimeMillis() / 1000)) } ?: list
+                }
+                DownloadOutcome.Done(path)
+            } finally {
+                demoRuns.remove(fileId)
+            }
+        }
+    }
+
+    override suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): DownloadOutcome {
+        val message = chatMessages[chatId].orEmpty().firstOrNull { it.id == messageId }
+        val now = System.currentTimeMillis() / 1000
+        val known = demoDownloads.value[fileId]
+        // Files the demo makes on the spot are there at once, and listed.
+        if (fileId == DEMO_NOTES_FILE_ID || fileId == DEMO_AUDIO_FILE_ID) {
+            val path = downloadFile(fileId) ?: return DownloadOutcome.Failed
+            val size = java.io.File(path).length()
+            demoDownloads.update {
+                it + (fileId to (known ?: DownloadEntry(
+                    fileId = fileId, chatId = chatId, messageId = messageId,
+                    name = message?.fileName ?: message?.audio?.displayTitle ?: java.io.File(path).name,
+                    sizeBytes = size, downloadedBytes = size, mimeType = message?.mimeType,
+                    chatTitle = chatTitle(chatId), addedAt = now
+                )).copy(completedAt = now))
+            }
+            return DownloadOutcome.Done(path)
+        }
+        val bytes = when (fileId) {
+            DEMO_GUIDE_FILE_ID -> DEMO_GUIDE_BYTES
+            DEMO_KIT_FILE_ID -> DEMO_KIT_BYTES
+            else -> return downloadFile(fileId)?.let { DownloadOutcome.Done(it) } ?: DownloadOutcome.Failed
+        }
+        if (known?.completedAt != null) {
+            return DownloadOutcome.Done(withContext(Dispatchers.IO) { demoDownloadedFile(known.name).absolutePath })
+        }
+        demoDownloads.update {
+            it + (fileId to (known?.copy(isPaused = false) ?: DownloadEntry(
+                fileId = fileId, chatId = chatId, messageId = messageId, name = message?.fileName ?: "File",
+                sizeBytes = bytes, mimeType = message?.mimeType, chatTitle = chatTitle(chatId), addedAt = now
+            )))
+        }
+        return demoRun(fileId).await()
+    }
+
+    private fun chatTitle(chatId: Long): String = _chats.value.firstOrNull { it.id == chatId }?.title.orEmpty()
+
+    override suspend fun fileDownloads(): List<DownloadEntry> = withContext(Dispatchers.IO) {
+        demoDownloads.value.values.map { entry ->
+            if (entry.completedAt == null) {
+                entry
+            } else {
+                entry.copy(
+                    path = when (entry.fileId) {
+                        DEMO_NOTES_FILE_ID -> demoNotesFile().absolutePath
+                        DEMO_AUDIO_FILE_ID -> demoAudioFile().absolutePath
+                        else -> demoDownloadedFile(entry.name).absolutePath
+                    }
+                )
+            }
+        }
+    }
+
+    override suspend fun setDownloadPaused(fileId: Int, paused: Boolean) {
+        demoDownloads.update { list -> list[fileId]?.let { list + (fileId to it.copy(isPaused = paused)) } ?: list }
+        if (!paused) demoRun(fileId)
+    }
+
+    override suspend fun setAllDownloadsPaused(paused: Boolean) {
+        val active = demoDownloads.value.values.filter { it.completedAt == null }.map { it.fileId }
+        active.forEach { setDownloadPaused(it, paused) }
+    }
+
+    override suspend fun removeDownload(fileId: Int, deleteFile: Boolean) {
+        demoDownloads.update { it - fileId }
+        _fileTransfers.update { it - fileId }
+    }
+
+    override suspend fun clearFinishedDownloads(deleteFiles: Boolean) {
+        demoDownloads.update { list -> list.filterValues { it.completedAt == null } }
+    }
+
     /**
      * Pretends to fetch a file, slowly enough to be watched.
      *
@@ -2442,11 +2574,11 @@ class DemoTelegramClient(
         chatMessages[3] = (designCircleArchive(now, day) + listOf(
             // Older than the rest, so the chat reads as it always did, and
             // enough of each kind for the shared media tabs to have rows.
-            demoMessage(1901, 3, "Expressive-guidelines.pdf", false, now - 3 * day, "Noor", contentType = MessageContentType.Document, fileName = "Expressive-guidelines.pdf", fileSizeLabel = "2.1 MB").copy(mimeType = "application/pdf"),
+            demoMessage(1901, 3, "Expressive-guidelines.pdf", false, now - 3 * day, "Noor", contentType = MessageContentType.Document, fileName = "Expressive-guidelines.pdf", fileSizeLabel = "2.1 MB").copy(documentFileId = DEMO_GUIDE_FILE_ID, mimeType = "application/pdf"),
             demoMessage(1902, 3, "The motion spec, if anyone wants it: m3.material.io/styles/motion", false, now - 3 * day + 120, "Noor"),
             demoMessage(1903, 3, "release-notes.txt", true, now - 3 * day + 240, isRead = true, contentType = MessageContentType.Document, fileName = "release-notes.txt", fileSizeLabel = "1 KB").copy(documentFileId = DEMO_NOTES_FILE_ID, mimeType = "text/plain"),
             demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
-            demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB"),
+            demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB").copy(documentFileId = DEMO_KIT_FILE_ID, mimeType = "application/zip"),
             demoMessage(22, 3, "Got them. The tonal palette is the part I want to steal.", false, now - day - 4 * 60 * 60, "Ivan"),
             demoMessage(23, 3, "Shapes too — every avatar up there is a different one.", false, now - day - 3 * 60 * 60, "Noor", reactions = listOf(MessageReaction("🔥", count = 3))),
             demoMessage(24, 3, "That is the shape library doing its job.", true, now - day - 2 * 60 * 60, isRead = true),
@@ -2659,6 +2791,27 @@ private val DEMO_AUDIO_SECONDS = 12
 
 /** A small text file in Design Circle, so a file can be opened offline. */
 private val DEMO_NOTES_FILE_ID = 1603
+
+/**
+ * Two files in Design Circle for the download manager: the guidelines,
+ * listed and paused part-way, and the brand kit, slow enough to pause.
+ */
+private val DEMO_GUIDE_FILE_ID = 1604
+private val DEMO_KIT_FILE_ID = 1605
+private val DEMO_GUIDE_BYTES = 2_200_000L
+private val DEMO_KIT_BYTES = 5_000_000L
+private val DEMO_DOWNLOAD_STEPS = 25
+private val DEMO_DOWNLOAD_STEP_MS = 400L
+
+/** A made-up file of [bytes] in the temporary directory, standing for a download. */
+private fun demoDownloadedFile(name: String): java.io.File {
+    val file = java.io.File(System.getProperty("java.io.tmpdir") ?: "/tmp", "downloads/$name")
+    if (!file.exists()) {
+        file.parentFile?.mkdirs()
+        file.writeText("A file from the TelegramYou demo: $name\n")
+    }
+    return file
+}
 
 /** The demo's text file, written on first open like the song. */
 private fun demoNotesFile(): java.io.File {

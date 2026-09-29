@@ -185,6 +185,7 @@ fun HomeScreen(
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenMyMusic: () -> Unit = {},
+    onOpenDownloads: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
     onOpenFolders: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
@@ -533,7 +534,8 @@ fun HomeScreen(
                             onOpenProxy = onOpenProxy,
                             onOpenSavedMessages = onOpenSavedMessages,
                             onOpenContacts = onOpenContacts,
-                            onOpenMyMusic = onOpenMyMusic
+                            onOpenMyMusic = onOpenMyMusic,
+                            onOpenDownloads = onOpenDownloads
                         )
                         // Stories first, then the folders: the tabs choose what
                         // the list below shows, so they sit against it, and the
@@ -830,7 +832,8 @@ private fun HomeTitleBar(
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
-    onOpenMyMusic: () -> Unit = {}
+    onOpenMyMusic: () -> Unit = {},
+    onOpenDownloads: () -> Unit = {}
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
@@ -890,6 +893,16 @@ private fun HomeTitleBar(
                         onClick = {
                             menuOpen = false
                             onOpenMyMusic()
+                        }
+                    )
+                    // Here, not only in search as the official client has it:
+                    // the complaint about Telegram's is that nobody finds it.
+                    DropdownMenuItem(
+                        text = { Text("Downloads") },
+                        leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenDownloads()
                         }
                     )
                 }

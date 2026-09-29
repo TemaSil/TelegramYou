@@ -1399,13 +1399,22 @@ class ChatViewModel(
         if (_uiState.value.openingFileId != null) return
         _uiState.update { it.copy(openingFileId = message.id) }
         viewModelScope.launch {
-            val path = runCatching { repository.downloadFile(fileId) }.getOrNull()
+            // Through the download list, so it is in Downloads — and keeps
+            // coming if this chat is closed before it has.
+            val outcome = runCatching { repository.downloadToList(message.chatId, message.id, fileId) }
+                .getOrDefault(com.telegramyou.app.telegram.model.DownloadOutcome.Failed)
+            val path = (outcome as? com.telegramyou.app.telegram.model.DownloadOutcome.Done)?.path
             _uiState.update { state ->
                 val kept = if (path == null) state else state.mapMessage(message.id) { it.copy(documentPath = path) }
                 kept.copy(
                     openingFileId = null,
                     fileToOpen = path?.let { FileToOpen(it, message.mimeType, message.fileName) },
-                    errorMessage = if (path == null) "Could not download ${message.fileName ?: "the file"}" else kept.errorMessage
+                    // Paused or cancelled in Downloads is not a failure.
+                    errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
+                        "Could not download ${message.fileName ?: "the file"}"
+                    } else {
+                        kept.errorMessage
+                    }
                 )
             }
         }

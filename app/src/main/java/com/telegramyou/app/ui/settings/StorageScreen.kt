@@ -60,7 +60,8 @@ fun StorageScreen(
     onClearRequested: () -> Unit,
     onDismiss: () -> Unit,
     onClearConfirmed: () -> Unit,
-    onMessageShown: () -> Unit
+    onMessageShown: () -> Unit,
+    onOpenDownloads: () -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
@@ -76,7 +77,8 @@ fun StorageScreen(
             text = {
                 Text(
                     "These files are only removed from this phone. They stay in " +
-                        "Telegram and download again when they are opened."
+                        "Telegram and download again when they are opened. Files you " +
+                        "downloaded go too, and stay listed in Downloads to fetch again."
                 )
             },
             confirmButton = { TextButton(onClick = onClearConfirmed) { Text("Clear") } },
@@ -149,6 +151,18 @@ fun StorageScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                }
+            }
+            // Where the files a person chose to download are, before the
+            // choice of what to clear: clearing takes them too.
+            item(key = "downloads") {
+                SettingsGroup("Downloads") {
+                    item(
+                        title = "Downloads",
+                        summary = "Files you downloaded, and where they are",
+                        leading = { Icon(Symbols.Download, contentDescription = null) },
+                        onClick = onOpenDownloads
+                    )
                 }
             }
             if (usage.slices.isEmpty()) {

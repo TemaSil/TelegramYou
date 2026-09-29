@@ -115,10 +115,20 @@ class SharedMediaViewModel(
         if (_uiState.value.openingFileId != null) return
         _uiState.update { it.copy(openingFileId = message.id) }
         viewModelScope.launch {
-            val path = runCatching { repository.downloadFile(fileId) }.getOrNull()
+            val outcome = runCatching { repository.downloadToList(message.chatId, message.id, fileId) }
+                .getOrDefault(com.telegramyou.app.telegram.model.DownloadOutcome.Failed)
+            val path = (outcome as? com.telegramyou.app.telegram.model.DownloadOutcome.Done)?.path
             _uiState.update {
                 if (path == null) {
-                    it.copy(openingFileId = null, errorMessage = "Could not download ${message.fileName ?: "the file"}")
+                    // Paused or cancelled in Downloads is not a failure.
+                    it.copy(
+                        openingFileId = null,
+                        errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
+                            "Could not download ${message.fileName ?: "the file"}"
+                        } else {
+                            it.errorMessage
+                        }
+                    )
                 } else {
                     it.copy(openingFileId = null, fileToOpen = FileToOpen(path, message.mimeType, message.fileName))
                 }

@@ -1733,6 +1733,44 @@ class SmokeTest {
     }
 
     /**
+     * The download manager, from the chat list's menu: a finished file and a
+     * paused one, as the demo seeds them; the paused one resumed and paused
+     * again from its row, the whole queue from the bar, and a finished file
+     * taken off the list without being deleted.
+     */
+    @Test
+    fun downloadsArePausedResumedAndCleared() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.desc("More"))
+        tap(By.text("Downloads"))
+        waitFor(By.text("Expressive-guidelines.pdf"), "a paused download")
+        waitFor(By.textStartsWith("Paused"), "the paused one saying so")
+        waitFor(By.text("release-notes.txt"), "a finished download")
+        screenshot("82-downloads")
+
+        tap(By.desc("Resume Expressive-guidelines.pdf"))
+        waitFor(By.desc("Pause Expressive-guidelines.pdf"), "the download running again")
+        tap(By.desc("Pause Expressive-guidelines.pdf"))
+        waitFor(By.desc("Resume Expressive-guidelines.pdf"), "the download paused again")
+        // Everything paused: the bar offers to resume the lot, then to pause it.
+        tap(By.desc("Resume all"))
+        waitFor(By.desc("Pause all"), "the queue running")
+        tap(By.desc("Pause all"))
+        waitFor(By.desc("Resume all"), "the queue paused")
+
+        tap(By.desc("More for release-notes.txt"))
+        waitFor(By.text("Delete from phone"), "deleting offered apart from removing")
+        tap(By.text("Remove from list"))
+        waitFor(By.textStartsWith("Taken off the list"), "said to be still on the phone")
+        assertTrue(
+            "the finished file stayed on the list",
+            device.wait(Until.gone(By.text("release-notes.txt")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
      * Listening through a music channel: a track tapped plays in the app's
      * player; the mini player follows; the full player opens from it; its
      * queue is the channel's whole music and another track starts from it

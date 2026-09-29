@@ -140,6 +140,12 @@ sealed interface Route {
 
     /** Settings → Privacy → App lock. */
     /** Posting a story, from "My story" at the head of the rail. */
+    /** The download manager; see DownloadsScreen. */
+    data object Downloads : Route {
+        const val PATTERN = "downloads"
+        override val path = PATTERN
+    }
+
     /** Every chat's music in one place; see MyMusicScreen. */
     data object MyMusic : Route {
         const val PATTERN = "music"

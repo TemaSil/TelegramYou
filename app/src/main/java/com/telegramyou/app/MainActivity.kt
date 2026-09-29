@@ -53,6 +53,9 @@ class MainActivity : ComponentActivity() {
      */
     private var pendingChatId by mutableStateOf<Long?>(null)
 
+    /** The downloads notification was tapped: the Downloads screen, once. */
+    private var pendingDownloads by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Both bars fully transparent, rather than the default. Left to
@@ -82,6 +85,7 @@ class MainActivity : ComponentActivity() {
         }
         val app = application as TelegramYouApp
         pendingChatId = intent.chatIdExtra()
+        pendingDownloads = intent.opensDownloads()
         // Started from the activity rather than from Application.onCreate:
         // a foreground service begun before anything is on screen is a
         // notification for an app the person has not opened.
@@ -145,6 +149,8 @@ class MainActivity : ComponentActivity() {
                             music = app.music,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
+                            openDownloads = pendingDownloads,
+                            onDownloadsOpened = { pendingDownloads = false },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }
                         )
                         }
@@ -208,6 +214,7 @@ class MainActivity : ComponentActivity() {
         // with.
         setIntent(intent)
         pendingChatId = intent.chatIdExtra()
+        pendingDownloads = intent.opensDownloads()
     }
 
     override fun onStart() {
@@ -231,6 +238,9 @@ class MainActivity : ComponentActivity() {
         super.onStop()
     }
 }
+
+private fun Intent.opensDownloads(): Boolean =
+    getBooleanExtra(TelegramForegroundService.EXTRA_OPEN_DOWNLOADS, false)
 
 private fun Intent.chatIdExtra(): Long? =
     getLongExtra(TelegramForegroundService.EXTRA_CHAT_ID, -1L).takeIf { it != -1L }

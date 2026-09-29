@@ -211,6 +211,41 @@ interface TelegramMessages {
      */
     val fileTransfers: StateFlow<Map<Int, FileTransfer>>
 
+    // ── the download manager ─────────────────────────────────────────────
+    //
+    // TDLib's own list of downloads (addFileToDownloads and the rest), the
+    // one the official client's Downloads tab reads: kept in TDLib's
+    // database, so it survives the app being closed and updated. Only what a
+    // person asked for goes in — a file opened, a track kept for offline —
+    // never the thumbnails and stickers the app fetches by itself.
+
+    /**
+     * [fileId] of message [messageId] fetched and put in the download list,
+     * suspending until it has finished, stopped or failed. Stopped — paused
+     * or cancelled from the Downloads screen — is not a failure, and the
+     * caller should say nothing about it.
+     */
+    suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): com.telegramyou.app.telegram.model.DownloadOutcome =
+        downloadFile(fileId)?.let { com.telegramyou.app.telegram.model.DownloadOutcome.Done(it) }
+            ?: com.telegramyou.app.telegram.model.DownloadOutcome.Failed
+
+    /** Everything in the download list, running, paused and finished. */
+    suspend fun fileDownloads(): List<com.telegramyou.app.telegram.model.DownloadEntry> = emptyList()
+
+    /** A download paused where it is, or picked up again. */
+    suspend fun setDownloadPaused(fileId: Int, paused: Boolean) {}
+
+    suspend fun setAllDownloadsPaused(paused: Boolean) {}
+
+    /**
+     * Out of the list; with [deleteFile], off the phone too — which for an
+     * unfinished one is cancelling it.
+     */
+    suspend fun removeDownload(fileId: Int, deleteFile: Boolean) {}
+
+    /** Every finished download out of the list, and with [deleteFiles] off the phone. */
+    suspend fun clearFinishedDownloads(deleteFiles: Boolean) {}
+
     /**
      * Adds or withdraws our reaction on a message.
      *

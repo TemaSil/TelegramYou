@@ -49,6 +49,7 @@ fun telegramViewModelFactory(
         initializer { GroupViewModel(repository, createSavedStateHandle()) }
         initializer { SharedMediaViewModel(repository, createSavedStateHandle()) }
         initializer { MyMusicViewModel(repository) }
+        initializer { com.telegramyou.app.ui.downloads.DownloadsViewModel(repository) }
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
         initializer { NewStoryViewModel(repository) }
         initializer { NewChatViewModel(repository) }

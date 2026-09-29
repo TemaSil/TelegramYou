@@ -69,6 +69,8 @@ import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.SharedMediaKind
+import com.telegramyou.app.telegram.model.DownloadEntry
+import com.telegramyou.app.telegram.model.DownloadOutcome
 import com.telegramyou.app.telegram.model.ForumTopic
 import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupMember
@@ -723,6 +725,175 @@ class TdLibTelegramClient(
         return parseMessages(chatId, found.optJSONArray("messages"))
             .filter { beforeMessageId == 0L || it.id < beforeMessageId }
             .sortedByDescending { it.id }
+    }
+
+    // ── the download manager: TDLib's file-download list ──────────────────
+
+    /** Who is waiting on a listed download, by file id; see updateFile. */
+    private val downloadWaiters = ConcurrentHashMap<Int, CompletableDeferred<DownloadOutcome>>()
+
+    /**
+     * Downloads the person paused or cancelled: when one of these stops
+     * short, it was asked to, and the chat that started it says nothing.
+     */
+    private val stoppedByPerson: MutableSet<Int> = ConcurrentHashMap.newKeySet()
+
+    /**
+     * Listed downloads seen running. A file is announced idle for all sorts
+     * of reasons before its download starts; only one that was running and
+     * then stopped has stopped.
+     */
+    private val seenRunning: MutableSet<Int> = ConcurrentHashMap.newKeySet()
+
+    override suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): DownloadOutcome {
+        awaitReady()
+        // A second tap on the same file waits on the first rather than
+        // starting a race with it.
+        downloadWaiters[fileId]?.let { return it.await() }
+        val waiter = CompletableDeferred<DownloadOutcome>()
+        downloadWaiters[fileId] = waiter
+        stoppedByPerson.remove(fileId)
+        seenRunning.remove(fileId)
+        return try {
+            val file = try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "addFileToDownloads")
+                        .put("file_id", fileId)
+                        .put("chat_id", chatId)
+                        .put("message_id", messageId)
+                        .put("priority", DOWNLOAD_PRIORITY)
+                )
+            } catch (e: TdLibException) {
+                // Already listed — a file downloaded once and since cleared
+                // from the phone — or a message TDLib will not list: fetched
+                // all the same, as it always was.
+                Log.w(TAG, "addFileToDownloads($fileId): ${e.message}")
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "downloadFile")
+                        .put("file_id", fileId)
+                        .put("priority", DOWNLOAD_PRIORITY)
+                        .put("offset", 0)
+                        .put("limit", 0)
+                        .put("synchronous", false)
+                )
+            }
+            file.localPathIfDownloaded()?.let { DownloadOutcome.Done(it) } ?: waiter.await()
+        } catch (e: TdLibException) {
+            Log.w(TAG, "downloadToList($fileId): ${e.message}")
+            DownloadOutcome.Failed
+        } finally {
+            downloadWaiters.remove(fileId, waiter)
+            seenRunning.remove(fileId)
+        }
+    }
+
+    override suspend fun fileDownloads(): List<DownloadEntry> {
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchFileDownloads")
+                    .put("query", "")
+                    .put("only_active", false)
+                    .put("only_completed", false)
+                    .put("offset", "")
+                    .put("limit", DOWNLOADS_LIMIT)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "searchFileDownloads: ${e.message}")
+            return emptyList()
+        }
+        val files = found.optJSONArray("files") ?: return emptyList()
+        return (0 until files.length()).mapNotNull { i ->
+            val item = files.optJSONObject(i) ?: return@mapNotNull null
+            val fileId = item.optInt("file_id")
+            val raw = item.optJSONObject("message") ?: return@mapNotNull null
+            val chatId = raw.optLong("chat_id")
+            val message = mapMessage(chatId, raw)
+            // The file itself for its size and whether it is still here: the
+            // list keeps a finished download after the cache has let it go.
+            val file = runCatching {
+                requireEngine().send(JSONObject().put("@type", "getFile").put("file_id", fileId))
+            }.getOrNull()
+            val local = file?.optJSONObject("local")
+            DownloadEntry(
+                fileId = fileId,
+                chatId = chatId,
+                messageId = message.id,
+                name = message.fileName ?: message.audio?.displayTitle ?: message.text.ifBlank { "File" },
+                sizeBytes = file?.let { f -> f.optLong("size").takeIf { it > 0 } ?: f.optLong("expected_size") } ?: 0L,
+                downloadedBytes = local?.optLong("downloaded_size") ?: 0L,
+                mimeType = message.mimeType,
+                chatTitle = chatsById[chatId]?.optString("title").orEmpty(),
+                addedAt = item.optLong("add_date"),
+                completedAt = item.optLong("complete_date").takeIf { it > 0 },
+                isPaused = item.optBoolean("is_paused"),
+                path = file?.localPathIfDownloaded()
+            )
+        }
+    }
+
+    override suspend fun setDownloadPaused(fileId: Int, paused: Boolean) {
+        awaitReady()
+        if (paused) stoppedByPerson += fileId else stoppedByPerson -= fileId
+        // Whoever opened it stops waiting now, not when the bytes stop.
+        if (paused) downloadWaiters[fileId]?.complete(DownloadOutcome.Stopped)
+        runCatching {
+            requireEngine().send(
+                JSONObject().put("@type", "toggleDownloadIsPaused").put("file_id", fileId).put("is_paused", paused)
+            )
+        }.onFailure { Log.w(TAG, "toggleDownloadIsPaused: ${it.message}") }
+    }
+
+    override suspend fun setAllDownloadsPaused(paused: Boolean) {
+        awaitReady()
+        if (paused) {
+            stoppedByPerson += downloadWaiters.keys
+            downloadWaiters.values.forEach { it.complete(DownloadOutcome.Stopped) }
+        } else {
+            stoppedByPerson.clear()
+        }
+        runCatching {
+            requireEngine().send(JSONObject().put("@type", "toggleAllDownloadsArePaused").put("are_paused", paused))
+        }.onFailure { Log.w(TAG, "toggleAllDownloadsArePaused: ${it.message}") }
+    }
+
+    override suspend fun removeDownload(fileId: Int, deleteFile: Boolean) {
+        awaitReady()
+        stoppedByPerson += fileId
+        runCatching {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "removeFileFromDownloads")
+                    .put("file_id", fileId)
+                    .put("delete_from_cache", deleteFile)
+            )
+        }.onFailure { Log.w(TAG, "removeFileFromDownloads: ${it.message}") }
+        // Cancelling stops the bytes too: a download taken out of the list
+        // while it ran would otherwise go on arriving with nowhere to show.
+        if (deleteFile) {
+            runCatching {
+                requireEngine().send(
+                    JSONObject().put("@type", "cancelDownloadFile").put("file_id", fileId).put("only_if_pending", false)
+                )
+            }
+        }
+        downloadWaiters[fileId]?.complete(DownloadOutcome.Stopped)
+    }
+
+    override suspend fun clearFinishedDownloads(deleteFiles: Boolean) {
+        awaitReady()
+        runCatching {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "removeAllFilesFromDownloads")
+                    .put("only_active", false)
+                    .put("only_completed", true)
+                    .put("delete_from_cache", deleteFiles)
+            )
+        }.onFailure { Log.w(TAG, "removeAllFilesFromDownloads: ${it.message}") }
     }
 
     override suspend fun allMusic(query: String, cursor: String, limit: Int): Pair<List<ChatMessage>, String?> {
@@ -3325,6 +3496,18 @@ class TdLibTelegramClient(
                 val remote = file.optJSONObject("remote")
                 val downloading = local?.optBoolean("is_downloading_active") == true
                 val uploading = remote?.optBoolean("is_uploading_active") == true
+                // A listed download someone is waiting on: done, or stopped
+                // short — asked to by the person, or not.
+                downloadWaiters[id]?.let { waiter ->
+                    val done = file.localPathIfDownloaded()
+                    if (downloading) seenRunning += id
+                    when {
+                        done != null -> waiter.complete(DownloadOutcome.Done(done))
+                        !downloading && id in seenRunning -> waiter.complete(
+                            if (id in stoppedByPerson) DownloadOutcome.Stopped else DownloadOutcome.Failed
+                        )
+                    }
+                }
                 if (!downloading && !uploading) {
                     // Finished, failed or never started: either way there is
                     // no bar to draw, and leaving the entry behind would
@@ -4518,6 +4701,10 @@ class TdLibTelegramClient(
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
+        /** Above the app's own fetches, below nothing: somebody asked for this one. */
+        private const val DOWNLOAD_PRIORITY = 30
+        /** One page is the whole list for anyone but a hoarder; see fileDownloads. */
+        private const val DOWNLOADS_LIMIT = 200
         /** How long a chat action counts without being repeated. */
         private const val TYPING_MILLIS = 6_000L
 

@@ -149,7 +149,14 @@ fun ChatMediaScreen(
                         }
                     }
                 )
-                PrimaryScrollableTabRow(selectedTabIndex = pager.currentPage, edgePadding = 8.dp) {
+                PrimaryScrollableTabRow(
+                    selectedTabIndex = pager.currentPage,
+                    edgePadding = 8.dp,
+                    // Each tab as wide as its name, as the chat list's folders:
+                    // at Material's default of 90dp "Files" and "Voice" took a
+                    // third of the phone between them.
+                    minTabWidth = 0.dp
+                ) {
                     kinds.forEachIndexed { index, kind ->
                         Tab(
                             selected = pager.currentPage == index,

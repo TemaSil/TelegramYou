@@ -140,6 +140,9 @@ fun TelegramYouNavHost(
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
     onChatOpened: () -> Unit = {},
+    /** The downloads notification was tapped. */
+    openDownloads: Boolean = false,
+    onDownloadsOpened: () -> Unit = {},
     /** The login screen's mark was tapped ten times; see TelegramYouApp.setDemoMode. */
     onDemoRequested: () -> Unit = {}
 ) {
@@ -265,6 +268,12 @@ fun TelegramYouNavHost(
         onChatOpened()
     }
 
+    LaunchedEffect(openDownloads, auth.state) {
+        if (!openDownloads || auth.state != AuthState.Ready) return@LaunchedEffect
+        navController.navigateTo(Route.Downloads) { popUpTo(Route.Home.PATTERN) }
+        onDownloadsOpened()
+    }
+
     // One layout around the whole graph, so a screen can open out of an
     // element on the one before it — a chat out of its row, a story out of
     // its circle. See containerTransform.
@@ -354,6 +363,7 @@ fun TelegramYouNavHost(
             HomeScreen(
                 musicBar = musicBar,
                 onOpenMyMusic = { navController.navigateTo(Route.MyMusic) },
+                onOpenDownloads = { navController.navigateTo(Route.Downloads) },
                 state = state,
                 tab = tab,
                 onTabSelected = { picked ->
@@ -731,7 +741,19 @@ fun TelegramYouNavHost(
                 onClearRequested = storageViewModel::onClearRequested,
                 onDismiss = storageViewModel::onDismiss,
                 onClearConfirmed = storageViewModel::onClearConfirmed,
-                onMessageShown = storageViewModel::onMessageShown
+                onMessageShown = storageViewModel::onMessageShown,
+                onOpenDownloads = { navController.navigateTo(Route.Downloads) }
+            )
+        }
+        composable(Route.Downloads.PATTERN) {
+            val downloads: com.telegramyou.app.ui.downloads.DownloadsViewModel = viewModel(factory = viewModelFactory)
+            val state by downloads.uiState.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.downloads.DownloadsScreen(
+                viewModel = downloads,
+                state = state,
+                onBack = { navController.popBackStack() },
+                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
+                musicBar = musicBar
             )
         }
         composable(Route.MyMusic.PATTERN) {

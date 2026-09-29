@@ -255,6 +255,33 @@ these notes on how:
   with the same track where it was; and search has a Music tab, whose
   queue pages on with the same query (My music's too — it used to page on
   with everything).
+- **Downloads**, asked for on the day, and built against what people
+  complain about in Telegram's own download manager — read before a line
+  of it was written:
+  - *nobody finds it* (it lives in a tab of search, behind an icon that
+    shows only mid-download) → it is on the chat list's menu and in Data
+    and storage;
+  - *"downloaded" files are nowhere a file manager looks* (they sit in the
+    app's own storage since Android 11) → the screen says so, and every
+    finished file has Save to Downloads, which puts a copy in
+    Downloads/TelegramYou and marks the row "in Downloads";
+  - *clearing the cache silently empties the list* → a finished file whose
+    bytes are gone stays listed as "Removed from the phone — tap to
+    download again", and the clear-cache dialog says downloads go too;
+  - *"clear" does not say whether it deletes* → Remove from list and Delete
+    from phone are two actions, the second confirmed with the size it
+    frees, and Clear finished asks separately about deleting;
+  - *downloads stop with the screen off, unseen* → the sync service already
+    keeps the process up; a progress notification with Pause all says it
+    is happening, and tapping it opens Downloads.
+  It is TDLib's own list (`addFileToDownloads`, `searchFileDownloads`,
+  `toggleDownloadIsPaused`, `removeFileFromDownloads`), so it survives
+  restarts and updates. Only what a person asked for goes in — a file
+  opened, music kept for offline — never thumbnails or stickers. A pause or
+  cancel is not reported as a failure in the chat that started it.
+- The tabs of shared media and search are as wide as their names, as the
+  folders are (`minTabWidth = 0.dp`); Material's 90dp minimum made "Files"
+  and "Voice" take a third of the phone.
 - **Still open:** the playlists of 1.6.4, and album covers larger than
   Telegram's thumbnail.
 

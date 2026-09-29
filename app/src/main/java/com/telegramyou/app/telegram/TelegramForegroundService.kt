@@ -23,7 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import com.telegramyou.app.telegram.model.downloadNotificationText
 
 /**
  * Holds the connection to Telegram while the app is not on screen, and turns
@@ -46,6 +49,9 @@ class TelegramForegroundService : Service() {
     /** The one collector of arrivals; see onStartCommand. */
     private var arrivals: Job? = null
 
+    /** The one watcher of downloads, for their notification. */
+    private var downloads: Job? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -55,6 +61,10 @@ class TelegramForegroundService : Service() {
         // each used to add another collector, until one message was being
         // posted as many times as the screen had been turned.
         if (arrivals == null) arrivals = observeArrivals()
+        if (downloads == null) downloads = observeDownloads()
+        if (intent?.action == ACTION_PAUSE_DOWNLOADS) {
+            scope.launch { (application as TelegramYouApp).telegramRepository.setAllDownloadsPaused(true) }
+        }
         // START_STICKY so a process killed for memory comes back: a messenger
         // that stops delivering after the first low-memory moment is worse
         // than one that never claimed to.
@@ -95,6 +105,74 @@ class TelegramForegroundService : Service() {
                 if (decision is NotificationDecision.Notify) post(decision.message)
             }
         }
+    }
+
+    /**
+     * A download's progress in the shade while it runs — the files a person
+     * asked for, never the app's own thumbnails — with Pause all on it, and
+     * gone when nothing is downloading. This service already keeps the
+     * process alive, which is what keeps a download going with the screen
+     * off; the notification is so that it is not going on unseen.
+     */
+    private fun observeDownloads(): Job {
+        val repository = (application as TelegramYouApp).telegramRepository
+        return scope.launch {
+            combine(repository.listDownloads, repository.fileTransfers) { ids, transfers ->
+                if (ids.isEmpty()) {
+                    null
+                } else {
+                    val running = ids.mapNotNull { transfers[it] }.filter { !it.isUpload }
+                    val total = running.sumOf { it.totalBytes.coerceAtLeast(0) }
+                    val done = running.sumOf { it.doneBytes.coerceAtLeast(0) }
+                    // Whole percent, so the shade is not re-posted for every
+                    // few kilobytes — Android drops updates that come faster.
+                    val percent = if (total > 0) (done * 100 / total).toInt() else -1
+                    val text = if (running.isEmpty()) {
+                        if (ids.size == 1) "Downloading 1 file" else "Downloading ${ids.size} files"
+                    } else {
+                        downloadNotificationText(running)
+                    }
+                    text to percent
+                }
+            }.distinctUntilChanged().collect { shown ->
+                val manager = NotificationManagerCompat.from(this@TelegramForegroundService)
+                if (shown == null) {
+                    manager.cancel(DOWNLOADS_NOTIFICATION_ID)
+                } else if (canPost()) {
+                    runCatching { manager.notify(DOWNLOADS_NOTIFICATION_ID, downloadsNotification(shown.first, shown.second)) }
+                }
+            }
+        }
+    }
+
+    private fun downloadsNotification(text: String, percent: Int): Notification {
+        val open = PendingIntent.getActivity(
+            this,
+            DOWNLOADS_NOTIFICATION_ID,
+            Intent(this, MainActivity::class.java)
+                .setAction(Intent.ACTION_VIEW)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtra(EXTRA_OPEN_DOWNLOADS, true),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val pause = PendingIntent.getService(
+            this,
+            DOWNLOADS_NOTIFICATION_ID,
+            Intent(this, TelegramForegroundService::class.java).setAction(ACTION_PAUSE_DOWNLOADS),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_DOWNLOADS)
+            .setContentTitle("Downloads")
+            .setContentText(text)
+            .setSmallIcon(android.R.drawable.stat_sys_download)
+            .setProgress(100, percent.coerceAtLeast(0), percent < 0)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(open)
+            .addAction(R.drawable.ic_launcher_foreground, "Pause all", pause)
+            .build()
     }
 
     private fun post(message: NotifiableMessage) {
@@ -232,6 +310,10 @@ class TelegramForegroundService : Service() {
 
     companion object {
         const val EXTRA_CHAT_ID = "com.telegramyou.app.EXTRA_CHAT_ID"
+        /** On the downloads notification's tap: open the Downloads screen. */
+        const val EXTRA_OPEN_DOWNLOADS = "com.telegramyou.app.EXTRA_OPEN_DOWNLOADS"
+        private const val ACTION_PAUSE_DOWNLOADS = "com.telegramyou.app.PAUSE_DOWNLOADS"
+        private const val DOWNLOADS_NOTIFICATION_ID = 43
 
         private const val ONGOING_NOTIFICATION_ID = 42
         private const val MAX_LINES_PER_CHAT = 6

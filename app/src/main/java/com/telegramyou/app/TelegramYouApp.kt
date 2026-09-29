@@ -170,9 +170,19 @@ class TelegramYouApp : Application() {
         ).apply {
             description = getString(R.string.notification_channel_messages_desc)
         }
+        // Low, like sync: a bar filling up is something to glance at, not to
+        // be interrupted by.
+        val downloads = NotificationChannel(
+            CHANNEL_DOWNLOADS,
+            getString(R.string.notification_channel_downloads_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.notification_channel_downloads_desc)
+        }
         val manager = getSystemService(NotificationManager::class.java)
         manager.createNotificationChannel(sync)
         manager.createNotificationChannel(messages)
+        manager.createNotificationChannel(downloads)
     }
 
     companion object {
@@ -180,5 +190,6 @@ class TelegramYouApp : Application() {
         private const val KEY_DEMO = "demo"
         const val CHANNEL_SYNC = "telegram_sync"
         const val CHANNEL_MESSAGES = "telegram_messages"
+        const val CHANNEL_DOWNLOADS = "telegram_downloads"
     }
 }

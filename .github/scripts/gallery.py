@@ -37,6 +37,7 @@ SHOWCASE = [
     ("80-my-music", "My music"),
     ("81-search-music", "Music in search"),
     ("76-shared-files", "Shared files"),
+    ("82-downloads", "Downloads"),
     ("73-forum-topics", "Forum topics"),
     ("70-group-members", "Admins"),
     ("72-invite-links", "Invite links"),
