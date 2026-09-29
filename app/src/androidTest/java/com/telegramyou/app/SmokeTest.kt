@@ -2059,7 +2059,12 @@ class SmokeTest {
         // gliding from the scroll that found the card and a tap on a moving
         // list only stops it. Adding twice is harmless — the number is the key.
         val answer = By.textStartsWith("Sasha Kim ")
-        repeat(3) {
+        // The tree as UiAutomator sees it: Add was pressed in two runs and
+        // answered in neither, with nothing on screen to say why.
+        TestStorage().openOutputFile("hierarchy-contact-card.xml").use { out ->
+            device.dumpWindowHierarchy(out)
+        }
+        repeat(3) { attempt ->
             if (device.hasObject(answer)) return@repeat
             try {
                 val below = device.findObject(By.text("Sasha Kim"))?.visibleBounds?.bottom
@@ -2071,6 +2076,7 @@ class SmokeTest {
                 }
             } catch (_: StaleObjectException) {
             }
+            screenshot("diag-add-pressed-${attempt + 1}")
             device.wait(Until.hasObject(answer), SHORT_WAIT)
         }
         waitFor(answer, "the answer to Add")
