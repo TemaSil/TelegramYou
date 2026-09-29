@@ -145,8 +145,9 @@ class AppearanceStore(context: Context) {
             chatColorsFromAvatar = preferences.getBoolean(KEY_CHAT_COLORS, false),
             chatWallpaper = preferences.getString(KEY_WALLPAPER, null)
                 .let { name -> ChatWallpaper.entries.firstOrNull { it.name == name } }
-                // Gradient, withdrawn, among them: its name is no longer
-                // an entry, and whoever had it gets the plain surface.
+                // The withdrawn ones — Gradient, Aurora, Waves, Shapes and
+                // the rest — are no longer entries, and whoever had one gets
+                // the plain surface.
                 ?: ChatWallpaper.Plain,
             outgoingTone = preferences.getString(KEY_OUTGOING_TONE, null)
                 .let { name -> OutgoingTone.entries.firstOrNull { it.name == name } }

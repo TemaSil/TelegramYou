@@ -1,4 +1,5 @@
 # Stories and video
-- Post your own story from My story: a photo or a video, for everyone, contacts or close friends
-- Videos play at 0.5×, 1.5× or 2×
-- Picture-in-picture: a video keeps playing in a small window when you leave
+- Post a story from My story: a photo or a video, for everyone or just a few
+- Videos play at 0.5×, 1.5× or 2×, and keep playing in a small window when you leave
+- Calmer chat backgrounds: Dots, Sparkles or Grid
+- The chat's top bar is solid, and the chat runs to the bottom of the screen

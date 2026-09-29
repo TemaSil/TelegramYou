@@ -56,14 +56,14 @@ class AppearanceTest {
     }
 
     @Test
-    fun `no wallpaper that ever shipped goes missing`() {
+    fun `the wallpapers are the four the owner kept`() {
         // Stored by name, and the owner noticed when Dots seemed to vanish:
-        // an entry may be added, never renamed or removed unasked. Gradient
-        // is missing from this list because the owner withdrew it.
-        val shipped = listOf("Plain", "Dots", "Waves", "Aurora", "Shapes")
-        shipped.forEach { name ->
-            assertTrue("$name is still offered", ChatWallpaper.entries.any { it.name == name })
-        }
+        // an entry may be added, never renamed or removed unasked. The
+        // others were withdrawn on the owner's word, 29 September.
+        assertEquals(
+            listOf("Plain", "Dots", "Sparkles", "Grid"),
+            ChatWallpaper.entries.map { it.name }
+        )
         assertEquals(
             ChatWallpaper.entries.size,
             ChatWallpaper.entries.map { it.label }.toSet().size

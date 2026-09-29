@@ -215,6 +215,15 @@ playing goes into the system's small window on the way out (auto-enter
 from Android 12, onUserLeaveHint before), or from the player's own
 button, with the controls left out while it is small (`PictureInPicture`).
 
+**Also in 1.6, on the owner's word the same day:** the chat backgrounds are
+cut to four — Plain, Dots, Sparkles and a new Grid — on the base and ink
+Dots had before 1.5, in one row of cards, with none of the motion the
+choice had picked up; the item is "Chat background", so it is not taken
+for the phone's wallpaper. A stored name that is gone reads as Plain. The
+chat's top bar has a solid fill (`surfaceContainer`) so a pattern no longer
+shows through it, and the conversation runs under the navigation bar to the
+bottom of the screen instead of stopping on a strip of bare background.
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,

@@ -140,36 +140,23 @@ private fun relativeLuminance(argb: Int): Double {
 /**
  * What a conversation is drawn on. All of it in the theme's own colours —
  * the wallpaper is on the short list of things this client draws by hand,
- * and a picture in somebody else's colours would fight the scheme. The
- * names are stored, so an entry may be added but not renamed — nor
- * removed without the owner's word: a choice that vanishes from the picker
- * reads as the app losing it, and AppearanceTest holds every one that
- * shipped. Gradient is the one withdrawn so far (29 September, on the
- * owner's word: it muddied the chat); a stored "Gradient" reads as Plain.
- * The order is the
- * picker's: the plain ones, then the patterns, which are each one mark
- * repeated in the primary colour over the same quiet gradient, so that what
- * tells them apart is the mark and nothing else.
+ * and a picture in somebody else's colours would fight the scheme.
+ *
+ * Four, on the owner's word of 29 September: the surface, and three quiet
+ * patterns of one mark each. Gradient, Aurora, Waves, Shapes and the rest
+ * were withdrawn then; a stored name that is no longer an entry reads as
+ * Plain. The names are stored, so an entry may be added but not renamed,
+ * and not removed without the owner's word — AppearanceTest holds the four.
  */
 enum class ChatWallpaper(val label: String) {
     /** The surface alone. */
     Plain("Plain"),
-    /** Three soft glows of the scheme's colours. */
-    Aurora("Aurora"),
-    /** A grid of dots. */
+    /** A grid of dots, every other row shifted. */
     Dots("Dots"),
-    /** Flowing lines. */
-    Waves("Waves"),
-    /** Rows of zigzag. */
-    Zigzag("Zigzag"),
-    /** Small plus signs, as Material draws its add icon. */
-    Crosses("Crosses"),
-    /** Small rings. */
-    Rings("Rings"),
     /** Four-pointed sparkles, Expressive's star, scattered. */
     Sparkles("Sparkles"),
-    /** Material's own shapes, scattered. */
-    Shapes("Shapes")
+    /** Squared paper: thin lines both ways. */
+    Grid("Grid")
 }
 
 /**

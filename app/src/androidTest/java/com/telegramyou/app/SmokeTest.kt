@@ -545,7 +545,11 @@ class SmokeTest {
         waitFor(By.text("New story"), "the new story screen")
         allowPhotos()
         waitFor(By.desc("Recent photo"), "a recent photo to post")
-        tap(By.desc("Recent photo"))
+        // The widest of the carousel's photos, not the first found: that was
+        // the sliver at the right edge, and its centre is off the screen.
+        device.findObjects(By.desc("Recent photo"))
+            .maxByOrNull { it.visibleBounds.width() }!!
+            .click()
         waitFor(By.desc("Story picture"), "the picture chosen")
         // No caption typed: the keyboard would stand over the buttons
         // below it, and a caption is optional.
@@ -1269,20 +1273,25 @@ class SmokeTest {
         // without what was plainly on it — "Soft", a chat's header, "31
         // votes" under a poll that had counted the vote — and failed a test
         // on something that had worked.
-        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
-        var found = false
-        while (!found && SystemClock.uptimeMillis() < deadline) {
-            if (Build.VERSION.SDK_INT >= 34) {
-                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
-            }
-            found = device.wait(Until.hasObject(selector), FRESH_LOOK_MILLIS)
-        }
+        val found = lookFresh(selector)
         if (!found) {
             // The shot is taken before failing, because what is on screen
             // instead is the whole question.
             screenshot("failed-waiting-for-${what.replace(' ', '-')}")
         }
         assertTrue("$what never appeared", found)
+    }
+
+    /** Whether [selector] turns up within [STEP_TIMEOUT], looked for as waitFor looks. */
+    private fun lookFresh(selector: BySelector): Boolean {
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            if (device.wait(Until.hasObject(selector), FRESH_LOOK_MILLIS)) return true
+        }
+        return false
     }
 
     /**
@@ -1295,10 +1304,14 @@ class SmokeTest {
      *
      * And it photographs the screen before giving up, because "nothing to
      * tap" says nothing at all about what was there instead.
+     *
+     * Looked for through a fresh tree, as waitFor does: the video player's
+     * speed button read "0.5×" on screen for forty seconds while the cached
+     * tree still said "2×", and a tap on 0.5× found nothing.
      */
     private fun tap(selector: BySelector) {
         repeat(2) {
-            device.wait(Until.hasObject(selector), STEP_TIMEOUT)
+            lookFresh(selector)
             val node = device.findObject(selector)
             if (node != null) {
                 node.click()
@@ -1850,12 +1863,10 @@ class SmokeTest {
         screenshot("52-appearance")
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
-        scrollDownTo(By.text("Shapes"))
+        // The four chat backgrounds, one row, the last of them in view.
+        scrollDownTo(By.text("Grid"))
         tap(By.text("Dots"))
-        // All nine in view at once, the grid that replaced a sideways row
-        // in which Dots and Waves sat past the edge.
-        SystemClock.sleep(900)
-        screenshot("52c-appearance-wallpaper-grid")
+        screenshot("52c-appearance-chat-background")
         // Below the wallpaper cards, which push it off a phone's screen.
         scrollDownTo(By.text("Soft"))
         tap(By.text("Soft"))

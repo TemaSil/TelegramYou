@@ -109,6 +109,13 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6
+
+- **Post your own story** from *My story* — a photo or a video, for everyone, contacts or close friends.
+- **Video speed** — 0.5×, 1.5× or 2×, kept for the next video.
+- **Picture-in-picture** — a video keeps playing in a small window when you leave.
+- **Calmer chat backgrounds** — Dots, Sparkles or Grid, and a solid top bar.
+
 ## New in 1.5
 
 - **App lock** — a PIN or your fingerprint in front of the app.
@@ -123,9 +130,9 @@ Every release and its notes: [Releases](https://github.com/TemaSil/TelegramYou/r
 
 ## Screenshots
 
-| Wallpapers | App lock | Selecting |
+| Chat background | App lock | Selecting |
 |:---:|:---:|:---:|
-| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/52c-appearance-wallpaper-grid.jpg" width="240" alt="Wallpapers"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/62-app-lock.jpg" width="240" alt="App lock"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/65-selection.jpg" width="240" alt="Selecting messages"> |
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/52c-appearance-chat-background.jpg" width="240" alt="Chat background"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/62-app-lock.jpg" width="240" alt="App lock"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/65-selection.jpg" width="240" alt="Selecting messages"> |
 
 | Contacts and places | Group | Search |
 |:---:|:---:|:---:|

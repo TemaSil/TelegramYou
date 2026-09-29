@@ -11,6 +11,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.activity.compose.BackHandler
@@ -89,7 +90,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import com.telegramyou.app.ui.common.rememberTextCopier
 import androidx.compose.ui.platform.LocalContext
@@ -440,6 +440,13 @@ fun ChatScreen(
         PANEL_DEFAULT_HEIGHT
     }
     val navBarHeight = with(density) { navInsets.getBottom(density).toDp() }
+    // How far the composer stands off the bottom of the list's Box, which
+    // runs under the navigation bar: the bar's height, except with the panel
+    // up, which stands under the composer and carries the inset itself. With
+    // the keyboard up the Box ends that far inside the keyboard (the screen's
+    // Column pads by the keyboard less the bar), so the same lift puts the
+    // capsule exactly on the keyboard.
+    val composerLift = if (expressionsOpen) 0.dp else navBarHeight
     BackHandler(enabled = expressionsOpen) { onExpressionsClose() }
 
     // What the open menu offers to react with: the message's own list, with
@@ -676,12 +683,14 @@ fun ChatScreen(
                         )
                     }
                 },
-                // Transparent, so the conversation's own gradient runs the
-                // full height of the screen instead of starting below a grey
-                // band. The bar's contents still read: they sit over the top
-                // of that gradient, which is the lightest part of it.
+                // One solid fill, the colour Material gives a top app bar
+                // with content scrolled beneath it — which a conversation
+                // always has. It was transparent, for a gradient that ran the
+                // full height of the screen; once the wallpapers became
+                // patterns, the pattern showed through the header and the
+                // status bar, and the owner asked for a fill (29 September).
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
             )
         }
@@ -699,15 +708,23 @@ fun ChatScreen(
                 // The wallpaper chosen in Appearance — the gradient that was
                 // always here unless another was picked; see chatWallpaper.
                 .chatWallpaper(LocalChatStyle.current.wallpaper)
-                // With the panel up it runs to the bottom of the screen,
-                // under the navigation bar as the keyboard does, so the
-                // inset below is left to the panel.
+                // No bottom inset: the conversation runs under the
+                // navigation bar to the bottom of the screen, as it runs
+                // under the capsule, rather than stopping on a strip of bare
+                // wallpaper there (the owner's word, 29 September). What must
+                // stay clear of the bar takes the inset itself: the
+                // composer's column, the list's last message, search
+                // results, and the panel, which stands where the keyboard
+                // does.
                 .padding(
                     start = padding.calculateStartPadding(LocalLayoutDirection.current),
                     top = padding.calculateTopPadding(),
-                    end = padding.calculateEndPadding(LocalLayoutDirection.current),
-                    bottom = if (expressionsOpen) 0.dp else padding.calculateBottomPadding()
+                    end = padding.calculateEndPadding(LocalLayoutDirection.current)
                 )
+                // The keyboard less the navigation bar it covers, said
+                // outright rather than left to whether the Scaffold consumed
+                // the bar: composerLift adds the bar back.
+                .consumeWindowInsets(WindowInsets.navigationBars)
                 .imePadding()
         ) {
             detail?.pinnedMessage?.let { pinned ->
@@ -733,7 +750,9 @@ fun ChatScreen(
                 // the finger is on.
                 ChatSearchResults(
                     search = state.search,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = composerLift),
                     // Any hit, however old. One older than what is loaded used
                     // to do nothing at all when tapped.
                     onOpen = { hit ->
@@ -765,7 +784,7 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 92.dp + botPanelPadding
+                        bottom = 92.dp + botPanelPadding + composerLift
                     ),
                     // Bottom, as a list laid out from the bottom has by
                     // default: a short conversation sits on the composer.
@@ -993,6 +1012,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .padding(bottom = composerLift)
             ) {
                 // Back to the newest message, once the conversation has been
                 // scrolled away from it — with how many are unread on it,

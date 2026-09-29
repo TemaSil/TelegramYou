@@ -33,7 +33,7 @@ SHOWCASE = [
     ("04-chat", "Conversation"),
     ("06-group-header", "Group"),
     ("57b-panel-expanded", "Emoji, GIFs and stickers"),
-    ("52c-appearance-wallpaper-grid", "Wallpapers"),
+    ("52c-appearance-chat-background", "Chat background"),
     ("52-appearance", "Appearance"),
     ("62-app-lock", "App lock"),
     ("65-selection", "Selecting messages"),
