@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
@@ -167,6 +168,16 @@ data class SearchState(
      */
     val posts: PostSearch? = null,
     val isSearchingPosts: Boolean = false,
+    /**
+     * Tracks from every chat matching [query], or null until the Music tab
+     * asks — searched only there, not on every keystroke of every tab.
+     */
+    val music: List<ChatMessage>? = null,
+    /** Where the music's next page starts, for the queue to go on from. */
+    val musicCursor: String? = null,
+    /** Chat titles for "from Material Sound" under each track. */
+    val musicFrom: Map<Long, String> = emptyMap(),
+    val isSearchingMusic: Boolean = false,
     // What the empty field shows: the search section's own front page.
     val topPeople: List<ChatPreview> = emptyList(),
     val recentChats: List<ChatPreview> = emptyList(),
@@ -199,6 +210,9 @@ class HomeViewModel(
 
     /** A post search in flight; see [SearchState.posts]. */
     private var postJob: Job? = null
+
+    /** A music search in flight; see [SearchState.music]. */
+    private var musicJob: Job? = null
 
     private val profileEditing = MutableStateFlow(ProfileEditing())
 
@@ -327,6 +341,31 @@ class HomeViewModel(
 
     fun onSearchScopeChange(scope: SearchScope) {
         search.update { it.copy(scope = scope) }
+        if (scope == SearchScope.Music && search.value.music == null) searchMusic(search.value.query)
+    }
+
+    /** Every chat's tracks for [query]; see [SearchState.music]. */
+    private fun searchMusic(query: String) {
+        musicJob?.cancel()
+        if (query.isBlank()) return
+        search.update { it.copy(isSearchingMusic = true) }
+        musicJob = viewModelScope.launch {
+            val (found, cursor) = runCatching { repository.allMusic(query, "", MUSIC_PAGE) }
+                .getOrDefault(emptyList<ChatMessage>() to null)
+            val titles = repository.chats.value.associate { it.id to it.title }
+            search.update {
+                if (it.query != query) {
+                    it
+                } else {
+                    it.copy(
+                        music = found,
+                        musicCursor = cursor,
+                        musicFrom = found.mapNotNull { m -> titles[m.chatId]?.let { t -> m.chatId to t } }.toMap(),
+                        isSearchingMusic = false
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -381,6 +420,7 @@ class HomeViewModel(
     fun onSearchQueryChange(query: String) {
         searchJob?.cancel()
         postJob?.cancel()
+        musicJob?.cancel()
         if (query.isBlank()) {
             search.value = search.value.copy(
                 query = query,
@@ -388,7 +428,9 @@ class HomeViewModel(
                 messages = emptyList(),
                 posts = null,
                 isSearching = false,
-                isSearchingPosts = false
+                isSearchingPosts = false,
+                music = null,
+                isSearchingMusic = false
             )
             return
         }
@@ -396,12 +438,15 @@ class HomeViewModel(
             query = query,
             isSearching = true,
             posts = null,
-            isSearchingPosts = false
+            isSearchingPosts = false,
+            music = null,
+            isSearchingMusic = false
         )
         searchJob = viewModelScope.launch {
             // Long enough that typing a word is one request rather than five,
             // short enough that it does not feel like waiting.
             delay(SEARCH_DEBOUNCE_MS)
+            if (search.value.scope == SearchScope.Music) searchMusic(query)
             // Both halves of one search, so the screen never shows chats
             // while still waiting on messages and looks half-finished.
             val chats = repository.searchChats(query)
@@ -710,5 +755,6 @@ class HomeViewModel(
 
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 250L
+        const val MUSIC_PAGE = 50
     }
 }

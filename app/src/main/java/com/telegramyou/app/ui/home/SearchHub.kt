@@ -62,12 +62,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.SearchScope
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.personShape
+import com.telegramyou.app.ui.chat.formatDuration
+import androidx.compose.material3.FilledTonalIconButton
 
 /**
  * What search can do besides take a query — grouped, because there are
@@ -82,7 +85,9 @@ data class SearchActions(
     val onRecentQueryPicked: (String) -> Unit = {},
     val onRecentQueriesCleared: () -> Unit = {},
     val onRecentChatRemoved: (Long) -> Unit = {},
-    val onRecentChatsCleared: () -> Unit = {}
+    val onRecentChatsCleared: () -> Unit = {},
+    /** A track on the Music tab: it plays, what was found as the queue. */
+    val onPlayTrack: (ChatMessage) -> Unit = {}
 )
 
 /**
@@ -411,10 +416,30 @@ private fun SearchResults(
                 }
             }
         }
+        if (scope.showsMusic) {
+            val music = search.music
+            when {
+                search.isSearchingMusic || music == null -> item(key = "music-loading") {
+                    Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                        LoadingIndicator()
+                    }
+                }
+                music.isEmpty() -> item(key = "music-none") { NothingFound("No music called “${search.query}”") }
+                else -> itemsIndexed(music, key = { _, m -> "music-${m.chatId}-${m.id}" }) { index, message ->
+                    TrackHitRow(
+                        message = message,
+                        from = search.musicFrom[message.chatId],
+                        index = index,
+                        count = music.size,
+                        onPlay = { actions.onPlayTrack(message) }
+                    )
+                }
+            }
+        }
         // Said only once the search has actually looked, so a slow query
         // does not report failure before it has an answer.
         val nothing = when {
-            scope.showsPosts -> false
+            scope.showsPosts || scope.showsMusic -> false
             scope == SearchScope.Messages -> search.messages.isEmpty()
             scope == SearchScope.All -> search.isEmpty
             else -> chats.isEmpty
@@ -583,5 +608,47 @@ private fun MessageHitRow(
             )
         },
         content = { Text(hit.chat.title, fontWeight = FontWeight.Bold, maxLines = 1) }
+    )
+}
+
+/**
+ * A track found on the Music tab: its title, its performer and length, and
+ * the chat it was sent in. Tapped, it plays, with the rest of what was found
+ * as the queue.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun TrackHitRow(
+    message: ChatMessage,
+    from: String?,
+    index: Int,
+    count: Int,
+    onPlay: () -> Unit
+) {
+    val audio = message.audio ?: return
+    SegmentedListItem(
+        onClick = onPlay,
+        shapes = ListItemDefaults.segmentedShapes(index = index, count = count),
+        colors = ListItemDefaults.segmentedColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        leadingContent = {
+            FilledTonalIconButton(onClick = onPlay, modifier = Modifier.size(40.dp)) {
+                Icon(Symbols.PlayArrowFilled, contentDescription = "Play ${audio.displayTitle}")
+            }
+        },
+        supportingContent = {
+            Text(
+                listOf(
+                    audio.performer,
+                    audio.durationSeconds.takeIf { it > 0 }?.let { formatDuration(it.toLong()) },
+                    from?.let { "from $it" }
+                ).filter { !it.isNullOrBlank() }.joinToString(" · "),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        content = { Text(audio.displayTitle, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
     )
 }

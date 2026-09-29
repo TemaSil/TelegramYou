@@ -1773,10 +1773,21 @@ class SmokeTest {
         }
         waitFor(By.text("Tonal Spot"), "the player on the new track")
 
-        // Kept in Saved Messages, and a sleep timer for the end of the track.
+        // Three ways through the queue, from one button's menu.
+        tap(By.desc("Order: In order"))
+        waitFor(By.text("Reversed"), "the order menu")
+        screenshot("78b-order")
+        tap(By.text("Reversed"))
+        waitFor(By.desc("Order: Reversed"), "the queue reversed")
+
+        // Kept in Saved Messages, which then plays as the queue — the same
+        // track, carrying on — and a sleep timer for the end of the track.
         tap(By.desc("More"))
         tap(By.text("Save to Saved Messages"))
         waitFor(By.text("Saved to Saved Messages"), "the track saved")
+        tap(By.text("Play saved"))
+        waitFor(By.text("Saved Messages"), "the player on Saved Messages' music")
+        waitFor(By.text("Tonal Spot"), "the saved track playing")
         tap(By.desc("More"))
         tap(By.text("Sleep timer"))
         tap(By.text("End of track"))
@@ -1810,6 +1821,27 @@ class SmokeTest {
         screenshot("80-my-music")
         tap(By.desc("Play Morning Light"))
         waitFor(By.desc("Now playing: Morning Light"), "the mini player over My music")
+
+        // And from search, on its Music tab.
+        device.pressBack()
+        tap(By.text("Search"))
+        waitFor(By.clazz("android.widget.EditText").focused(true), "the search field")
+        type("Tonal")
+        // The fifth tab: past the edge on a phone until the row scrolls.
+        repeat(4) {
+            if (device.wait(Until.hasObject(By.text("Music")), SHORT_WAIT)) return@repeat
+            try {
+                device.findObjects(By.scrollable(true))
+                    .minByOrNull { it.visibleBounds.height() }
+                    ?.scroll(Direction.RIGHT, 0.8f)
+            } catch (_: StaleObjectException) {
+            }
+        }
+        tap(By.text("Music"))
+        waitFor(By.textContains("from Material Sound"), "a track found in every chat's music")
+        screenshot("81-search-music")
+        tap(By.desc("Play Tonal Spot"))
+        waitFor(By.desc("Now playing: Tonal Spot"), "the mini player over search")
     }
 
     /**

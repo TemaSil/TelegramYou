@@ -1450,6 +1450,9 @@ class DemoTelegramClient(
                 id = messageId.incrementAndGet(),
                 chatId = toChatId,
                 isOutgoing = true,
+                // Sent now, as Telegram dates a forward: Saved Messages'
+                // music, newest first, starts with the track just saved.
+                date = System.currentTimeMillis() / 1000,
                 reactions = emptyList(),
                 isRead = false,
                 canBeEdited = false,

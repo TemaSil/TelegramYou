@@ -113,8 +113,9 @@ a wide screen the navigation becomes a rail.
 
 - **Shared media in tabs** — media, files, music, voice, links and GIFs, back to the first thing sent; files open in the app that reads them.
 - **A music player** in Material 3 Expressive: a mini player that follows you, a full player in each track's own colours, and the chat's whole music as a queue that never jumps.
-- **My music** — every chat's tracks in one place, searchable.
-- **Sleep timer, equaliser, save to Saved Messages, offline** — a whole chat's music onto the phone, and long tracks carry on where they stopped.
+- **My music** — every chat's tracks in one place, searchable, and a Music tab in search.
+- **Play it your way** — in order, reversed or shuffled, repeat one or all, 0.5× to 2×.
+- **Sleep timer, equaliser, Saved Messages as a library, offline** — save a track and play on from your saved music; a whole chat's music onto the phone; long tracks carry on where they stopped.
 
 ## New in 1.6.2
 
@@ -147,6 +148,10 @@ a wide screen the navigation becomes a rail.
 Every release and its notes: [Releases](https://github.com/TemaSil/TelegramYou/releases).
 
 ## Screenshots
+
+| Music player | Queue | Shared files |
+|:---:|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/78-player.jpg" width="240" alt="Music player"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/79-queue.jpg" width="240" alt="Queue"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/76-shared-files.jpg" width="240" alt="Shared files"> |
 
 | Chat background | App lock | Selecting |
 |:---:|:---:|:---:|

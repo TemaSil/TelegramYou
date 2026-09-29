@@ -248,9 +248,15 @@ these notes on how:
   - the sleep timer is `SleepTimer`;
   - the equaliser is the platform's panel, offered only where a phone has
     one.
-- **Still open:** the playlists of 1.6.4, album covers larger than
-  Telegram's thumbnail, and music in the global search tab — My music
-  covers finding a track.
+- **The base, finished before release:** the order is one button with a
+  menu — in order, reversed, shuffle — kept, with repeat, when another
+  chat's music becomes the queue; speed runs 0.5× to 2×; Save offers
+  "Play saved", which makes Saved Messages' music the queue and carries on
+  with the same track where it was; and search has a Music tab, whose
+  queue pages on with the same query (My music's too — it used to page on
+  with everything).
+- **Still open:** the playlists of 1.6.4, and album covers larger than
+  Telegram's thumbnail.
 
 **1.6.3 — next, on the owner's word of 29 September: files, properly.**
 A chat's shared media in tabs as the official client has them — photos and

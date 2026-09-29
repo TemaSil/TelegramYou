@@ -16,6 +16,8 @@ enum class SearchScope(val label: String) {
     Chats("Chats"),
     Messages("Messages"),
     Posts("Posts"),
+    /** Tracks from every chat, by title and performer. */
+    Music("Music"),
     Channels("Channels"),
     Groups("Groups"),
     Bots("Bots");
@@ -27,12 +29,13 @@ enum class SearchScope(val label: String) {
         Groups -> chat.isGroup
         Channels -> chat.isChannel
         Bots -> chat.isBot
-        Messages, Posts -> false
+        Messages, Posts, Music -> false
     }
 
-    val showsChats: Boolean get() = this != Messages && this != Posts
+    val showsChats: Boolean get() = this != Messages && this != Posts && this != Music
     val showsMessages: Boolean get() = this == All || this == Messages
     val showsPosts: Boolean get() = this == Posts
+    val showsMusic: Boolean get() = this == Music
 }
 
 /**

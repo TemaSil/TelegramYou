@@ -25,6 +25,7 @@ class SearchTest {
         assertEquals(listOf(channel), all.filter(SearchScope.Channels::admits))
         assertEquals(listOf(bot), all.filter(SearchScope.Bots::admits))
         assertTrue(all.none(SearchScope.Posts::admits))
+        assertTrue(all.none(SearchScope.Music::admits))
     }
 
     @Test
@@ -34,6 +35,9 @@ class SearchTest {
         assertFalse(SearchScope.Messages.showsChats)
         assertTrue(SearchScope.Posts.showsPosts)
         assertFalse(SearchScope.All.showsPosts)
+        assertTrue(SearchScope.Music.showsMusic)
+        assertFalse(SearchScope.Music.showsChats)
+        assertFalse(SearchScope.Music.showsMessages)
     }
 
     @Test

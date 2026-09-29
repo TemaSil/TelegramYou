@@ -170,6 +170,7 @@ fun TelegramYouNavHost(
             onStop = { music?.stop() },
             onSleep = { music?.setSleep(it) },
             onSave = { music?.saveToLibrary() },
+            onPlaySaved = { music?.playSaved(it) },
             onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
             onNoticeShown = { music?.onNoticeShown() },
             audioSession = { music?.audioSessionId ?: 0 }
@@ -383,7 +384,23 @@ fun TelegramYouNavHost(
                     onRecentQueryPicked = homeViewModel::onRecentQueryPicked,
                     onRecentQueriesCleared = homeViewModel::onRecentQueriesCleared,
                     onRecentChatRemoved = homeViewModel::onRecentChatRemoved,
-                    onRecentChatsCleared = homeViewModel::onRecentChatsCleared
+                    onRecentChatsCleared = homeViewModel::onRecentChatsCleared,
+                    // What was found is the queue, and goes on with more of
+                    // the same search as it is reached.
+                    onPlayTrack = { message ->
+                        val found = state.search
+                        if (nowPlaying.track?.messageId == message.id) {
+                            music?.toggle()
+                        } else {
+                            music?.playEverywhere(
+                                message,
+                                found.music.orEmpty(),
+                                found.musicCursor,
+                                query = found.query,
+                                title = "Music: ${found.query}"
+                            )
+                        }
+                    }
                 ),
                 onMutedChange = homeViewModel::onMutedChange,
                 onPinnedChange = homeViewModel::onPinnedChange,
@@ -731,7 +748,7 @@ fun TelegramYouNavHost(
                     if (nowPlaying.track?.messageId == message.id) {
                         music?.toggle()
                     } else {
-                        music?.playEverywhere(message, state.tracks, state.cursor)
+                        music?.playEverywhere(message, state.tracks, state.cursor, query = state.query)
                     }
                 },
                 musicBar = musicBar

@@ -9,8 +9,10 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil3.compose.AsyncImage
@@ -111,6 +113,8 @@ class MusicActions(
     val onStop: () -> Unit = {},
     val onSleep: (SleepTimer) -> Unit = {},
     val onSave: () -> Unit = {},
+    /** Saved Messages' music as the queue; see MusicPlayer.playSaved. */
+    val onPlaySaved: (Long) -> Unit = {},
     val onDownloadAll: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
     /** The player's audio session, for the platform's equaliser panel. */
@@ -273,9 +277,17 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
     val context = LocalContext.current
     val equaliser = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
     state.notice?.let { message ->
+        val savedTo = state.savedTo
         LaunchedEffect(message) {
-            host.showSnackbar(message)
+            // After a save, the library is a tap away: play from it.
+            val result = host.showSnackbar(
+                message,
+                actionLabel = savedTo?.let { "Play saved" },
+                // With an action a snackbar otherwise stays until dismissed.
+                duration = SnackbarDuration.Long
+            )
             actions.onNoticeShown()
+            if (result == SnackbarResult.ActionPerformed && savedTo != null) actions.onPlaySaved(savedTo)
         }
     }
     TrackTheme(track, state.coverSeed) {
@@ -440,11 +452,7 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val shuffled = state.queue.order == QueueOrder.Shuffled
-                    IconButton(
-                        onClick = { actions.onOrder(if (shuffled) QueueOrder.Listed else QueueOrder.Shuffled) },
-                        colors = if (shuffled) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
-                    ) { Icon(Symbols.Shuffle, contentDescription = if (shuffled) "Shuffle on" else "Shuffle off") }
+                    OrderButton(state.queue.order, actions.onOrder)
                     IconButton(
                         onClick = actions.onRepeat,
                         colors = if (state.queue.repeat != RepeatMode.Off) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
@@ -513,6 +521,45 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * Which way the queue plays — in order, reversed, or shuffled — as a button
+ * showing the current way and a menu of the three. Tonal when it is not
+ * plain order, the way repeat is tonal when it is on.
+ */
+@Composable
+private fun OrderButton(order: QueueOrder, onOrder: (QueueOrder) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        IconButton(
+            onClick = { open = true },
+            colors = if (order != QueueOrder.Listed) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
+        ) { Icon(orderIcon(order), contentDescription = "Order: ${order.label}") }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            QueueOrder.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.label) },
+                    leadingIcon = { Icon(orderIcon(option), contentDescription = null) },
+                    trailingIcon = if (option == order) {
+                        { Icon(Symbols.Check, contentDescription = null) }
+                    } else {
+                        null
+                    },
+                    onClick = {
+                        open = false
+                        onOrder(option)
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun orderIcon(order: QueueOrder) = when (order) {
+    QueueOrder.Listed -> Symbols.ArrowDownward
+    QueueOrder.Reversed -> Symbols.ArrowUpward
+    QueueOrder.Shuffled -> Symbols.Shuffle
 }
 
 private fun speedLabel(speed: Float): String =

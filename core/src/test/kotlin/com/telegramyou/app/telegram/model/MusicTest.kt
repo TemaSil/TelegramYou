@@ -92,6 +92,9 @@ class MusicTest {
     @Test
     fun `speed steps and comes back to normal`() {
         assertEquals(1.25f, nextMusicSpeed(1f))
+        assertEquals("half speed comes after the fastest", 0.5f, nextMusicSpeed(2f))
         assertEquals(1f, nextMusicSpeed(0.75f))
+        assertEquals(0.5f, MUSIC_SPEEDS.min())
+        assertEquals(2f, MUSIC_SPEEDS.max())
     }
 }

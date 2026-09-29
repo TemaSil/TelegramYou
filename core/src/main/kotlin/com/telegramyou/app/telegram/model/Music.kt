@@ -159,8 +159,12 @@ data class MusicQueue(
     }?.takeIf { it in tracks.indices }
 }
 
-/** Playback speeds the player offers for long audio, in the order a tap steps through. */
-val MUSIC_SPEEDS = listOf(1f, 1.25f, 1.5f, 2f, 0.75f)
+/**
+ * Playback speeds the player offers for long audio, 0.5× to 2×, in the
+ * order a tap steps through: faster first, then the slow ones on the way
+ * back round to 1×.
+ */
+val MUSIC_SPEEDS = listOf(1f, 1.25f, 1.5f, 2f, 0.5f, 0.75f)
 
 /** The speed after [speed] in [MUSIC_SPEEDS], back to 1× after the last. */
 fun nextMusicSpeed(speed: Float): Float {

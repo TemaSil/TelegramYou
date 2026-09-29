@@ -55,7 +55,12 @@ data class NowPlaying(
     /** A chat's music being fetched for offline: how far along. */
     val offline: OfflineProgress? = null,
     /** Said once: "Saved to Saved Messages". */
-    val notice: String? = null
+    val notice: String? = null,
+    /**
+     * Saved Messages, just after a track was saved there: the notice then
+     * offers to play from it, the library as the queue.
+     */
+    val savedTo: Long? = null
 ) {
     val track: Track? get() = queue.playing
     val progress: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
@@ -175,7 +180,12 @@ class MusicPlayer(
         val track = message.asTrack() ?: return
         val current = _state.value.queue
         val sameChat = current.chatId == track.chatId && current.tracks.isNotEmpty()
-        val base = if (sameChat) current else MusicQueue(chatId = track.chatId, sourceTitle = sourceTitle)
+        // A new chat's music is a new queue, played the way the last one was.
+        val base = if (sameChat) {
+            current
+        } else {
+            MusicQueue(chatId = track.chatId, sourceTitle = sourceTitle, order = current.order, repeat = current.repeat)
+        }
         val page = loaded.mapNotNull { it.asTrack() }.ifEmpty { listOf(track) }
         var queue = base.withMore(page, complete = complete && loaded.isNotEmpty())
         if (queue.indexOf(track.messageId) < 0) queue = queue.withMore(listOf(track), complete = queue.isComplete)
@@ -264,7 +274,7 @@ class MusicPlayer(
                 if (queue.chatId == MY_MUSIC) {
                     // Every chat's: the next page from where the last left off.
                     val cursor = myMusicCursor ?: return@runCatching emptyList()
-                    val (found, next) = repository.allMusic(cursor = cursor, limit = PAGE)
+                    val (found, next) = repository.allMusic(myMusicQuery, cursor, PAGE)
                     myMusicCursor = next
                     found
                 } else {
@@ -292,20 +302,32 @@ class MusicPlayer(
     /**
      * "My music": every chat's tracks as one queue, starting from [message].
      * [loaded] is what the screen has of it; the rest pages in from
-     * [cursor] as it is reached.
+     * [cursor] as it is reached — for the same [query], so a queue started
+     * from a search goes on with what matched rather than with everything.
      */
-    fun playEverywhere(message: ChatMessage, loaded: List<ChatMessage>, cursor: String?) {
+    fun playEverywhere(
+        message: ChatMessage,
+        loaded: List<ChatMessage>,
+        cursor: String?,
+        query: String = "",
+        title: String = "My music"
+    ) {
         val track = message.asTrack() ?: return
         myMusicCursor = cursor
-        var queue = MusicQueue(chatId = MY_MUSIC, sourceTitle = "My music")
+        myMusicQuery = query
+        val previous = _state.value.queue
+        var queue = MusicQueue(chatId = MY_MUSIC, sourceTitle = title, order = previous.order, repeat = previous.repeat)
             .withMore(loaded.mapNotNull { it.asTrack() }, complete = cursor == null)
         if (queue.indexOf(track.messageId) < 0) queue = queue.withMore(listOf(track), complete = queue.isComplete)
+        queue = queue.startingAt(queue.indexOf(track.messageId))
+        if (queue.order == QueueOrder.Shuffled) queue = queue.ordered(QueueOrder.Shuffled)
         keepPosition()
-        _state.update { it.copy(queue = queue.startingAt(queue.indexOf(track.messageId))) }
+        _state.update { it.copy(queue = queue) }
         startCurrent()
     }
 
     private var myMusicCursor: String? = null
+    private var myMusicQuery: String = ""
 
     // ── the seven extras (ROADMAP, 1.6.3) ──
 
@@ -377,9 +399,37 @@ class MusicPlayer(
             val done = runCatching {
                 repository.forwardMessages(track.chatId, listOf(track.messageId), saved, false)
             }.isSuccess
-            _state.update { it.copy(notice = if (done) "Saved to Saved Messages" else "Could not save it") }
+            _state.update {
+                it.copy(
+                    notice = if (done) "Saved to Saved Messages" else "Could not save it",
+                    // Offered only from another chat's queue: from Saved
+                    // Messages' own, the copy is already where it plays.
+                    savedTo = saved.takeIf { done && it != track.chatId }
+                )
+            }
         }
     }
+
+    /**
+     * Saved Messages' music as the queue — the library, newest first, so the
+     * track just saved is the one playing. It is the same file, so it
+     * carries on from where it was rather than starting over.
+     */
+    fun playSaved(chatId: Long) {
+        val playing = _state.value.track
+        val at = exo?.currentPosition ?: 0L
+        scope.launch {
+            val page = runCatching { repository.sharedMedia(chatId, SharedMediaKind.Music, 0L, PAGE) }
+                .getOrDefault(emptyList())
+            val first = page.firstOrNull() ?: return@launch
+            if (playing != null && first.asTrack()?.fileId == playing.fileId) carryOnFrom = at
+            keepPosition()
+            play(first, "Saved Messages", page, complete = page.size < PAGE)
+        }
+    }
+
+    /** Where the next track starts, once, when it is the one that was playing. */
+    private var carryOnFrom: Long? = null
 
     /**
      * Every track of a chat fetched onto the phone, for listening without a
@@ -413,7 +463,7 @@ class MusicPlayer(
         }
     }
 
-    fun onNoticeShown() = _state.update { it.copy(notice = null) }
+    fun onNoticeShown() = _state.update { it.copy(notice = null, savedTo = null) }
 
     private fun advance(auto: Boolean) {
         val queue = _state.value.queue
@@ -438,6 +488,7 @@ class MusicPlayer(
     /** The playing track's file, fetched if need be, into the player. */
     private fun startCurrent() {
         val track = _state.value.queue.playing ?: return
+        val carried = carryOnFrom.also { carryOnFrom = null }
         starting?.cancel()
         _state.update { it.copy(isLoading = true, positionMs = 0, durationMs = track.durationSeconds * 1000L, coverSeed = null) }
         fetchCover(track)
@@ -471,7 +522,7 @@ class MusicPlayer(
             player.playbackParameters = PlaybackParameters(_state.value.speed)
             player.prepare()
             // A long track carries on where it was left; see resumeFrom.
-            resumeFrom(track.durationSeconds, positions.getLong(positionKey(track), 0))?.let(player::seekTo)
+            (carried ?: resumeFrom(track.durationSeconds, positions.getLong(positionKey(track), 0)))?.let(player::seekTo)
             player.play()
             // The session, and with it the notification, from the first track.
             // Started, not started in the foreground: Media3 moves the service
