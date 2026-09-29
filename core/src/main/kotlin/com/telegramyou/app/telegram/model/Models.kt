@@ -211,6 +211,20 @@ data class StoryItem(
 )
 
 /**
+ * Who a story this account posts is shown to — the three the official
+ * client offers first. "Selected people" is left for when there is a picker
+ * worth having for it.
+ */
+enum class StoryAudience(val label: String) {
+    Everyone("Everyone"),
+    Contacts("My contacts"),
+    CloseFriends("Close friends")
+}
+
+/** The longest video Telegram takes as a story, in seconds. */
+const val STORY_VIDEO_MAX_SECONDS = 60
+
+/**
  * One story inside a [StoryItem], as the viewer plays it.
  *
  * [fileId] is what TDLib downloads by, and [localPath] is set when the file is

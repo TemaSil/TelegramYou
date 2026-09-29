@@ -54,4 +54,20 @@ class PlaybackTest {
     fun `an unknown duration shows the position alone`() {
         assertEquals("0:07", playbackLabel(7_400, DURATION_UNKNOWN, ::formatDuration))
     }
+
+    @Test
+    fun `speeds step round and come back to normal`() {
+        assertEquals(1.5f, nextPlaybackSpeed(1f))
+        assertEquals(2f, nextPlaybackSpeed(1.5f))
+        assertEquals(0.5f, nextPlaybackSpeed(2f))
+        assertEquals(1f, nextPlaybackSpeed(0.5f))
+        assertEquals(1f, nextPlaybackSpeed(3f))
+    }
+
+    @Test
+    fun `a speed reads without a trailing zero`() {
+        assertEquals("1×", playbackSpeedLabel(1f))
+        assertEquals("1.5×", playbackSpeedLabel(1.5f))
+        assertEquals("0.5×", playbackSpeedLabel(0.5f))
+    }
 }

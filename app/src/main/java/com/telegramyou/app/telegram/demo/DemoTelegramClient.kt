@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.StoryAudience
 import com.telegramyou.app.telegram.model.placePickedEmoji
 import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.LocationContent
@@ -1297,6 +1298,14 @@ class DemoTelegramClient(
     override suspend fun storyFrames(storyId: Long): List<StoryFrame> {
         val story = _stories.value.firstOrNull { it.id == storyId } ?: return emptyList()
         return listOf(StoryFrame(id = 1, caption = story.caption, isSeen = !story.hasUnseen))
+    }
+
+    /** Stories posted in the demo: kept, not shown anywhere yet. */
+    private val postedStories = mutableListOf<String>()
+
+    override suspend fun postStory(uri: String, isVideo: Boolean, caption: String, audience: StoryAudience) {
+        delay(600)
+        postedStories += uri
     }
 
     override suspend fun markStorySeen(storyId: Long, frameId: Int) {

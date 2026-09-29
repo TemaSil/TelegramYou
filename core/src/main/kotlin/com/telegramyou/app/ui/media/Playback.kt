@@ -53,3 +53,22 @@ fun playbackLabel(
     if (durationMs <= 0L) return position
     return "$position / ${format(durationMs / 1000)}"
 }
+
+/**
+ * The speeds a video steps through, a tap each: the usual 1×, then faster,
+ * then slower, then back — the official client's set without its menu.
+ */
+val PLAYBACK_SPEEDS = listOf(1f, 1.5f, 2f, 0.5f)
+
+/** The speed after [current], round the list; 1× from anything not on it. */
+fun nextPlaybackSpeed(current: Float): Float {
+    val at = PLAYBACK_SPEEDS.indexOf(current)
+    return if (at < 0) 1f else PLAYBACK_SPEEDS[(at + 1) % PLAYBACK_SPEEDS.size]
+}
+
+/** "1×", "1.5×", "0.5×" — no ".0" on a whole speed. */
+fun playbackSpeedLabel(speed: Float): String {
+    val whole = speed.toInt()
+    val number = if (speed == whole.toFloat()) whole.toString() else speed.toString()
+    return "$number×"
+}

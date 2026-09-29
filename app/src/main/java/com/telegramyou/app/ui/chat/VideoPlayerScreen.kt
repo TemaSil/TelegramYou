@@ -42,6 +42,15 @@ import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
+import com.telegramyou.app.ui.media.PictureInPicture
+import com.telegramyou.app.ui.media.playbackSpeedLabel
+import com.telegramyou.app.ui.media.nextPlaybackSpeed
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextButton
 import com.telegramyou.app.telegram.model.VideoContent
 import androidx.compose.material3.LinearProgressIndicator
 import com.telegramyou.app.ui.media.FileTransfer
@@ -108,6 +117,9 @@ fun VideoPage(
     // out from under the finger.
     var scrubbing by remember { mutableStateOf(false) }
     var scrubFraction by remember { mutableFloatStateOf(0f) }
+    // One speed for every video, kept while the app runs: a person who
+    // watches at 1.5× wants the next one at 1.5× too.
+    var speed by remember { mutableFloatStateOf(lastPlaybackSpeed) }
 
     // One player for the life of this dialog, released with it. A player left
     // running holds a codec, and codecs are a fixed and small number.
@@ -122,6 +134,23 @@ fun VideoPage(
                 repeatMode = Player.REPEAT_MODE_ONE
             }
         }
+    }
+
+    LaunchedEffect(player, speed) { player?.setPlaybackSpeed(speed) }
+
+    // Picture-in-picture: wanted while this page's video is playing, so
+    // leaving the app keeps it going in a small window; in that window the
+    // controls have no room and are left out.
+    val inPip by PictureInPicture.active
+    val pipAspect = remember(video.aspect) { PictureInPicture.aspectOf(video.aspect) }
+    LaunchedEffect(player, isPlaying) {
+        PictureInPicture.wanted.value = if (player != null && isPlaying) pipAspect else null
+    }
+    DisposableEffect(Unit) { onDispose { PictureInPicture.wanted.value = null } }
+    // Sent away for good — the PiP window closed, or the app left without
+    // one — it stops, rather than playing on where nobody can see it.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        if (!PictureInPicture.active.value) player?.pause()
     }
 
     DisposableEffect(player) {
@@ -216,76 +245,110 @@ fun VideoPage(
             )
         }
 
-        IconButton(
-            onClick = onClose,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(8.dp)
-        ) {
-            Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            if (title.isNotBlank()) {
-                Text(
-                    title,
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+        // In the PiP window only the picture: there is no room for controls.
+        if (!inPip) {
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+            ) {
+                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Slider(
-                    value = if (scrubbing) {
-                        scrubFraction
-                    } else {
-                        playbackProgress(position, duration) ?: 0f
-                    },
-                    onValueChange = { value ->
-                        scrubbing = true
-                        scrubFraction = value
-                    },
-                    onValueChangeFinished = {
-                        val target = seekTarget(scrubFraction, duration)
-                        player?.seekTo(target)
-                        position = target
-                        scrubbing = false
-                    },
-                    enabled = player != null && duration > 0,
-                    modifier = Modifier
-                        .padding(end = 12.dp)
-                        .weight(1f)
-                )
-                Text(
-                    playbackLabel(position, duration, ::formatDuration),
-                    color = Color.White,
-                    style = MaterialTheme.typography.labelMedium
-                )
-                // At the end of the row, where the thumb rests, on the
-                // owner's word; the scrubber takes the width before it.
-                FilledIconButton(
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                // The speed, a tap a step: 1×, 1.5×, 2×, 0.5×. A text button —
+                // what it says is the state, and there are only four of them.
+                TextButton(
                     onClick = {
-                        player ?: return@FilledIconButton
-                        if (player.isPlaying) player.pause() else player.play()
+                        speed = nextPlaybackSpeed(speed)
+                        lastPlaybackSpeed = speed
                     },
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .size(48.dp)
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
+                    modifier = Modifier.semantics {
+                        contentDescription = "Playback speed ${playbackSpeedLabel(speed)}"
+                    }
                 ) {
-                    Icon(
-                        if (isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
-                        contentDescription = if (isPlaying) "Pause" else "Play"
+                    Text(playbackSpeedLabel(speed), style = MaterialTheme.typography.labelLarge)
+                }
+                // Into the small window now, rather than on leaving.
+                if (player != null) {
+                    IconButton(onClick = { PictureInPicture.enter(context, pipAspect) }) {
+                        Icon(Symbols.PictureInPictureAlt, contentDescription = "Picture in picture", tint = Color.White)
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (title.isNotBlank()) {
+                    Text(
+                        title,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
                     )
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Slider(
+                        value = if (scrubbing) {
+                            scrubFraction
+                        } else {
+                            playbackProgress(position, duration) ?: 0f
+                        },
+                        onValueChange = { value ->
+                            scrubbing = true
+                            scrubFraction = value
+                        },
+                        onValueChangeFinished = {
+                            val target = seekTarget(scrubFraction, duration)
+                            player?.seekTo(target)
+                            position = target
+                            scrubbing = false
+                        },
+                        enabled = player != null && duration > 0,
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .weight(1f)
+                    )
+                    Text(
+                        playbackLabel(position, duration, ::formatDuration),
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    // At the end of the row, where the thumb rests, on the
+                    // owner's word; the scrubber takes the width before it.
+                    FilledIconButton(
+                        onClick = {
+                            player ?: return@FilledIconButton
+                            if (player.isPlaying) player.pause() else player.play()
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(48.dp)
+                    ) {
+                        Icon(
+                            if (isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
+                            contentDescription = if (isPlaying) "Pause" else "Play"
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+/** The speed the last video was left at, for the next one; see VideoPage. */
+private var lastPlaybackSpeed = 1f

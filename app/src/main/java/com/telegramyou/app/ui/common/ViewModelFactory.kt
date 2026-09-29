@@ -21,6 +21,7 @@ import com.telegramyou.app.ui.settings.DevicesViewModel
 import com.telegramyou.app.ui.settings.StorageViewModel
 import com.telegramyou.app.ui.settings.PrivacyViewModel
 import com.telegramyou.app.ui.stories.StoryViewModel
+import com.telegramyou.app.ui.stories.NewStoryViewModel
 
 /**
  * Builds the screen state holders, all of which need the repository.
@@ -43,6 +44,7 @@ fun telegramViewModelFactory(
         initializer { HomeViewModel(repository, queryHistory) }
         initializer { ChatViewModel(repository, createSavedStateHandle()) }
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
+        initializer { NewStoryViewModel(repository) }
         initializer { NewChatViewModel(repository) }
         initializer { ProxyViewModel(repository) }
         initializer { DevicesViewModel(repository) }

@@ -90,7 +90,11 @@ notices within a day. Roughly in the order to do them:
     (a sheet of the chat list with ticks), chat types and what to leave
     out (`FolderRules` in `:core`, with Telegram's membership rule in
     `contains`). Colour tags and shared folders are not offered yet.
-11. **Posting a story** — they can be watched, not made.
+11. ~~**Posting a story**~~ — done 29 September (1.6): "My story" opens
+    New story — a recent photo from the strip or anything from Android's
+    photo picker, a caption, who sees it (everyone, contacts, close friends,
+    as segmented buttons), then `postStory` from the account's own chat,
+    after `canPostStory` has said yes. No editor on the picture yet.
 12. ~~**App lock**~~ — done 29 September (1.5): a PIN (PBKDF2 hash only)
     and the platform's BiometricPrompt, auto-lock after a chosen time on
     the monotonic clock, the app silent to TalkBack behind it and blank
@@ -203,9 +207,16 @@ wallpaper that shipped, so none goes missing unasked.
 - ~~Still missing: Premium custom-emoji packs in the emoji tab~~ — in
   1.5.1, see below.
 
+**1.6 — 29 September, stories and video (the owner chose the theme):**
+posting a story (item 11 above); videos at 0.5×, 1×, 1.5× and 2× from a
+text button in the player, the speed kept for the next video
+(`nextPlaybackSpeed` in `:core`); and picture-in-picture — a video left
+playing goes into the system's small window on the way out (auto-enter
+from Android 12, onUserLeaveHint before), or from the player's own
+button, with the controls left out while it is small (`PictureInPicture`).
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
-and permissions; invite-link management; video playback
-speed and picture-in-picture; recording round video messages; a photo
+and permissions; invite-link management; recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;
 translation; languages (last, on purpose).

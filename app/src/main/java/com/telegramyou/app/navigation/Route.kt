@@ -139,6 +139,12 @@ sealed interface Route {
     }
 
     /** Settings → Privacy → App lock. */
+    /** Posting a story, from "My story" at the head of the rail. */
+    data object NewStory : Route {
+        const val PATTERN = "stories/new"
+        override val path = PATTERN
+    }
+
     data object AppLock : Route {
         const val PATTERN = "privacy/lock"
         override val path = PATTERN

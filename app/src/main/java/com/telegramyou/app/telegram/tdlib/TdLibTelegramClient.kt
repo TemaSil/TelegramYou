@@ -1,5 +1,8 @@
 package com.telegramyou.app.telegram.tdlib
 
+import android.media.MediaMetadataRetriever
+import com.telegramyou.app.telegram.model.STORY_VIDEO_MAX_SECONDS
+import com.telegramyou.app.telegram.model.StoryAudience
 import com.telegramyou.app.telegram.model.placePickedEmoji
 import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ContactContent
@@ -2177,6 +2180,80 @@ class TdLibTelegramClient(
      * Opening a story is what tells Telegram it was seen. Opened and closed
      * again straight away: a story left open keeps TDLib polling for it.
      */
+    override suspend fun postStory(uri: String, isVideo: Boolean, caption: String, audience: StoryAudience) {
+        awaitReady()
+        // A story from the account itself is posted through its Saved
+        // Messages chat, whose id is the account's own; made sure of first,
+        // since canPostStory only knows chats TDLib has loaded.
+        val me = _authState.value.me?.id ?: fetchMe()?.id ?: error("Not signed in")
+        requireEngine().send(JSONObject().put("@type", "createPrivateChat").put("user_id", me).put("force", false))
+        val can = requireEngine().send(JSONObject().put("@type", "canPostStory").put("chat_id", me))
+        storyRefusal(can)?.let { error(it) }
+        val path = copyUriToCache(uri, if (isVideo) "story.mp4" else "story.jpg")
+        val file = JSONObject().put("@type", "inputFileLocal").put("path", path)
+        val content = if (isVideo) {
+            val seconds = videoSeconds(path)
+            if (seconds > STORY_VIDEO_MAX_SECONDS) error("A story video can be at most a minute long")
+            JSONObject()
+                .put("@type", "inputStoryContentVideo")
+                .put("video", file)
+                .put("added_sticker_file_ids", JSONArray())
+                .put("duration", seconds)
+                .put("cover_frame_timestamp", 0.0)
+                .put("is_animation", false)
+        } else {
+            JSONObject()
+                .put("@type", "inputStoryContentPhoto")
+                .put("photo", file)
+                .put("added_sticker_file_ids", JSONArray())
+        }
+        val privacy = when (audience) {
+            StoryAudience.Everyone -> JSONObject()
+                .put("@type", "storyPrivacySettingsEveryone").put("except_user_ids", JSONArray())
+            StoryAudience.Contacts -> JSONObject()
+                .put("@type", "storyPrivacySettingsContacts").put("except_user_ids", JSONArray())
+            StoryAudience.CloseFriends -> JSONObject().put("@type", "storyPrivacySettingsCloseFriends")
+        }
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "postStory")
+                .put("chat_id", me)
+                .put("content", content)
+                .put("caption", formatted(caption))
+                .put("privacy_settings", privacy)
+                .put("album_ids", JSONArray())
+                .put("active_period", STORY_ACTIVE_SECONDS)
+                .put("is_posted_to_chat_page", true)
+                .put("protect_content", false)
+        )
+        // The story uploads from here on; TDLib says how it went with
+        // updateStoryPostSucceeded or updateStoryPostFailed.
+    }
+
+    /** What canPostStory's answer means for a person, or null for go ahead. */
+    private fun storyRefusal(answer: JSONObject): String? = when (answer.optString("@type")) {
+        "canPostStoryResultOk" -> null
+        "canPostStoryResultPremiumNeeded" -> "Posting more stories needs Telegram Premium"
+        "canPostStoryResultActiveStoryLimitExceeded" -> "You have as many stories up as Telegram allows"
+        "canPostStoryResultWeeklyLimitExceeded" -> "That is this week's limit of stories"
+        "canPostStoryResultMonthlyLimitExceeded" -> "That is this month's limit of stories"
+        "canPostStoryResultBoostNeeded" -> "This chat needs boosts to post stories"
+        else -> null
+    }
+
+    /** A video file's length in seconds, as Telegram wants it for a story. */
+    private fun videoSeconds(path: String): Double {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            (retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000.0
+        } catch (_: RuntimeException) {
+            0.0
+        } finally {
+            retriever.release()
+        }
+    }
+
     override suspend fun markStorySeen(storyId: Long, frameId: Int) {
         val chatId = storyKeys[storyId] ?: return
         // Seen to the end: the circle's ring goes grey now rather than when
@@ -4003,3 +4080,6 @@ private const val MY_MESSAGES_PAGE = 100
 
 /** How many pages "delete all my messages" goes through before stopping. */
 private const val MY_MESSAGES_PAGES = 50
+
+/** How long a posted story stays up: a day, as every client posts them. */
+private const val STORY_ACTIVE_SECONDS = 86_400

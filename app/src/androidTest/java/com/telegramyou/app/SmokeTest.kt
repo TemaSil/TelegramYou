@@ -332,6 +332,36 @@ class SmokeTest {
     }
 
     /**
+     * A video goes into picture-in-picture from the player's button: the
+     * window manager is asked whether the app's task is pinned, since the
+     * small window is the system's and not something the app can be looked
+     * into for. The app is opened again at the end, full size.
+     */
+    @Test
+    fun aVideoGoesPictureInPicture() {
+        signIn()
+        waitFor(By.text(NOTIFYING_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(NOTIFYING_CHAT))
+        waitFor(By.textContains("ButtonGroup"), "the conversation")
+        tap(By.desc("Photos in this chat"))
+        val poster = By.descContains(VIDEO_CAPTION)
+        waitFor(poster, "the video in the media grid")
+        tap(poster)
+        waitFor(By.desc("Pause"), "the player, playing")
+        tap(By.desc("Picture in picture"))
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        var pinned = false
+        while (!pinned && SystemClock.uptimeMillis() < deadline) {
+            pinned = device.executeShellCommand("dumpsys activity activities").contains("mode=pinned")
+            if (!pinned) SystemClock.sleep(500)
+        }
+        screenshot("69-picture-in-picture")
+        assertTrue("the video never went into picture-in-picture", pinned)
+        launchApp()
+    }
+
+    /**
      * A video message, opened and played.
      *
      * The demo build ships a four-second clip precisely so this can be
@@ -383,6 +413,14 @@ class SmokeTest {
             "the clip did not advance: $label",
             label != null && !label.startsWith("0:00")
         )
+
+        // The speed steps on a tap, and says so.
+        tap(By.desc("Playback speed 1×"))
+        waitFor(By.desc("Playback speed 1.5×"), "the video at one and a half")
+        tap(By.desc("Playback speed 1.5×"))
+        tap(By.desc("Playback speed 2×"))
+        tap(By.desc("Playback speed 0.5×"))
+        waitFor(By.desc("Playback speed 1×"), "the speed back to normal")
 
         // And the other video, whose file has not arrived: opening it starts
         // a download, and what the player shows while that runs is the bar
@@ -492,6 +530,29 @@ class SmokeTest {
         // above them.
         scrollDownTo(By.textContains("Leave"))
         scrollDownTo(By.text("Members"))
+    }
+
+    /**
+     * A story posted from "My story": a recent photo from the strip,
+     * contacts only, Post — and the screen goes back to the list.
+     */
+    @Test
+    fun aStoryIsPostedFromMyStory() {
+        signIn()
+        waitFor(By.text("My story"), "the stories rail")
+        awaitNoHeadsUp()
+        tap(By.text("My story"))
+        waitFor(By.text("New story"), "the new story screen")
+        allowPhotos()
+        waitFor(By.desc("Recent photo"), "a recent photo to post")
+        tap(By.desc("Recent photo"))
+        waitFor(By.desc("Story picture"), "the picture chosen")
+        // No caption typed: the keyboard would stand over the buttons
+        // below it, and a caption is optional.
+        tap(By.text("My contacts"))
+        screenshot("68-new-story")
+        tap(By.text("Post story"))
+        waitFor(By.text("Material Design"), "the chat list after posting")
     }
 
     /**

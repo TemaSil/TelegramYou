@@ -48,9 +48,17 @@
         android:theme="@style/Theme.TelegramYou"
         android:enableOnBackInvokedCallback="true">
 
+        <!--
+            Picture-in-picture for a video left playing (see PictureInPicture).
+            The size changes PiP makes are handled in place, so the player is
+            not torn down and restarted from the beginning on the way in;
+            turning the phone still recreates the activity as before.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:supportsPictureInPicture="true"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.TelegramYou" />
 

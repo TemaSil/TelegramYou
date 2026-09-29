@@ -1,5 +1,10 @@
 package com.telegramyou.app
 
+import com.telegramyou.app.ui.media.PictureInPicture
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.snapshotFlow
+import android.content.res.Configuration
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
@@ -81,6 +86,17 @@ class MainActivity : ComponentActivity() {
         // a foreground service begun before anything is on screen is a
         // notification for an app the person has not opened.
         TelegramForegroundService.start(this)
+        // What the player wants, handed to the window as it changes: with a
+        // video playing, leaving the app takes it into PiP by itself.
+        lifecycleScope.launch {
+            snapshotFlow { PictureInPicture.wanted.value }.collect { aspect ->
+                try {
+                    setPictureInPictureParams(PictureInPicture.params(aspect))
+                } catch (_: IllegalStateException) {
+                } catch (_: IllegalArgumentException) {
+                }
+            }
+        }
         setContent {
             // Collected rather than read: flipping a switch in settings has to
             // change the colours behind it, not on the next launch.
@@ -159,6 +175,29 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // ── picture-in-picture ────────────────────────────────────────────────
+    // The player asks through PictureInPicture.wanted; the window is this
+    // activity's, so this is where it is acted on. From Android 12 the
+    // system enters PiP by itself on the way out (auto-enter, set with the
+    // params); before that, leaving is noticed here and PiP asked for.
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        val aspect = PictureInPicture.wanted.value ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            try {
+                enterPictureInPictureMode(PictureInPicture.params(aspect))
+            } catch (_: IllegalStateException) {
+            } catch (_: IllegalArgumentException) {
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        PictureInPicture.active.value = isInPictureInPictureMode
     }
 
     override fun onNewIntent(intent: Intent) {

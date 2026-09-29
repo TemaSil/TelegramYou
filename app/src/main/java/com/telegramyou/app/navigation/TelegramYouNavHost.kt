@@ -8,6 +8,8 @@ import com.telegramyou.app.ui.folders.FolderEditViewModel
 import com.telegramyou.app.ui.folders.FoldersScreen
 import com.telegramyou.app.ui.folders.FoldersViewModel
 import com.telegramyou.app.ui.chat.LocalFileLoader
+import com.telegramyou.app.ui.stories.NewStoryViewModel
+import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
@@ -297,7 +299,10 @@ fun TelegramYouNavHost(
                 settings = appearanceSettings,
                 onRefresh = homeViewModel::refresh,
                 onOpenChat = openChat,
-                onOpenStory = { story -> navController.navigateTo(Route.Story(story.id)) },
+                // "My story" makes one; every other circle is watched.
+                onOpenStory = { story ->
+                    navController.navigateTo(if (story.isOwn) Route.NewStory else Route.Story(story.id))
+                },
                 onSearchExpandedChange = { expanded ->
                     homeViewModel.onSearchExpandedChange(expanded)
                     // Back on an empty search page leaves for the chat list,
@@ -524,6 +529,20 @@ fun TelegramYouNavHost(
                 appLockSummary = appLock?.settings?.collectAsStateWithLifecycle()?.value?.let { lock ->
                     if (lock.enabled) "On · ${lock.autoLock.label.replaceFirstChar(Char::lowercase)}" else "Off"
                 } ?: "Off"
+            )
+        }
+        composable(Route.NewStory.PATTERN) {
+            val newStoryViewModel: NewStoryViewModel = viewModel(factory = viewModelFactory)
+            val state by newStoryViewModel.uiState.collectAsStateWithLifecycle()
+            NewStoryScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onPicked = newStoryViewModel::onPicked,
+                onCaptionChange = newStoryViewModel::onCaptionChange,
+                onAudienceChange = newStoryViewModel::onAudienceChange,
+                onPost = newStoryViewModel::onPost,
+                onErrorShown = newStoryViewModel::onErrorShown,
+                onPosted = { navController.popBackStack() }
             )
         }
         composable(Route.AppLock.PATTERN) {
