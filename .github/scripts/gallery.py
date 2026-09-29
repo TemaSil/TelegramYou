@@ -11,7 +11,7 @@ Run by the UI workflow with the gallery branch checked out at GALLERY:
     python3 gallery.py SCREENSHOTS GALLERY VERSION SHA
 
 Only the showcase below is kept, at half size and as JPEG. A run is about
-thirty full-size PNGs and several megabytes; this is sixteen pictures
+thirty full-size PNGs and several megabytes; this is some thirty pictures
 and well under a megabyte, which a branch that only ever grows
 can afford. PNG at the same size was still more than twice as heavy, and at
 half size the compression is not what anybody will be looking at.
@@ -32,6 +32,16 @@ SHOWCASE = [
     ("03-chats", "Chat list"),
     ("04-chat", "Conversation"),
     ("06-group-header", "Group"),
+    ("57b-panel-expanded", "Emoji, GIFs and stickers"),
+    ("52c-appearance-wallpaper-grid", "Wallpapers"),
+    ("52-appearance", "Appearance"),
+    ("62-app-lock", "App lock"),
+    ("65-selection", "Selecting messages"),
+    ("63-contact-and-place", "Contacts and places"),
+    ("66-jumbo-emoji", "Emoji"),
+    ("44a-message-menu", "Reactions"),
+    ("60-gallery", "Photo viewer"),
+    ("56-folders", "Folders"),
     ("31-video-note", "Video messages"),
     ("34-poll", "Polls"),
     ("35-bot", "Bot buttons"),
