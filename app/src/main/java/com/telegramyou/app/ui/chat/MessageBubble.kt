@@ -149,6 +149,17 @@ internal fun MessageBubble(
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
+    // The bubble's long-press, handed to a photo, video or GIF inside it as
+    // well: those are clickable themselves, so they take the press before
+    // the bubble sees it, and a long one used to open the viewer.
+    val onBubbleLongClick = {
+        if (isSelecting) {
+            onSelect()
+        } else {
+            menuOpen = true
+            onMenuOpened()
+        }
+    }
     // Settings → For geeks, which adds to this bubble's gestures and menu.
     val geeks = LocalGeekSettings.current
     var detailsOpen by remember { mutableStateOf(false) }
@@ -351,14 +362,7 @@ internal fun MessageBubble(
                     // menu on a plain tap the rest of the time would fire on
                     // every scroll that ends on a bubble.
                     onClick = { if (isSelecting) onSelect() },
-                    onLongClick = {
-                        if (isSelecting) {
-                            onSelect()
-                        } else {
-                            menuOpen = true
-                            onMenuOpened()
-                        }
-                    },
+                    onLongClick = onBubbleLongClick,
                     // Only when one is chosen: a double-tap handler makes every
                     // single tap wait to see whether a second is coming.
                     onDoubleClick = when (geeks.doubleTap) {
@@ -444,7 +448,8 @@ internal fun MessageBubble(
                         AlbumGrid(
                             photos = album,
                             onVisible = onAlbumPhotoVisible,
-                            onOpen = onAlbumPhotoOpened,
+                            onOpen = { if (isSelecting) onSelect() else onAlbumPhotoOpened(it) },
+                            onLongClick = onBubbleLongClick,
                             captionColor = if (outgoing) MaterialTheme.colorScheme.onPrimary
                             else MaterialTheme.colorScheme.onSurface
                         )
@@ -461,7 +466,8 @@ internal fun MessageBubble(
                             caption = message.text,
                             outgoing = outgoing,
                             onVisible = onPhotoVisible,
-                            onOpen = onPhotoOpened
+                            onOpen = { if (isSelecting) onSelect() else onPhotoOpened() },
+                            onLongClick = onBubbleLongClick
                         )
                     }
                     MessageContentType.Video -> {
@@ -490,7 +496,8 @@ internal fun MessageBubble(
                                 transfer = video.fileId?.let { transfers[it] }
                                     ?: video.thumbFileId?.let { transfers[it] },
                                 onPosterVisible = onPhotoVisible,
-                                onOpen = onVideoOpened
+                                onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
+                                onLongClick = onBubbleLongClick
                             )
                         }
                     }
@@ -512,7 +519,8 @@ internal fun MessageBubble(
                                     !(!outgoing && isFirstInRun && sender != null),
                                 transfer = gif.fileId?.let { transfers[it] },
                                 onVisible = onPhotoVisible,
-                                onOpen = onVideoOpened
+                                onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
+                                onLongClick = onBubbleLongClick
                             )
                         }
                     }

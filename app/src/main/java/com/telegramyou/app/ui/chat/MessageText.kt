@@ -10,6 +10,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.InlineTextContent
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -181,7 +182,8 @@ internal fun AlbumGrid(
     photos: List<ChatMessage>,
     onVisible: (ChatMessage) -> Unit,
     onOpen: (ChatMessage) -> Unit,
-    captionColor: Color
+    captionColor: Color,
+    onLongClick: () -> Unit = {}
 ) {
     val rows = buildList {
         if (photos.size % 2 == 1) add(photos.take(1))
@@ -199,6 +201,7 @@ internal fun AlbumGrid(
                         wide = row.size == 1,
                         onVisible = { onVisible(photo) },
                         onOpen = { onOpen(photo) },
+                        onLongClick = onLongClick,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -216,6 +219,7 @@ private fun AlbumCell(
     wide: Boolean,
     onVisible: () -> Unit,
     onOpen: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier
 ) {
     val path = photo.photoPath
@@ -224,7 +228,7 @@ private fun AlbumCell(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
             .aspectRatio(if (wide) 16f / 9f else 1f)
-            .clickable(enabled = path != null, onClick = onOpen)
+            .combinedClickable(enabled = path != null, onClick = onOpen, onLongClick = onLongClick)
     ) {
         if (path != null) {
             AsyncImage(

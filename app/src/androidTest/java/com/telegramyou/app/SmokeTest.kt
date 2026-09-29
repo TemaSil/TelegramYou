@@ -467,7 +467,6 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
-        waitFor(By.text("Members"), "the member list")
         waitFor(By.textContains("Leave"), "the way out of the group")
         screenshot("12-chat-info")
 
@@ -485,6 +484,10 @@ class SmokeTest {
         tap(By.text("1 hour"))
         waitFor(By.textStartsWith("Off until"), "the chat muted for an hour")
         screenshot("27-chat-notifications")
+
+        // The members, which come after everything above: since the invite
+        // link grew its Share and Revoke they start below the first screen.
+        scrollDownTo(By.text("Members"))
     }
 
     /**
@@ -1657,7 +1660,8 @@ class SmokeTest {
         waitFor(By.textContains("Figma dump"), "the group")
         awaitNoHeadsUp()
         tapTopmost(By.text(GROUP_CHAT))
-        waitFor(By.text("Members"), "the member list")
+        waitFor(By.text("Info"), "the info screen")
+        scrollDownTo(By.text("Members"))
         scrollDownTo(By.text("Nadia Orlova"))
         tap(By.text("Nadia Orlova"))
         waitFor(By.text("Send message"), "Nadia's profile")
@@ -2046,8 +2050,16 @@ class SmokeTest {
         waitFor(By.text("Open in Maps"), "the place's button")
         scrollBackTo(By.text("Sasha Kim"), "the contact card")
         screenshot("63-contact-and-place")
-        tap(By.text("Add"))
-        waitFor(By.textStartsWith("Sasha Kim "), "the answer to Add")
+        // Pressed again if nothing answers: the list can still be gliding
+        // from the scroll that found the card, and a tap on a moving list
+        // only stops it. Adding twice is harmless — the number is the key.
+        val answer = By.textStartsWith("Sasha Kim ")
+        repeat(3) {
+            if (device.hasObject(answer)) return@repeat
+            tap(By.text("Add"))
+            device.wait(Until.hasObject(answer), SHORT_WAIT)
+        }
+        waitFor(answer, "the answer to Add")
         backTo(By.text("Material Design"), "the chat list")
     }
 

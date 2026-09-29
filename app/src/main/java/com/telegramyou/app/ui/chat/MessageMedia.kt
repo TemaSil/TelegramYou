@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -265,7 +266,9 @@ internal fun PhotoMessage(
     outgoing: Boolean,
     transfer: FileTransfer?,
     onVisible: () -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
+    onLongClick: () -> Unit = {}
 ) {
     LaunchedEffect(path) {
         if (path == null) onVisible()
@@ -284,7 +287,7 @@ internal fun PhotoMessage(
                 // tall photo would fill the screen on its own.
                 .aspectRatio(aspect.coerceIn(0.6f, 1.9f))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .clickable(onClick = onOpen),
+                .combinedClickable(onClick = onOpen, onLongClick = onLongClick),
             contentAlignment = Alignment.Center
         ) {
             if (path == null) {
@@ -394,7 +397,9 @@ internal fun VideoMessage(
     framed: Boolean = true,
     transfer: FileTransfer?,
     onPosterVisible: () -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
+    onLongClick: () -> Unit = {}
 ) {
     LaunchedEffect(video.thumbPath) {
         if (video.thumbPath == null) onPosterVisible()
@@ -414,7 +419,7 @@ internal fun VideoMessage(
                 .fillMaxWidth()
                 .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .clickable(onClick = onOpen)
+                .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 // One description for the whole thing, on the part that is
                 // tappable. The poster, the play button and the duration are
                 // three nodes describing one object, and a screen reader
@@ -508,7 +513,9 @@ internal fun AnimationMessage(
     framed: Boolean = true,
     transfer: FileTransfer?,
     onVisible: () -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
+    onLongClick: () -> Unit = {}
 ) {
     LaunchedEffect(gif.path, gif.thumbPath) {
         if (gif.path == null || gif.thumbPath == null) onVisible()
@@ -520,7 +527,7 @@ internal fun AnimationMessage(
                 .fillMaxWidth()
                 .aspectRatio(gif.aspect.coerceIn(0.6f, 1.9f))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                .clickable(onClick = onOpen)
+                .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 .semantics(mergeDescendants = true) {
                     contentDescription = if (caption.isBlank() || caption == "GIF") "GIF" else "GIF, $caption"
                 },
