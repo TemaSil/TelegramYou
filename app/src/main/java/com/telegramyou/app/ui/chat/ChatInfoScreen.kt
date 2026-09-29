@@ -366,7 +366,8 @@ fun ChatInfoScreen(
             if (chat != null) {
                 item(key = "media") {
                     ListItem(
-                        headlineContent = { Text("Photos and videos") },
+                        headlineContent = { Text("Shared media") },
+                        supportingContent = { Text("Photos, files, music, voice and links") },
                         leadingContent = { Icon(Symbols.PhotoLibrary, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = onOpenMedia)
                     )

@@ -1733,6 +1733,52 @@ class SmokeTest {
     }
 
     /**
+     * A chat's shared media, a tab per kind: its files, one of them opened in
+     * whatever the phone reads it with; its links; and a tab with nothing in
+     * it saying so rather than spinning.
+     */
+    @Test
+    fun sharedMediaHasATabPerKind() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        awaitNoHeadsUp()
+        tapTopmost(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the info screen")
+        scrollDownTo(By.text("Shared media"))
+        tap(By.text("Shared media"))
+        waitFor(By.text("Files"), "the tabs")
+
+        tap(By.text("Files"))
+        waitFor(By.text("Expressive-guidelines.pdf"), "the group's files")
+        screenshot("76-shared-files")
+        // Opened in another app — or, on an emulator with nothing that reads
+        // text, said so. Either way, not a crash, and back to the tab.
+        tap(By.text("release-notes.txt"))
+        SystemClock.sleep(2_500)
+        screenshot("76b-file-opened")
+        backTo(By.text("Expressive-guidelines.pdf"), "the files tab again")
+
+        tap(By.text("Music"))
+        waitFor(By.text("No music here yet"), "an empty tab saying so")
+
+        // Past the tabs a phone's width shows, by swiping the pages as a
+        // person would: Music, Voice, Links.
+        repeat(2) {
+            device.swipe(
+                (device.displayWidth * 0.85).toInt(), device.displayHeight / 2,
+                (device.displayWidth * 0.15).toInt(), device.displayHeight / 2,
+                12
+            )
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+        waitFor(By.text("m3.material.io"), "the link Noor sent")
+        screenshot("76c-shared-links")
+    }
+
+    /**
      * Running a group as its owner: a member made admin from their menu,
      * what members may do switched on the permissions screen, and a link
      * made that lasts a day and lets ten in.
