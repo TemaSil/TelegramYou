@@ -271,6 +271,38 @@ Only opening another chat's music replaces the queue. A search over the queue
 and a jump back to what is playing come with it, and the list lives on its
 own screen or the player's sheet, not in a popup a stray tap closes.
 
+**1.6.2 — 29 September, a small media step.** Music files already played —
+the ROADMAP said otherwise and was stale — and now seek on Material's slider;
+the demo's song is a chime it writes itself, so it plays offline. A story
+this account posted is in the rail as "My story" and opens in the viewer
+(the add entry becomes "Add story"). New story previews a chosen video.
+Recording round video messages moved out of it: it needs CameraX, whose
+versions cannot be read from where this is written — the Build workflow
+prints them now — and a camera screen is not a thing to add blind.
+
+**1.6.4 — the owner's idea: a music library, as an experiment.** Off by
+default, under For geeks. Every track in every chat
+(`searchMessages` with `searchMessagesFilterAudio`) as a music app would
+lay it out:
+- **Albums, artists, tracks and playlists.** Telegram's audio carries a title
+  and a performer but no album, so tracks group by performer and cover at
+  once and by their own tags (`MediaMetadataRetriever`) once downloaded.
+  Playlists are Saved Messages and the music channels.
+- **Album and artist pages** with the cover, its colour on the player, Play
+  all and Shuffle.
+- **A home** with Material's carousel of what arrived lately and what to
+  carry on with.
+- **Social**, which no music app has:
+  - who sent each track, where and when, a tap away from the message;
+  - "What your chats are playing", the newest music from friends and
+    channels, which is honestly "what they send": Telegram does not say who
+    listened;
+  - what was forwarded and reacted to most;
+  - a reaction from the player onto the message itself;
+  - Share, and Reply to whoever sent it.
+
+Built on 1.6.3's player and queue. Indexed and kept on the phone only.
+
 **Later, polish rather than basics:** recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;

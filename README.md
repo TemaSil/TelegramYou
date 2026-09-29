@@ -109,6 +109,11 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.2
+
+- **Music files** play with a slider to drag anywhere in the track.
+- **Your own story** in the stories row, opening like anyone's; a picked video previews before posting.
+
 ## New in 1.6.1
 
 - **Admins and permissions** — admins with the rights and title you choose; stop someone writing or remove them; what members may do; a search over the members.

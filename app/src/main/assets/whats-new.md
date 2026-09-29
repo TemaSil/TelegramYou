@@ -1,5 +1,4 @@
-# Groups
-- Admins with the rights and title you choose; stop someone writing or remove them
-- Permissions for everyone, and a search over a group's members
-- Invite links with a time limit, a head count or approval, and join requests
-- Forums open onto their topics: read, write, start, rename or close one
+# Music and stories
+- Music files play with a bar you can drag to any point in the track
+- Your posted story shows in the stories row as My story, and opens like anyone's
+- A video you pick for a story plays in the preview before you post it
