@@ -1499,19 +1499,29 @@ a live-updating chat as much as it was groundwork for notifications.
       group, which asks first and bans for a minute so they can come back.
       Permissions is a screen of switches over `setChatPermissions`, media
       folded into one. What is offered comes from `memberActions` in `:core`.
-      Custom admin rights and titles are not editable yet
+      Making or editing an admin opens a bottom sheet with their title
+      (`setChatMemberTag`, 16 characters, no emoji) and a switch per right
+      (`AdminRight`; a basic group has only the title). A search over the
+      members filters what is loaded and asks `searchChatMembers` for the
+      rest
 - [x] Invite links — since 1.6.1 a screen of every link this account made:
       the primary one and others with a name, a time limit (hour, day,
       week, never) and a number of people (1, 10, 100, any), each with who
       joined and what is left (`inviteLinkSummary`); copy, share, revoke,
-      and revoked ones listed below. Join requests are not offered
+      and revoked ones listed below. A link can ask first ("Admins approve
+      new members", no head count then); the info screen shows how many are
+      waiting, and Join requests adds or dismisses them
+      (`getChatJoinRequests`, `processChatJoinRequest`)
 - [x] Forum topics — since 1.6.1 a forum opens onto its topics (General,
       pinned, the rest, each in its colour with its newest line and unread
       count) rather than onto one conversation. A topic opens in the usual
       conversation screen: `setOpenTopic` points history, paging, every send
       and the draft at it (`getForumTopicHistory`, `topic_id`), and arrivals
-      from other topics are left out. New topic starts one. Closing,
-      editing and icons are not offered yet; drafts are not kept per topic
+      from other topics are left out. New topic starts one; an admin who may
+      manage topics renames, closes, reopens or deletes one from its menu
+      (General only renames). Each topic keeps its own draft
+      (`saveTopicDraft`), shown in the list as the chat list shows one.
+      Topic icons are not offered yet
 - [~] Invite links, the primary one — the primary link is shown and copied where the server
       offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
       and never created: a screen that minted a link because it wanted

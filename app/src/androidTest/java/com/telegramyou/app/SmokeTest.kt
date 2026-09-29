@@ -1743,8 +1743,32 @@ class SmokeTest {
         scrollDownTo(By.desc("Manage Pavel Gromov"))
         tap(By.desc("Manage Pavel Gromov"))
         tap(By.text("Make admin"))
+        // His rights first, in a sheet: one more switched on, then saved.
+        waitFor(By.text("Make Pavel Gromov an admin"), "the admin rights sheet")
+        tap(By.text("Add new admins"))
+        screenshot("70b-admin-rights")
+        tap(By.text("Make admin"))
         waitFor(By.text("Pavel Gromov is an admin now"), "Pavel made an admin")
         screenshot("70-group-members")
+
+        // The members found by name, the rest out of the list meanwhile.
+        type("orl")
+        waitFor(By.text("Nadia Orlova"), "Nadia found")
+        assertTrue(
+            "Pavel still listed while searching for Nadia",
+            device.wait(Until.gone(By.text("Pavel Gromov")), SHORT_WAIT)
+        )
+        device.findObject(By.clazz("android.widget.EditText"))?.text = ""
+        device.waitForIdle(IDLE_TIMEOUT)
+
+        // Two people asked to join through a link that asks first.
+        scrollBackTo(By.text("Join requests"), "the join requests row")
+        tap(By.text("Join requests"))
+        waitFor(By.text("Ilya Brand"), "Ilya's request")
+        screenshot("72b-join-requests")
+        tap(By.text("Add to group"))
+        waitFor(By.textEndsWith("joined the group"), "somebody let in")
+        backTo(By.text("Info"), "the info screen again")
 
         scrollBackTo(By.text("Permissions"), "the permissions row")
         tap(By.text("Permissions"))
@@ -1792,13 +1816,24 @@ class SmokeTest {
         tap(By.desc("Send"))
         waitFor(By.text("Screenshots next"), "the message sent into the topic")
         screenshot("74-forum-topic")
+        // Half a thought left in the field is the topic's draft, and the
+        // topic list says so. Past the second the draft waits to be kept.
+        type("Half a thought")
+        SystemClock.sleep(1_800)
 
         backTo(By.text("New topic"), "the topics again")
+        waitFor(By.text("Draft: Half a thought"), "the topic's draft in the list")
         tap(By.text("New topic"))
         waitFor(By.text("Topic name"), "the new topic dialog")
         type("Screenshots")
         tap(By.text("Create"))
         waitFor(By.text("Screenshots"), "the new topic in the list")
+
+        // Its admin can close it from its menu.
+        tap(By.desc("Manage Screenshots"))
+        tap(By.text("Close topic"))
+        waitFor(By.text("Screenshots is closed"), "the topic closed")
+        waitFor(By.desc("Closed"), "the closed mark on it")
     }
 
     /**

@@ -61,6 +61,11 @@ import com.telegramyou.app.telegram.model.sortedForList
 import com.telegramyou.app.ui.groups.GroupUiState
 import com.telegramyou.app.ui.groups.ManagedMemberRow
 import com.telegramyou.app.ui.groups.RemoveMemberDialog
+import com.telegramyou.app.ui.groups.AdminRightsSheet
+import com.telegramyou.app.telegram.model.AdminRights
+import com.telegramyou.app.telegram.model.matchingMembers
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Badge
 import com.telegramyou.app.ui.components.AvatarBubble
 import kotlinx.coroutines.launch
 
@@ -118,7 +123,11 @@ fun ChatInfoScreen(
     onOpenInviteLinks: () -> Unit = {},
     onOpenTopics: () -> Unit = {},
     onGroupNoticeShown: () -> Unit = {},
-    onGroupErrorShown: () -> Unit = {}
+    onGroupErrorShown: () -> Unit = {},
+    onAdminSaved: (AdminRights, String) -> Unit = { _, _ -> },
+    onAdminEditDismissed: () -> Unit = {},
+    onMemberQuery: (String) -> Unit = {},
+    onOpenJoinRequests: () -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -156,6 +165,15 @@ fun ChatInfoScreen(
             snackbarHostState.showSnackbar(message)
             onNoticeShown()
         }
+    }
+    group?.editingAdmin?.let { member ->
+        AdminRightsSheet(
+            member = member,
+            isForum = group?.management?.isForum == true,
+            isBasicGroup = group?.management?.isBasicGroup == true,
+            onDismiss = onAdminEditDismissed,
+            onSave = onAdminSaved
+        )
     }
     group?.confirmingRemoval?.let { member ->
         RemoveMemberDialog(
@@ -378,6 +396,23 @@ fun ChatInfoScreen(
                     )
                 }
             }
+            val waiting = group?.joinRequests.orEmpty()
+            if (management?.rights?.canInviteUsers == true && waiting.isNotEmpty()) {
+                item(key = "join-requests") {
+                    ListItem(
+                        headlineContent = { Text("Join requests") },
+                        supportingContent = { Text("People asking to join through a link") },
+                        leadingContent = { Icon(Symbols.PersonAdd, contentDescription = null) },
+                        trailingContent = {
+                            Badge(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ) { Text(waiting.size.toString()) }
+                        },
+                        modifier = Modifier.clickable(onClick = onOpenJoinRequests)
+                    )
+                }
+            }
             if (management?.rights?.canInviteUsers == true) {
                 item(key = "invite-links") {
                     ListItem(
@@ -457,7 +492,43 @@ fun ChatInfoScreen(
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
                     )
                 }
-                items(sortedForList(managed), key = { it.user.id }) { member ->
+                // A search over them where there are enough to need one:
+                // what is loaded filters at once, and the server's answer
+                // follows for the members a big group did not list.
+                if (managed.size > MEMBER_SEARCH_FROM) {
+                    item(key = "members-search") {
+                        OutlinedTextField(
+                            value = group?.memberQuery.orEmpty(),
+                            onValueChange = onMemberQuery,
+                            placeholder = { Text("Search members") },
+                            leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+                val query = group?.memberQuery.orEmpty()
+                val shown = if (query.isBlank()) {
+                    sortedForList(managed)
+                } else {
+                    // The server's finds and the local ones, once each.
+                    val local = matchingMembers(managed, query)
+                    val remote = group?.memberResults.orEmpty().filter { found -> local.none { it.user.id == found.user.id } }
+                    sortedForList(local + remote)
+                }
+                if (shown.isEmpty()) {
+                    item(key = "members-none") {
+                        Text(
+                            "Nobody by that name",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                }
+                items(shown, key = { it.user.id }) { member ->
                     ManagedMemberRow(
                         member = member,
                         actions = if (management == null) {
@@ -583,3 +654,6 @@ private fun NotificationSettingsSection(
         )
     }
 }
+
+/** How many members a group has before its list gets a search. */
+private const val MEMBER_SEARCH_FROM = 5

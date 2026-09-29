@@ -73,6 +73,9 @@ import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupMember
 import com.telegramyou.app.telegram.model.GroupPermissions
 import com.telegramyou.app.telegram.model.InviteLink
+import com.telegramyou.app.telegram.model.AdminRights
+import com.telegramyou.app.telegram.model.JoinRequest
+import com.telegramyou.app.telegram.model.adminTitle
 import com.telegramyou.app.telegram.model.MemberAction
 import com.telegramyou.app.telegram.model.MemberRole
 import com.telegramyou.app.telegram.model.TOPIC_COLORS
@@ -1440,22 +1443,7 @@ class TdLibTelegramClient(
                         .put("limit", MANAGED_MEMBER_LIMIT)
                 ).optJSONArray("members")
             }
-            val members = mutableListOf<GroupMember>()
-            for (index in 0 until (entries?.length() ?: 0)) {
-                val entry = entries?.optJSONObject(index) ?: continue
-                val sender = entry.optJSONObject("member_id") ?: continue
-                if (sender.optString("@type") != "messageSenderUser") continue
-                val status = entry.optJSONObject("status")
-                val role = roleOf(status) ?: continue
-                val user = userOf(sender.optLong("user_id")) ?: continue
-                members += GroupMember(
-                    user = user,
-                    role = role,
-                    // The admin's title is the member's tag since TDLib moved it.
-                    title = entry.optString("tag"),
-                    canBeEdited = status?.optBoolean("can_be_edited") == true
-                )
-            }
+            val members = groupMembersFrom(entries, isBasic)
             GroupManagement(
                 rights = rightsOf(group.optJSONObject("status"), isBasic),
                 members = members,
@@ -1469,14 +1457,162 @@ class TdLibTelegramClient(
         }
     }
 
+    /** `chatMember` entries as the group's members, with their standing. */
+    private suspend fun groupMembersFrom(entries: JSONArray?, isBasic: Boolean): List<GroupMember> {
+        val members = mutableListOf<GroupMember>()
+        for (index in 0 until (entries?.length() ?: 0)) {
+            val entry = entries?.optJSONObject(index) ?: continue
+            val sender = entry.optJSONObject("member_id") ?: continue
+            if (sender.optString("@type") != "messageSenderUser") continue
+            val status = entry.optJSONObject("status")
+            val role = roleOf(status) ?: continue
+            val user = userOf(sender.optLong("user_id")) ?: continue
+            members += GroupMember(
+                user = user,
+                role = role,
+                // The admin's title is the member's tag since TDLib moved it.
+                title = entry.optString("tag"),
+                canBeEdited = status?.optBoolean("can_be_edited") == true,
+                adminRights = if (role == MemberRole.Admin) adminRightsOf(status, isBasic) else null
+            )
+        }
+        return members
+    }
+
+    override suspend fun searchGroupMembers(chatId: Long, query: String): List<GroupMember> {
+        awaitReady()
+        return try {
+            val (isBasic, _, _) = groupOf(chatId) ?: return emptyList()
+            val found = requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMembers")
+                    .put("chat_id", chatId)
+                    .put("query", query.trim().removePrefix("@"))
+                    .put("limit", MEMBER_SEARCH_LIMIT)
+                    // No filter: everybody, whatever their standing.
+                    .put("filter", JSONObject.NULL)
+            )
+            groupMembersFrom(found.optJSONArray("members"), isBasic)
+        } catch (e: Throwable) {
+            Log.w(TAG, "searchGroupMembers: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun promoteMember(chatId: Long, userId: Long, rights: AdminRights, title: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatMemberStatus")
+                .put("chat_id", chatId)
+                .put("member_id", JSONObject().put("@type", "messageSenderUser").put("user_id", userId))
+                .put(
+                    "status",
+                    JSONObject()
+                        .put("@type", "chatMemberStatusAdministrator")
+                        .put("can_be_edited", true)
+                        .put("rights", rights.toJson())
+                )
+        )
+        // The title is the member's tag, set on its own since TDLib split it
+        // out; an empty one clears it.
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatMemberTag")
+                .put("chat_id", chatId)
+                .put("user_id", userId)
+                .put("tag", adminTitle(title))
+        )
+    }
+
+    override suspend fun joinRequests(chatId: Long): List<JoinRequest> {
+        awaitReady()
+        return try {
+            val answer = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getChatJoinRequests")
+                    .put("chat_id", chatId)
+                    .put("invite_link", "")
+                    .put("query", "")
+                    .put("offset_request", JSONObject.NULL)
+                    .put("limit", JOIN_REQUEST_LIMIT)
+            )
+            val requests = answer.optJSONArray("requests") ?: return emptyList()
+            (0 until requests.length()).mapNotNull { index ->
+                val request = requests.optJSONObject(index) ?: return@mapNotNull null
+                val user = userOf(request.optLong("user_id")) ?: return@mapNotNull null
+                JoinRequest(user = user, date = request.optLong("date"), bio = request.optString("bio"))
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "joinRequests: ${e.message}")
+            emptyList()
+        }
+    }
+
+    override suspend fun processJoinRequest(chatId: Long, userId: Long, approve: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "processChatJoinRequest")
+                .put("chat_id", chatId)
+                .put("user_id", userId)
+                .put("approve", approve)
+        )
+    }
+
+    override suspend fun renameForumTopic(chatId: Long, topicId: Int, name: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "editForumTopic")
+                .put("chat_id", chatId)
+                .put("forum_topic_id", topicId)
+                .put("name", name.trim())
+                .put("edit_icon_custom_emoji", false)
+                .put("icon_custom_emoji_id", 0)
+        )
+    }
+
+    override suspend fun setForumTopicClosed(chatId: Long, topicId: Int, closed: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "toggleForumTopicIsClosed")
+                .put("chat_id", chatId)
+                .put("forum_topic_id", topicId)
+                .put("is_closed", closed)
+        )
+    }
+
+    override suspend fun deleteForumTopic(chatId: Long, topicId: Int) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "deleteForumTopic")
+                .put("chat_id", chatId)
+                .put("forum_topic_id", topicId)
+        )
+    }
+
+    override suspend fun saveTopicDraft(chatId: Long, topicId: Int, text: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setChatDraftMessage")
+                .put("chat_id", chatId)
+                .put("topic_id", forumTopic(topicId))
+                .put("draft_message", draftOf(text))
+        )
+    }
+
     override suspend fun applyMemberAction(chatId: Long, userId: Long, action: MemberAction) {
         awaitReady()
         val member = JSONObject().put("@type", "messageSenderUser").put("user_id", userId)
         val status = when (action) {
-            MemberAction.MakeAdmin -> JSONObject()
+            MemberAction.MakeAdmin, MemberAction.EditAdmin -> JSONObject()
                 .put("@type", "chatMemberStatusAdministrator")
                 .put("can_be_edited", true)
-                .put("rights", defaultAdminRights())
+                .put("rights", AdminRights().toJson())
             MemberAction.RemoveAdmin, MemberAction.Unrestrict -> JSONObject()
                 .put("@type", "chatMemberStatusMember")
                 .put("member_until_date", 0)
@@ -1541,7 +1677,13 @@ class TdLibTelegramClient(
         return out
     }
 
-    override suspend fun createInviteLink(chatId: Long, name: String, expiresAt: Long, memberLimit: Int): InviteLink? {
+    override suspend fun createInviteLink(
+        chatId: Long,
+        name: String,
+        expiresAt: Long,
+        memberLimit: Int,
+        createsJoinRequest: Boolean
+    ): InviteLink? {
         awaitReady()
         val link = requireEngine().send(
             JSONObject()
@@ -1549,8 +1691,9 @@ class TdLibTelegramClient(
                 .put("chat_id", chatId)
                 .put("name", name.trim())
                 .put("expiration_date", expiresAt)
-                .put("member_limit", memberLimit)
-                .put("creates_join_request", false)
+                // Telegram refuses a limit on a link that asks first.
+                .put("member_limit", if (createsJoinRequest) 0 else memberLimit)
+                .put("creates_join_request", createsJoinRequest)
         )
         return inviteLinkOf(link)
     }
@@ -1596,7 +1739,12 @@ class TdLibTelegramClient(
                 unreadCount = topic.optInt("unread_count"),
                 isPinned = topic.optBoolean("is_pinned"),
                 isClosed = info.optBoolean("is_closed"),
-                isGeneral = info.optBoolean("is_general")
+                isGeneral = info.optBoolean("is_general"),
+                draft = topic.optJSONObject("draft_message")
+                    ?.optJSONObject("input_message_text")
+                    ?.optJSONObject("text")
+                    ?.optString("text")
+                    .orEmpty()
             )
         }
     }
@@ -1813,24 +1961,11 @@ class TdLibTelegramClient(
 
     override suspend fun saveDraft(chatId: Long, text: String) {
         awaitReady()
-        val draft = if (text.isBlank()) {
-            JSONObject.NULL
-        } else {
-            JSONObject()
-                .put("@type", "draftMessage")
-                .put(
-                    "input_message_text",
-                    JSONObject()
-                        .put("@type", "inputMessageText")
-                        .put("text", JSONObject().put("@type", "formattedText").put("text", text))
-                )
-        }
         requireEngine().send(
             JSONObject()
                 .put("@type", "setChatDraftMessage")
                 .put("chat_id", chatId)
-                .inOpenTopic(chatId)
-                .put("draft_message", draft)
+                .put("draft_message", draftOf(text))
         )
     }
 
@@ -4319,6 +4454,12 @@ class TdLibTelegramClient(
 
         /** Members listed for running a group — Telegram's page size for them. */
         private const val MANAGED_MEMBER_LIMIT = 200
+
+        /** Members found by a search over a group's members. */
+        private const val MEMBER_SEARCH_LIMIT = 50
+
+        /** Join requests listed at once. */
+        private const val JOIN_REQUEST_LIMIT = 100
 
         /** Links listed of each kind, working and revoked. */
         private const val INVITE_LINK_LIMIT = 50

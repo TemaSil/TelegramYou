@@ -12,11 +12,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,7 +60,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.telegramyou.app.telegram.model.ADMIN_TITLE_MAX
+import com.telegramyou.app.telegram.model.AdminRight
+import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.JoinRequest
+import com.telegramyou.app.telegram.model.MemberRole
+import com.telegramyou.app.telegram.model.TopicAction
+import com.telegramyou.app.telegram.model.topicActions
 import com.telegramyou.app.telegram.model.GroupMember
 import com.telegramyou.app.telegram.model.GroupPermission
 import com.telegramyou.app.telegram.model.InviteLink
@@ -64,7 +79,9 @@ import com.telegramyou.app.telegram.model.memberRoleLabel
 import com.telegramyou.app.ui.common.rememberTextCopier
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.personShape
+import com.telegramyou.app.ui.format.chatListTimeLabel
 import com.telegramyou.app.ui.icons.Symbols
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /** A screen's one-off lines — done, or refused — said in its snackbar. */
@@ -284,7 +301,7 @@ fun RemoveMemberDialog(member: GroupMember, groupTitle: String, onDismiss: () ->
 fun InviteLinksScreen(
     state: GroupUiState,
     onBack: () -> Unit,
-    onCreate: (String, LinkExpiry, LinkLimit) -> Unit,
+    onCreate: (String, LinkExpiry, LinkLimit, Boolean) -> Unit,
     onRevoke: (InviteLink) -> Unit,
     onNoticeShown: () -> Unit,
     onErrorShown: () -> Unit
@@ -300,9 +317,9 @@ fun InviteLinksScreen(
     if (creating) {
         NewLinkDialog(
             onDismiss = { creating = false },
-            onCreate = { name, expiry, limit ->
+            onCreate = { name, expiry, limit, asksFirst ->
                 creating = false
-                onCreate(name, expiry, limit)
+                onCreate(name, expiry, limit, asksFirst)
             }
         )
     }
@@ -441,10 +458,11 @@ private fun LinkRow(link: InviteLink, now: Long, onCopy: () -> Unit, onShare: ()
  * official client's sliders come down to.
  */
 @Composable
-private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, LinkLimit) -> Unit) {
+private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, LinkLimit, Boolean) -> Unit) {
     var name by rememberSaveable { mutableStateOf("") }
     var expiry by rememberSaveable { mutableStateOf(LinkExpiry.Never) }
     var limit by rememberSaveable { mutableStateOf(LinkLimit.Unlimited) }
+    var asksFirst by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Link, contentDescription = null) },
@@ -469,20 +487,29 @@ private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, 
                         ) { Text(option.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
                     }
                 }
-                Text("People who can join", style = MaterialTheme.typography.titleSmall)
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    LinkLimit.entries.forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = limit == option,
-                            onClick = { limit = option },
-                            shape = SegmentedButtonDefaults.itemShape(index, LinkLimit.entries.size),
-                            icon = {}
-                        ) { Text(option.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
+                // Asking first and a head count do not go together: Telegram
+                // refuses a limit on a link an admin approves.
+                ListItem(
+                    headlineContent = { Text("Admins approve new members") },
+                    trailingContent = { Switch(checked = asksFirst, onCheckedChange = { asksFirst = it }) },
+                    modifier = Modifier.clickable { asksFirst = !asksFirst }
+                )
+                if (!asksFirst) {
+                    Text("People who can join", style = MaterialTheme.typography.titleSmall)
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        LinkLimit.entries.forEachIndexed { index, option ->
+                            SegmentedButton(
+                                selected = limit == option,
+                                onClick = { limit = option },
+                                shape = SegmentedButtonDefaults.itemShape(index, LinkLimit.entries.size),
+                                icon = {}
+                            ) { Text(option.label, maxLines = 1, style = MaterialTheme.typography.labelMedium) }
+                        }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onCreate(name, expiry, limit) }) { Text("Create") } },
+        confirmButton = { TextButton(onClick = { onCreate(name, expiry, limit, asksFirst) }) { Text("Create") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
@@ -500,11 +527,47 @@ fun TopicsScreen(
     onOpenInfo: () -> Unit,
     onCreateTopic: (String) -> Unit,
     onNoticeShown: () -> Unit,
-    onErrorShown: () -> Unit
+    onErrorShown: () -> Unit,
+    onTopicAction: (ForumTopic, TopicAction) -> Unit = { _, _ -> },
+    onTopicRenamed: (String) -> Unit = {},
+    onTopicDeleteConfirmed: () -> Unit = {},
+    onTopicDialogDismissed: () -> Unit = {}
 ) {
     val host = remember { SnackbarHostState() }
     var creating by rememberSaveable { mutableStateOf(false) }
     Announce(host, state.notice, state.errorMessage, onNoticeShown, onErrorShown)
+
+    state.renamingTopic?.let { topic ->
+        var name by rememberSaveable(topic.id) { mutableStateOf(topic.name) }
+        AlertDialog(
+            onDismissRequest = onTopicDialogDismissed,
+            icon = { Icon(Symbols.Edit, contentDescription = null) },
+            title = { Text("Rename topic") },
+            text = {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Topic name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(enabled = name.isNotBlank(), onClick = { onTopicRenamed(name) }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text("Cancel") } }
+        )
+    }
+    state.deletingTopic?.let { topic ->
+        AlertDialog(
+            onDismissRequest = onTopicDialogDismissed,
+            icon = { Icon(Symbols.Delete, contentDescription = null) },
+            title = { Text("Delete ${topic.name}?") },
+            text = { Text("The topic and every message in it go, for everyone. It cannot be undone.") },
+            confirmButton = { TextButton(onClick = onTopicDeleteConfirmed) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text("Cancel") } }
+        )
+    }
 
     if (creating) {
         var name by rememberSaveable { mutableStateOf("") }
@@ -554,8 +617,14 @@ fun TopicsScreen(
                 .padding(padding),
             contentPadding = PaddingValues(bottom = 96.dp)
         ) {
+            val canManage = state.management?.rights?.canManageTopics == true
             items(topics, key = { it.id }) { topic ->
-                TopicRow(topic, onClick = { onOpenTopic(topic) })
+                TopicRow(
+                    topic = topic,
+                    actions = topicActions(canManage, topic),
+                    onClick = { onOpenTopic(topic) },
+                    onAction = { action -> onTopicAction(topic, action) }
+                )
             }
             item(key = "info") {
                 ListItem(
@@ -569,17 +638,34 @@ fun TopicsScreen(
 }
 
 @Composable
-private fun TopicRow(topic: ForumTopic, onClick: () -> Unit) {
+private fun TopicRow(
+    topic: ForumTopic,
+    actions: List<TopicAction>,
+    onClick: () -> Unit,
+    onAction: (TopicAction) -> Unit
+) {
     val colour = Color(0xFF000000 or topic.iconColor.toLong())
+    var menu by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
         headlineContent = { Text(topic.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
-            Text(
-                topic.lastMessage.ifBlank { "No messages yet" },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // A draft first, as the chat list shows one: it is what the
+            // person was in the middle of.
+            if (topic.draft.isNotBlank()) {
+                Text(
+                    "Draft: ${topic.draft}",
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else {
+                Text(
+                    topic.lastMessage.ifBlank { "No messages yet" },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         },
         // The topic's own colour, the one thing that tells two topics apart
         // at a glance; the icon is Material's, not Telegram's drawn bubble.
@@ -598,6 +684,7 @@ private fun TopicRow(topic: ForumTopic, onClick: () -> Unit) {
             }
         },
         trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (topic.timestampLabel.isNotBlank()) {
                     Text(
@@ -615,6 +702,180 @@ private fun TopicRow(topic: ForumTopic, onClick: () -> Unit) {
                     topic.isPinned -> Icon(Symbols.PushPin, contentDescription = "Pinned", modifier = Modifier.size(16.dp))
                 }
             }
+            if (actions.isNotEmpty()) {
+                Box {
+                    IconButton(onClick = { menu = true }) {
+                        Icon(Symbols.MoreVert, contentDescription = "Manage ${topic.name}")
+                    }
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        actions.forEach { action ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        action.label,
+                                        color = if (action == TopicAction.Delete) MaterialTheme.colorScheme.error else Color.Unspecified
+                                    )
+                                },
+                                onClick = {
+                                    menu = false
+                                    onAction(action)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            }
         }
     )
+}
+
+/**
+ * An admin's rights and title, chosen when they are made one or later:
+ * Material's bottom sheet, a field for the title and a switch a right —
+ * the official client's screen, as the one component Android uses for a
+ * short form over the screen it belongs to. A basic group has no rights to
+ * choose, only the title.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminRightsSheet(
+    member: GroupMember,
+    isForum: Boolean,
+    isBasicGroup: Boolean,
+    onDismiss: () -> Unit,
+    onSave: (AdminRights, String) -> Unit
+) {
+    var rights by remember(member.user.id) { mutableStateOf(member.adminRights ?: AdminRights()) }
+    var title by rememberSaveable(member.user.id) { mutableStateOf(member.title) }
+    val promoting = member.role != MemberRole.Admin
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
+        ) {
+            Text(
+                if (promoting) "Make ${member.user.displayName} an admin" else "${member.user.displayName}'s rights",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it.take(ADMIN_TITLE_MAX) },
+                label = { Text("Title") },
+                placeholder = { Text("Admin") },
+                supportingText = { Text("${title.length} / $ADMIN_TITLE_MAX · shown beside their name") },
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+            )
+            val shown = AdminRight.shownFor(isForum, isBasicGroup)
+            if (shown.isNotEmpty()) {
+                Text(
+                    "What they can do",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp)
+                )
+            }
+            shown.forEach { right ->
+                val on = right.isOn(rights)
+                ListItem(
+                    headlineContent = { Text(right.label) },
+                    trailingContent = { Switch(checked = on, onCheckedChange = { rights = right.set(rights, it) }) },
+                    modifier = Modifier
+                        .clickable { rights = right.set(rights, !on) }
+                        .padding(horizontal = 8.dp)
+                )
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp)
+            ) {
+                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+                Button(onClick = { onSave(rights, title) }) { Text(if (promoting) "Make admin" else "Save") }
+            }
+        }
+    }
+}
+
+/**
+ * People asking to join through a link that asks first: who they are,
+ * what they say about themselves and when they asked, with Add and Dismiss
+ * as a filled tonal and a text button each.
+ */
+@Composable
+fun JoinRequestsScreen(
+    state: GroupUiState,
+    onBack: () -> Unit,
+    onAnswer: (JoinRequest, Boolean) -> Unit,
+    onPersonClick: (Long) -> Unit,
+    onNoticeShown: () -> Unit,
+    onErrorShown: () -> Unit
+) {
+    val host = remember { SnackbarHostState() }
+    Announce(host, state.notice, state.errorMessage, onNoticeShown, onErrorShown)
+    GroupScaffold("Join requests", state.title, onBack, host) { padding ->
+        val requests = state.joinRequests ?: return@GroupScaffold Loading(padding)
+        if (requests.isEmpty()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Nobody is waiting to join",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            return@GroupScaffold
+        }
+        val now = System.currentTimeMillis() / 1000
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(bottom = 32.dp)
+        ) {
+            items(requests, key = { it.user.id }) { request ->
+                Column {
+                    ListItem(
+                        modifier = Modifier.clickable { onPersonClick(request.user.id) },
+                        headlineContent = { Text(request.user.displayName) },
+                        supportingContent = request.bio.takeIf { it.isNotBlank() }?.let { bio -> { Text(bio) } },
+                        overlineContent = {
+                            Text("Asked " + chatListTimeLabel(request.date, now, ZoneId.systemDefault()))
+                        },
+                        leadingContent = {
+                            AvatarBubble(
+                                title = request.user.displayName,
+                                seed = request.user.avatarColor,
+                                size = 40.dp,
+                                shape = personShape(request.user.avatarColor),
+                                photoPath = request.user.photoPath
+                            )
+                        }
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(start = 72.dp, end = 16.dp, bottom = 8.dp)
+                    ) {
+                        FilledTonalButton(onClick = { onAnswer(request, true) }) { Text("Add to group") }
+                        TextButton(onClick = { onAnswer(request, false) }) { Text("Dismiss") }
+                    }
+                }
+            }
+        }
+    }
 }

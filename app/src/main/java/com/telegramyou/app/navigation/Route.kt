@@ -230,6 +230,16 @@ sealed interface Route {
         }
     }
 
+    /** People asking to join a group through a link that asks first. */
+    data class JoinRequests(val chatId: Long) : Route {
+        override val path = "chat/$chatId/requests"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/requests"
+            val arguments = Chat.arguments
+        }
+    }
+
     /** A forum's topics, which is where a forum opens. */
     data class Topics(val chatId: Long) : Route {
         override val path = "chat/$chatId/topics"

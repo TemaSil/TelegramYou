@@ -111,9 +111,9 @@ a wide screen the navigation becomes a rail.
 
 ## New in 1.6.1
 
-- **Admins and permissions** — make an admin, stop someone writing or remove them; what members may do.
-- **Invite links** with a name, a time limit or a number of people.
-- **Forum topics** — a forum opens onto its topics; read, write and start one.
+- **Admins and permissions** — admins with the rights and title you choose; stop someone writing or remove them; what members may do; a search over the members.
+- **Invite links** with a name, a time limit, a number of people or admin approval — and join requests.
+- **Forum topics** — a forum opens onto its topics; read, write, start, rename, close; a draft per topic.
 
 ## New in 1.6
 
@@ -143,6 +143,10 @@ Every release and its notes: [Releases](https://github.com/TemaSil/TelegramYou/r
 | Contacts and places | Group | Search |
 |:---:|:---:|:---:|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/63-contact-and-place.jpg" width="240" alt="Contacts and places"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/06-group-header.jpg" width="240" alt="Group"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/36-search.jpg" width="240" alt="Search"> |
+
+| Forum topics | Admins | Invite links |
+|:---:|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/73-forum-topics.jpg" width="240" alt="Forum topics"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/70-group-members.jpg" width="240" alt="Admins"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/72-invite-links.jpg" width="240" alt="Invite links"> |
 
 | Polls | Profile | Settings |
 |:---:|:---:|:---:|

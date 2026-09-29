@@ -270,9 +270,20 @@ class ChatViewModel(
         if (topicId != 0) {
             repository.setOpenTopic(chatId, topicId)
             viewModelScope.launch {
-                val name = runCatching { repository.forumTopics(chatId) }.getOrNull()
-                    ?.firstOrNull { it.id == topicId }?.name
-                _uiState.update { it.copy(topicName = name ?: "Topic") }
+                val topic = runCatching { repository.forumTopics(chatId) }.getOrNull()
+                    ?.firstOrNull { it.id == topicId }
+                // The topic's own draft back in the field, once and only if
+                // nothing has been typed yet; from then on it is kept as the
+                // chat's is, but as the topic's.
+                val draft = topic?.draft.orEmpty()
+                keptDraft = draft
+                draftRestored = true
+                _uiState.update {
+                    it.copy(
+                        topicName = topic?.name ?: "Topic",
+                        draft = if (it.draft.isEmpty()) draft else it.draft
+                    )
+                }
             }
         } else {
             // Messages from the first frame, where the tap fetched them ahead
@@ -1231,11 +1242,16 @@ class ChatViewModel(
     private var keptDraft: String? = null
     private var draftRestored = false
 
+    /** The chat's draft, or in a topic the topic's own. */
+    private suspend fun saveDraftHere(text: String) {
+        if (topicId == 0) repository.saveDraft(chatId, text) else repository.saveTopicDraft(chatId, topicId, text)
+    }
+
     private suspend fun keepDraft(text: String) {
         if (text == keptDraft) return
         keptDraft = text
         try {
-            repository.saveDraft(chatId, text)
+            saveDraftHere(text)
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -1267,7 +1283,7 @@ class ChatViewModel(
         val state = _uiState.value
         if (draftRestored && state.editing == null && state.draft != keptDraft) {
             val text = state.draft
-            GlobalScope.launch { runCatching { repository.saveDraft(chatId, text) } }
+            GlobalScope.launch { runCatching { saveDraftHere(text) } }
         }
         repository.releaseChat(chatId)
         if (topicId != 0) repository.closeOpenTopic(chatId, topicId)

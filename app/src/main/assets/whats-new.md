@@ -1,5 +1,5 @@
 # Groups
-- Make someone an admin, stop them writing or remove them, from their menu
-- Permissions: what everybody in a group may send and do
-- Invite links with a name, a time limit or a number of people
-- Forums open onto their topics: read, write and start one
+- Admins with the rights and title you choose; stop someone writing or remove them
+- Permissions for everyone, and a search over a group's members
+- Invite links with a time limit, a head count or approval, and join requests
+- Forums open onto their topics: read, write, start, rename or close one

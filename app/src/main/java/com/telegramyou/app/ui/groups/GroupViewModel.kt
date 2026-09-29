@@ -5,7 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.TelegramRepository
+import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.JoinRequest
+import com.telegramyou.app.telegram.model.TopicAction
 import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupMember
 import com.telegramyou.app.telegram.model.GroupPermission
@@ -13,9 +16,12 @@ import com.telegramyou.app.telegram.model.InviteLink
 import com.telegramyou.app.telegram.model.LinkExpiry
 import com.telegramyou.app.telegram.model.LinkLimit
 import com.telegramyou.app.telegram.model.MemberAction
+import com.telegramyou.app.telegram.model.MemberRole
 import com.telegramyou.app.telegram.model.sortedTopics
 import com.telegramyou.app.ui.failureText
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +40,15 @@ data class GroupUiState(
     val topics: List<ForumTopic>? = null,
     /** Asked about before it is done: removing somebody is not undone by a tap. */
     val confirmingRemoval: GroupMember? = null,
+    /** The member whose admin rights and title are being chosen. */
+    val editingAdmin: GroupMember? = null,
+    /** What the member search has in it; blank when it is not in use. */
+    val memberQuery: String = "",
+    /** The server's answer to [memberQuery]; null while there is none. */
+    val memberResults: List<GroupMember>? = null,
+    val joinRequests: List<JoinRequest>? = null,
+    val renamingTopic: ForumTopic? = null,
+    val deletingTopic: ForumTopic? = null,
     /** Said once, in a snackbar: "Nadia Orlova is an admin now". */
     val notice: String? = null,
     val errorMessage: String? = null
@@ -74,28 +89,91 @@ class GroupViewModel(
         _uiState.update { it.copy(management = management) }
     }
 
-    /** From a member's menu. Removing asks first; everything else is done at once. */
+    /**
+     * From a member's menu. Removing asks first, and making or editing an
+     * admin opens the rights; everything else is done at once.
+     */
     fun onMemberAction(member: GroupMember, action: MemberAction) {
-        if (action == MemberAction.Remove) {
-            _uiState.update { it.copy(confirmingRemoval = member) }
-            return
+        when (action) {
+            MemberAction.Remove -> _uiState.update { it.copy(confirmingRemoval = member) }
+            MemberAction.MakeAdmin, MemberAction.EditAdmin -> _uiState.update { it.copy(editingAdmin = member) }
+            else -> perform(member, action)
         }
-        apply(member, action)
+    }
+
+    fun onAdminEditDismissed() = _uiState.update { it.copy(editingAdmin = null) }
+
+    fun onAdminSaved(rights: AdminRights, title: String) {
+        val member = _uiState.value.editingAdmin ?: return
+        _uiState.update { it.copy(editingAdmin = null) }
+        attempt("Could not make them an admin") {
+            repository.promoteMember(chatId, member.user.id, rights, title)
+            val management = repository.groupManagement(chatId)
+            val name = member.user.displayName
+            _uiState.update {
+                it.copy(
+                    management = management ?: it.management,
+                    notice = if (member.role == MemberRole.Admin) "$name's rights are saved" else "$name is an admin now"
+                )
+            }
+            refreshSearch()
+        }
+    }
+
+    private var searching: Job? = null
+
+    /**
+     * The member search, asked of the server a moment after typing stops —
+     * a big group lists only its recent members, so the local list alone
+     * would miss most people.
+     */
+    fun onMemberQuery(query: String) {
+        _uiState.update { it.copy(memberQuery = query, memberResults = if (query.isBlank()) null else it.memberResults) }
+        searching?.cancel()
+        if (query.isBlank()) return
+        searching = viewModelScope.launch {
+            delay(SEARCH_PAUSE_MS)
+            val found = runCatching { repository.searchGroupMembers(chatId, query) }.getOrNull()
+            if (found != null) _uiState.update { it.copy(memberResults = found) }
+        }
+    }
+
+    private suspend fun refreshSearch() {
+        val query = _uiState.value.memberQuery
+        if (query.isBlank()) return
+        val found = runCatching { repository.searchGroupMembers(chatId, query) }.getOrNull() ?: return
+        _uiState.update { it.copy(memberResults = found) }
+    }
+
+    fun loadJoinRequests() = attempt("Could not load the requests") {
+        val requests = repository.joinRequests(chatId)
+        _uiState.update { it.copy(joinRequests = requests) }
+    }
+
+    fun onJoinRequest(request: JoinRequest, approve: Boolean) = attempt("Could not answer the request") {
+        repository.processJoinRequest(chatId, request.user.id, approve)
+        val name = request.user.displayName
+        _uiState.update {
+            it.copy(
+                joinRequests = it.joinRequests?.filter { waiting -> waiting.user.id != request.user.id },
+                notice = if (approve) "$name joined the group" else "$name's request was declined"
+            )
+        }
     }
 
     fun onRemoveConfirmed() {
         val member = _uiState.value.confirmingRemoval ?: return
         _uiState.update { it.copy(confirmingRemoval = null) }
-        apply(member, MemberAction.Remove)
+        perform(member, MemberAction.Remove)
     }
 
     fun onRemoveDismissed() = _uiState.update { it.copy(confirmingRemoval = null) }
 
-    private fun apply(member: GroupMember, action: MemberAction) = attempt("Could not do that") {
+    private fun perform(member: GroupMember, action: MemberAction) = attempt("Could not do that") {
         repository.applyMemberAction(chatId, member.user.id, action)
         val name = member.user.displayName
         val notice = when (action) {
-            MemberAction.MakeAdmin -> "$name is an admin now"
+            MemberAction.MakeAdmin, MemberAction.EditAdmin -> "$name is an admin now"
             MemberAction.RemoveAdmin -> "$name is no longer an admin"
             MemberAction.Restrict -> "$name can't write here now"
             MemberAction.Unrestrict -> "$name can write again"
@@ -105,6 +183,7 @@ class GroupViewModel(
         // admin rights of its own, or refused part of it.
         val management = repository.groupManagement(chatId)
         _uiState.update { it.copy(management = management ?: it.management, notice = notice) }
+        refreshSearch()
     }
 
     /**
@@ -136,8 +215,8 @@ class GroupViewModel(
         _uiState.update { it.copy(links = links) }
     }
 
-    fun onCreateLink(name: String, expiry: LinkExpiry, limit: LinkLimit) = attempt("Could not make the link") {
-        repository.createInviteLink(chatId, name, expiry.from(System.currentTimeMillis() / 1000), limit.count)
+    fun onCreateLink(name: String, expiry: LinkExpiry, limit: LinkLimit, asksFirst: Boolean) = attempt("Could not make the link") {
+        repository.createInviteLink(chatId, name, expiry.from(System.currentTimeMillis() / 1000), limit.count, asksFirst)
         val links = repository.inviteLinks(chatId)
         _uiState.update { it.copy(links = links, notice = "Link created") }
     }
@@ -151,6 +230,47 @@ class GroupViewModel(
     fun loadTopics() = attempt("Could not load the topics") {
         val topics = sortedTopics(repository.forumTopics(chatId))
         _uiState.update { it.copy(topics = topics) }
+        // For the topics' menus: only an admin who may manage them has one.
+        val management = repository.groupManagement(chatId)
+        _uiState.update { it.copy(management = management ?: it.management) }
+    }
+
+    /** From a topic's menu. Renaming asks for the name and deleting asks first. */
+    fun onTopicAction(topic: ForumTopic, action: TopicAction) {
+        when (action) {
+            TopicAction.Rename -> _uiState.update { it.copy(renamingTopic = topic) }
+            TopicAction.Delete -> _uiState.update { it.copy(deletingTopic = topic) }
+            TopicAction.Close, TopicAction.Reopen -> attempt("Could not change the topic") {
+                val closing = action == TopicAction.Close
+                repository.setForumTopicClosed(chatId, topic.id, closing)
+                reloadTopics(if (closing) "${topic.name} is closed" else "${topic.name} is open again")
+            }
+        }
+    }
+
+    fun onTopicRenamed(name: String) {
+        val topic = _uiState.value.renamingTopic ?: return
+        _uiState.update { it.copy(renamingTopic = null) }
+        attempt("Could not rename the topic") {
+            repository.renameForumTopic(chatId, topic.id, name)
+            reloadTopics("Renamed to ${name.trim()}")
+        }
+    }
+
+    fun onTopicDeleteConfirmed() {
+        val topic = _uiState.value.deletingTopic ?: return
+        _uiState.update { it.copy(deletingTopic = null) }
+        attempt("Could not delete the topic") {
+            repository.deleteForumTopic(chatId, topic.id)
+            reloadTopics("${topic.name} was deleted")
+        }
+    }
+
+    fun onTopicDialogDismissed() = _uiState.update { it.copy(renamingTopic = null, deletingTopic = null) }
+
+    private suspend fun reloadTopics(notice: String) {
+        val topics = sortedTopics(repository.forumTopics(chatId))
+        _uiState.update { it.copy(topics = topics, notice = notice) }
     }
 
     fun onCreateTopic(name: String) = attempt("Could not start the topic") {
@@ -163,3 +283,6 @@ class GroupViewModel(
 
     fun onErrorShown() = _uiState.update { it.copy(errorMessage = null) }
 }
+
+/** How long the member search waits after the last keystroke before asking. */
+private const val SEARCH_PAUSE_MS = 300L

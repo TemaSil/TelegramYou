@@ -36,7 +36,7 @@ class GroupsTest {
     @Test
     fun `an admin is dismissed only where theirs to dismiss, and never removed first`() {
         assertEquals(
-            listOf(MemberAction.RemoveAdmin),
+            listOf(MemberAction.EditAdmin, MemberAction.RemoveAdmin),
             memberActions(GroupRights.All, member(2, MemberRole.Admin, editable = true), selfId = 1)
         )
         assertEquals(
@@ -116,6 +116,59 @@ class GroupsTest {
     fun `a link's expiry counts from now, and never is zero`() {
         assertEquals(1_003_600L, LinkExpiry.Hour.from(1_000_000))
         assertEquals(0L, LinkExpiry.Never.from(1_000_000))
+    }
+
+    @Test
+    fun `a new admin may do everything but make more admins`() {
+        val rights = AdminRights()
+        assertFalse(rights.promoteMembers)
+        assertTrue(AdminRight.entries.filter { it != AdminRight.PromoteMembers }.all { it.isOn(rights) })
+        assertTrue(AdminRight.PromoteMembers.isOn(AdminRight.PromoteMembers.set(rights, true)))
+    }
+
+    @Test
+    fun `a basic group chooses only the title, a forum also topics`() {
+        assertEquals(emptyList<AdminRight>(), AdminRight.shownFor(isForum = false, isBasicGroup = true))
+        assertFalse(AdminRight.ManageTopics in AdminRight.shownFor(isForum = false, isBasicGroup = false))
+        assertTrue(AdminRight.ManageTopics in AdminRight.shownFor(isForum = true, isBasicGroup = false))
+    }
+
+    @Test
+    fun `a title is cut to what Telegram takes`() {
+        assertEquals("Design lead", adminTitle("  Design lead "))
+        assertEquals("Moderator", adminTitle("Moderator ✨"))
+        assertEquals(ADMIN_TITLE_MAX, adminTitle("An extremely long title indeed").length)
+    }
+
+    @Test
+    fun `a link that asks first says so, and counts who is waiting`() {
+        assertEquals(
+            "No one joined yet · 2 requests · admins approve",
+            inviteLinkSummary(InviteLink("l", createsJoinRequest = true, pendingRequests = 2), 0)
+        )
+    }
+
+    @Test
+    fun `General can only be renamed, the rest closed or deleted too`() {
+        assertEquals(listOf(TopicAction.Rename), topicActions(true, ForumTopic(1, "General", isGeneral = true)))
+        assertEquals(
+            listOf(TopicAction.Rename, TopicAction.Close, TopicAction.Delete),
+            topicActions(true, ForumTopic(2, "Bugs"))
+        )
+        assertEquals(
+            listOf(TopicAction.Rename, TopicAction.Reopen, TopicAction.Delete),
+            topicActions(true, ForumTopic(2, "Bugs", isClosed = true))
+        )
+        assertEquals(emptyList<TopicAction>(), topicActions(false, ForumTopic(2, "Bugs")))
+    }
+
+    @Test
+    fun `members are found by name or by username`() {
+        val nadia = GroupMember(TelegramUser(1, "Nadia", "Orlova", username = "nadia_o"), MemberRole.Admin)
+        val pavel = GroupMember(TelegramUser(2, "Pavel", "Gromov"), MemberRole.Member)
+        assertEquals(listOf(nadia), matchingMembers(listOf(nadia, pavel), "orl"))
+        assertEquals(listOf(nadia), matchingMembers(listOf(nadia, pavel), "@nadia"))
+        assertEquals(listOf(nadia, pavel), matchingMembers(listOf(nadia, pavel), " "))
     }
 
     @Test

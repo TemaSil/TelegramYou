@@ -1,6 +1,10 @@
 package com.telegramyou.app.telegram.demo
 
 import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.AdminRights
+import com.telegramyou.app.telegram.model.JoinRequest
+import com.telegramyou.app.telegram.model.adminTitle
+import com.telegramyou.app.telegram.model.matchingMembers
 import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupMember
 import com.telegramyou.app.telegram.model.GroupPermissions
@@ -864,8 +868,25 @@ class DemoTelegramClient(
         FORUM_CHAT_ID to mutableMapOf(1L to MemberRole.Owner)
     )
 
-    /** Titles the demo's admins go by. */
-    private val demoTitles = mapOf(14L to "Motion")
+    /** Titles the demo's admins go by, by group and person. */
+    private val demoTitles = mutableMapOf((3L to 14L) to "Motion")
+
+    /** Admins' rights where they were chosen, by group and person. */
+    private val demoAdminRights = mutableMapOf<Pair<Long, Long>, AdminRights>()
+
+    /** People let in through a join request, by group. */
+    private val joinedMembers = mutableMapOf<Long, MutableList<TelegramUser>>()
+
+    /** Who is asking to join, by group: two at Design Circle. */
+    private val demoJoinRequests = mutableMapOf(
+        3L to mutableListOf(
+            JoinRequest(TelegramUser(id = 31, firstName = "Ilya", lastName = "Brand"), 0, "Motion designer, Tbilisi"),
+            JoinRequest(TelegramUser(id = 32, firstName = "Zoe", lastName = "Hart"), 0)
+        )
+    )
+
+    /** Drafts kept in each of the forum's topics. */
+    private val topicDrafts = mutableMapOf<Int, String>()
 
     /** People taken out of a group here, who stop being listed in it. */
     private val removedMembers = mutableMapOf<Long, MutableSet<Long>>()
@@ -878,16 +899,17 @@ class DemoTelegramClient(
         if (!chat.isGroup) return null
         val roles = demoRoles.getOrPut(chatId) { mutableMapOf() }
         val me = _authState.value.me ?: TelegramUser(id = 1, firstName = "You")
-        val people = listOf(me) + demoMembers
+        val people = listOf(me) + demoMembers + joinedMembers[chatId].orEmpty()
         val gone = removedMembers[chatId].orEmpty()
         val members = people.filter { it.id !in gone }.map { user ->
             val role = roles[user.id] ?: MemberRole.Member
             GroupMember(
                 user = user,
                 role = role,
-                title = demoTitles[user.id].orEmpty(),
+                title = demoTitles[chatId to user.id].orEmpty(),
                 // The owner may change every admin; nobody else here may.
-                canBeEdited = roles[1L] == MemberRole.Owner
+                canBeEdited = roles[1L] == MemberRole.Owner,
+                adminRights = if (role == MemberRole.Admin) demoAdminRights[chatId to user.id] ?: AdminRights() else null
             )
         }
         return GroupManagement(
@@ -902,7 +924,7 @@ class DemoTelegramClient(
         delay(200)
         val roles = demoRoles.getOrPut(chatId) { mutableMapOf() }
         when (action) {
-            MemberAction.MakeAdmin -> roles[userId] = MemberRole.Admin
+            MemberAction.MakeAdmin, MemberAction.EditAdmin -> roles[userId] = MemberRole.Admin
             MemberAction.RemoveAdmin, MemberAction.Unrestrict -> roles.remove(userId)
             MemberAction.Restrict -> roles[userId] = MemberRole.Restricted
             MemberAction.Remove -> {
@@ -910,6 +932,57 @@ class DemoTelegramClient(
                 removedMembers.getOrPut(chatId) { mutableSetOf() } += userId
             }
         }
+    }
+
+    override suspend fun promoteMember(chatId: Long, userId: Long, rights: AdminRights, title: String) {
+        delay(200)
+        demoRoles.getOrPut(chatId) { mutableMapOf() }[userId] = MemberRole.Admin
+        demoAdminRights[chatId to userId] = rights
+        val cut = adminTitle(title)
+        if (cut.isEmpty()) demoTitles.remove(chatId to userId) else demoTitles[chatId to userId] = cut
+    }
+
+    override suspend fun searchGroupMembers(chatId: Long, query: String): List<GroupMember> {
+        val everybody = groupManagement(chatId)?.members.orEmpty()
+        return matchingMembers(everybody, query)
+    }
+
+    override suspend fun joinRequests(chatId: Long): List<JoinRequest> {
+        delay(150)
+        val now = System.currentTimeMillis() / 1000
+        return demoJoinRequests[chatId].orEmpty().mapIndexed { index, request ->
+            request.copy(date = now - (index + 1) * 3_600L)
+        }
+    }
+
+    override suspend fun processJoinRequest(chatId: Long, userId: Long, approve: Boolean) {
+        delay(200)
+        val requests = demoJoinRequests[chatId] ?: return
+        val request = requests.firstOrNull { it.user.id == userId } ?: return
+        requests.remove(request)
+        if (approve) joinedMembers.getOrPut(chatId) { mutableListOf() } += request.user
+    }
+
+    override suspend fun renameForumTopic(chatId: Long, topicId: Int, name: String) {
+        delay(150)
+        val at = demoTopics.indexOfFirst { it.id == topicId }
+        if (at >= 0) demoTopics[at] = demoTopics[at].copy(name = name.trim())
+    }
+
+    override suspend fun setForumTopicClosed(chatId: Long, topicId: Int, closed: Boolean) {
+        delay(150)
+        val at = demoTopics.indexOfFirst { it.id == topicId }
+        if (at >= 0) demoTopics[at] = demoTopics[at].copy(isClosed = closed)
+    }
+
+    override suspend fun deleteForumTopic(chatId: Long, topicId: Int) {
+        delay(150)
+        demoTopics.removeAll { it.id == topicId && !it.isGeneral }
+        chatMessages[chatId]?.removeAll { it.topicId == topicId }
+    }
+
+    override suspend fun saveTopicDraft(chatId: Long, topicId: Int, text: String) {
+        if (text.isBlank()) topicDrafts.remove(topicId) else topicDrafts[topicId] = text
     }
 
     override suspend fun setGroupPermissions(chatId: Long, permissions: GroupPermissions) {
@@ -929,6 +1002,13 @@ class DemoTelegramClient(
                 memberCount = 3,
                 memberLimit = 10,
                 expiresAt = System.currentTimeMillis() / 1000 + 2 * 86_400 + 600
+            ),
+            // The link the two waiting in joinRequests asked through.
+            InviteLink(
+                "https://t.me/+Applications$chatId",
+                name = "Applications",
+                createsJoinRequest = true,
+                pendingRequests = demoJoinRequests[chatId]?.size ?: 0
             )
         )
     }
@@ -940,13 +1020,20 @@ class DemoTelegramClient(
         return linksOf(chatId).sortedBy { it.isRevoked }
     }
 
-    override suspend fun createInviteLink(chatId: Long, name: String, expiresAt: Long, memberLimit: Int): InviteLink {
+    override suspend fun createInviteLink(
+        chatId: Long,
+        name: String,
+        expiresAt: Long,
+        memberLimit: Int,
+        createsJoinRequest: Boolean
+    ): InviteLink {
         delay(200)
         val link = InviteLink(
             link = "https://t.me/+Demo${chatId}n${messageId.incrementAndGet()}",
             name = name.trim(),
             expiresAt = expiresAt,
-            memberLimit = memberLimit
+            memberLimit = if (createsJoinRequest) 0 else memberLimit,
+            createsJoinRequest = createsJoinRequest
         )
         linksOf(chatId).add(link)
         return link
@@ -980,7 +1067,11 @@ class DemoTelegramClient(
         // Each with its newest message, as the list shows a chat's.
         return demoTopics.map { topic ->
             val last = messages.lastOrNull { it.topicId == topic.id }
-            topic.copy(lastMessage = last?.text.orEmpty(), timestampLabel = last?.timeLabel.orEmpty())
+            topic.copy(
+                lastMessage = last?.text.orEmpty(),
+                timestampLabel = last?.timeLabel.orEmpty(),
+                draft = topicDrafts[topic.id].orEmpty()
+            )
         }
     }
 

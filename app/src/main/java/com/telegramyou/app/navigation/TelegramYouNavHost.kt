@@ -63,6 +63,7 @@ import com.telegramyou.app.ui.chat.ChatInfoScreen
 import com.telegramyou.app.ui.groups.GroupPermissionsScreen
 import com.telegramyou.app.ui.groups.GroupViewModel
 import com.telegramyou.app.ui.groups.InviteLinksScreen
+import com.telegramyou.app.ui.groups.JoinRequestsScreen
 import com.telegramyou.app.ui.groups.TopicsScreen
 import com.telegramyou.app.ui.theme.ChatColors
 import com.telegramyou.app.ui.settings.AppearanceActions
@@ -722,6 +723,20 @@ fun TelegramYouNavHost(
             )
         }
 
+        composable(route = Route.JoinRequests.PATTERN, arguments = Route.JoinRequests.arguments) {
+            val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
+            val state by groupViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { groupViewModel.loadJoinRequests() }
+            JoinRequestsScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onAnswer = groupViewModel::onJoinRequest,
+                onPersonClick = { navController.navigateTo(Route.Person(it)) },
+                onNoticeShown = groupViewModel::onNoticeShown,
+                onErrorShown = groupViewModel::onErrorShown
+            )
+        }
+
         composable(route = Route.Topics.PATTERN, arguments = Route.Topics.arguments) { entry ->
             val chatId = entry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
             val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
@@ -735,6 +750,10 @@ fun TelegramYouNavHost(
                 onOpenTopic = { topic -> navController.navigateTo(Route.Chat(chatId, topic.id)) },
                 onOpenInfo = { navController.navigateTo(Route.ChatInfo(chatId)) },
                 onCreateTopic = groupViewModel::onCreateTopic,
+                onTopicAction = groupViewModel::onTopicAction,
+                onTopicRenamed = groupViewModel::onTopicRenamed,
+                onTopicDeleteConfirmed = groupViewModel::onTopicDeleteConfirmed,
+                onTopicDialogDismissed = groupViewModel::onTopicDialogDismissed,
                 onNoticeShown = groupViewModel::onNoticeShown,
                 onErrorShown = groupViewModel::onErrorShown
             )
@@ -766,8 +785,19 @@ fun TelegramYouNavHost(
             val isGroup = state.detail?.chat?.isGroup == true
             // Again on every visit, like the link: an admin screen behind
             // this one may have changed who is what.
-            LaunchedEffect(isGroup) { if (isGroup) groupViewModel.loadManagement() }
+            LaunchedEffect(isGroup) {
+                if (isGroup) {
+                    groupViewModel.loadManagement()
+                    groupViewModel.loadJoinRequests()
+                }
+            }
             ChatInfoScreen(
+                onAdminSaved = groupViewModel::onAdminSaved,
+                onAdminEditDismissed = groupViewModel::onAdminEditDismissed,
+                onMemberQuery = groupViewModel::onMemberQuery,
+                onOpenJoinRequests = {
+                    state.detail?.chat?.id?.let { navController.navigateTo(Route.JoinRequests(it)) }
+                },
                 group = if (isGroup) group else null,
                 selfId = groupViewModel.selfId,
                 onMemberAction = groupViewModel::onMemberAction,

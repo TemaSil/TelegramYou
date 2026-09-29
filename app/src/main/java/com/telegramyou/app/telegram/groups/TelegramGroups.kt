@@ -1,6 +1,9 @@
 package com.telegramyou.app.telegram.groups
 
+import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.GroupMember
+import com.telegramyou.app.telegram.model.JoinRequest
 import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupPermissions
 import com.telegramyou.app.telegram.model.InviteLink
@@ -24,6 +27,25 @@ interface TelegramGroups {
     /** Does [action] to [userId] in [chatId]. */
     suspend fun applyMemberAction(chatId: Long, userId: Long, action: MemberAction) {}
 
+    /**
+     * Makes [userId] an admin of [chatId] with [rights] — or changes an
+     * admin's — and gives them [title], which may be empty.
+     */
+    suspend fun promoteMember(chatId: Long, userId: Long, rights: AdminRights, title: String) {}
+
+    /**
+     * Members of [chatId] whose name or username matches [query], from the
+     * server: a big group lists only its recent members, and the one being
+     * looked for is often not among them.
+     */
+    suspend fun searchGroupMembers(chatId: Long, query: String): List<GroupMember> = emptyList()
+
+    /** People asking to join [chatId] through a link that asks first. */
+    suspend fun joinRequests(chatId: Long): List<JoinRequest> = emptyList()
+
+    /** Lets [userId] in, or turns them away. */
+    suspend fun processJoinRequest(chatId: Long, userId: Long, approve: Boolean) {}
+
     /** What every member of [chatId] may do from now on. */
     suspend fun setGroupPermissions(chatId: Long, permissions: GroupPermissions) {}
 
@@ -37,7 +59,14 @@ interface TelegramGroups {
      * A new link into [chatId] — named, lasting until [expiresAt] (epoch
      * seconds, 0 for ever) and for up to [memberLimit] people (0 for any).
      */
-    suspend fun createInviteLink(chatId: Long, name: String, expiresAt: Long, memberLimit: Int): InviteLink? = null
+    suspend fun createInviteLink(
+        chatId: Long,
+        name: String,
+        expiresAt: Long,
+        memberLimit: Int,
+        /** Whoever uses it asks, and an admin lets them in; no limit then. */
+        createsJoinRequest: Boolean = false
+    ): InviteLink? = null
 
     /** Stops [link] working. The primary one is replaced by a new one as it goes. */
     suspend fun revokeInviteLink(chatId: Long, link: String) {}
@@ -47,6 +76,21 @@ interface TelegramGroups {
 
     /** Starts a topic called [name] and answers with it. */
     suspend fun createForumTopic(chatId: Long, name: String): ForumTopic? = null
+
+    suspend fun renameForumTopic(chatId: Long, topicId: Int, name: String) {}
+
+    /** Closes a topic to new messages, or opens it again. */
+    suspend fun setForumTopicClosed(chatId: Long, topicId: Int, closed: Boolean) {}
+
+    /** Deletes a topic and everything in it. */
+    suspend fun deleteForumTopic(chatId: Long, topicId: Int) {}
+
+    /**
+     * Keeps what was being written in one topic as that topic's draft —
+     * its own, not the chat's, so it follows the person back to where it
+     * was started and nowhere else.
+     */
+    suspend fun saveTopicDraft(chatId: Long, topicId: Int, text: String) {}
 
     /**
      * Which topic of forum [chatId] the conversation screen is showing, or

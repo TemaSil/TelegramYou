@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.GroupPermissions
 import com.telegramyou.app.telegram.model.GroupRights
 import com.telegramyou.app.telegram.model.InviteLink
@@ -113,22 +114,51 @@ internal fun roleOf(status: JSONObject?): MemberRole? = when (status?.optString(
 }
 
 /**
- * The rights "Make admin" gives: what a group's day-to-day admin needs, and
- * not the power to make more admins, which stays with whoever chose to hand
- * it on — as the official client's defaults have it.
+ * An admin's rights as `chatAdministratorRights`. Managing the chat and
+ * its video chats go with any of them, as Telegram requires of an admin;
+ * the rest are the editor's switches.
  */
-internal fun defaultAdminRights(): JSONObject = JSONObject()
+internal fun AdminRights.toJson(): JSONObject = JSONObject()
     .put("@type", "chatAdministratorRights")
     .put("can_manage_chat", true)
-    .put("can_change_info", true)
-    .put("can_delete_messages", true)
-    .put("can_invite_users", true)
-    .put("can_restrict_members", true)
-    .put("can_pin_messages", true)
-    .put("can_manage_topics", true)
+    .put("can_change_info", changeInfo)
+    .put("can_delete_messages", deleteMessages)
+    .put("can_invite_users", inviteUsers)
+    .put("can_restrict_members", restrictMembers)
+    .put("can_pin_messages", pinMessages)
+    .put("can_manage_topics", manageTopics)
     .put("can_manage_video_chats", true)
-    .put("can_promote_members", false)
+    .put("can_promote_members", promoteMembers)
     .put("is_anonymous", false)
+
+/** An admin's rights read back; a basic group's admins have all of them. */
+internal fun adminRightsOf(status: JSONObject?, isBasicGroup: Boolean): AdminRights {
+    if (isBasicGroup) return AdminRights(promoteMembers = true)
+    val rights = status?.optJSONObject("rights") ?: return AdminRights()
+    return AdminRights(
+        changeInfo = rights.optBoolean("can_change_info"),
+        deleteMessages = rights.optBoolean("can_delete_messages"),
+        restrictMembers = rights.optBoolean("can_restrict_members"),
+        inviteUsers = rights.optBoolean("can_invite_users"),
+        pinMessages = rights.optBoolean("can_pin_messages"),
+        manageTopics = rights.optBoolean("can_manage_topics"),
+        promoteMembers = rights.optBoolean("can_promote_members")
+    )
+}
+
+/** A draft as `setChatDraftMessage` takes it; none for an empty field. */
+internal fun draftOf(text: String): Any = if (text.isBlank()) {
+    JSONObject.NULL
+} else {
+    JSONObject()
+        .put("@type", "draftMessage")
+        .put(
+            "input_message_text",
+            JSONObject()
+                .put("@type", "inputMessageText")
+                .put("text", JSONObject().put("@type", "formattedText").put("text", text))
+        )
+}
 
 /** A `chatInviteLink`, read. */
 internal fun inviteLinkOf(json: JSONObject): InviteLink = InviteLink(
@@ -138,7 +168,9 @@ internal fun inviteLinkOf(json: JSONObject): InviteLink = InviteLink(
     memberLimit = json.optInt("member_limit"),
     memberCount = json.optInt("member_count"),
     isPrimary = json.optBoolean("is_primary"),
-    isRevoked = json.optBoolean("is_revoked")
+    isRevoked = json.optBoolean("is_revoked"),
+    createsJoinRequest = json.optBoolean("creates_join_request"),
+    pendingRequests = json.optInt("pending_join_request_count")
 )
 
 /**

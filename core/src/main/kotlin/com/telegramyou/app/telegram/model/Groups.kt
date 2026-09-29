@@ -29,8 +29,78 @@ data class GroupMember(
      * it per admin: one promoted by somebody else is not yours to demote.
      * Irrelevant for anybody who is not an admin.
      */
-    val canBeEdited: Boolean = false
+    val canBeEdited: Boolean = false,
+    /** An admin's rights; null for anybody who is not one. */
+    val adminRights: AdminRights? = null
 )
+
+/**
+ * What an admin may do, as the rights editor shows it — Telegram's
+ * `chatAdministratorRights`, the ones a group has. The defaults are the
+ * official client's for a new admin: everything but making more admins,
+ * which stays with whoever chose to hand it on.
+ */
+data class AdminRights(
+    val changeInfo: Boolean = true,
+    val deleteMessages: Boolean = true,
+    val restrictMembers: Boolean = true,
+    val inviteUsers: Boolean = true,
+    val pinMessages: Boolean = true,
+    val manageTopics: Boolean = true,
+    val promoteMembers: Boolean = false
+)
+
+/** One switch in the rights editor, and how it reads. */
+enum class AdminRight(val label: String) {
+    ChangeInfo("Change group info"),
+    DeleteMessages("Delete messages"),
+    RestrictMembers("Ban and restrict members"),
+    InviteUsers("Invite people"),
+    PinMessages("Pin messages"),
+    ManageTopics("Manage topics"),
+    PromoteMembers("Add new admins");
+
+    fun isOn(rights: AdminRights): Boolean = when (this) {
+        ChangeInfo -> rights.changeInfo
+        DeleteMessages -> rights.deleteMessages
+        RestrictMembers -> rights.restrictMembers
+        InviteUsers -> rights.inviteUsers
+        PinMessages -> rights.pinMessages
+        ManageTopics -> rights.manageTopics
+        PromoteMembers -> rights.promoteMembers
+    }
+
+    fun set(rights: AdminRights, on: Boolean): AdminRights = when (this) {
+        ChangeInfo -> rights.copy(changeInfo = on)
+        DeleteMessages -> rights.copy(deleteMessages = on)
+        RestrictMembers -> rights.copy(restrictMembers = on)
+        InviteUsers -> rights.copy(inviteUsers = on)
+        PinMessages -> rights.copy(pinMessages = on)
+        ManageTopics -> rights.copy(manageTopics = on)
+        PromoteMembers -> rights.copy(promoteMembers = on)
+    }
+
+    companion object {
+        /**
+         * The switches for an admin of this group: topics only in a forum,
+         * and none at all in a basic group, where Telegram gives every
+         * admin everything and only the title can be chosen.
+         */
+        fun shownFor(isForum: Boolean, isBasicGroup: Boolean): List<AdminRight> = when {
+            isBasicGroup -> emptyList()
+            else -> entries.filter { it != ManageTopics || isForum }
+        }
+    }
+}
+
+/** An admin's title as Telegram takes it: 16 characters, no emoji. */
+const val ADMIN_TITLE_MAX = 16
+
+/** [title] cut to what Telegram accepts. */
+fun adminTitle(title: String): String =
+    title.filter { Character.getType(it) != Character.SURROGATE.toInt() && Character.getType(it) != Character.OTHER_SYMBOL.toInt() }
+        .trim()
+        .take(ADMIN_TITLE_MAX)
 
 /**
  * What this account may do to the group, as an admin — Telegram's
@@ -149,6 +219,7 @@ data class GroupManagement(
 /** What can be done to one member, in the order a menu offers it. */
 enum class MemberAction(val label: String) {
     MakeAdmin("Make admin"),
+    EditAdmin("Edit admin rights"),
     RemoveAdmin("Dismiss as admin"),
     Restrict("Don't let them write"),
     Unrestrict("Let them write"),
@@ -170,7 +241,10 @@ fun memberActions(
     val actions = mutableListOf<MemberAction>()
     when (member.role) {
         MemberRole.Admin -> {
-            if (rights.canPromoteMembers && member.canBeEdited) actions += MemberAction.RemoveAdmin
+            if (rights.canPromoteMembers && member.canBeEdited) {
+                actions += MemberAction.EditAdmin
+                actions += MemberAction.RemoveAdmin
+            }
         }
         MemberRole.Member -> {
             if (rights.canPromoteMembers) actions += MemberAction.MakeAdmin
@@ -213,7 +287,20 @@ data class InviteLink(
     val memberCount: Int = 0,
     /** The group's own link, the one the info screen shows. */
     val isPrimary: Boolean = false,
-    val isRevoked: Boolean = false
+    val isRevoked: Boolean = false,
+    /** Joining through it asks an admin first. */
+    val createsJoinRequest: Boolean = false,
+    /** Requests through it waiting for an admin. */
+    val pendingRequests: Int = 0
+)
+
+/** Somebody asking to join a group, waiting on an admin. */
+data class JoinRequest(
+    val user: TelegramUser,
+    /** Epoch seconds they asked at. */
+    val date: Long,
+    /** What they say about themselves, if anything. */
+    val bio: String = ""
 )
 
 /** How long a new link lasts, as the create dialog offers it. */
@@ -247,6 +334,9 @@ fun inviteLinkSummary(link: InviteLink, nowSeconds: Long): String {
         1 -> "1 joined"
         else -> "${link.memberCount} joined"
     }
+    if (link.pendingRequests > 0 && !link.isRevoked) {
+        parts += if (link.pendingRequests == 1) "1 request" else "${link.pendingRequests} requests"
+    }
     val expired = link.expiresAt in 1..nowSeconds
     val full = link.memberLimit > 0 && link.memberCount >= link.memberLimit
     when {
@@ -254,6 +344,7 @@ fun inviteLinkSummary(link: InviteLink, nowSeconds: Long): String {
         expired -> parts += "expired"
         full -> parts += "no places left"
         else -> {
+            if (link.createsJoinRequest) parts += "admins approve"
             if (link.memberLimit > 0) parts += "${link.memberLimit - link.memberCount} left"
             if (link.expiresAt > 0) parts += "expires in ${durationWords(link.expiresAt - nowSeconds)}"
         }
@@ -291,8 +382,45 @@ data class ForumTopic(
     /** Closed to new messages by an admin. */
     val isClosed: Boolean = false,
     /** The topic every forum has, where anything without a topic goes. */
-    val isGeneral: Boolean = false
+    val isGeneral: Boolean = false,
+    /** What this account had started writing there, or empty. */
+    val draft: String = ""
 )
+
+/** What can be done to one topic, in the order its menu offers it. */
+enum class TopicAction(val label: String) {
+    Rename("Rename"),
+    Close("Close topic"),
+    Reopen("Reopen topic"),
+    Delete("Delete topic")
+}
+
+/**
+ * What an admin who may manage topics may do to [topic]. General can be
+ * renamed and nothing else; Telegram keeps it open and never deletes it.
+ */
+fun topicActions(canManageTopics: Boolean, topic: ForumTopic): List<TopicAction> = when {
+    !canManageTopics -> emptyList()
+    topic.isGeneral -> listOf(TopicAction.Rename)
+    else -> listOf(
+        TopicAction.Rename,
+        if (topic.isClosed) TopicAction.Reopen else TopicAction.Close,
+        TopicAction.Delete
+    )
+}
+
+/**
+ * Members whose name or username has [query] in it, for the search over a
+ * group's members. Blank finds everybody.
+ */
+fun matchingMembers(members: List<GroupMember>, query: String): List<GroupMember> {
+    val needle = query.trim().removePrefix("@")
+    if (needle.isEmpty()) return members
+    return members.filter { member ->
+        member.user.displayName.contains(needle, ignoreCase = true) ||
+            member.user.username?.contains(needle, ignoreCase = true) == true
+    }
+}
 
 /** Telegram's first topic colour, the blue it gives a topic by default. */
 const val DEFAULT_TOPIC_COLOR = 0x6FB9F0
