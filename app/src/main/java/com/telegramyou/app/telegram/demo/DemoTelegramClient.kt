@@ -391,7 +391,7 @@ class DemoTelegramClient(
             it.copy(
                 state = AuthState.Ready,
                 qrLink = null,
-                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou")
+                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", isPremium = true)
             )
         }
         startDemoChatter()
@@ -404,7 +404,7 @@ class DemoTelegramClient(
             it.copy(
                 isLoading = false,
                 state = AuthState.Ready,
-                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive")
+                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", isPremium = true)
             )
         }
         startDemoChatter()

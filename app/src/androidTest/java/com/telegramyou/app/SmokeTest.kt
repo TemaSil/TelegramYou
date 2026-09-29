@@ -469,7 +469,6 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
-        waitFor(By.textContains("Leave"), "the way out of the group")
         screenshot("12-chat-info")
 
         // The chat's notifications: off for an hour, and the row says until
@@ -487,8 +486,11 @@ class SmokeTest {
         waitFor(By.textStartsWith("Off until"), "the chat muted for an hour")
         screenshot("27-chat-notifications")
 
-        // The members, which come after everything above: since the invite
-        // link grew its Share and Revoke they start below the first screen.
+        // The way out, under Delete all my messages, and the members after
+        // it — both below the first screen since the invite link grew its
+        // Share and Revoke. Looked for going down, after the notifications
+        // above them.
+        scrollDownTo(By.textContains("Leave"))
         scrollDownTo(By.text("Members"))
     }
 
@@ -2121,13 +2123,11 @@ class SmokeTest {
         // gliding from the scroll that found the card and a tap on a moving
         // list only stops it. Adding twice is harmless — the number is the key.
         val answer = By.textStartsWith("Sasha Kim ")
-        // The tree as UiAutomator sees it: Add was pressed in two runs and
-        // answered in neither, with nothing on screen to say why.
-        TestStorage().openOutputFile("hierarchy-contact-card.xml").use { out ->
-            device.dumpWindowHierarchy(out)
-        }
-        repeat(3) { attempt ->
-            if (device.hasObject(answer)) return@repeat
+        // Counted the moment it shows: the answer is a snackbar, gone in four
+        // seconds, and a later look for it missed one that had come and gone.
+        var answered = false
+        repeat(3) {
+            if (answered) return@repeat
             try {
                 val below = device.findObject(By.text("Sasha Kim"))?.visibleBounds?.bottom
                 if (below != null) {
@@ -2138,10 +2138,9 @@ class SmokeTest {
                 }
             } catch (_: StaleObjectException) {
             }
-            screenshot("diag-add-pressed-${attempt + 1}")
-            device.wait(Until.hasObject(answer), SHORT_WAIT)
+            answered = device.wait(Until.hasObject(answer), ANSWER_WAIT)
         }
-        waitFor(answer, "the answer to Add")
+        assertTrue("the answer to Add never appeared", answered)
         // Above them, a message that is one emoji, drawn large.
         scrollBackTo(By.text("🎉"), "the lone emoji")
         screenshot("66-jumbo-emoji")
@@ -2347,6 +2346,9 @@ class SmokeTest {
 
         /** A look rather than a wait: whether something is already there. */
         const val SHORT_WAIT = 2_000L
+
+        /** Long enough to see a snackbar that the button's answer is. */
+        const val ANSWER_WAIT = 5_000L
 
         const val IDLE_TIMEOUT = 5_000L
 
