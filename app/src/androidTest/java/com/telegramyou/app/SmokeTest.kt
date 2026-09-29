@@ -107,10 +107,12 @@ class SmokeTest {
         launch.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(launch)
 
-        assertTrue(
-            "the app never drew anything",
-            device.wait(Until.hasObject(By.pkg(packageName).depth(0)), LAUNCH_TIMEOUT)
-        )
+        if (!device.wait(Until.hasObject(By.pkg(packageName).depth(0)), LAUNCH_TIMEOUT)) {
+            // What was on screen instead — the launcher, a system dialog, an
+            // "isn't responding" — which the bare assertion never said.
+            screenshot("failed-launching")
+            fail("the app never drew anything")
+        }
     }
 
     @Test
@@ -2050,13 +2052,25 @@ class SmokeTest {
         waitFor(By.text("Open in Maps"), "the place's button")
         scrollBackTo(By.text("Sasha Kim"), "the contact card")
         screenshot("63-contact-and-place")
-        // Pressed again if nothing answers: the list can still be gliding
-        // from the scroll that found the card, and a tap on a moving list
-        // only stops it. Adding twice is harmless — the number is the key.
+        // The card's Add, which is the one under the name: "Add" is also the
+        // caption of your own story on the chat list, which stays in the
+        // tree beneath the open chat, comes first in it, and took the tap.
+        // Pressed again if nothing answers, since the list can still be
+        // gliding from the scroll that found the card and a tap on a moving
+        // list only stops it. Adding twice is harmless — the number is the key.
         val answer = By.textStartsWith("Sasha Kim ")
         repeat(3) {
             if (device.hasObject(answer)) return@repeat
-            tap(By.text("Add"))
+            try {
+                val below = device.findObject(By.text("Sasha Kim"))?.visibleBounds?.bottom
+                if (below != null) {
+                    device.findObjects(By.text("Add"))
+                        .filter { it.visibleBounds.top > below }
+                        .minByOrNull { it.visibleBounds.top }
+                        ?.click()
+                }
+            } catch (_: StaleObjectException) {
+            }
             device.wait(Until.hasObject(answer), SHORT_WAIT)
         }
         waitFor(answer, "the answer to Add")
