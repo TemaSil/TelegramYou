@@ -50,7 +50,7 @@ class PlaybackService : MediaSessionService() {
         // there. Each button shows the state now and sets the next one.
         scope.launch {
             music.state
-                .map { it.queue.order == QueueOrder.Shuffled to it.queue.repeat }
+                .map { (it.queue.order == QueueOrder.Shuffled) to it.queue.repeat }
                 .distinctUntilChanged()
                 .collect { (shuffled, repeat) ->
                     runCatching { built.setMediaButtonPreferences(orderButtons(shuffled, repeat)) }
