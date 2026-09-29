@@ -151,6 +151,13 @@ interface TelegramChats {
     suspend fun chatInviteLink(chatId: Long): String?
 
     /**
+     * Revokes the chat's primary invite link and makes a new one, or makes
+     * the first; answers with it. Only an admin who may invite can; the
+     * server says no to anyone else.
+     */
+    suspend fun renewInviteLink(chatId: Long): String? = null
+
+    /**
      * Leaves a group or channel.
      *
      * The chat leaves the list on its own, through the same update that any

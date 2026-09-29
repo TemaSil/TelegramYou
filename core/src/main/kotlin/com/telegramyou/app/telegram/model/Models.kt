@@ -263,7 +263,11 @@ enum class MessageContentType {
     /** A poll or a quiz; [ChatMessage.poll] holds it. */
     Poll,
     /** A music file with its tags; [ChatMessage.audio] holds it. */
-    Audio
+    Audio,
+    /** Somebody's card — a name and a number; [ChatMessage.contact] holds it. */
+    Contact,
+    /** A place, or a venue with a name; [ChatMessage.location] holds it. */
+    Location
 }
 
 /**
@@ -436,6 +440,10 @@ data class ChatMessage(
     val video: VideoContent? = null,
     /** The poll, when this message is one. */
     val poll: PollContent? = null,
+    /** The card, when this message is a contact. */
+    val contact: ContactContent? = null,
+    /** The place, when this message is a location or a venue. */
+    val location: LocationContent? = null,
     /**
      * A bot's buttons under the message, row by row.
      *

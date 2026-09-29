@@ -2032,6 +2032,45 @@ class SmokeTest {
         backTo(By.text("Material Design"), "the chat list")
     }
 
+    /**
+     * A contact card and a place, in Lina's chat: the place with its Open in
+     * Maps, the card with Add, which answers in a snackbar.
+     */
+    @Test
+    fun contactsAndPlacesShowAsCards() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        scrollBackTo(By.text("Blue Bottle Coffee"), "the place")
+        waitFor(By.text("Open in Maps"), "the place's button")
+        scrollBackTo(By.text("Sasha Kim"), "the contact card")
+        screenshot("63-contact-and-place")
+        tap(By.text("Add"))
+        waitFor(By.textStartsWith("Sasha Kim "), "the answer to Add")
+        backTo(By.text("Material Design"), "the chat list")
+    }
+
+    /** A group's invite link, revoked for a new one from the info screen. */
+    @Test
+    fun anInviteLinkIsRevokedForANewOne() {
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.textContains("Figma dump"), "the group")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the info screen")
+        scrollDownTo(By.text("Revoke"))
+        tap(By.text("Revoke"))
+        waitFor(By.text("Revoke the link?"), "the revoke dialog")
+        tap(By.text("Revoke link"))
+        waitFor(By.textContains("x1"), "the new link")
+        screenshot("64-invite-link")
+        backTo(By.text(GROUP_CHAT), "the chat list")
+    }
+
     /** Taps the highest of several matches — a screen's header over its content. */
     private fun tapTopmost(selector: BySelector) {
         // A fresh tree first: straight after a screen changes, UiAutomator's

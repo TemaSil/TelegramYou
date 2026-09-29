@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StickerContent
@@ -197,6 +199,8 @@ data class ChatUiState(
     val stickerPicker: StickerPickerState? = null,
     /** The GIF tab's search and results, once it has been opened. */
     val gifPicker: GifPickerState? = null,
+    /** The account's contacts, while the sheet to send one is up. */
+    val contactPicker: List<TelegramUser>? = null,
     /** The bot's keyboard under the composer, in a chat that has one. */
     val replyKeyboard: ReplyKeyboard? = null,
     /** What a bot said back to a pressed button, until it has been shown. */
@@ -903,6 +907,69 @@ class ChatViewModel(
     }
 
     fun onNoticeShown() = _uiState.update { it.copy(notice = null) }
+
+    // ── contacts and places ──────────────────────────────────────────────
+
+    /** A contact card's Add: into this account's contacts, by its number. */
+    fun onContactAdd(contact: ContactContent) {
+        viewModelScope.launch {
+            var added: Long? = null
+            val done = attempt("Could not add the contact") {
+                added = repository.addContact(contact.phoneNumber, contact.firstName, contact.lastName)
+            }
+            if (done) {
+                val name = contact.displayName.ifBlank { contact.phoneNumber }
+                _uiState.update {
+                    it.copy(notice = if (added != null) "$name added to contacts" else "$name is not on Telegram")
+                }
+            }
+        }
+    }
+
+    /** The sheet of contacts to send one of, from the attachment sheet. */
+    fun onContactPickerOpen() {
+        _uiState.update { it.copy(attachmentSheetOpen = false, contactPicker = emptyList()) }
+        viewModelScope.launch {
+            var contacts = emptyList<TelegramUser>()
+            attempt("Could not load contacts") { contacts = repository.contacts() }
+            _uiState.update { state -> if (state.contactPicker == null) state else state.copy(contactPicker = contacts) }
+        }
+    }
+
+    fun onContactPickerDismiss() = _uiState.update { it.copy(contactPicker = null) }
+
+    /** Sends [user]'s card, answering the message being replied to, if any. */
+    fun onContactPicked(user: TelegramUser) {
+        val answering = _uiState.value.replyTo
+        _uiState.update { it.copy(contactPicker = null, replyTo = null) }
+        viewModelScope.launch {
+            attempt("Could not send the contact") {
+                repository.sendContact(
+                    chatId,
+                    ContactContent(
+                        firstName = user.firstName,
+                        lastName = user.lastName,
+                        phoneNumber = user.phoneNumber.orEmpty(),
+                        userId = user.id
+                    ),
+                    answering?.id
+                )
+            }
+        }
+    }
+
+    /**
+     * The chat's invite link revoked and a new one made — or the first made,
+     * where there was none. Only an admin who may invite can; anyone else
+     * hears the server's no.
+     */
+    fun onRenewInviteLink() {
+        viewModelScope.launch {
+            var link: String? = null
+            val done = attempt("Could not make an invite link") { link = repository.renewInviteLink(chatId) }
+            if (done && link != null) _uiState.update { it.copy(inviteLink = link) }
+        }
+    }
 
     /**
      * A GIF from a message kept among the saved ones, as the official

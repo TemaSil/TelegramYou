@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.ContactContent
 import androidx.compose.ui.semantics.semantics
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import androidx.compose.material3.IconButton
@@ -113,6 +114,9 @@ internal fun MessageBubble(
     quickReactions: List<ReactionOption> = emptyList(),
     /** "Add to GIFs", offered on a GIF. */
     onSaveGif: () -> Unit = {},
+    /** A contact card's View (their profile) and Add (to contacts). */
+    onContactOpen: (ContactContent) -> Unit = {},
+    onContactAdd: (ContactContent) -> Unit = {},
     isSelected: Boolean,
     isSelecting: Boolean,
     onSelect: () -> Unit,
@@ -528,6 +532,23 @@ internal fun MessageBubble(
                                 onPlayed = onContentOpened
                             )
                         }
+                    }
+                    MessageContentType.Contact -> {
+                        val contact = message.contact
+                        if (contact != null) {
+                            ContactCard(
+                                contact = contact,
+                                outgoing = outgoing,
+                                onOpen = { onContactOpen(contact) },
+                                onAdd = { onContactAdd(contact) }
+                            )
+                        } else {
+                            Text(message.text)
+                        }
+                    }
+                    MessageContentType.Location -> {
+                        val location = message.location
+                        if (location != null) LocationCard(location, outgoing) else Text(message.text)
                     }
                     MessageContentType.Poll -> {
                         val poll = message.poll

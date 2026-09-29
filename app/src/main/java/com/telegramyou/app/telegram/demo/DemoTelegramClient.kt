@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.LocationContent
+import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.telegram.model.customReactionKey
 import com.telegramyou.app.telegram.model.StickerFormat
@@ -1401,6 +1403,26 @@ class DemoTelegramClient(
     /** GIFs kept from messages, newest first, ahead of the demo's own. */
     private val keptGifs = mutableListOf<GifItem>()
 
+    override suspend fun sendContact(chatId: Long, contact: ContactContent, replyToId: Long?) {
+        delay(150)
+        appendOutgoing(
+            chatId = chatId,
+            text = "👤 ${contact.displayName}",
+            type = MessageContentType.Contact,
+            replyToId = replyToId,
+            contact = contact
+        )
+    }
+
+    /** The demo's groups hand out links; a new one each time it is renewed. */
+    private var demoLinkSerial = 0
+
+    override suspend fun renewInviteLink(chatId: Long): String? {
+        delay(150)
+        demoLinkSerial++
+        return "https://t.me/+demo${chatId}x$demoLinkSerial"
+    }
+
     override suspend fun savedGifs(): List<GifItem> {
         delay(120)
         return keptGifs + demoGifs("saved")
@@ -1504,7 +1526,8 @@ class DemoTelegramClient(
         sticker: StickerContent? = null,
         poll: PollContent? = null,
         entities: List<TextEntity> = emptyList(),
-        video: VideoContent? = null
+        video: VideoContent? = null,
+        contact: ContactContent? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -1534,7 +1557,8 @@ class DemoTelegramClient(
             sticker = sticker,
             poll = poll,
             entities = entities,
-            video = video
+            video = video,
+            contact = contact
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -1877,6 +1901,15 @@ class DemoTelegramClient(
         )
 
         chatMessages[2] = mutableListOf(
+            // A contact card and a place, before anything else in the chat:
+            // how both draw, offline — the place opens in whatever maps app
+            // the phone has.
+            demoMessage(901, 2, "👤 Sasha Kim", false, yesterday - 600, "Lina Park",
+                contentType = MessageContentType.Contact)
+                .copy(contact = ContactContent("Sasha", "Kim", "+15550100", userId = 0)),
+            demoMessage(902, 2, "📍 Coffee after the meetup?", false, yesterday - 300, "Lina Park",
+                contentType = MessageContentType.Location)
+                .copy(location = LocationContent(37.7793, -122.4193, title = "Blue Bottle Coffee", address = "66 Mint St, San Francisco")),
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
             // A GIF and a round video message, the two kinds of video people

@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.LocationContent
+import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import com.telegramyou.app.telegram.model.customReactionKey
 import com.telegramyou.app.telegram.model.ButtonAction
@@ -203,6 +205,10 @@ internal fun previewText(message: JSONObject?): String {
         "messageAudio" -> "🎵 " + (content.optJSONObject("audio")?.let { audio ->
             audio.optString("title").ifBlank { audio.optString("file_name") }
         }?.takeIf { it.isNotBlank() } ?: "Audio")
+        "messageContact" -> "👤 " + (content.optJSONObject("contact")?.let(::contactOf)?.displayName
+            ?.takeIf { it.isNotBlank() } ?: "Contact")
+        "messageLocation" -> "📍 Location"
+        "messageVenue" -> "📍 " + (content.optJSONObject("venue")?.optString("title")?.takeIf { it.isNotBlank() } ?: "Location")
         "messagePoll" -> "📊 " + (content.optJSONObject("poll")?.textOf("question")
             ?.takeIf { it.isNotBlank() } ?: "Poll")
         else -> content.optString("@type").removePrefix("message")
@@ -524,4 +530,36 @@ internal fun formatTime(epochSec: Int): String {
     val date = Date(epochSec * 1000L)
     val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
     return fmt.format(date)
+}
+
+/** A TDLib `contact`: a name, a number, and a user id where they are on Telegram. */
+internal fun contactOf(contact: JSONObject): ContactContent = ContactContent(
+    firstName = contact.optString("first_name"),
+    lastName = contact.optString("last_name"),
+    phoneNumber = contact.optString("phone_number"),
+    userId = contact.optLong("user_id")
+)
+
+/**
+ * A `messageLocation`'s place, or a `messageVenue`'s with its name and
+ * address; null for any other content.
+ */
+internal fun locationOf(content: JSONObject): LocationContent? = when (content.optString("@type")) {
+    "messageLocation" -> content.optJSONObject("location")?.let { point ->
+        LocationContent(
+            latitude = point.optDouble("latitude"),
+            longitude = point.optDouble("longitude"),
+            isLive = content.optInt("live_period") > 0
+        )
+    }
+    "messageVenue" -> content.optJSONObject("venue")?.let { venue ->
+        val point = venue.optJSONObject("location") ?: return@let null
+        LocationContent(
+            latitude = point.optDouble("latitude"),
+            longitude = point.optDouble("longitude"),
+            title = venue.optString("title"),
+            address = venue.optString("address")
+        )
+    }
+    else -> null
 }

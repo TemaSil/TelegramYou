@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import kotlinx.coroutines.coroutineScope
@@ -986,6 +987,39 @@ class TdLibTelegramClient(
      * silently mints one because it wanted something to show would be
      * handing out an invitation nobody asked to create.
      */
+    override suspend fun renewInviteLink(chatId: Long): String? {
+        awaitReady()
+        val link = requireEngine().send(
+            JSONObject().put("@type", "replacePrimaryChatInviteLink").put("chat_id", chatId)
+        )
+        return link.optString("invite_link").ifBlank { null }
+    }
+
+    override suspend fun sendContact(chatId: Long, contact: ContactContent, replyToId: Long?) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .withReplyTo(replyToId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageContact")
+                        .put(
+                            "contact",
+                            JSONObject()
+                                .put("@type", "contact")
+                                .put("phone_number", contact.phoneNumber)
+                                .put("first_name", contact.firstName)
+                                .put("last_name", contact.lastName)
+                                .put("vcard", "")
+                                .put("user_id", contact.userId)
+                        )
+                )
+        )
+    }
+
     override suspend fun chatInviteLink(chatId: Long): String? {
         awaitReady()
         val type = chatsById[chatId]?.optJSONObject("type") ?: return null
@@ -3479,6 +3513,8 @@ class TdLibTelegramClient(
             "messageVoiceNote" -> MessageContentType.Voice
             "messageSticker" -> MessageContentType.Sticker
             "messagePoll" -> MessageContentType.Poll
+            "messageContact" -> MessageContentType.Contact
+            "messageLocation", "messageVenue" -> MessageContentType.Location
             "messageAudio" -> MessageContentType.Audio
             else -> MessageContentType.Text
         }
@@ -3572,6 +3608,8 @@ class TdLibTelegramClient(
             } ?: 1f,
             video = videoContent(content),
             poll = content?.takeIf { type == "messagePoll" }?.optJSONObject("poll")?.let(::pollOf),
+            contact = content?.takeIf { type == "messageContact" }?.optJSONObject("contact")?.let(::contactOf),
+            location = content?.let(::locationOf),
             inlineKeyboard = inlineKeyboardOf(message.optJSONObject("reply_markup")),
             audio = content?.takeIf { type == "messageAudio" }?.optJSONObject("audio")?.let { audio ->
                 val file = audio.optJSONObject("audio")

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.ContactContent
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import com.telegramyou.app.telegram.model.ReactionOption
@@ -183,6 +185,11 @@ fun ChatScreen(
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
     onGalleryPage: (ChatMessage) -> Unit = {},
     onSaveGif: (ChatMessage) -> Unit = {},
+    onContactOpen: (ContactContent) -> Unit = {},
+    onContactAdd: (ContactContent) -> Unit = {},
+    onContactPickerOpen: () -> Unit = {},
+    onContactPickerDismiss: () -> Unit = {},
+    onContactPicked: (TelegramUser) -> Unit = {},
     /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit,
     /** The emoji, GIF and sticker panel, in the keyboard's place. */
@@ -845,6 +852,8 @@ fun ChatScreen(
                                 onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
                                 quickReactions = quickReactions,
                                 onSaveGif = { onSaveGif(message) },
+                                onContactOpen = onContactOpen,
+                                onContactAdd = onContactAdd,
                                 isSelected = message.id in state.selection,
                                 isSelecting = state.selection.isActive,
                                 onSelect = { onSelectionToggled(message) },
@@ -1060,7 +1069,15 @@ fun ChatScreen(
                                 onAttachmentPicked(AttachmentDraft.Photos(listOf(uri)))
                                 onAttachmentSheetOpenChange(false)
                             },
-                            onPoll = if (state.canSendPolls) onPollOpen else null
+                            onPoll = if (state.canSendPolls) onPollOpen else null,
+                            onContact = onContactPickerOpen
+                        )
+                    }
+                    state.contactPicker?.let { contacts ->
+                        ContactPickerSheet(
+                            contacts = contacts,
+                            onPick = onContactPicked,
+                            onDismiss = onContactPickerDismiss
                         )
                     }
 

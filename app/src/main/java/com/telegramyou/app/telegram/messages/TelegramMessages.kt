@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.messages
 
+import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.CallbackAnswer
@@ -148,6 +149,9 @@ interface TelegramMessages {
      * to tell.
      */
     suspend fun openMessageContent(chatId: Long, messageId: Long) {}
+
+    /** Somebody's card, sent as a contact message. */
+    suspend fun sendContact(chatId: Long, contact: ContactContent, replyToId: Long? = null) {}
 
     /**
      * Every reaction this message may take, most used first, with Telegram's

@@ -703,6 +703,7 @@ fun TelegramYouNavHost(
                     state.detail?.chat?.id?.let { navController.navigateTo(Route.ChatMedia(it)) }
                 },
                 onMemberClick = { navController.navigateTo(Route.Person(it)) },
+                onRenewInviteLink = chatViewModel::onRenewInviteLink,
                 errorMessage = state.errorMessage,
                 onErrorShown = chatViewModel::onErrorShown
             )
@@ -827,6 +828,11 @@ fun TelegramYouNavHost(
                 onVideoClosed = chatViewModel::onVideoClosed,
                 onGalleryPage = chatViewModel::onGalleryPage,
                 onSaveGif = chatViewModel::onSaveGif,
+                onContactOpen = { contact -> navController.navigateTo(Route.Person(contact.userId)) },
+                onContactAdd = chatViewModel::onContactAdd,
+                onContactPickerOpen = chatViewModel::onContactPickerOpen,
+                onContactPickerDismiss = chatViewModel::onContactPickerDismiss,
+                onContactPicked = chatViewModel::onContactPicked,
                 onErrorShown = chatViewModel::onErrorShown,
                 onExpressionsOpen = chatViewModel::onExpressionsOpen,
                 onExpressionsClose = chatViewModel::onExpressionsClose,

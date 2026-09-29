@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.notifications.MuteDuration
@@ -83,6 +88,8 @@ fun ChatInfoScreen(
     onOpenMedia: () -> Unit = {},
     /** A member of a group, tapped: their profile. */
     onMemberClick: (Long) -> Unit = {},
+    /** Revoke the invite link and make a new one, or make the first. */
+    onRenewInviteLink: () -> Unit = {},
     errorMessage: String? = null,
     onErrorShown: () -> Unit = {}
 ) {
@@ -91,6 +98,24 @@ fun ChatInfoScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var confirmingBlock by rememberSaveable { mutableStateOf(false) }
+    var confirmingRenew by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    if (confirmingRenew) {
+        AlertDialog(
+            onDismissRequest = { confirmingRenew = false },
+            icon = { Icon(Symbols.Link, contentDescription = null) },
+            title = { Text("Revoke the link?") },
+            text = { Text("The link stops working for anyone who has it, and a new one takes its place.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingRenew = false
+                    onRenewInviteLink()
+                }) { Text("Revoke link") }
+            },
+            dismissButton = { TextButton(onClick = { confirmingRenew = false }) { Text("Cancel") } }
+        )
+    }
 
     errorMessage?.let { message ->
         LaunchedEffect(message) {
@@ -209,6 +234,32 @@ fun ChatInfoScreen(
                             }
                         }
                     )
+                }
+                // What else a link is for: handing it to someone through
+                // Android's own share sheet, and taking it back.
+                item(key = "invite-actions") {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(start = 72.dp, end = 16.dp, bottom = 8.dp)
+                    ) {
+                        FilledTonalButton(onClick = {
+                            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
+                            context.startActivity(Intent.createChooser(send, "Share invite link"))
+                        }) { Text("Share") }
+                        OutlinedButton(onClick = { confirmingRenew = true }) { Text("Revoke") }
+                    }
+                }
+            } ?: run {
+                // No link to show: this account may make one where it is an
+                // admin; the server says so if it is not.
+                if (chat != null && (chat.isGroup || chat.isChannel)) {
+                    item(key = "invite-create") {
+                        ListItem(
+                            headlineContent = { Text("Create invite link") },
+                            leadingContent = { Icon(Symbols.Link, contentDescription = null) },
+                            modifier = Modifier.clickable(onClick = onRenewInviteLink)
+                        )
+                    }
                 }
             }
 

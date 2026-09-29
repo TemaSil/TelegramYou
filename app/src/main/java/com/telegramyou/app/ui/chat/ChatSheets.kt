@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.ui.auth.PhoneEntry
+import com.telegramyou.app.telegram.model.TelegramUser
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -143,7 +145,9 @@ internal fun AttachmentSheet(
     onTakePhoto: () -> Unit,
     onPickRecent: (String) -> Unit,
     /** A poll, where the chat takes them — groups and channels. */
-    onPoll: (() -> Unit)? = null
+    onPoll: (() -> Unit)? = null,
+    /** Somebody's card, from this account's contacts. */
+    onContact: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -185,6 +189,13 @@ internal fun AttachmentSheet(
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onPickFile)
         )
+        ListItem(
+            headlineContent = { Text("Contact") },
+            supportingContent = { Text("Send somebody's card") },
+            leadingContent = { Icon(Symbols.Person, contentDescription = null) },
+            colors = sheetRow,
+            modifier = Modifier.clickable(onClick = onContact)
+        )
         if (onPoll != null) {
             ListItem(
                 headlineContent = { Text("Poll") },
@@ -195,6 +206,51 @@ internal fun AttachmentSheet(
             )
         }
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/** This account's contacts, one of whom to send as a card. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ContactPickerSheet(
+    contacts: List<TelegramUser>,
+    onPick: (TelegramUser) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            "Send a contact",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+        )
+        if (contacts.isEmpty()) {
+            Text(
+                "No contacts yet.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(24.dp)
+            )
+        }
+        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+            items(contacts, key = { it.id }) { user ->
+                ListItem(
+                    headlineContent = { Text(user.displayName) },
+                    supportingContent = user.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
+                        { Text(PhoneEntry.format(phone)) }
+                    },
+                    leadingContent = {
+                        AvatarBubble(
+                            title = user.displayName,
+                            seed = user.avatarColor,
+                            size = 40.dp,
+                            shape = personShape(user.avatarColor),
+                            photoPath = user.photoPath
+                        )
+                    },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.clickable { onPick(user) }
+                )
+            }
+        }
     }
 }
 

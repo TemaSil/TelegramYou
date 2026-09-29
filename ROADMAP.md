@@ -1086,8 +1086,12 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       title, performer and length, and a bar while it plays, on the same
       player as voice messages. Picked files with a music extension are sent
       as audio rather than as documents
-- [ ] Location and contacts — sending one's place or a contact card, and
-      drawing the ones that arrive (a map needs a provider decision first)
+- [x] Location and contacts — since 1.5 a contact card draws with View
+      (their profile, where they are on Telegram) and Add; a place or venue
+      with its name, address or coordinates and Open in Maps, through a
+      `geo:` link to whatever maps app the phone has — no map is drawn, so no
+      provider is chosen. A contact is sent from the paperclip's sheet
+      (`inputMessageContact`); sending one's own place is not in yet
 - [ ] Inline bots and Mini Apps — the buttons are there and drawn disabled;
       what they open needs an inline-results sheet and a web view
 
@@ -1413,7 +1417,9 @@ a live-updating chat as much as it was groundwork for notifications.
       offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
       and never created: a screen that minted a link because it wanted
       something to show would be handing out an invitation nobody asked for.
-      Revoking and making new ones is not in
+      Since 1.5 it is shared through Android's share sheet and revoked for
+      a new one (`replacePrimaryChatInviteLink`), or made where there was
+      none — the server refuses anyone who may not
 - [x] Create a group or channel — one screen, the name focused and the
       people under it with a checkbox each; the create button appears once
       there is something to create, and Done on the keyboard creates it too.
