@@ -173,6 +173,19 @@ delete and edit on live accounts (TDLib moved the permission flags to
 `getMessageProperties`) and reports voice and video notes as listened
 (`openMessageContent`).
 
+**Changed 29 September (1.5), on the owner's word:** the icon colour is
+out of Appearance — the coloured icons did not look good enough yet. The
+aliases stay one more release so that an install that picked another
+colour is put back on Teal as it leaves the screen
+(`AppearanceStore.restoreLauncherIcon`); after that they and their
+mipmaps can go. The wallpaper cards are a grid of three a row, because in
+the sideways row Dots and Waves sat past the edge and read as lost.
+Gradient is withdrawn — on a grey palette it muddied the chat — and a
+stored "Gradient" reads as Plain, now the default. Four patterns were
+added, each one mark in the same ink so the mark is the difference:
+Zigzag, Crosses, Rings and Sparkles. `AppearanceTest` holds every
+wallpaper that shipped, so none goes missing unasked.
+
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback
 speed and picture-in-picture; recording round video messages; a photo

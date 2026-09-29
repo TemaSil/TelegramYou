@@ -57,27 +57,18 @@ class AppearanceStore(context: Context) {
     }
 
     /**
-     * Remembered now, shown on the launcher only when the app leaves the
-     * screen — see [applyAppIcon]. Switching the alias the running task was
-     * started through closes that task on a good many launchers, which from
-     * the Appearance screen reads as the app crashing on a tap.
+     * Puts the launcher back on the Teal icon: its alias on, every other one
+     * off. The icon colour was a choice in 1.4 and is not any more, so an
+     * install that picked another is returned to the default. Called as the
+     * activity stops, because switching the alias a task was started through
+     * closes that task on a good many launchers; does nothing when Teal is
+     * already the one showing, which is nearly every time.
      */
-    fun setAppIcon(icon: AppIcon) {
-        _settings.update { it.copy(appIcon = icon) }
-        preferences.edit().putString(KEY_APP_ICON, icon.name).apply()
-    }
-
-    /**
-     * Puts the chosen icon on the launcher: its alias on, every other one
-     * off. Called as the activity stops; does nothing when the launcher
-     * already shows the chosen one, which is nearly every time.
-     */
-    fun applyAppIcon() {
-        val chosen = _settings.value.appIcon
+    fun restoreLauncherIcon() {
         val packages = appContext.packageManager
         AppIcon.entries.forEach { icon ->
             val component = ComponentName(appContext, "$ALIAS_PACKAGE.${icon.alias}")
-            val wanted = if (icon == chosen) {
+            val wanted = if (icon == AppIcon.Teal) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             } else {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
@@ -154,7 +145,9 @@ class AppearanceStore(context: Context) {
             chatColorsFromAvatar = preferences.getBoolean(KEY_CHAT_COLORS, false),
             chatWallpaper = preferences.getString(KEY_WALLPAPER, null)
                 .let { name -> ChatWallpaper.entries.firstOrNull { it.name == name } }
-                ?: ChatWallpaper.Gradient,
+                // Gradient, withdrawn, among them: its name is no longer
+                // an entry, and whoever had it gets the plain surface.
+                ?: ChatWallpaper.Plain,
             outgoingTone = preferences.getString(KEY_OUTGOING_TONE, null)
                 .let { name -> OutgoingTone.entries.firstOrNull { it.name == name } }
                 ?: OutgoingTone.Accent,
@@ -162,7 +155,6 @@ class AppearanceStore(context: Context) {
                 preferences.getInt(KEY_BUBBLE_CORNERS, BubbleCorners.DEFAULT).toFloat()
             ),
             messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f)),
-            appIcon = AppIcon.from(preferences.getString(KEY_APP_ICON, null)),
             reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false)
         )
     }
@@ -181,7 +173,6 @@ class AppearanceStore(context: Context) {
         const val KEY_BUBBLE_CORNERS = "bubble_corners"
         const val KEY_MESSAGE_TEXT_SCALE = "message_text_scale"
         const val KEY_TWO_LINE_PREVIEWS = "two_line_previews"
-        const val KEY_APP_ICON = "app_icon"
         const val KEY_REDUCE_MOTION = "reduce_motion"
 
         /** The namespace the manifest's launcher aliases are named in. */

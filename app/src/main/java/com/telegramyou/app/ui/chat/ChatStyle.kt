@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
@@ -30,6 +32,7 @@ import com.telegramyou.app.settings.OutgoingTone
 import com.telegramyou.app.ui.components.SHAPE_COUNT
 import com.telegramyou.app.ui.components.materialShapeAt
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 /**
@@ -40,7 +43,7 @@ import kotlin.math.sin
  * it shows what a chat will.
  */
 data class ChatStyle(
-    val wallpaper: ChatWallpaper = ChatWallpaper.Gradient,
+    val wallpaper: ChatWallpaper = ChatWallpaper.Plain,
     val outgoingTone: OutgoingTone = OutgoingTone.Accent,
     val bubbleCorners: Int = BubbleCorners.DEFAULT,
     val messageTextScale: Float = 1f
@@ -53,40 +56,131 @@ val LocalChatStyle = staticCompositionLocalOf { ChatStyle() }
  * is on CLAUDE.md's short list of things this client draws by hand, and a
  * picture in somebody else's colours would fight the scheme.
  *
- * The first version kept every one of them faint, a breath of the accent,
- * and Gradient could hardly be told from Plain; the owner said so. They are
- * bolder now, and still quieter than the bubbles on them: the tints are the
- * container roles, which Material keeps apart from the fills a message uses.
+ * There was a Gradient, the surface across into the accent's containers.
+ * Faint, it could not be told from Plain; bold, on a grey Material You
+ * palette, it muddied the whole conversation — and the owner withdrew it on
+ * 29 September. The patterns are what tells one wallpaper from another now:
+ * one mark each, in one ink, over a base barely off the surface.
  */
 @Composable
 fun Modifier.chatWallpaper(wallpaper: ChatWallpaper): Modifier {
     val colors = MaterialTheme.colorScheme
-    val tinted = Brush.linearGradient(
-        0f to colors.surface,
-        0.55f to colors.primaryContainer.copy(alpha = 0.55f).compositeOver(colors.surface),
-        1f to colors.tertiaryContainer.copy(alpha = 0.8f).compositeOver(colors.surface)
-    )
     val quiet = Brush.verticalGradient(
-        listOf(colors.surfaceContainerLow, colors.surface, colors.primaryContainer.copy(alpha = 0.35f).compositeOver(colors.surface))
+        listOf(colors.surfaceContainerLow, colors.surface, colors.primaryContainer.copy(alpha = 0.18f).compositeOver(colors.surface))
     )
+    // One ink for every pattern, so that the mark is the only difference.
+    val ink = colors.primary.copy(alpha = PATTERN_INK)
     return when (wallpaper) {
         ChatWallpaper.Plain -> background(colors.surface)
-        ChatWallpaper.Gradient -> background(tinted)
-        ChatWallpaper.Dots -> background(quiet).drawBehind { dots(colors.primary.copy(alpha = 0.16f)) }
-        ChatWallpaper.Waves -> background(quiet).drawBehind { waves(colors.primary.copy(alpha = 0.18f)) }
         ChatWallpaper.Aurora -> background(colors.surface).drawBehind {
             aurora(colors.primaryContainer, colors.tertiaryContainer, colors.secondaryContainer)
         }
+        ChatWallpaper.Dots -> background(quiet).drawBehind { dots(ink) }
+        ChatWallpaper.Waves -> background(quiet).drawBehind { waves(ink) }
+        ChatWallpaper.Zigzag -> background(quiet).drawBehind { zigzag(ink) }
+        ChatWallpaper.Crosses -> background(quiet).drawBehind { crosses(ink) }
+        ChatWallpaper.Rings -> background(quiet).drawBehind { rings(ink) }
+        ChatWallpaper.Sparkles -> background(quiet).drawBehind { sparkles(ink) }
         ChatWallpaper.Shapes -> {
             // Material's own shapes, the avatars' set, scattered: the
             // Expressive language as a pattern rather than an imitation of
             // some other messenger's doodles.
             val shapes = List(SCATTER_SHAPES) { materialShapeAt((it * 5 + 2) % SHAPE_COUNT) }
-            val ink = colors.primary.copy(alpha = 0.14f)
-            val fill = colors.tertiaryContainer.copy(alpha = 0.45f)
+            val fill = colors.tertiaryContainer.copy(alpha = 0.6f)
             background(quiet).drawBehind { scatter(shapes, ink, fill) }
         }
     }
+}
+
+/**
+ * Calls [mark] at the points of a grid [step] apart, every other row shifted
+ * by half a step, so the grid reads as a texture rather than as graph paper.
+ */
+private inline fun DrawScope.staggered(step: Float, mark: (Offset) -> Unit) {
+    var row = 0
+    var y = step / 2
+    while (y < size.height + step) {
+        var x = if (row % 2 == 0) step / 2 else step
+        while (x < size.width + step) {
+            mark(Offset(x, y))
+            x += step
+        }
+        y += step
+        row++
+    }
+}
+
+private fun DrawScope.crosses(ink: Color) {
+    val arm = 4.dp.toPx()
+    val width = 1.8.dp.toPx()
+    staggered(28.dp.toPx()) { at ->
+        drawLine(ink, Offset(at.x - arm, at.y), Offset(at.x + arm, at.y), width, StrokeCap.Round)
+        drawLine(ink, Offset(at.x, at.y - arm), Offset(at.x, at.y + arm), width, StrokeCap.Round)
+    }
+}
+
+private fun DrawScope.rings(ink: Color) {
+    val radius = 5.dp.toPx()
+    val stroke = Stroke(width = 1.5.dp.toPx())
+    staggered(30.dp.toPx()) { at -> drawCircle(ink, radius, at, style = stroke) }
+}
+
+private fun DrawScope.zigzag(ink: Color) {
+    val spacing = 24.dp.toPx()
+    val run = 10.dp.toPx()
+    val rise = 4.dp.toPx()
+    val stroke = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+    var baseline = spacing / 2
+    while (baseline < size.height + rise) {
+        val path = Path()
+        var x = 0f
+        var up = true
+        path.moveTo(x, baseline - rise)
+        while (x <= size.width + run) {
+            x += run
+            up = !up
+            path.lineTo(x, if (up) baseline - rise else baseline + rise)
+        }
+        drawPath(path, ink, style = stroke)
+        baseline += spacing
+    }
+}
+
+/**
+ * Four-pointed sparkles, the star Expressive draws, scattered the way
+ * [scatter] scatters shapes: each nudged and sized by its place in a loose
+ * grid, so the pattern does not repeat in rows.
+ */
+private fun DrawScope.sparkles(ink: Color) {
+    val cell = 44.dp.toPx()
+    var index = 0
+    var y = 0f
+    while (y < size.height) {
+        var x = 0f
+        while (x < size.width) {
+            val hash = (index * 2654435761L).toInt() ushr 8
+            val reach = (5 + hash % 6).dp.toPx()
+            val dx = reach + (hash % 7) / 7f * (cell - 2 * reach)
+            val dy = reach + (hash / 7 % 7) / 7f * (cell - 2 * reach)
+            drawPath(sparkle(Offset(x + dx, y + dy), reach), ink)
+            x += cell
+            index++
+        }
+        y += cell
+    }
+}
+
+/** A four-pointed star: an astroid, whose sides curve in to a pinch. */
+private fun sparkle(center: Offset, reach: Float): Path = Path().apply {
+    for (step in 0..SPARKLE_STEPS) {
+        val t = 2 * PI * step / SPARKLE_STEPS
+        val c = cos(t)
+        val s = sin(t)
+        val x = center.x + reach * (c * c * c).toFloat()
+        val y = center.y + reach * (s * s * s).toFloat()
+        if (step == 0) moveTo(x, y) else lineTo(x, y)
+    }
+    close()
 }
 
 private fun DrawScope.dots(ink: Color) {
@@ -148,7 +242,7 @@ private fun DrawScope.aurora(first: Color, second: Color, third: Color) {
  * outlined.
  */
 private fun DrawScope.scatter(shapes: List<Shape>, ink: Color, fill: Color) {
-    val cell = 72.dp.toPx()
+    val cell = 52.dp.toPx()
     val stroke = Stroke(width = 1.5.dp.toPx())
     var index = 0
     var y = 0f
@@ -173,6 +267,13 @@ private fun DrawScope.scatter(shapes: List<Shape>, ink: Color, fill: Color) {
 }
 
 private const val SCATTER_SHAPES = 6
+private const val SPARKLE_STEPS = 32
+
+/**
+ * How strongly a pattern is drawn: the primary colour at this alpha, the
+ * strength Dots had when the owner called it the good one.
+ */
+private const val PATTERN_INK = 0.17f
 
 /**
  * One message in the chosen style: text at the message size, and — for the

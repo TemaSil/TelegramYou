@@ -183,9 +183,9 @@ class MainActivity : ComponentActivity() {
         // whatever is still composed.
         AppVisibility.isInForeground = false
         (application as TelegramYouApp).telegramRepository.setOnline(false)
-        // The icon chosen in Appearance reaches the launcher here, as the
-        // app leaves the screen, rather than on the tap; see setAppIcon.
-        if (!isChangingConfigurations) (application as TelegramYouApp).appearance.applyAppIcon()
+        // An icon colour picked in 1.4 goes back to Teal here, as the app
+        // leaves the screen; see restoreLauncherIcon.
+        if (!isChangingConfigurations) (application as TelegramYouApp).appearance.restoreLauncherIcon()
         // Leaving, for the app lock's clock — not a rotation, which is not.
         if (!isChangingConfigurations) (application as TelegramYouApp).appLock.onLeft()
         super.onStop()

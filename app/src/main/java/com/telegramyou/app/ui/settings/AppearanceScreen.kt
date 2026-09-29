@@ -3,9 +3,7 @@ package com.telegramyou.app.ui.settings
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.style.TextAlign
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -38,6 +37,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import com.telegramyou.app.ui.motion.LocalReduceMotion
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +57,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.telegramyou.app.settings.AppIcon
 import com.telegramyou.app.settings.AppearanceSettings
 import com.telegramyou.app.settings.BubbleCorners
 import com.telegramyou.app.settings.ChatWallpaper
@@ -76,7 +85,6 @@ class AppearanceActions(
     val onBubbleCornersChange: (Int) -> Unit = {},
     val onMessageTextScaleChange: (Float) -> Unit = {},
     val onTwoLinePreviewsChange: (Boolean) -> Unit = {},
-    val onAppIconChange: (AppIcon) -> Unit = {},
     val onReduceMotionChange: (Boolean) -> Unit = {}
 )
 
@@ -188,16 +196,6 @@ fun AppearanceScreen(
                     summary = "Each chat takes its colours from the other person's picture",
                     checked = settings.chatColorsFromAvatar,
                     onChange = actions.onChatColorsFromAvatarChange
-                )
-                // The launcher only learns of it once the app is off screen;
-                // the summary says so, or the tap would look ignored.
-                item(
-                    title = "App icon",
-                    summary = "${settings.appIcon.label} · changes on the home screen when you leave the app",
-                    onClick = {},
-                    below = {
-                        IconSwatches(selected = settings.appIcon, onSelect = actions.onAppIconChange)
-                    }
                 )
             }
 
@@ -319,15 +317,17 @@ private fun ChatPreview(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .semantics { contentDescription = "Preview" }
     ) {
-        Column(
-            modifier = Modifier
-                .chatWallpaper(LocalChatStyle.current.wallpaper)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            PreviewBubble("Did the new colours land?", outgoing = false)
-            PreviewBubble("They did — everything follows the accent now ✨", outgoing = true)
-            PreviewBubble("Looks like home", outgoing = false)
+        Box {
+            val wallpaper = LocalChatStyle.current.wallpaper
+            SettlingWallpaper(wallpaper, playOn = wallpaper, modifier = Modifier.matchParentSize())
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                PreviewBubble("Did the new colours land?", outgoing = false)
+                PreviewBubble("They did — everything follows the accent now ✨", outgoing = true)
+                PreviewBubble("Looks like home", outgoing = false)
+            }
         }
     }
 }
@@ -410,127 +410,206 @@ private fun AccentSwatches(selected: Int, enabled: Boolean, dark: Boolean, onSel
 
 /**
  * The wallpapers as small cards, each showing what it draws with two
- * bubbles on it, in a row that scrolls sideways — the way Android's own
- * wallpaper picker and the official client offer backgrounds. A picture is
- * the choice here; a segmented row of names said nothing about how any of
- * them looks. Stock cards: the chosen one takes the primary outline and a
- * tick.
+ * bubbles on it — the way Android's own wallpaper picker and the official
+ * client offer backgrounds. A picture is the choice here; a segmented row of
+ * names said nothing about how any of them looks. Stock cards: the chosen
+ * one takes the primary outline and a tick.
+ *
+ * In a grid of three a row, all six on screen at once. They were a row that
+ * scrolled sideways, which showed four and hid Dots and Waves past the edge,
+ * where they read as removed.
  */
 @Composable
 private fun WallpaperPicker(selected: ChatWallpaper, onSelect: (ChatWallpaper) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp)
-            .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        ChatWallpaper.entries.forEach { wallpaper ->
-            val chosen = wallpaper == selected
-            OutlinedCard(
-                onClick = { onSelect(wallpaper) },
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(
-                    if (chosen) 2.dp else 1.dp,
-                    if (chosen) colors.primary else colors.outlineVariant
-                ),
-                modifier = Modifier
-                    .width(84.dp)
-                    .semantics { this.selected = chosen }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(112.dp)
-                        .chatWallpaper(wallpaper)
-                        .padding(8.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(
-                            Modifier
-                                .size(width = 44.dp, height = 14.dp)
-                                .background(colors.surfaceContainerHighest, RoundedCornerShape(7.dp))
-                        )
-                        Box(
-                            Modifier
-                                .align(Alignment.End)
-                                .size(width = 50.dp, height = 14.dp)
-                                .background(colors.primary, RoundedCornerShape(7.dp))
-                        )
-                    }
-                    if (chosen) {
-                        Icon(
-                            Symbols.Check,
-                            contentDescription = null,
-                            tint = colors.onPrimary,
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(22.dp)
-                                .background(colors.primary, CircleShape)
-                                .padding(3.dp)
-                        )
-                    }
+        ChatWallpaper.entries.chunked(WALLPAPERS_PER_ROW).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { wallpaper ->
+                    WallpaperCard(
+                        wallpaper = wallpaper,
+                        chosen = wallpaper == selected,
+                        onSelect = { onSelect(wallpaper) },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Text(
-                    wallpaper.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    maxLines = 1,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    textAlign = TextAlign.Center
-                )
+                // A short last row keeps its cards the width of the others.
+                repeat(WALLPAPERS_PER_ROW - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
 /**
- * The launcher icon's colours, each drawn as the icon is — its background
- * with the paper plane on it, in the ink the icon itself uses — so the
- * choice looks like what the home screen will show.
+ * One wallpaper, and on choosing it, a moment of Expressive motion: the card
+ * gives under the finger and springs back, its corners open out from 16dp
+ * to 28dp as the chosen one's shape, the tick pops in, and the pattern
+ * inside settles into place — see [SettlingWallpaper]. The springs are the
+ * theme's motion scheme's, not numbers chosen here. Less motion keeps only
+ * the outline and the tick, which say what was chosen without moving.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun IconSwatches(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+private fun WallpaperCard(
+    wallpaper: ChatWallpaper,
+    chosen: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+    val still = LocalReduceMotion.current
+    val corner by animateDpAsState(
+        targetValue = if (chosen) CHOSEN_CORNER else CARD_CORNER,
+        animationSpec = if (still) snap() else MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "wallpaperCorner"
+    )
+    val tick by animateFloatAsState(
+        targetValue = if (chosen) 1f else 0f,
+        animationSpec = if (still) snap() else MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "wallpaperTick"
+    )
+    // The give: squeezed on the choice, then the spatial spring brings it
+    // back past its size and home. Only when chosen here, not on arrival.
+    val give = remember { Animatable(1f) }
+    val springBack = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+    var arrived by remember { mutableStateOf(false) }
+    LaunchedEffect(chosen) {
+        if (arrived && chosen && !still) {
+            give.snapTo(GIVE)
+            give.animateTo(1f, springBack)
+        }
+        arrived = true
+    }
+    OutlinedCard(
+        onClick = onSelect,
+        shape = RoundedCornerShape(corner),
+        border = BorderStroke(
+            if (chosen) 2.dp else 1.dp,
+            if (chosen) colors.primary else colors.outlineVariant
+        ),
+        modifier = modifier
+            .graphicsLayer {
+                scaleX = give.value
+                scaleY = give.value
+            }
+            .semantics { this.selected = chosen }
     ) {
-        AppIcon.entries.forEach { icon ->
-            val chosen = icon == selected
-            Box(
-                contentAlignment = Alignment.Center,
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(104.dp)
+        ) {
+            SettlingWallpaper(
+                wallpaper,
+                playOn = chosen,
+                playWhen = { it },
+                modifier = Modifier.matchParentSize()
+            )
+            Column(
+                verticalArrangement = Arrangement.spacedBy(5.dp),
                 modifier = Modifier
-                    .size(36.dp)
-                    .then(
-                        if (chosen) {
-                            Modifier.border(2.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                        } else {
-                            Modifier
-                        }
-                    )
-                    .padding(4.dp)
-                    .background(Color(icon.background), CircleShape)
-                    .selectable(
-                        selected = chosen,
-                        role = Role.RadioButton,
-                        onClick = { onSelect(icon) }
-                    )
-                    .semantics { contentDescription = "${icon.label} icon" }
+                    .fillMaxWidth()
+                    .padding(8.dp)
             ) {
+                Box(
+                    Modifier
+                        .size(width = 44.dp, height = 14.dp)
+                        .background(colors.surfaceContainerHighest, RoundedCornerShape(7.dp))
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.End)
+                        .size(width = 50.dp, height = 14.dp)
+                        .background(colors.primary, RoundedCornerShape(7.dp))
+                )
+            }
+            if (tick > 0f) {
                 Icon(
-                    Symbols.Send,
+                    Symbols.Check,
                     contentDescription = null,
-                    tint = if (icon.lightGlyph) Color.White else Color(AppIcon.ICON_INK),
-                    modifier = Modifier.size(16.dp)
+                    tint = colors.onPrimary,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .graphicsLayer {
+                            scaleX = tick
+                            scaleY = tick
+                            alpha = tick.coerceIn(0f, 1f)
+                        }
+                        .size(22.dp)
+                        .background(colors.primary, CircleShape)
+                        .padding(3.dp)
                 )
             }
         }
+        Text(
+            wallpaper.label,
+            style = MaterialTheme.typography.labelMedium,
+            maxLines = 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            textAlign = TextAlign.Center
+        )
     }
 }
+
+/**
+ * A wallpaper on a layer of its own, which settles into place whenever
+ * [playOn] changes to a value [playWhen] accepts — never on first showing,
+ * so the screen does not perform as it opens. It starts a little larger and
+ * turned, and the slow spatial spring brings it square: the pattern
+ * arriving, rather than swapping. Scale never drops under 1, so the spring
+ * cannot pull the edges in and show what is beneath; its overshoot shows in
+ * the turn. Nothing moves under Less motion.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun <T> SettlingWallpaper(
+    wallpaper: ChatWallpaper,
+    playOn: T,
+    modifier: Modifier = Modifier,
+    playWhen: (T) -> Boolean = { true }
+) {
+    val still = LocalReduceMotion.current
+    val settle = remember { Animatable(1f) }
+    val spring = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(playOn) {
+        if (shown && playWhen(playOn) && !still) {
+            settle.snapTo(0f)
+            settle.animateTo(1f, spring)
+        }
+        shown = true
+    }
+    Box(
+        modifier
+            .graphicsLayer {
+                val left = 1f - settle.value
+                val grow = 1f + SETTLE_GROW * left.coerceAtLeast(0f)
+                scaleX = grow
+                scaleY = grow
+                rotationZ = SETTLE_TURN * left
+            }
+            .chatWallpaper(wallpaper)
+    )
+}
+
+private val CARD_CORNER = 16.dp
+private val CHOSEN_CORNER = 28.dp
+
+/** How far a card gives under the choice before it springs back. */
+private const val GIVE = 0.9f
+
+/** How much larger, and how far turned, a pattern starts as it settles. */
+private const val SETTLE_GROW = 0.35f
+private const val SETTLE_TURN = -12f
+
+private const val WALLPAPERS_PER_ROW = 3
 
 /** A few short choices side by side: Material's segmented button row. */
 @Composable

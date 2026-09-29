@@ -40,7 +40,7 @@ class AppearanceTest {
     @Test
     fun `the chat's own look starts as it always was`() {
         val defaults = AppearanceSettings()
-        assertEquals(ChatWallpaper.Gradient, defaults.chatWallpaper)
+        assertEquals(ChatWallpaper.Plain, defaults.chatWallpaper)
         assertEquals(OutgoingTone.Accent, defaults.outgoingTone)
         assertEquals(20, defaults.bubbleCorners)
         assertEquals(1f, defaults.messageTextScale)
@@ -56,11 +56,25 @@ class AppearanceTest {
     }
 
     @Test
+    fun `no wallpaper that ever shipped goes missing`() {
+        // Stored by name, and the owner noticed when Dots seemed to vanish:
+        // an entry may be added, never renamed or removed unasked. Gradient
+        // is missing from this list because the owner withdrew it.
+        val shipped = listOf("Plain", "Dots", "Waves", "Aurora", "Shapes")
+        shipped.forEach { name ->
+            assertTrue("$name is still offered", ChatWallpaper.entries.any { it.name == name })
+        }
+        assertEquals(
+            ChatWallpaper.entries.size,
+            ChatWallpaper.entries.map { it.label }.toSet().size
+        )
+    }
+
+    @Test
     fun `the rest of the look starts as it always was`() {
         val defaults = AppearanceSettings()
         assertTrue(defaults.shapedAvatars)
         assertFalse(defaults.twoLinePreviews)
-        assertEquals(AppIcon.Teal, defaults.appIcon)
         assertFalse(defaults.reduceMotion)
     }
 

@@ -1786,7 +1786,11 @@ class SmokeTest {
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
         scrollDownTo(By.text("Shapes"))
-        tap(By.text("Shapes"))
+        tap(By.text("Dots"))
+        // All nine in view at once, the grid that replaced a sideways row
+        // in which Dots and Waves sat past the edge.
+        SystemClock.sleep(900)
+        screenshot("52c-appearance-wallpaper-grid")
         // Below the wallpaper cards, which push it off a phone's screen.
         scrollDownTo(By.text("Soft"))
         tap(By.text("Soft"))
@@ -1817,8 +1821,8 @@ class SmokeTest {
         tap(By.text("Colour from your wallpaper"))
         scrollDownTo(By.text("Colours from the avatar"))
         tap(By.text("Colours from the avatar"))
-        scrollDownTo(By.text("Gradient"))
-        tap(By.text("Gradient"))
+        scrollDownTo(By.text("Plain"))
+        tap(By.text("Plain"))
         scrollDownTo(By.text("Accent"))
         tap(By.text("Accent"))
         scrollDownTo(By.text("Two-line previews"))

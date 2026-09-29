@@ -60,7 +60,7 @@ data class AppearanceSettings(
      */
     val chatColorsFromAvatar: Boolean = false,
     /** What the conversation is drawn on; see ChatWallpaper. */
-    val chatWallpaper: ChatWallpaper = ChatWallpaper.Gradient,
+    val chatWallpaper: ChatWallpaper = ChatWallpaper.Plain,
     /** Which tone the account's own messages are filled with. */
     val outgoingTone: OutgoingTone = OutgoingTone.Accent,
     /** How round a message's corners are, in dp; see BubbleCorners. */
@@ -71,8 +71,6 @@ data class AppearanceSettings(
      * The same stops as [textScale]; see TextSize.
      */
     val messageTextScale: Float = 1f,
-    /** Which colour the launcher shows the app's icon in; see AppIcon. */
-    val appIcon: AppIcon = AppIcon.Teal,
     /**
      * Calmer motion, on top of Android's own "Remove animations": screens
      * fade rather than open out of what was tapped, springs settle without
@@ -83,7 +81,13 @@ data class AppearanceSettings(
 
 /**
  * The launcher icon's colours: one per accent, each an `activity-alias` in
- * the manifest named Launcher + [name], with its own adaptive icon. Only the
+ * the manifest named Launcher + [name], with its own adaptive icon.
+ *
+ * No longer offered: the choice was taken out of Appearance in 1.5 on the
+ * owner's word, since the coloured icons did not look good enough yet. The
+ * aliases stay for now so that whoever picked another colour in 1.4 is put
+ * back on Teal when the app next leaves the screen, rather than left with
+ * an icon nothing can change; see AppearanceStore.restoreLauncherIcon. Only the
  * background plane changes — the paper plane stays — and the glyph goes
  * light where the colour is too deep for the dark one to read. Android 13's
  * themed monochrome icon is the same in all of them, so a launcher that tints
@@ -137,21 +141,35 @@ private fun relativeLuminance(argb: Int): Double {
  * What a conversation is drawn on. All of it in the theme's own colours —
  * the wallpaper is on the short list of things this client draws by hand,
  * and a picture in somebody else's colours would fight the scheme. The
- * names are stored, so an entry may be added but not renamed.
+ * names are stored, so an entry may be added but not renamed — nor
+ * removed without the owner's word: a choice that vanishes from the picker
+ * reads as the app losing it, and AppearanceTest holds every one that
+ * shipped. Gradient is the one withdrawn so far (29 September, on the
+ * owner's word: it muddied the chat); a stored "Gradient" reads as Plain.
+ * The order is the
+ * picker's: the plain ones, then the patterns, which are each one mark
+ * repeated in the primary colour over the same quiet gradient, so that what
+ * tells them apart is the mark and nothing else.
  */
 enum class ChatWallpaper(val label: String) {
-    /** The surface across into the accent's containers, corner to corner. */
-    Gradient("Gradient"),
     /** The surface alone. */
     Plain("Plain"),
     /** Three soft glows of the scheme's colours. */
     Aurora("Aurora"),
-    /** Material's own shapes, scattered. */
-    Shapes("Shapes"),
-    /** A quiet gradient with a grid of dots. */
+    /** A grid of dots. */
     Dots("Dots"),
-    /** A quiet gradient with flowing lines. */
-    Waves("Waves")
+    /** Flowing lines. */
+    Waves("Waves"),
+    /** Rows of zigzag. */
+    Zigzag("Zigzag"),
+    /** Small plus signs, as Material draws its add icon. */
+    Crosses("Crosses"),
+    /** Small rings. */
+    Rings("Rings"),
+    /** Four-pointed sparkles, Expressive's star, scattered. */
+    Sparkles("Sparkles"),
+    /** Material's own shapes, scattered. */
+    Shapes("Shapes")
 }
 
 /**
