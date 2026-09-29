@@ -90,8 +90,13 @@ fun ChatInfoScreen(
     onMemberClick: (Long) -> Unit = {},
     /** Revoke the invite link and make a new one, or make the first. */
     onRenewInviteLink: () -> Unit = {},
+    /** A group only: delete everything this account has sent in it. */
+    onDeleteAllMine: () -> Unit = {},
     errorMessage: String? = null,
-    onErrorShown: () -> Unit = {}
+    onErrorShown: () -> Unit = {},
+    /** Something done — "12 messages deleted" — said once, in a snackbar. */
+    notice: String? = null,
+    onNoticeShown: () -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -99,6 +104,7 @@ fun ChatInfoScreen(
     val scope = rememberCoroutineScope()
     var confirmingBlock by rememberSaveable { mutableStateOf(false) }
     var confirmingRenew by rememberSaveable { mutableStateOf(false) }
+    var confirmingDeleteMine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
     if (confirmingRenew) {
@@ -122,6 +128,29 @@ fun ChatInfoScreen(
             snackbarHostState.showSnackbar(message)
             onErrorShown()
         }
+    }
+    notice?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            onNoticeShown()
+        }
+    }
+    if (confirmingDeleteMine) {
+        AlertDialog(
+            onDismissRequest = { confirmingDeleteMine = false },
+            icon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
+            title = { Text("Delete all your messages?") },
+            text = {
+                Text("Everything you have sent in ${chat?.title ?: "this group"} goes, for everyone. It cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmingDeleteMine = false
+                    onDeleteAllMine()
+                }) { Text("Delete all") }
+            },
+            dismissButton = { TextButton(onClick = { confirmingDeleteMine = false }) { Text("Cancel") } }
+        )
     }
     if (confirmingBlock && person != null) {
         BlockDialog(
@@ -300,6 +329,23 @@ fun ChatInfoScreen(
             // which the emulator found by not finding it. A private chat is
             // not left but deleted, a different action with different
             // consequences, so the row is absent there rather than renamed.
+            // A group only: in a channel this account posts as the channel,
+            // not as itself. Beside leaving, in the same error tone, since it
+            // too takes something away for good — the forks' "delete all my
+            // messages", which the official client does not offer.
+            if (chat?.isGroup == true) {
+                item(key = "delete-mine") {
+                    ListItem(
+                        headlineContent = { Text("Delete all my messages") },
+                        leadingContent = { Icon(Symbols.DeleteSweep, contentDescription = null) },
+                        colors = ListItemDefaults.colors(
+                            headlineColor = MaterialTheme.colorScheme.error,
+                            leadingIconColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.clickable { confirmingDeleteMine = true }
+                    )
+                }
+            }
             if (chat?.isGroup == true || chat?.isChannel == true) {
                 item(key = "leave") {
                     ListItem(

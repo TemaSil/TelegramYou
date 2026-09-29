@@ -166,6 +166,15 @@ interface TelegramChats {
     suspend fun leaveChat(chatId: Long)
 
     /**
+     * Deletes every message this account has sent in a group, for everyone,
+     * and answers with how many went — the forks' "delete all my messages".
+     * Found page by page with a sender filter and deleted a page at a time;
+     * TDLib's own call for this needs admin rights, which a member deleting
+     * their own words should not.
+     */
+    suspend fun deleteAllMyMessages(chatId: Long): Int = 0
+
+    /**
      * Empties a private chat or Saved Messages and keeps it in the list —
      * for the other person too when [forEveryone], which Telegram allows
      * where ChatPreview.canDeleteForEveryone says so.

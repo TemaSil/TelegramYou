@@ -200,8 +200,8 @@ wallpaper that shipped, so none goes missing unasked.
   is here (`MiniThumbnail`, `BlurredMini`) — the one place blur is granted.
 - A sticker still loading is a breathing skeleton, not its emoji.
 - Reaction chips are narrower, with a larger emoji.
-- Still missing: Premium custom-emoji packs in the emoji tab, which the
-  official client shows animated above the standard set.
+- ~~Still missing: Premium custom-emoji packs in the emoji tab~~ — in
+  1.5.1, see below.
 
 **Later, polish rather than basics:** forum topics in supergroups; admins
 and permissions; invite-link management; video playback
@@ -212,7 +212,30 @@ translation; languages (last, on purpose).
 
 From Nekogram's list, the ones worth taking next once the basics hold:
 the user's id on their profile, "delete all my messages" in a group, hide
-the keyboard while scrolling, and sending a sticker as an image.
+the keyboard while scrolling, and sending a sticker as an image — all four
+in 1.5.1.
+
+**1.5.1 — 29 September, a smaller step on purpose (the owner's word: "we
+are flying too fast").**
+- **Custom-emoji sets in the emoji tab** — the account's Premium sets
+  (`getInstalledStickerSets` with `stickerTypeCustomEmoji`) as tabs over
+  Android's picker, each a grid of its emoji playing. One tapped goes into
+  the draft as its plain emoji and is remembered beside it
+  (`PickedEmoji`); as the message is sent `placePickedEmoji` in `:core`
+  finds each in the text TDLib's markdown gives back and adds its
+  `textEntityTypeCustomEmoji`. Without Premium the tab says so.
+- **Sending where you are** — the paperclip's Location asks for the
+  permission at that moment, finds the phone through the platform's
+  `LocationManager` (fused, then GPS, then network; the last known fix
+  after fifteen seconds) and sends `inputMessageLocation` once confirmed.
+  No map is drawn, as with the cards.
+- **The user's id** as the last row of a profile, copied on a tap.
+- **The keyboard goes away** when the conversation is dragged by hand.
+- **Delete all my messages** in a group's info, confirmed: found with a
+  sender filter and deleted a page at a time, since TDLib's own call for it
+  needs admin rights.
+- **Send as image** on a still sticker held down in the panel: flattened on
+  white into a JPEG and sent as a photo.
 
 ## Stack
 
@@ -1121,7 +1144,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       with its name, address or coordinates and Open in Maps, through a
       `geo:` link to whatever maps app the phone has — no map is drawn, so no
       provider is chosen. A contact is sent from the paperclip's sheet
-      (`inputMessageContact`); sending one's own place is not in yet
+      (`inputMessageContact`); one's own place is sent from the same sheet
+      since 1.5.1 (`inputMessageLocation`)
 - [ ] Inline bots and Mini Apps — the buttons are there and drawn disabled;
       what they open needs an inline-results sheet and a web view
 
@@ -1221,8 +1245,8 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       short, which is why the emulator test resizes the window to a tablet's
       rather than turning the phone
 
-- [ ] Editing folders — creating, renaming and choosing chats; the account's
-      folders are shown and paged between but cannot be changed here yet
+- [x] Editing folders — creating, renaming, reordering and choosing chats,
+      since 1.4; see *Still missing* item 10 at the top
 
 ## Sign-in
 

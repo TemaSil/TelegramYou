@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.placePickedEmoji
+import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.LocationContent
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.ReactionOption
@@ -114,6 +116,10 @@ class DemoTelegramClient(
      * compiler says nothing about it; the emulator did.
      */
     private val DEMO_CUSTOM_EMOJI = 5_000_000_001L
+
+    /** The id of the demo's custom-emoji set, and what is in it. */
+    private val DEMO_EMOJI_SET = 90L
+    private val DEMO_EMOJI_SET_EMOJI = "🦄 🌈 ✨ 💜 🪐 🎈 🍀 🔮"
 
     private val FOLDER_WORK = 1
     private val FOLDER_PEOPLE = 2
@@ -1359,9 +1365,48 @@ class DemoTelegramClient(
     override suspend fun stickerSets(): List<StickerSetPreview> = demoStickerSets
 
     override suspend fun stickerSet(setId: Long): List<StickerContent> =
-        demoStickers[setId].orEmpty().split(' ').mapIndexed { index, emoji ->
-            StickerContent(id = setId * 100 + index, emoji = emoji)
+        if (setId == DEMO_EMOJI_SET) {
+            // The demo's one custom-emoji set: the unicorn its messages
+            // already use, and a few more on ids of their own.
+            DEMO_EMOJI_SET_EMOJI.split(' ').mapIndexed { index, emoji ->
+                val id = if (index == 0) DEMO_CUSTOM_EMOJI else DEMO_CUSTOM_EMOJI + index
+                StickerContent(id = id, emoji = emoji, customEmojiId = id)
+            }
+        } else {
+            demoStickers[setId].orEmpty().split(' ').mapIndexed { index, emoji ->
+                StickerContent(id = setId * 100 + index, emoji = emoji)
+            }
         }
+
+    override suspend fun customEmojiSets(): List<StickerSetPreview> = listOf(
+        StickerSetPreview(
+            id = DEMO_EMOJI_SET,
+            title = "TelegramYou",
+            cover = StickerContent(id = DEMO_CUSTOM_EMOJI, emoji = "🦄", customEmojiId = DEMO_CUSTOM_EMOJI)
+        )
+    )
+
+    override suspend fun sendTextWithEmoji(
+        chatId: Long,
+        text: String,
+        picked: List<PickedEmoji>,
+        replyToId: Long?,
+        sendAt: Long?
+    ) {
+        if (sendAt != null) return sendText(chatId, text, replyToId, sendAt)
+        delay(120)
+        val (plain, entities) = parseMarkdown(text)
+        val custom = placePickedEmoji(plain, picked).map { placed ->
+            TextEntity(placed.offset, placed.length, EntityType.CustomEmoji(placed.customEmojiId))
+        }
+        appendOutgoing(
+            chatId = chatId,
+            text = plain,
+            type = MessageContentType.Text,
+            replyToId = replyToId,
+            entities = (entities + custom).sortedBy { it.offset }
+        )
+    }
 
     override suspend fun recentStickers(): List<StickerContent> = sentStickers.value
 
@@ -1389,8 +1434,14 @@ class DemoTelegramClient(
      * unicorn with no file behind it, so it draws as its emoji wherever a
      * custom emoji's sticker would go.
      */
-    override suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> =
-        ids.filter { it == DEMO_CUSTOM_EMOJI }.associateWith { StickerContent(id = it, emoji = "🦄") }
+    override suspend fun customEmoji(ids: List<Long>): Map<Long, StickerContent> {
+        // The set's emoji by their ids, the unicorn first; see stickerSet.
+        val set = DEMO_EMOJI_SET_EMOJI.split(' ')
+        return ids.mapNotNull { id ->
+            set.getOrNull((id - DEMO_CUSTOM_EMOJI).toInt().takeIf { id >= DEMO_CUSTOM_EMOJI } ?: -1)
+                ?.let { emoji -> id to StickerContent(id = id, emoji = emoji, customEmojiId = id) }
+        }.toMap()
+    }
 
     override suspend fun messageReactions(chatId: Long, messageId: Long): List<ReactionOption> =
         availableReactions(chatId).map { ReactionOption(it) } +
@@ -1411,6 +1462,23 @@ class DemoTelegramClient(
             type = MessageContentType.Contact,
             replyToId = replyToId,
             contact = contact
+        )
+    }
+
+    override suspend fun sendLocation(
+        chatId: Long,
+        latitude: Double,
+        longitude: Double,
+        accuracyMeters: Double,
+        replyToId: Long?
+    ) {
+        delay(150)
+        appendOutgoing(
+            chatId = chatId,
+            text = "📍 Location",
+            type = MessageContentType.Location,
+            replyToId = replyToId,
+            location = LocationContent(latitude, longitude)
         )
     }
 
@@ -1527,7 +1595,8 @@ class DemoTelegramClient(
         poll: PollContent? = null,
         entities: List<TextEntity> = emptyList(),
         video: VideoContent? = null,
-        contact: ContactContent? = null
+        contact: ContactContent? = null,
+        location: LocationContent? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -1558,7 +1627,8 @@ class DemoTelegramClient(
             poll = poll,
             entities = entities,
             video = video,
-            contact = contact
+            contact = contact,
+            location = location
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
@@ -1726,6 +1796,15 @@ class DemoTelegramClient(
             ) + list
         }
         return id
+    }
+
+    override suspend fun deleteAllMyMessages(chatId: Long): Int {
+        delay(300)
+        val bucket = chatMessages[chatId] ?: return 0
+        val mine = bucket.filter { it.isOutgoing }.map { it.id }.toSet()
+        bucket.removeAll { it.id in mine }
+        if (mine.isNotEmpty()) _messageUpdates.tryEmit(MessageUpdate.Deleted(chatId, mine))
+        return mine.size
     }
 
     override suspend fun leaveChat(chatId: Long) {

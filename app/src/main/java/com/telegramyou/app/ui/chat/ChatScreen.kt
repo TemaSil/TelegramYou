@@ -55,6 +55,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -199,6 +200,12 @@ fun ChatScreen(
     onExpressionTab: (ExpressionTab) -> Unit = {},
     onStickerSetSelected: (Long) -> Unit = {},
     onStickerPicked: (StickerContent) -> Unit = {},
+    onCustomEmojiSetSelected: (Long?) -> Unit = {},
+    onCustomEmojiPicked: (StickerContent) -> Unit = {},
+    /** Where this phone is, found and confirmed in SendLocationDialog. */
+    onSendLocation: (latitude: Double, longitude: Double, accuracyMeters: Double) -> Unit = { _, _, _ -> },
+    /** A still sticker made into a picture on disk, to send as a photo; null when it could not be. */
+    onStickerImage: (String?) -> Unit = {},
     onGifQueryChange: (String) -> Unit = {},
     onGifVisible: (GifItem) -> Unit = {},
     onGifPicked: (GifItem) -> Unit = {},
@@ -334,6 +341,41 @@ fun ChatScreen(
     // state, not the composer's.
     val composerFocus = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val fileLoader = LocalFileLoader.current
+    // Sending where you are: asked for at that moment, and either answer is
+    // enough — coarse only makes the circle round the pin wider.
+    var locationOpen by rememberSaveable { mutableStateOf(false) }
+    var locationRefused by remember { mutableStateOf(false) }
+    val locationPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        if (granted.values.any { it }) locationOpen = true else locationRefused = true
+    }
+    if (locationRefused) {
+        LaunchedEffect(Unit) {
+            snackbarHostState.showSnackbar("Sending where you are needs location access")
+            locationRefused = false
+        }
+    }
+    if (locationOpen) {
+        SendLocationDialog(
+            onDismiss = { locationOpen = false },
+            onSend = { latitude, longitude, accuracy ->
+                locationOpen = false
+                onSendLocation(latitude, longitude, accuracy)
+            }
+        )
+    }
+    // Scrolling the conversation by hand puts the keyboard away, as the
+    // forks and most messengers do: reading back needs the room, and the
+    // field keeps its text and its caret, so a tap on it brings the keyboard
+    // straight back. Only a drag counts — the list moving by itself, for a
+    // new message or a jump to a reply, leaves the keyboard where it is.
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { interaction ->
+            if (interaction is DragInteraction.Start) keyboardController?.hide()
+        }
+    }
     // Held across the launch because TakePicture answers with a boolean, not
     // with the Uri: the destination is chosen here and has to survive until
     // the camera app comes back.
@@ -1071,7 +1113,15 @@ fun ChatScreen(
                                 onAttachmentSheetOpenChange(false)
                             },
                             onPoll = if (state.canSendPolls) onPollOpen else null,
-                            onContact = onContactPickerOpen
+                            onContact = onContactPickerOpen,
+                            onLocation = {
+                                onAttachmentSheetOpenChange(false)
+                                if (hasLocationPermission(context)) {
+                                    locationOpen = true
+                                } else {
+                                    locationPermission.launch(LOCATION_PERMISSIONS)
+                                }
+                            }
                         )
                     }
                     state.contactPicker?.let { contacts ->
@@ -1183,9 +1233,15 @@ fun ChatScreen(
                     onBackspace = { onDraftChange(dropLastGrapheme(state.draft)) },
                     onStickerSetSelected = onStickerSetSelected,
                     onStickerPicked = onStickerPicked,
+                    onStickerAsImage = { sticker ->
+                        scope.launch { onStickerImage(stickerAsPicture(context, sticker, fileLoader)) }
+                    },
                     onGifQueryChange = onGifQueryChange,
                     onGifVisible = onGifVisible,
                     onGifPicked = onGifPicked,
+                    customEmoji = state.customEmoji,
+                    onCustomEmojiSetSelected = onCustomEmojiSetSelected,
+                    onCustomEmojiPicked = onCustomEmojiPicked,
                     bottomInset = navBarHeight
                 )
             }

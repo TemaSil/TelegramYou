@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.StickerFormat
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.foundation.combinedClickable
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -59,7 +67,13 @@ fun StickerTab(
     state: StickerPickerState,
     onSetSelected: (Long) -> Unit,
     onPick: (StickerContent) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * A still sticker held down: sent as a picture instead — the forks'
+     * "send as image", for somewhere a sticker would not go, or to be
+     * saved as a photo at the other end.
+     */
+    onSendAsImage: (StickerContent) -> Unit = {}
 ) {
     Column(modifier = modifier) {
         val tabs = listOf(RECENT_STICKERS) + state.sets.map { it.id }
@@ -114,16 +128,33 @@ fun StickerTab(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(state.stickers, key = { it.id to it.fileId }) { sticker ->
+                        // Only a still one has a picture to send; an
+                        // animation or a video would arrive as its first frame.
+                        val still = sticker.format == StickerFormat.Webp
+                        var menuOpen by remember { mutableStateOf(false) }
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .padding(4.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .clickable { onPick(sticker) }
+                                .combinedClickable(
+                                    onClick = { onPick(sticker) },
+                                    onLongClick = if (still) ({ menuOpen = true }) else null
+                                )
                                 .semantics { contentDescription = "${sticker.emoji} sticker" }
                                 .padding(4.dp)
                         ) {
                             StickerView(sticker, size = 64.dp, animate = false)
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Send as image") },
+                                    leadingIcon = { Icon(Symbols.Image, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        onSendAsImage(sticker)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

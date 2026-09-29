@@ -155,7 +155,9 @@ internal fun AttachmentSheet(
     /** A poll, where the chat takes them — groups and channels. */
     onPoll: (() -> Unit)? = null,
     /** Somebody's card, from this account's contacts. */
-    onContact: () -> Unit = {}
+    onContact: () -> Unit = {},
+    /** Where this phone is, sent once. */
+    onLocation: () -> Unit = {}
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -203,6 +205,13 @@ internal fun AttachmentSheet(
             leadingContent = { Icon(Symbols.Person, contentDescription = null) },
             colors = sheetRow,
             modifier = Modifier.clickable(onClick = onContact)
+        )
+        ListItem(
+            headlineContent = { Text("Location") },
+            supportingContent = { Text("Send where you are") },
+            leadingContent = { Icon(Symbols.LocationOn, contentDescription = null) },
+            colors = sheetRow,
+            modifier = Modifier.clickable(onClick = onLocation)
         )
         if (onPoll != null) {
             ListItem(

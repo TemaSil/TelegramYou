@@ -1,6 +1,12 @@
 package com.telegramyou.app.ui.chat
 
 import android.content.ClipData
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import com.telegramyou.app.telegram.model.StickerContent
+import android.graphics.Canvas
+import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.content.ClipboardManager
 import android.content.ContentValues
 import android.content.Context
@@ -69,3 +75,32 @@ object MediaActions {
         return if (last.contains('.')) last else "telegramyou-${System.currentTimeMillis()}"
     }
 }
+
+/**
+ * A still sticker as a JPEG in the cache, flattened onto white — what
+ * "Send as image" sends. White rather than kept clear: Telegram turns every
+ * photo into a JPEG, and a transparent sticker would arrive on black. Its
+ * file is fetched through [loader] when it is not on the phone yet; null
+ * when there is none to be had (the demo's stickers have no files) or it
+ * will not decode.
+ */
+internal suspend fun stickerAsPicture(
+    context: Context,
+    sticker: StickerContent,
+    loader: (suspend (Int) -> String?)?
+): String? {
+    val source = sticker.path ?: sticker.fileId?.let { id -> loader?.invoke(id) } ?: return null
+    return withContext(Dispatchers.IO) {
+        val drawn = BitmapFactory.decodeFile(source) ?: return@withContext null
+        val flat = Bitmap.createBitmap(drawn.width, drawn.height, Bitmap.Config.ARGB_8888)
+        Canvas(flat).apply {
+            drawColor(android.graphics.Color.WHITE)
+            drawBitmap(drawn, 0f, 0f, null)
+        }
+        val out = File(context.cacheDir, "sticker_${System.currentTimeMillis()}.jpg")
+        out.outputStream().use { flat.compress(Bitmap.CompressFormat.JPEG, STICKER_JPEG_QUALITY, it) }
+        out.path
+    }
+}
+
+private const val STICKER_JPEG_QUALITY = 95

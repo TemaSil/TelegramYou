@@ -29,6 +29,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import com.telegramyou.app.telegram.model.StickerSetPreview
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
 import kotlinx.coroutines.launch
 import com.telegramyou.app.ui.motion.LocalReduceMotion
 import androidx.compose.ui.platform.LocalDensity
@@ -107,6 +112,12 @@ fun ExpressionPanel(
     onBackspace: () -> Unit,
     onStickerSetSelected: (Long) -> Unit,
     onStickerPicked: (StickerContent) -> Unit,
+    /** A still sticker to send as a picture; see StickerTab. */
+    onStickerAsImage: (StickerContent) -> Unit = {},
+    /** The emoji tab's custom-emoji sets; null until it has been opened. */
+    customEmoji: CustomEmojiState? = null,
+    onCustomEmojiSetSelected: (Long?) -> Unit = {},
+    onCustomEmojiPicked: (StickerContent) -> Unit = {},
     onGifQueryChange: (String) -> Unit,
     onGifVisible: (GifItem) -> Unit,
     onGifPicked: (GifItem) -> Unit,
@@ -191,7 +202,13 @@ fun ExpressionPanel(
             }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
-                    ExpressionTab.Emoji -> EmojiTab(onEmoji = onEmoji, onBackspace = onBackspace)
+                    ExpressionTab.Emoji -> EmojiTab(
+                        custom = customEmoji,
+                        onEmoji = onEmoji,
+                        onBackspace = onBackspace,
+                        onSetSelected = onCustomEmojiSetSelected,
+                        onCustomPicked = onCustomEmojiPicked
+                    )
                     ExpressionTab.Gifs -> GifTab(
                         state = gifs ?: GifPickerState(),
                         onQueryChange = onGifQueryChange,
@@ -206,7 +223,8 @@ fun ExpressionPanel(
                                 state = stickers,
                                 onSetSelected = onStickerSetSelected,
                                 onPick = onStickerPicked,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                onSendAsImage = onStickerAsImage
                             )
                         }
                     }
@@ -232,7 +250,7 @@ private fun Loading() {
  * emoji page has.
  */
 @Composable
-private fun EmojiTab(onEmoji: (String) -> Unit, onBackspace: () -> Unit) {
+private fun StandardEmoji(onEmoji: (String) -> Unit) {
     val picked = rememberUpdatedState(onEmoji)
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     Box(Modifier.fillMaxSize()) {
@@ -258,16 +276,104 @@ private fun EmojiTab(onEmoji: (String) -> Unit, onBackspace: () -> Unit) {
                     .semantics { contentDescription = "Emoji" }
             )
         }
-        FilledTonalIconButton(
-            onClick = onBackspace,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Symbols.Backspace, contentDescription = "Backspace")
+    }
+}
+
+/**
+ * The emoji tab: Android's own picker, and above it — where the account has
+ * any — its Premium custom-emoji sets, each by its cover, as the official
+ * client lays them over the standard ones. A set chosen shows its emoji
+ * playing, eight a row like the standard ones; one tapped goes into the
+ * draft (ChatViewModel.onCustomEmojiPicked). The backspace stays over both.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun EmojiTab(
+    custom: CustomEmojiState?,
+    onEmoji: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onSetSelected: (Long?) -> Unit,
+    onCustomPicked: (StickerContent) -> Unit
+) {
+    val sets = custom?.sets.orEmpty()
+    val selected = custom?.selected
+    Column(Modifier.fillMaxSize()) {
+        if (sets.isNotEmpty()) {
+            PrimaryScrollableTabRow(
+                selectedTabIndex = if (selected == null) 0 else sets.indexOfFirst { it.id == selected } + 1,
+                edgePadding = 12.dp,
+                containerColor = Color.Transparent
+            ) {
+                Tab(
+                    selected = selected == null,
+                    onClick = { onSetSelected(null) },
+                    icon = { Icon(Symbols.EmojiEmotions, contentDescription = "Standard emoji") }
+                )
+                sets.forEach { set ->
+                    Tab(
+                        selected = selected == set.id,
+                        onClick = { onSetSelected(set.id) },
+                        modifier = Modifier.semantics { contentDescription = set.title },
+                        icon = {
+                            val cover = set.cover
+                            if (cover != null) {
+                                StickerView(cover, size = 28.dp, animate = false)
+                            } else {
+                                Text(set.title.take(1))
+                            }
+                        }
+                    )
+                }
+            }
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                selected == null -> StandardEmoji(onEmoji)
+                custom?.isLoading == true -> Loading()
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Fixed(EMOJI_COLUMNS),
+                    contentPadding = PaddingValues(start = 8.dp, top = 8.dp, end = 8.dp, bottom = 88.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(custom?.emoji.orEmpty(), key = { it.id }) { sticker ->
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onCustomPicked(sticker) }
+                                .semantics { contentDescription = "${sticker.emoji} custom emoji" }
+                        ) {
+                            StickerView(sticker, size = CUSTOM_EMOJI_SIZE, animate = true)
+                        }
+                    }
+                }
+            }
+            FilledTonalIconButton(
+                onClick = onBackspace,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(Symbols.Backspace, contentDescription = "Backspace")
+            }
         }
     }
 }
+
+/**
+ * The emoji tab's custom emoji: the account's added sets, which one is shown
+ * — null for Android's own picker — and its emoji once they have come.
+ */
+data class CustomEmojiState(
+    val sets: List<StickerSetPreview> = emptyList(),
+    val selected: Long? = null,
+    val emoji: List<StickerContent> = emptyList(),
+    val isLoading: Boolean = false
+)
+
+/** A custom emoji in the grid, about the size a standard one is drawn at. */
+private val CUSTOM_EMOJI_SIZE = 36.dp
 
 /**
  * GIFs: a search over a two-column grid, each playing on its loop as it

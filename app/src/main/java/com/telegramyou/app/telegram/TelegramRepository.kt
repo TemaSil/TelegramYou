@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram
 
+import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -54,12 +55,18 @@ class TelegramRepository(
         attachment: AttachmentDraft? = null,
         replyToId: Long? = null,
         /** Epoch seconds to schedule a text for; attachments always go now. */
-        sendAt: Long? = null
+        sendAt: Long? = null,
+        /** Premium custom emoji picked into the text; see placePickedEmoji. */
+        picked: List<PickedEmoji> = emptyList()
     ) {
         if (attachment != null) {
             client.sendAttachment(chatId, attachment, text, replyToId)
         } else if (text.isNotBlank()) {
-            client.sendText(chatId, text, replyToId, sendAt)
+            if (picked.isEmpty()) {
+                client.sendText(chatId, text, replyToId, sendAt)
+            } else {
+                client.sendTextWithEmoji(chatId, text, picked, replyToId, sendAt)
+            }
         }
     }
 }

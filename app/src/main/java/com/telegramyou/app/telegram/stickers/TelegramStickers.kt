@@ -10,6 +10,13 @@ interface TelegramStickers {
     /** The sticker sets this account has added, in its own order. */
     suspend fun stickerSets(): List<StickerSetPreview>
 
+    /**
+     * The Premium custom-emoji sets this account has added, for the emoji
+     * tab; their stickers come from [stickerSet] like any other set's, each
+     * with its customEmojiId.
+     */
+    suspend fun customEmojiSets(): List<StickerSetPreview> = emptyList()
+
     /** Every sticker in set [setId]. */
     suspend fun stickerSet(setId: Long): List<StickerContent>
 

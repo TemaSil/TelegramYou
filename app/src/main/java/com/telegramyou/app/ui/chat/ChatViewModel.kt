@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.AttachmentDraft
+import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MessageContentType
@@ -199,6 +200,8 @@ data class ChatUiState(
     val stickerPicker: StickerPickerState? = null,
     /** The GIF tab's search and results, once it has been opened. */
     val gifPicker: GifPickerState? = null,
+    /** The emoji tab's custom-emoji sets, once it has been opened; see CustomEmojiState. */
+    val customEmoji: CustomEmojiState? = null,
     /** The account's contacts, while the sheet to send one is up. */
     val contactPicker: List<TelegramUser>? = null,
     /** The bot's keyboard under the composer, in a chat that has one. */
@@ -436,7 +439,73 @@ class ChatViewModel(
 
     // ── composing ────────────────────────────────────────────────────────
 
-    fun onDraftChange(text: String) = _uiState.update { it.copy(draft = text) }
+    fun onDraftChange(text: String) {
+        // An emptied field takes the picked custom emoji with it.
+        if (text.isEmpty()) picked.clear()
+        _uiState.update { it.copy(draft = text) }
+    }
+
+    /**
+     * The custom emoji picked into the draft, in order; placed back onto the
+     * text as it is sent (placePickedEmoji). Not in the UI state: nothing
+     * draws it, and the field shows their plain emoji.
+     */
+    private val picked = mutableListOf<PickedEmoji>()
+
+    /**
+     * A custom emoji from the emoji tab, into the draft as its plain emoji
+     * and remembered as the custom one. Sending one needs Premium; without
+     * it the tab says so rather than sending a plain emoji in its place.
+     */
+    fun onCustomEmojiPicked(sticker: StickerContent) {
+        if (sticker.customEmojiId == 0L) return
+        if (repository.authState.value.me?.isPremium != true) {
+            _uiState.update { it.copy(notice = "Custom emoji need Telegram Premium") }
+            return
+        }
+        val emoji = sticker.emoji.ifBlank { "🙂" }
+        picked += PickedEmoji(emoji, sticker.customEmojiId)
+        _uiState.update { it.copy(draft = it.draft + emoji) }
+    }
+
+    /** A custom-emoji set chosen in the emoji tab, or null for the standard emoji. */
+    fun onCustomEmojiSetSelected(setId: Long?) {
+        _uiState.update { state ->
+            state.copy(
+                customEmoji = state.customEmoji?.copy(
+                    selected = setId,
+                    emoji = emptyList(),
+                    isLoading = setId != null
+                )
+            )
+        }
+        if (setId == null) return
+        viewModelScope.launch {
+            var emoji = emptyList<StickerContent>()
+            attempt("Could not load the emoji") { emoji = repository.stickerSet(setId) }
+            _uiState.update { state ->
+                val current = state.customEmoji
+                if (current?.selected != setId) state
+                else state.copy(customEmoji = current.copy(emoji = emoji, isLoading = false))
+            }
+        }
+    }
+
+    private fun loadCustomEmojiSets() {
+        _uiState.update { it.copy(customEmoji = CustomEmojiState()) }
+        viewModelScope.launch {
+            var sets = emptyList<StickerSetPreview>()
+            // Quietly: an account with none, or a backend without them, has
+            // the standard emoji and nothing to be told about.
+            try {
+                sets = repository.customEmojiSets()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+            }
+            _uiState.update { state -> state.copy(customEmoji = state.customEmoji?.copy(sets = sets)) }
+        }
+    }
 
     // ── notifications ────────────────────────────────────────────────────
 
@@ -482,7 +551,7 @@ class ChatViewModel(
                 _uiState.update { it.copy(gifPicker = GifPickerState()) }
                 searchGifs("")
             }
-            ExpressionTab.Emoji -> Unit
+            ExpressionTab.Emoji -> if (state.customEmoji == null) loadCustomEmojiSets()
         }
     }
 
@@ -548,6 +617,24 @@ class ChatViewModel(
         viewModelScope.launch {
             attempt("Could not send the sticker") {
                 repository.sendSticker(chatId, sticker, answering?.id)
+            }
+        }
+    }
+
+    /**
+     * A still sticker, made into a picture by the screen, sent as a photo —
+     * answering the message being replied to, as a sticker would.
+     */
+    fun onStickerImage(path: String?) {
+        if (path == null) {
+            _uiState.update { it.copy(errorMessage = "This sticker cannot be sent as an image") }
+            return
+        }
+        val answering = _uiState.value.replyTo
+        _uiState.update { it.copy(replyTo = null) }
+        viewModelScope.launch {
+            attempt("Could not send the image") {
+                repository.sendMessage(chatId, "", AttachmentDraft.Photos(listOf("file://$path")), answering?.id)
             }
         }
     }
@@ -667,6 +754,8 @@ class ChatViewModel(
         if (text.isBlank() && attachment == null) return
         val amending = state.editing
         val answering = state.replyTo
+        val withEmoji = picked.toList()
+        picked.clear()
 
         _uiState.update {
             it.copy(draft = "", pendingAttachment = null, replyTo = null, editing = null)
@@ -683,7 +772,7 @@ class ChatViewModel(
                 }
             } else {
                 attempt("Could not send") {
-                    repository.sendMessage(chatId, text, attachment, answering?.id)
+                    repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji)
                 }
             }
             if (sent) return@launch
@@ -922,6 +1011,17 @@ class ChatViewModel(
                 _uiState.update {
                     it.copy(notice = if (added != null) "$name added to contacts" else "$name is not on Telegram")
                 }
+            }
+        }
+    }
+
+    /** Where this phone is, sent as a place, answering the reply if there is one. */
+    fun onSendLocation(latitude: Double, longitude: Double, accuracyMeters: Double) {
+        val answering = _uiState.value.replyTo
+        _uiState.update { it.copy(replyTo = null) }
+        viewModelScope.launch {
+            attempt("Could not send the location") {
+                repository.sendLocation(chatId, latitude, longitude, accuracyMeters, answering?.id)
             }
         }
     }
@@ -1496,6 +1596,27 @@ class ChatViewModel(
         viewModelScope.launch {
             val left = attempt("Could not leave") { repository.leaveChat(chatId) }
             _uiState.update { it.copy(confirmingLeave = false, hasLeft = left) }
+        }
+    }
+
+    /**
+     * Everything this account has said in the group, deleted for everyone;
+     * the answer says how many went, or that there was nothing.
+     */
+    fun onDeleteAllMine() {
+        viewModelScope.launch {
+            var count = 0
+            val done = attempt("Could not delete your messages") {
+                count = repository.deleteAllMyMessages(chatId)
+            }
+            if (done) {
+                val said = when (count) {
+                    0 -> "You have no messages here"
+                    1 -> "1 message deleted"
+                    else -> "$count messages deleted"
+                }
+                _uiState.update { it.copy(notice = said) }
+            }
         }
     }
 

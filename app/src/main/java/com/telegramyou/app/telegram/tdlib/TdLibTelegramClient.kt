@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.placePickedEmoji
+import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.customEmojiIdOf
@@ -995,6 +997,37 @@ class TdLibTelegramClient(
         return link.optString("invite_link").ifBlank { null }
     }
 
+    override suspend fun sendLocation(
+        chatId: Long,
+        latitude: Double,
+        longitude: Double,
+        accuracyMeters: Double,
+        replyToId: Long?
+    ) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .withReplyTo(replyToId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageLocation")
+                        .put(
+                            "location",
+                            JSONObject()
+                                .put("@type", "location")
+                                .put("latitude", latitude)
+                                .put("longitude", longitude)
+                                .put("horizontal_accuracy", accuracyMeters)
+                        )
+                        // Where it is now, once; not a live location.
+                        .put("live_period", 0)
+                )
+        )
+    }
+
     override suspend fun sendContact(chatId: Long, contact: ContactContent, replyToId: Long?) {
         awaitReady()
         requireEngine().send(
@@ -1264,6 +1297,42 @@ class TdLibTelegramClient(
         return ids?.optLong(0)?.takeIf { it != 0L }
     }
 
+    override suspend fun deleteAllMyMessages(chatId: Long): Int {
+        awaitReady()
+        val me = _authState.value.me?.id ?: fetchMe()?.id ?: return 0
+        var from = 0L
+        var deleted = 0
+        repeat(MY_MESSAGES_PAGES) {
+            val found = requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMessages")
+                    .put("chat_id", chatId)
+                    .put("query", "")
+                    .put("sender_id", JSONObject().put("@type", "messageSenderUser").put("user_id", me))
+                    .put("from_message_id", from)
+                    .put("offset", 0)
+                    .put("limit", MY_MESSAGES_PAGE)
+            )
+            val messages = found.optJSONArray("messages") ?: return deleted
+            if (messages.length() == 0) return deleted
+            val ids = (0 until messages.length()).mapNotNull { i ->
+                messages.optJSONObject(i)?.optLong("id")?.takeIf { it != 0L }
+            }
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "deleteMessages")
+                    .put("chat_id", chatId)
+                    .put("message_ids", JSONArray(ids))
+                    .put("revoke", true)
+            )
+            val gone = ids.toSet()
+            messagesByChat[chatId]?.removeAll { it.id in gone }
+            deleted += ids.size
+            from = found.optLong("next_from_message_id").takeIf { it != 0L } ?: return deleted
+        }
+        return deleted
+    }
+
     override suspend fun leaveChat(chatId: Long) {
         awaitReady()
         requireEngine().send(JSONObject().put("@type", "leaveChat").put("chat_id", chatId))
@@ -1486,6 +1555,40 @@ class TdLibTelegramClient(
 
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         awaitReady()
+        sendFormatted(chatId, formatted(text), replyToId, sendAt)
+    }
+
+    override suspend fun sendTextWithEmoji(
+        chatId: Long,
+        text: String,
+        picked: List<PickedEmoji>,
+        replyToId: Long?,
+        sendAt: Long?
+    ) {
+        awaitReady()
+        // Placed on the text as TDLib gives it back from the markdown, not
+        // as typed: taking out a ** moves every offset after it.
+        val parsed = formatted(text)
+        val entities = parsed.optJSONArray("entities") ?: JSONArray().also { parsed.put("entities", it) }
+        placePickedEmoji(parsed.optString("text"), picked).forEach { placed ->
+            entities.put(
+                JSONObject()
+                    .put("@type", "textEntity")
+                    .put("offset", placed.offset)
+                    .put("length", placed.length)
+                    .put(
+                        "type",
+                        JSONObject()
+                            .put("@type", "textEntityTypeCustomEmoji")
+                            .put("custom_emoji_id", placed.customEmojiId.toString())
+                    )
+            )
+        }
+        sendFormatted(chatId, parsed, replyToId, sendAt)
+    }
+
+    /** A text already made into TDLib's formattedText, sent now or at [sendAt]. */
+    private suspend fun sendFormatted(chatId: Long, text: JSONObject, replyToId: Long?, sendAt: Long?) {
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
@@ -1510,7 +1613,7 @@ class TdLibTelegramClient(
                     "input_message_content",
                     JSONObject()
                         .put("@type", "inputMessageText")
-                        .put("text", formatted(text))
+                        .put("text", text)
                 )
         )
     }
@@ -2296,12 +2399,17 @@ class TdLibTelegramClient(
 
     // ── stickers ─────────────────────────────────────────────────────────
 
-    override suspend fun stickerSets(): List<StickerSetPreview> {
+    override suspend fun stickerSets(): List<StickerSetPreview> = installedSets("stickerTypeRegular")
+
+    override suspend fun customEmojiSets(): List<StickerSetPreview> = installedSets("stickerTypeCustomEmoji")
+
+    /** The account's added sets of one kind — stickers, or custom emoji. */
+    private suspend fun installedSets(type: String): List<StickerSetPreview> {
         awaitReady()
         val sets = requireEngine().send(
             JSONObject()
                 .put("@type", "getInstalledStickerSets")
-                .put("sticker_type", JSONObject().put("@type", "stickerTypeRegular"))
+                .put("sticker_type", JSONObject().put("@type", type))
         ).optJSONArray("sets") ?: return emptyList()
         return (0 until sets.length()).mapNotNull { index ->
             val set = sets.optJSONObject(index) ?: return@mapNotNull null
@@ -3889,3 +3997,9 @@ private fun emailResetOf(state: JSONObject?): EmailReset? {
  */
 internal fun JSONObject.optInt64(key: String): Long =
     optString(key).toLongOrNull() ?: optLong(key)
+
+/** A page of this account's own messages, found and deleted together. */
+private const val MY_MESSAGES_PAGE = 100
+
+/** How many pages "delete all my messages" goes through before stopping. */
+private const val MY_MESSAGES_PAGES = 50

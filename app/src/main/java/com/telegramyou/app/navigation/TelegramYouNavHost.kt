@@ -703,8 +703,11 @@ fun TelegramYouNavHost(
                 },
                 onMemberClick = { navController.navigateTo(Route.Person(it)) },
                 onRenewInviteLink = chatViewModel::onRenewInviteLink,
+                onDeleteAllMine = chatViewModel::onDeleteAllMine,
                 errorMessage = state.errorMessage,
-                onErrorShown = chatViewModel::onErrorShown
+                onErrorShown = chatViewModel::onErrorShown,
+                notice = state.notice,
+                onNoticeShown = chatViewModel::onNoticeShown
             )
         }
 
@@ -838,6 +841,10 @@ fun TelegramYouNavHost(
                 onExpressionTab = chatViewModel::onExpressionTab,
                 onStickerSetSelected = chatViewModel::onStickerSetSelected,
                 onStickerPicked = chatViewModel::onStickerPicked,
+                onStickerImage = chatViewModel::onStickerImage,
+                onSendLocation = chatViewModel::onSendLocation,
+                onCustomEmojiSetSelected = chatViewModel::onCustomEmojiSetSelected,
+                onCustomEmojiPicked = chatViewModel::onCustomEmojiPicked,
                 onGifQueryChange = chatViewModel::onGifQueryChange,
                 onGifVisible = chatViewModel::onGifVisible,
                 onGifPicked = chatViewModel::onGifPicked,

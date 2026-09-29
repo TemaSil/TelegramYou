@@ -19,7 +19,7 @@ import com.telegramyou.app.ui.auth.PhoneEntry
 import com.telegramyou.app.ui.icons.Symbols
 
 /**
- * Who somebody is: their number, username and bio, one stock `ListItem`
+ * Who somebody is: their number, username, bio and id, one stock `ListItem`
  * each, the value as the headline and what it is as the overline — the
  * shape the invite link on a group's info screen already has, so a private
  * chat's info and a group's read alike.
@@ -44,6 +44,14 @@ fun LazyListScope.personRows(profile: PersonProfile, onCopy: (what: String, text
     user.bio.takeIf { it.isNotBlank() }?.let { bio ->
         item(key = "person-bio") {
             DetailRow(Symbols.Info, "Bio", bio, onClick = null)
+        }
+    }
+    // Last and quiet, as the forks show it: the number Telegram knows them
+    // by, which a bot or a support chat asks for and nothing else in the
+    // app says. Copied on a tap like the rest.
+    user.id.takeIf { it > 0 }?.let { id ->
+        item(key = "person-id") {
+            DetailRow(Symbols.Tag, "ID", id.toString()) { onCopy("ID", id.toString()) }
         }
     }
 }

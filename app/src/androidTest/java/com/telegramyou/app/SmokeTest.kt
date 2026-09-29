@@ -1668,6 +1668,8 @@ class SmokeTest {
         tap(By.text("Nadia Orlova"))
         waitFor(By.text("Send message"), "Nadia's profile")
         waitFor(By.text("Motion and springs"), "her bio")
+        // And the id Telegram knows her by, last, as the forks show it.
+        scrollDownTo(By.text("ID"))
         screenshot("47-person")
 
         backTo(By.text("Material Design"), "the chat list")
@@ -1906,6 +1908,17 @@ class SmokeTest {
         waitFor(By.desc("Expand panel"), "the panel back to size")
         SystemClock.sleep(500)
 
+        // The account's custom-emoji set, over the standard ones: its emoji
+        // go into the field as their plain ones, and backspace takes one out.
+        tap(By.desc("TelegramYou"))
+        waitFor(By.desc("🦄 custom emoji"), "the custom emoji set")
+        screenshot("57c-panel-custom-emoji")
+        tap(By.desc("🦄 custom emoji"))
+        waitFor(By.clazz("android.widget.EditText").textContains("🦄"), "the custom emoji in the field")
+        tap(By.desc("Backspace"))
+        tap(By.desc("Standard emoji"))
+        waitFor(By.desc("Backspace"), "the standard emoji again")
+
         tap(By.text("GIFs"))
         waitFor(By.desc("GIF"), "a GIF in the panel")
         screenshot("58-panel-gifs")
@@ -2135,6 +2148,34 @@ class SmokeTest {
         backTo(By.text("Material Design"), "the chat list")
     }
 
+    /**
+     * Sending where you are: the paperclip's Location, with the permission
+     * already granted from the shell so no system dialog stands in the way,
+     * opens "Send your location?". The emulator may or may not have a fix,
+     * so the test stops at the dialog and cancels.
+     */
+    @Test
+    fun locationIsOfferedFromThePaperclip() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        device.executeShellCommand("pm grant $app android.permission.ACCESS_FINE_LOCATION")
+        device.executeShellCommand("pm grant $app android.permission.ACCESS_COARSE_LOCATION")
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        tap(By.desc("Attach"))
+        // The sheet asks for photos first, whichever test meets it first.
+        allowPhotos()
+        // On screen with the sheet all the way up, as Poll is in the poll
+        // test: scrolling for it would drag the sheet itself away.
+        tap(By.text("Location"))
+        waitFor(By.text("Send your location?"), "the location dialog")
+        SystemClock.sleep(1_500)
+        screenshot("67-send-location")
+        tap(By.text("Cancel"))
+        backTo(By.text("Material Design"), "the chat list")
+    }
+
     /** A group's invite link, revoked for a new one from the info screen. */
     @Test
     fun anInviteLinkIsRevokedForANewOne() {
@@ -2152,6 +2193,13 @@ class SmokeTest {
         tap(By.text("Revoke link"))
         waitFor(By.textContains("x1"), "the new link")
         screenshot("64-invite-link")
+        // Deleting everything this account said in the group, offered and
+        // confirmed — and cancelled here: the demo's messages live as long
+        // as the process, and later tests read the group's.
+        scrollDownTo(By.text("Delete all my messages"))
+        tap(By.text("Delete all my messages"))
+        waitFor(By.text("Delete all your messages?"), "the delete-all dialog")
+        tap(By.text("Cancel"))
         backTo(By.text(GROUP_CHAT), "the chat list")
     }
 

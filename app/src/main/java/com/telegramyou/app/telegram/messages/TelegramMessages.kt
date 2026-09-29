@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.messages
 
+import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.telegram.model.AttachmentDraft
@@ -48,6 +49,19 @@ interface TelegramMessages {
      * [sendAt], in epoch seconds, schedules it instead of sending it now.
      */
     suspend fun sendText(chatId: Long, text: String, replyToId: Long? = null, sendAt: Long? = null)
+
+    /**
+     * [text] with Premium custom emoji on the plain ones [picked] from the
+     * emoji tab stands for; see placePickedEmoji. Plain text where a
+     * backend has no custom emoji.
+     */
+    suspend fun sendTextWithEmoji(
+        chatId: Long,
+        text: String,
+        picked: List<PickedEmoji>,
+        replyToId: Long? = null,
+        sendAt: Long? = null
+    ) = sendText(chatId, text, replyToId, sendAt)
 
     /**
      * Keeps [text] as the chat's draft, or clears it when blank. A no-op
@@ -152,6 +166,18 @@ interface TelegramMessages {
 
     /** Somebody's card, sent as a contact message. */
     suspend fun sendContact(chatId: Long, contact: ContactContent, replyToId: Long? = null) {}
+
+    /**
+     * Where this phone is, sent as a place: [accuracyMeters] is how far off
+     * the fix may be, which Telegram draws as a circle round the pin.
+     */
+    suspend fun sendLocation(
+        chatId: Long,
+        latitude: Double,
+        longitude: Double,
+        accuracyMeters: Double = 0.0,
+        replyToId: Long? = null
+    ) {}
 
     /**
      * Every reaction this message may take, most used first, with Telegram's

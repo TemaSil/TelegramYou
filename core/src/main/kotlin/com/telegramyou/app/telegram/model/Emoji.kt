@@ -69,3 +69,30 @@ private fun Int.isPictographic(): Boolean =
         this == 0x00A9 || this == 0x00AE || this == 0x203C || this == 0x2049 ||
         this == 0x2122 || this == 0x2139 || this == 0x3030 || this == 0x303D ||
         this == 0x3297 || this == 0x3299
+
+/**
+ * A Premium custom emoji put into the draft from the emoji tab: the plain
+ * emoji it falls back to, which is what the field shows, and the custom one
+ * it stands for. The draft is a plain string, so this is kept beside it and
+ * placed back onto the text as it is sent; see placePickedEmoji.
+ */
+data class PickedEmoji(val emoji: String, val customEmojiId: Long)
+
+/** A picked emoji found in the text being sent, in UTF-16 units as Telegram counts. */
+data class PlacedEmoji(val offset: Int, val length: Int, val customEmojiId: Long)
+
+/**
+ * Where each of [picked] ended up in [text], in the order they were picked:
+ * each is looked for after the one before it. One deleted from the field is
+ * simply not found — or, if the same plain emoji was typed later, that one
+ * takes its place, which is the same picture either way.
+ */
+fun placePickedEmoji(text: String, picked: List<PickedEmoji>): List<PlacedEmoji> {
+    var from = 0
+    return picked.mapNotNull { pick ->
+        val at = text.indexOf(pick.emoji, from)
+        if (at < 0 || pick.emoji.isEmpty()) return@mapNotNull null
+        from = at + pick.emoji.length
+        PlacedEmoji(at, pick.emoji.length, pick.customEmojiId)
+    }
+}

@@ -21,7 +21,9 @@ data class StickerContent(
     val fileId: Int? = null,
     val path: String? = null,
     val thumbFileId: Int? = null,
-    val thumbPath: String? = null
+    val thumbPath: String? = null,
+    /** For a Premium custom emoji, the id a message's text entity names it by; 0 otherwise. */
+    val customEmojiId: Long = 0
 ) {
     /**
      * The file to draw, as TDLib names it: the sticker itself, unless it is a

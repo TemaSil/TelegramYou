@@ -134,7 +134,8 @@ internal fun stickerOf(sticker: JSONObject): StickerContent {
         fileId = file?.optInt("id")?.takeIf { it != 0 },
         path = file?.localPathIfDownloaded(),
         thumbFileId = thumbnail?.optInt("id")?.takeIf { it != 0 },
-        thumbPath = thumbnail?.localPathIfDownloaded()
+        thumbPath = thumbnail?.localPathIfDownloaded(),
+        customEmojiId = sticker.optJSONObject("full_type")?.optInt64("custom_emoji_id") ?: 0L
     )
 }
 

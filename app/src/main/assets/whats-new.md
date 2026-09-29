@@ -1,5 +1,5 @@
-# Locked in
-- App lock: a PIN or your fingerprint in front of the app, in Settings → Privacy
-- Contacts and places show as cards; share a group's invite link or revoke it
-- New chat wallpapers, a panel of emoji and stickers that pulls up taller
-- Animated emoji, Add to GIFs, and photos that sharpen as they load
+# A steadier step
+- Premium custom emoji: your sets in the emoji tab, animated, into any message
+- Send where you are from the paperclip
+- A person's ID on their profile; delete all your messages in a group
+- The keyboard hides as you scroll; send a still sticker as an image
