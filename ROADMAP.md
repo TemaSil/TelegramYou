@@ -91,7 +91,10 @@ notices within a day. Roughly in the order to do them:
     out (`FolderRules` in `:core`, with Telegram's membership rule in
     `contains`). Colour tags and shared folders are not offered yet.
 11. **Posting a story** — they can be watched, not made.
-12. **App lock** — a passcode or the fingerprint in front of the app.
+12. ~~**App lock**~~ — done 29 September (1.5): a PIN (PBKDF2 hash only)
+    and the platform's BiometricPrompt, auto-lock after a chosen time on
+    the monotonic clock, the app silent to TalkBack behind it and blank
+    in Recents. Settings → Privacy and security → App lock.
 
 **Content in the conversation — the rule, 27 September 2026.** One rule
 for every kind of message, so a new kind knows where it goes:
@@ -1334,7 +1337,7 @@ them. Ticks are only worth something if somebody moves them.
       keyboard key takes the smiley's place to go back. Video (WEBM) stickers
       play with their transparency — see "Video stickers play" above; this
       line said they waited on a native decoder long after they stopped
-      waiting. Custom emoji inside message text are not drawn yet
+      waiting. Custom emoji inside message text are drawn as their stickers, in the line, since 1.5 (`EntityType.CustomEmoji`, `InlineTextContent`)
 - [x] Videos out to the bubble's edges, as photos are, with the caption
       and time beneath — they were a smaller rounded frame inside the bubble
 - [x] GIFs — TDLib's `messageAnimation`, which used to show as a word. Out

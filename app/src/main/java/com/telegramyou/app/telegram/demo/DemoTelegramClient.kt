@@ -1813,7 +1813,10 @@ class DemoTelegramClient(
                         "actually contains."
                 )
             ),
-            demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity.", true, today + 660, isRead = true, reactions = listOf(MessageReaction("❤️", count = 1)))
+            // With a custom emoji at its end — the demo's unicorn, drawn in
+            // the line as its sticker where one exists (see customEmoji).
+            demoMessage(4, 1, "Looks sharp. Let’s keep the teal identity. 🦄", true, today + 660, isRead = true, reactions = listOf(MessageReaction("❤️", count = 1)))
+                .let { it.copy(entities = listOf(TextEntity(it.text.length - 2, 2, EntityType.CustomEmoji(DEMO_CUSTOM_EMOJI)))) },
         )
         // Photos with no file behind them, which is not a shortcut: this is
         // exactly what a real chat looks like between a message arriving and

@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.StickerContent
+import androidx.compose.runtime.produceState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.foundation.text.InlineTextContent
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,8 +77,22 @@ internal fun FormattedText(
     }
     var revealed by remember(text) { mutableStateOf(false) }
     val linkStyles = TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline))
+    // Custom emoji stand in the text as their stickers: the characters under
+    // each are handed over as inline content of the same length, so every
+    // other entity's offsets still land where they did.
+    val custom = entities.filter { it.type is EntityType.CustomEmoji }.sortedBy { it.offset }
     val annotated = buildAnnotatedString {
-        append(text)
+        var at = 0
+        custom.forEach { entity ->
+            if (entity.offset < at) return@forEach
+            append(text.substring(at, entity.offset))
+            appendInlineContent(
+                "custom:${(entity.type as EntityType.CustomEmoji).id}",
+                text.substring(entity.offset, entity.end)
+            )
+            at = entity.end
+        }
+        append(text.substring(at))
         entities.forEach { entity ->
             val start = entity.offset
             val end = entity.end
@@ -107,11 +129,46 @@ internal fun FormattedText(
                 // coloured as what they are, nothing to open yet.
                 is EntityType.MentionName, EntityType.BotCommand ->
                     addStyle(SpanStyle(color = linkColor), start, end)
+                // Drawn as inline content, above.
+                is EntityType.CustomEmoji -> Unit
             }
         }
     }
-    Text(annotated, color = color, modifier = modifier)
+    val inline = custom.associate { entity ->
+        val id = (entity.type as EntityType.CustomEmoji).id
+        val fallback = text.substring(entity.offset, entity.end)
+        "custom:$id" to InlineTextContent(
+            Placeholder(CUSTOM_EMOJI_EM.em, CUSTOM_EMOJI_EM.em, PlaceholderVerticalAlign.TextCenter)
+        ) {
+            CustomEmojiGlyph(id = id, fallback = fallback)
+        }
+    }
+    Text(annotated, color = color, inlineContent = inline, modifier = modifier)
 }
+
+/**
+ * One custom emoji in a line of text: its sticker once fetched, playing if
+ * it moves, and its ordinary emoji until then — the placeholder's size,
+ * which the line has already made room for.
+ */
+@Composable
+private fun CustomEmojiGlyph(id: Long, fallback: String) {
+    val loader = LocalCustomEmojiLoader.current
+    val sticker by produceState<StickerContent?>(null, id) {
+        if (loader != null) value = loader(id)
+    }
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val drawn = sticker
+        if (drawn != null) {
+            StickerView(drawn, size = maxWidth)
+        } else {
+            Text(fallback)
+        }
+    }
+}
+
+/** A custom emoji's square in a line, in ems: a little over a letter, as Telegram draws them. */
+private const val CUSTOM_EMOJI_EM = 1.25f
 
 /**
  * Photos sent together, as one grid in one bubble — Telegram's album. Two

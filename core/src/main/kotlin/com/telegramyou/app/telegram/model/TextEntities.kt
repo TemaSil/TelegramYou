@@ -42,6 +42,13 @@ sealed interface EntityType {
     data object Hashtag : EntityType
     data object Cashtag : EntityType
     data object BotCommand : EntityType
+
+    /**
+     * One of Telegram's custom emoji (Premium's) standing in the text: the
+     * characters under it are its ordinary emoji, what a client that cannot
+     * draw it shows instead.
+     */
+    data class CustomEmoji(val id: Long) : EntityType
 }
 
 /**

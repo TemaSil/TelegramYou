@@ -313,6 +313,7 @@ internal fun entitiesOf(formatted: JSONObject?, text: String): List<TextEntity> 
             "textEntityTypeHashtag" -> EntityType.Hashtag
             "textEntityTypeCashtag" -> EntityType.Cashtag
             "textEntityTypeBotCommand" -> EntityType.BotCommand
+            "textEntityTypeCustomEmoji" -> EntityType.CustomEmoji(type.optInt64("custom_emoji_id"))
             else -> return@mapNotNull null
         }
         TextEntity(entity.optInt("offset"), entity.optInt("length"), kind)
