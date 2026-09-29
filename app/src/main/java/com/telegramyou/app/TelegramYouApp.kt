@@ -1,5 +1,6 @@
 package com.telegramyou.app
 
+import com.telegramyou.app.settings.AppLockStore
 import android.app.Application
 import android.content.Intent
 import android.app.NotificationChannel
@@ -41,6 +42,10 @@ class TelegramYouApp : Application() {
     lateinit var geeks: GeekStore
         private set
 
+    /** Settings → Privacy and security → App lock; see AppLockStore. */
+    lateinit var appLock: AppLockStore
+        private set
+
     /** What was typed into search, newest first; see QueryHistory. */
     lateinit var queryHistory: QueryHistoryStore
         private set
@@ -62,6 +67,7 @@ class TelegramYouApp : Application() {
         createNotificationChannels()
         appearance = AppearanceStore(this)
         geeks = GeekStore(this)
+        appLock = AppLockStore(this)
         queryHistory = QueryHistoryStore(this)
         updates = AppUpdates(this)
         // Quietly, once a launch: nothing is said unless there is a newer

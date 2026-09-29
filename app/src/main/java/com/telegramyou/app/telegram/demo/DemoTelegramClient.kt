@@ -1398,9 +1398,17 @@ class DemoTelegramClient(
                 needsPremium = true
             )
 
+    /** GIFs kept from messages, newest first, ahead of the demo's own. */
+    private val keptGifs = mutableListOf<GifItem>()
+
     override suspend fun savedGifs(): List<GifItem> {
         delay(120)
-        return demoGifs("saved")
+        return keptGifs + demoGifs("saved")
+    }
+
+    override suspend fun saveGif(video: VideoContent) {
+        delay(100)
+        keptGifs.add(0, GifItem(id = "kept-${keptGifs.size}", video = video, width = 360, height = 202))
     }
 
     override suspend fun searchGifs(query: String): List<GifItem> {

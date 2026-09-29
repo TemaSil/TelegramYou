@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.stickers
 
+import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerSetPreview
@@ -24,6 +25,9 @@ interface TelegramStickers {
     suspend fun searchGifs(query: String): List<GifItem> = emptyList()
 
     suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long? = null)
+
+    /** A GIF from a message kept among the saved ones — the GIF tab's first page. */
+    suspend fun saveGif(video: VideoContent) {}
 
     /**
      * The stickers behind custom emoji, by id — what a custom-emoji reaction

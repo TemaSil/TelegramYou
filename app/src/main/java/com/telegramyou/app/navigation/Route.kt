@@ -138,6 +138,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → Privacy → App lock. */
+    data object AppLock : Route {
+        const val PATTERN = "privacy/lock"
+        override val path = PATTERN
+    }
+
     /** Everyone this account has blocked, from Settings → Privacy. */
     data object Blocked : Route {
         const val PATTERN = "privacy/blocked"

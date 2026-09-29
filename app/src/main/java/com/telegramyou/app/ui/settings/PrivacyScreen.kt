@@ -54,7 +54,10 @@ fun PrivacyScreen(
     onDismiss: () -> Unit,
     onAudienceChosen: (PrivacySetting, PrivacyAudience) -> Unit,
     onMessageShown: () -> Unit,
-    onOpenBlocked: () -> Unit = {}
+    onOpenBlocked: () -> Unit = {},
+    onOpenAppLock: () -> Unit = {},
+    /** What the app lock is set to, for its row's summary. */
+    appLockSummary: String = "Off"
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
@@ -147,6 +150,11 @@ fun PrivacyScreen(
                         title = "Blocked users",
                         summary = "People who cannot message or call you",
                         onClick = onOpenBlocked
+                    )
+                    link(
+                        title = "App lock",
+                        summary = appLockSummary,
+                        onClick = onOpenAppLock
                     )
                 }
             }

@@ -1,5 +1,10 @@
 package com.telegramyou.app
 
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.LaunchedEffect
+import android.view.WindowManager
+import com.telegramyou.app.ui.lock.AppLockScreen
 import com.telegramyou.app.ui.chat.ChatStyle
 import com.telegramyou.app.ui.chat.LocalChatStyle
 import androidx.compose.runtime.CompositionLocalProvider
@@ -109,15 +114,47 @@ class MainActivity : ComponentActivity() {
                         LocalGeekSettings provides geekSettings,
                         LocalDensity provides Density(density.density, density.fontScale * appearance.textScale)
                     ) {
+                        val lockSettings by app.appLock.settings.collectAsStateWithLifecycle()
+                        val locked by app.appLock.locked.collectAsStateWithLifecycle()
+                        // Behind the lock the app stays composed but says
+                        // nothing: without this, TalkBack could read the
+                        // chats straight through it.
+                        Box(if (locked) Modifier.clearAndSetSemantics {} else Modifier) {
                         TelegramYouNavHost(
                             repository = app.telegramRepository,
                             appearance = app.appearance,
+                            appLock = app.appLock,
                             geeks = app.geeks,
                             queryHistory = app.queryHistory,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }
                         )
+                        }
+                        // Over everything, the app still composed beneath:
+                        // unlocking puts back exactly the screen that was
+                        // left, as the system's own lock screen does.
+                        if (locked) {
+                            AppLockScreen(
+                                settings = lockSettings,
+                                tryPin = app.appLock::tryUnlock,
+                                onBiometricUnlock = app.appLock::unlockWithBiometric
+                            )
+                        }
+                        // What Recents shows of the app: nothing, while the
+                        // lock is on and asked to hide it. Android 13 has a
+                        // switch for exactly this; before it the only way is
+                        // FLAG_SECURE, which also stops screenshots.
+                        val hide = lockSettings.enabled && lockSettings.hideInRecents
+                        LaunchedEffect(hide) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                setRecentsScreenshotEnabled(!hide)
+                            } else if (hide) {
+                                window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                            } else {
+                                window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                            }
+                        }
                     }
                 }
             }
@@ -137,6 +174,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         AppVisibility.isInForeground = true
         (application as TelegramYouApp).telegramRepository.setOnline(true)
+        (application as TelegramYouApp).appLock.onReturned()
     }
 
     override fun onStop() {
@@ -148,6 +186,8 @@ class MainActivity : ComponentActivity() {
         // The icon chosen in Appearance reaches the launcher here, as the
         // app leaves the screen, rather than on the tap; see setAppIcon.
         if (!isChangingConfigurations) (application as TelegramYouApp).appearance.applyAppIcon()
+        // Leaving, for the app lock's clock — not a rotation, which is not.
+        if (!isChangingConfigurations) (application as TelegramYouApp).appLock.onLeft()
         super.onStop()
     }
 }

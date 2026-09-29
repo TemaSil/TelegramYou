@@ -24,7 +24,7 @@ ICONS = """
 Add AddAPhoto AddReaction AlternateEmail Archive ArrowBack AttachFile Block Bookmark
 Campaign Chat Check CheckCircle Close Computer Contacts ContentCopy ContentPaste DarkMode
 Delete DeleteSweep Description DesktopWindows Devices Done DoneAll Download Edit EmojiEmotions Folder
-ArrowUpward ArrowDownward Backspace
+ArrowUpward ArrowDownward Backspace Fingerprint Gif
 ErrorOutline Forward Group History Image Info InstallMobile Keyboard
 KeyboardArrowDown KeyboardHide Language LaptopMac LightMode Link Lock Logout
 MarkChatRead Mic MoreVert MusicNote Notifications NotificationsActive

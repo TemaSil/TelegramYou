@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.awaitAll
@@ -2337,6 +2338,16 @@ class TdLibTelegramClient(
         val answer = requireEngine().send(JSONObject().put("@type", "getSavedAnimations"))
         val animations = answer.optJSONArray("animations") ?: return emptyList()
         return List(animations.length()) { animations.optJSONObject(it) }.mapNotNull { gifItem(it) }
+    }
+
+    override suspend fun saveGif(video: VideoContent) {
+        awaitReady()
+        val fileId = video.fileId ?: error("This GIF has no file to keep")
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "addSavedAnimation")
+                .put("animation", JSONObject().put("@type", "inputFileId").put("id", fileId))
+        )
     }
 
     /** The @gif bot's user id, found once; the bot's handle does not change. */

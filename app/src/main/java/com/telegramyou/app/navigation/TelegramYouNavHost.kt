@@ -1,5 +1,7 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.ui.lock.AppLockSettingsScreen
+import com.telegramyou.app.settings.AppLockStore
 import com.telegramyou.app.ui.chat.LocalCustomEmojiLoader
 import com.telegramyou.app.ui.folders.FolderEditScreen
 import com.telegramyou.app.ui.folders.FolderEditViewModel
@@ -105,6 +107,8 @@ import com.telegramyou.app.ui.stories.StoryViewerScreen
 fun TelegramYouNavHost(
     repository: TelegramRepository,
     appearance: AppearanceStore,
+    /** Settings → Privacy → App lock; absent in previews. */
+    appLock: AppLockStore? = null,
     /** Settings → For geeks; defaults where none is given, as in previews. */
     geeks: GeekStore? = null,
     /** Search's recent queries; kept in memory where none is given. */
@@ -516,7 +520,24 @@ fun TelegramYouNavHost(
                 onDismiss = privacyViewModel::onDismiss,
                 onAudienceChosen = privacyViewModel::onAudienceChosen,
                 onMessageShown = privacyViewModel::onMessageShown,
-                onOpenBlocked = { navController.navigateTo(Route.Blocked) }
+                onOpenBlocked = { navController.navigateTo(Route.Blocked) },
+                onOpenAppLock = { navController.navigateTo(Route.AppLock) },
+                appLockSummary = appLock?.settings?.collectAsStateWithLifecycle()?.value?.let { lock ->
+                    if (lock.enabled) "On · ${lock.autoLock.label.replaceFirstChar(Char::lowercase)}" else "Off"
+                } ?: "Off"
+            )
+        }
+        composable(Route.AppLock.PATTERN) {
+            val store = appLock ?: return@composable
+            val settings by store.settings.collectAsStateWithLifecycle()
+            AppLockSettingsScreen(
+                settings = settings,
+                onBack = { navController.popBackStack() },
+                onPinSet = store::setPin,
+                onDisable = store::disable,
+                onBiometricChange = store::setBiometric,
+                onAutoLockChange = store::setAutoLock,
+                onHideInRecentsChange = store::setHideInRecents
             )
         }
         composable(Route.Blocked.PATTERN) {
@@ -805,6 +826,7 @@ fun TelegramYouNavHost(
                 onVideoOpened = chatViewModel::onVideoOpened,
                 onVideoClosed = chatViewModel::onVideoClosed,
                 onGalleryPage = chatViewModel::onGalleryPage,
+                onSaveGif = chatViewModel::onSaveGif,
                 onErrorShown = chatViewModel::onErrorShown,
                 onExpressionsOpen = chatViewModel::onExpressionsOpen,
                 onExpressionsClose = chatViewModel::onExpressionsClose,

@@ -1,4 +1,4 @@
-# Swipe through
-- Swipe between a chat's photos and videos, full-screen, as in the official app
-- Play and pause sit at the right end of the video player now
-- The pin icon is back on Pin and Unpin in a message's menu
+# Locked in
+- App lock: a PIN in front of the app, or your fingerprint, in Settings → Privacy
+- Choose how long away before it asks again, and hide your chats in recent apps
+- Add to GIFs: keep a GIF from a message, and it waits on the GIF tab

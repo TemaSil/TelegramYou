@@ -182,6 +182,7 @@ fun ChatScreen(
     onVideoClosed: () -> Unit,
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
     onGalleryPage: (ChatMessage) -> Unit = {},
+    onSaveGif: (ChatMessage) -> Unit = {},
     /** Called once a failure in [ChatUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit,
     /** The emoji, GIF and sticker panel, in the keyboard's place. */
@@ -843,6 +844,7 @@ fun ChatScreen(
                                 onReact = { onReactionsRequested(message) },
                                 onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
                                 quickReactions = quickReactions,
+                                onSaveGif = { onSaveGif(message) },
                                 isSelected = message.id in state.selection,
                                 isSelecting = state.selection.isActive,
                                 onSelect = { onSelectionToggled(message) },

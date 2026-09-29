@@ -1962,6 +1962,76 @@ class SmokeTest {
         waitFor(By.text("Photos from the meetup"), "the chat, the gallery closed")
     }
 
+    /**
+     * Settings → Privacy → App lock: a PIN set twice, the app left and
+     * opened again to the lock, the PIN typed on its keypad, and the lock
+     * turned off again so no later test in this process meets it.
+     */
+    @Test
+    fun theAppLocksBehindAPin() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        scrollDownTo(By.text("App lock"))
+        tap(By.text("App lock"))
+        waitFor(By.text("Lock with a PIN"), "the app lock settings")
+        tap(By.text("Lock with a PIN"))
+        typeInto("PIN", "1234")
+        tap(By.text("Next"))
+        waitFor(By.text("Repeat the PIN"), "the PIN asked again")
+        typeInto("PIN", "1234")
+        tap(By.text("Save"))
+        waitFor(By.text("Change PIN"), "the lock on")
+        screenshot("61-app-lock-settings")
+
+        device.pressHome()
+        launchApp()
+        waitFor(By.desc("0 of 4 digits"), "the lock screen")
+        screenshot("62-app-lock")
+        "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
+        waitFor(By.text("Material Design"), "the chat list, unlocked")
+
+        tap(By.text("Settings"))
+        scrollSettingsTo(By.text("Privacy"))
+        tap(By.text("Privacy"))
+        scrollDownTo(By.text("App lock"))
+        tap(By.text("App lock"))
+        waitFor(By.text("Change PIN"), "the lock settings again")
+        tap(By.text("Lock with a PIN"))
+        assertTrue(
+            "the lock did not turn off",
+            device.wait(Until.gone(By.text("Change PIN")), STEP_TIMEOUT)
+        )
+        backTo(By.text("Appearance"), "the settings")
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list")
+    }
+
+    /** A GIF in a message kept among the saved ones, from its menu. */
+    @Test
+    fun aGifIsAddedToGifs() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        scrollBackTo(By.desc("GIF"), "the GIF")
+        repeat(3) {
+            if (device.hasObject(By.text("Add to GIFs"))) return@repeat
+            try {
+                device.findObject(By.desc("GIF"))?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Add to GIFs")), SHORT_WAIT)
+        }
+        tap(By.text("Add to GIFs"))
+        waitFor(By.text("Added to GIFs"), "the GIF kept")
+        backTo(By.text("Material Design"), "the chat list")
+    }
+
     /** Taps the highest of several matches — a screen's header over its content. */
     private fun tapTopmost(selector: BySelector) {
         // A fresh tree first: straight after a screen changes, UiAutomator's

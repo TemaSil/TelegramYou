@@ -111,6 +111,8 @@ internal fun MessageBubble(
      * animations where they have arrived; the full list is behind the arrow.
      */
     quickReactions: List<ReactionOption> = emptyList(),
+    /** "Add to GIFs", offered on a GIF. */
+    onSaveGif: () -> Unit = {},
     isSelected: Boolean,
     isSelecting: Boolean,
     onSelect: () -> Unit,
@@ -646,6 +648,16 @@ internal fun MessageBubble(
                 // was a long press, then Select, then the bar — three steps
                 // nobody found, and the report was that forwarding did not
                 // work at all.
+                if (message.contentType == MessageContentType.Animation && message.video != null) {
+                    DropdownMenuItem(
+                        text = { Text("Add to GIFs") },
+                        leadingIcon = { Icon(Symbols.Gif, contentDescription = null) },
+                        onClick = {
+                            onSaveGif()
+                            menuOpen = false
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Forward") },
                     leadingIcon = { Icon(Symbols.Forward, contentDescription = null) },

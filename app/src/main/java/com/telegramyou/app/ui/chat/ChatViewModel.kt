@@ -904,6 +904,19 @@ class ChatViewModel(
 
     fun onNoticeShown() = _uiState.update { it.copy(notice = null) }
 
+    /**
+     * A GIF from a message kept among the saved ones, as the official
+     * client's "Add to GIFs" does. The GIF tab is loaded again when it next
+     * opens, so it is there.
+     */
+    fun onSaveGif(message: ChatMessage) {
+        val video = message.video ?: return
+        viewModelScope.launch {
+            val done = attempt("Could not add the GIF") { repository.saveGif(video) }
+            if (done) _uiState.update { it.copy(notice = "Added to GIFs", gifPicker = null) }
+        }
+    }
+
     // ── voice ────────────────────────────────────────────────────────────
 
     private val voicePlayer = VoicePlayer()
