@@ -1,5 +1,4 @@
-# Your chat, your icon
-- Emoji, GIFs and stickers in one panel where the keyboard goes — tap the smiley
-- Reactions in your accent, a quick row, Telegram's animated set and Premium ones
-- New wallpapers, app icon colours, two-line previews, Less motion and chat folders
-- Forward, delete and edit messages again; voice notes now show as listened
+# Swipe through
+- Swipe between a chat's photos and videos, full-screen, as in the official app
+- Play and pause sit at the right end of the video player now
+- The pin icon is back on Pin and Unpin in a message's menu
