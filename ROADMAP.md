@@ -229,6 +229,37 @@ admins and permissions, invite links and forum topics, below in section 6.
 `GroupManagement` and friends in `:core` (`Groups.kt`, with tests) decide
 what the screens offer; `TelegramGroups` is the twelfth domain interface.
 
+**1.6.3 — next, on the owner's word of 29 September: files, properly.**
+A chat's shared media in tabs as the official client has them — photos and
+videos, files, music, voice, links, GIFs — where today there is only the
+photo and video grid. And a player to go with it, made to feel like
+Material 3 Expressive rather than a row of buttons: a mini player that stays
+over the screens while something plays, a full player with the cover, a
+wavy progress and Expressive's shapes, the chat's music as its queue, and
+the controls in the notification shade (Media3's session). The official
+client is the reference for what is there and how it behaves.
+
+Listening to music, asked for by the owner's brother and agreed on the same
+day — the official client's base first:
+- a mini player over the chat list and inside chats, playing on across
+  screens; the chat's music as the queue, in order, reversed or shuffled,
+  repeating one track or all;
+- the lock screen, the shade, headset buttons and Bluetooth, through a Media3
+  session; playing on with the app in the background;
+- music in global search; speed from 0.5× to 2× for long audio.
+
+And seven things the official client does not do, or does awkwardly, all
+seven wanted:
+1. **My music** — everything anybody sent or saved, from every chat, in one
+   place, searchable by title and performer.
+2. **Saved Messages as a library** — Save sends a track there and queues it.
+3. **Offline** — one button on a music channel downloads all of it ahead.
+4. **Carry on where it stopped** for long tracks and podcasts.
+5. **The cover's colour** — the player takes its scheme from the cover
+   (Material You from the picture, a dynamic scheme on that seed).
+6. **Sleep timer** — stop after 15, 30 or 60 minutes, or at the end of a track.
+7. **Equaliser** — the platform's `AudioEffect`, nothing hand-rolled.
+
 **Later, polish rather than basics:** recording round video messages; a photo
 editor; chat wallpapers and themes; global notification settings (sounds,
 per type); location and contacts in messages; inline bots and Mini Apps;
