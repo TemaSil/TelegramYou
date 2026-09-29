@@ -4,6 +4,46 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 1.6-491
+
+2026-09-29 · [`a3da80e`](https://github.com/TemaSil/TelegramYou/commit/a3da80e9a7470166e382f85ba0ae394a7a8908f3)
+
+<p>
+  <img src="builds/1.6-491/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/1.6-491/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/1.6-491/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/1.6-491/57b-panel-expanded.jpg" width="160" alt="Emoji, GIFs and stickers" title="Emoji, GIFs and stickers">
+  <img src="builds/1.6-491/52c-appearance-chat-background.jpg" width="160" alt="Chat background" title="Chat background">
+  <img src="builds/1.6-491/52-appearance.jpg" width="160" alt="Appearance" title="Appearance">
+  <img src="builds/1.6-491/62-app-lock.jpg" width="160" alt="App lock" title="App lock">
+  <img src="builds/1.6-491/65-selection.jpg" width="160" alt="Selecting messages" title="Selecting messages">
+  <img src="builds/1.6-491/63-contact-and-place.jpg" width="160" alt="Contacts and places" title="Contacts and places">
+  <img src="builds/1.6-491/66-jumbo-emoji.jpg" width="160" alt="Emoji" title="Emoji">
+  <img src="builds/1.6-491/44a-message-menu.jpg" width="160" alt="Reactions" title="Reactions">
+  <img src="builds/1.6-491/60-gallery.jpg" width="160" alt="Photo viewer" title="Photo viewer">
+  <img src="builds/1.6-491/56-folders.jpg" width="160" alt="Folders" title="Folders">
+  <img src="builds/1.6-491/31-video-note.jpg" width="160" alt="Video messages" title="Video messages">
+  <img src="builds/1.6-491/34-poll.jpg" width="160" alt="Polls" title="Polls">
+  <img src="builds/1.6-491/35-bot.jpg" width="160" alt="Bot buttons" title="Bot buttons">
+  <img src="builds/1.6-491/37-post-search.jpg" width="160" alt="Post search" title="Post search">
+  <img src="builds/1.6-491/28-old-search-hit.jpg" width="160" alt="Search in chat" title="Search in chat">
+  <img src="builds/1.6-491/36-search.jpg" width="160" alt="Search" title="Search">
+  <img src="builds/1.6-491/21-story.jpg" width="160" alt="Stories" title="Stories">
+  <img src="builds/1.6-491/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/1.6-491/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/1.6-491/32-privacy.jpg" width="160" alt="Privacy" title="Privacy">
+  <img src="builds/1.6-491/29-devices.jpg" width="160" alt="Devices" title="Devices">
+  <img src="builds/1.6-491/30-storage.jpg" width="160" alt="Data and storage" title="Data and storage">
+  <img src="builds/1.6-491/41-settings.jpg" width="160" alt="Settings" title="Settings">
+  <img src="builds/1.6-491/42-profile.jpg" width="160" alt="Profile" title="Profile">
+  <img src="builds/1.6-491/25-updates.jpg" width="160" alt="App update" title="App update">
+  <img src="builds/1.6-491/33-for-geeks.jpg" width="160" alt="For geeks" title="For geeks">
+  <img src="builds/1.6-491/26-qr-login.jpg" width="160" alt="QR login" title="QR login">
+  <img src="builds/1.6-491/27-email-code.jpg" width="160" alt="Email login" title="Email login">
+  <img src="builds/1.6-491/23-proxy.jpg" width="160" alt="Proxy" title="Proxy">
+  <img src="builds/1.6-491/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+</p>
+
 ## 1.5.1-488
 
 2026-09-29 · [`615af2c`](https://github.com/TemaSil/TelegramYou/commit/615af2cd1513839b281c09b455cecebf88a57fcb)
