@@ -124,6 +124,9 @@ internal fun MessageBubble(
     quickReactions: List<ReactionOption> = emptyList(),
     /** "Add to GIFs", offered on a GIF. */
     onSaveGif: () -> Unit = {},
+    /** A track lined up in the player: after this one, or at the end of Up next. */
+    onPlayNext: () -> Unit = {},
+    onAddToQueue: () -> Unit = {},
     /** A contact card's View (their profile) and Add (to contacts). */
     onContactOpen: (ContactContent) -> Unit = {},
     onContactAdd: (ContactContent) -> Unit = {},
@@ -752,6 +755,26 @@ internal fun MessageBubble(
                         leadingIcon = { Icon(Symbols.Gif, contentDescription = null) },
                         onClick = {
                             onSaveGif()
+                            menuOpen = false
+                        }
+                    )
+                }
+                // A track lined up from where it is, whatever is playing —
+                // the queue is otherwise one chat's music.
+                if (message.audio != null) {
+                    DropdownMenuItem(
+                        text = { Text("Play next") },
+                        leadingIcon = { Icon(Symbols.SkipNext, contentDescription = null) },
+                        onClick = {
+                            onPlayNext()
+                            menuOpen = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add to queue") },
+                        leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null) },
+                        onClick = {
+                            onAddToQueue()
                             menuOpen = false
                         }
                     )

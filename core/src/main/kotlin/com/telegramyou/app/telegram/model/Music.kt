@@ -78,9 +78,56 @@ data class MusicQueue(
     /** The shuffled play order, as indices into [tracks]; empty unless shuffled. */
     val shuffled: List<Int> = emptyList(),
     /** The chat's first track is loaded: there is nothing older to ask for. */
-    val isComplete: Boolean = false
+    val isComplete: Boolean = false,
+    /**
+     * "Up next": tracks the person lined up from anywhere — another chat,
+     * My music, search — to play before the queue goes on. Kept when the
+     * queue is replaced by another chat's music, since they were asked for.
+     */
+    val upNext: List<Track> = emptyList(),
+    /**
+     * An Up next track playing now. The queue keeps its place in [current],
+     * and goes on from the track after it once Up next is empty.
+     */
+    val interlude: Track? = null
 ) {
-    val playing: Track? get() = tracks.getOrNull(current)
+    val playing: Track? get() = interlude ?: tracks.getOrNull(current)
+
+    /** [path] kept on the track wherever it is — the queue, Up next, playing — so it is not fetched twice. */
+    fun withPath(messageId: Long, path: String): MusicQueue {
+        val keep: (Track) -> Track = { if (it.messageId == messageId) it.copy(path = path) else it }
+        return copy(tracks = tracks.map(keep), upNext = upNext.map(keep), interlude = interlude?.let(keep))
+    }
+
+    /** First in Up next: after this track, before anything else lined up. */
+    fun playNext(track: Track): MusicQueue = copy(upNext = listOf(track) + upNext)
+
+    /** Last in Up next. */
+    fun addToQueue(track: Track): MusicQueue = copy(upNext = upNext + track)
+
+    fun withoutUpNext(position: Int): MusicQueue =
+        copy(upNext = upNext.filterIndexed { i, _ -> i != position })
+
+    /**
+     * The queue after the current track: Up next first, then the queue from
+     * where it was — or null at the end, or where the next track is not
+     * loaded yet ([needsMore] says which). Repeat one holds the track when
+     * it ends by itself, not on Next.
+     */
+    fun advanced(auto: Boolean): MusicQueue? {
+        if (playing == null) return null
+        if (auto && repeat == RepeatMode.One) return this
+        if (upNext.isNotEmpty()) return copy(interlude = upNext.first(), upNext = upNext.drop(1))
+        // Back from Up next, the queue goes on after its own track, which
+        // was heard before Up next began.
+        return following(auto)?.let { copy(interlude = null, current = it) }
+    }
+
+    /** Previous: out of Up next to the queue's track, or the track before. */
+    fun retreated(): MusicQueue? {
+        if (interlude != null) return copy(interlude = null)
+        return preceding()?.let { copy(current = it) }
+    }
 
     fun indexOf(messageId: Long): Int = tracks.indexOfFirst { it.messageId == messageId }
 
@@ -98,7 +145,7 @@ data class MusicQueue(
         )
     }
 
-    fun startingAt(index: Int): MusicQueue = copy(current = index.coerceIn(-1, tracks.lastIndex))
+    fun startingAt(index: Int): MusicQueue = copy(current = index.coerceIn(-1, tracks.lastIndex), interlude = null)
 
     /** The order changed; the playing track stays, and plays on from where it is. */
     fun ordered(newOrder: QueueOrder, random: Random = Random.Default): MusicQueue = copy(

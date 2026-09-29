@@ -197,6 +197,8 @@ fun ChatScreen(
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
     onGalleryPage: (ChatMessage) -> Unit = {},
     onSaveGif: (ChatMessage) -> Unit = {},
+    /** A track into the player's Up next: first (true) or last. */
+    onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
     onContactOpen: (ContactContent) -> Unit = {},
     onContactAdd: (ContactContent) -> Unit = {},
     onContactPickerOpen: () -> Unit = {},
@@ -940,6 +942,14 @@ fun ChatScreen(
                                 onReactionToggled = { emoji -> onReactionToggled(message, emoji) },
                                 quickReactions = quickReactions,
                                 onSaveGif = { onSaveGif(message) },
+                                onPlayNext = {
+                                    onLineUp(message, true)
+                                    scope.launch { snackbarHostState.showSnackbar("Plays next") }
+                                },
+                                onAddToQueue = {
+                                    onLineUp(message, false)
+                                    scope.launch { snackbarHostState.showSnackbar("Added to the queue") }
+                                },
                                 onContactOpen = onContactOpen,
                                 onContactAdd = onContactAdd,
                                 isSelected = message.id in state.selection,

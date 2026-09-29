@@ -45,6 +45,31 @@ class MusicTest {
     }
 
     @Test
+    fun `up next plays before the queue goes on, and the queue keeps its place`() {
+        val other = Track(900, chatId = 2, title = "From elsewhere")
+        val later = Track(901, chatId = 3, title = "Lined up last")
+        var q = queue(30, 20, 10).startingAt(0).addToQueue(later).playNext(other)
+        assertEquals(listOf(900L, 901L), q.upNext.map { it.messageId })
+
+        q = q.advanced(auto = true)!!
+        assertEquals("From elsewhere", q.playing!!.title)
+        assertEquals(0, q.current)
+        q = q.advanced(auto = true)!!
+        assertEquals("Lined up last", q.playing!!.title)
+        q = q.advanced(auto = true)!!
+        assertEquals("the queue after the track heard before Up next", 20L, q.playing!!.messageId)
+        assertNull(q.interlude)
+    }
+
+    @Test
+    fun `previous from up next goes back to the queue's track, and a tap leaves it`() {
+        val q = queue(30, 20).startingAt(1).playNext(Track(900, 2, "x")).advanced(auto = false)!!
+        assertEquals(20L, q.retreated()!!.playing!!.messageId)
+        assertNull(q.startingAt(0).interlude)
+        assertEquals(emptyList<Track>(), queue(30).playNext(Track(900, 2, "x")).withoutUpNext(0).upNext)
+    }
+
+    @Test
     fun `reversed plays up the list`() {
         val q = queue(30, 20, 10).startingAt(2).ordered(QueueOrder.Reversed)
         assertEquals(1, q.following(auto = false))

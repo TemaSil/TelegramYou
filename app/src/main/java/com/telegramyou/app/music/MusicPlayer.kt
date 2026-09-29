@@ -207,7 +207,10 @@ class MusicPlayer(
         val base = if (sameChat) {
             current
         } else {
-            MusicQueue(chatId = track.chatId, sourceTitle = sourceTitle, order = current.order, repeat = current.repeat)
+            MusicQueue(
+                chatId = track.chatId, sourceTitle = sourceTitle, order = current.order, repeat = current.repeat,
+                upNext = current.upNext
+            )
         }
         val page = loaded.mapNotNull { it.asTrack() }.ifEmpty { listOf(track) }
         var queue = base.withMore(page, complete = complete && loaded.isNotEmpty())
@@ -246,8 +249,38 @@ class MusicPlayer(
             player.seekTo(0)
             return
         }
-        val before = _state.value.queue.preceding() ?: run { player.seekTo(0); return }
-        playAt(before)
+        val before = _state.value.queue.retreated() ?: run { player.seekTo(0); return }
+        go(before)
+    }
+
+    /** [queue], with what it plays now, started. */
+    private fun go(queue: MusicQueue) {
+        keepPosition()
+        _state.update { it.copy(queue = queue) }
+        startCurrent()
+    }
+
+    // ── Up next ──
+
+    /**
+     * A track from anywhere to play after this one, before the rest. With
+     * nothing playing it simply plays, its chat's music as the queue.
+     */
+    fun playNext(message: ChatMessage) = lineUp(message) { queue, track -> queue.playNext(track) }
+
+    /** A track from anywhere to the end of Up next. */
+    fun addToQueue(message: ChatMessage) = lineUp(message) { queue, track -> queue.addToQueue(track) }
+
+    fun removeUpNext(position: Int) = _state.update { it.copy(queue = it.queue.withoutUpNext(position)) }
+
+    private fun lineUp(message: ChatMessage, put: (MusicQueue, Track) -> MusicQueue) {
+        val track = message.asTrack() ?: return
+        if (_state.value.track == null) {
+            play(message, sourceTitle = "")
+            return
+        }
+        _state.update { it.copy(queue = put(it.queue, track)) }
+        prefetchNext()
     }
 
     fun seekTo(fraction: Float) {
@@ -341,7 +374,10 @@ class MusicPlayer(
         myMusicCursor = cursor
         myMusicQuery = query
         val previous = _state.value.queue
-        var queue = MusicQueue(chatId = MY_MUSIC, sourceTitle = title, order = previous.order, repeat = previous.repeat)
+        var queue = MusicQueue(
+            chatId = MY_MUSIC, sourceTitle = title, order = previous.order, repeat = previous.repeat,
+            upNext = previous.upNext
+        )
             .withMore(loaded.mapNotNull { it.asTrack() }, complete = cursor == null)
         if (queue.indexOf(track.messageId) < 0) queue = queue.withMore(listOf(track), complete = queue.isComplete)
         queue = queue.startingAt(queue.indexOf(track.messageId))
@@ -495,16 +531,16 @@ class MusicPlayer(
 
     private fun advance(auto: Boolean) {
         val queue = _state.value.queue
-        val next = queue.following(auto)
+        val next = queue.advanced(auto)
         when {
-            next != null -> playAt(next)
+            next != null -> go(next)
             queue.needsMore() -> {
                 // The next track is on the server still: fetch, then go on.
                 loadMore()
                 scope.launch {
                     repeat(WAIT_FOR_PAGE_STEPS) {
                         delay(WAIT_FOR_PAGE_STEP_MS)
-                        _state.value.queue.following(auto)?.let { playAt(it); return@launch }
+                        _state.value.queue.advanced(auto)?.let { go(it); return@launch }
                         if (!_state.value.isLoadingMore && _state.value.queue.isComplete) return@launch
                     }
                 }
@@ -529,10 +565,7 @@ class MusicPlayer(
                 return@launch
             }
             // Kept on the track, so coming back to it does not fetch again.
-            _state.update { state ->
-                val tracks = state.queue.tracks.map { if (it.messageId == track.messageId) it.copy(path = path) else it }
-                state.copy(queue = state.queue.copy(tracks = tracks), isLoading = false)
-            }
+            _state.update { state -> state.copy(queue = state.queue.withPath(track.messageId, path), isLoading = false) }
             val player = player()
             player.setMediaItem(
                 MediaItem.Builder()
@@ -560,6 +593,26 @@ class MusicPlayer(
             context.startService(Intent(context, PlaybackService::class.java))
             // Near the end of what is loaded, the next page on its way.
             if (_state.value.queue.needsMore(within = PREFETCH_WITHIN)) loadMore()
+            prefetchNext()
+        }
+    }
+
+    private var prefetching: Job? = null
+
+    /**
+     * The next track's file fetched while this one plays, so one ends and
+     * the next begins without a silence spent downloading — Telegram's
+     * player waits for each in turn.
+     */
+    private fun prefetchNext() {
+        val playing = _state.value.track ?: return
+        val next = _state.value.queue.advanced(auto = true)?.playing ?: return
+        val fileId = next.fileId ?: return
+        if (next.messageId == playing.messageId || next.path?.let { exists(it) } == true) return
+        prefetching?.cancel()
+        prefetching = scope.launch {
+            val path = runCatching { repository.downloadFile(fileId) }.getOrNull() ?: return@launch
+            _state.update { it.copy(queue = it.queue.withPath(next.messageId, path)) }
         }
     }
 

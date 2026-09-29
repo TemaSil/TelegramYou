@@ -11,6 +11,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
@@ -123,9 +133,14 @@ fun MyMusicScreen(
     onQuery: (String) -> Unit,
     onNearEnd: () -> Unit,
     onPlay: (ChatMessage) -> Unit,
-    musicBar: @Composable () -> Unit = {}
+    musicBar: @Composable () -> Unit = {},
+    /** A track into the player's Up next: first (true) or last. */
+    onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> }
 ) {
+    val host = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     Scaffold(
+        snackbarHost = { SnackbarHost(host) },
         topBar = {
             TopAppBar(
                 title = { Text("My music") },
@@ -191,6 +206,34 @@ fun MyMusicScreen(
                                             if (playing) Symbols.PauseFilled else Symbols.PlayArrowFilled,
                                             contentDescription = if (playing) "Pause" else "Play ${audio.displayTitle}"
                                         )
+                                    }
+                                },
+                                trailingContent = {
+                                    var menu by remember { mutableStateOf(false) }
+                                    Box {
+                                        IconButton(onClick = { menu = true }) {
+                                            Icon(Symbols.MoreVert, contentDescription = "More for ${audio.displayTitle}")
+                                        }
+                                        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                            DropdownMenuItem(
+                                                text = { Text("Play next") },
+                                                leadingIcon = { Icon(Symbols.SkipNext, contentDescription = null) },
+                                                onClick = {
+                                                    menu = false
+                                                    onLineUp(message, true)
+                                                    scope.launch { host.showSnackbar("Plays next") }
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("Add to queue") },
+                                                leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null) },
+                                                onClick = {
+                                                    menu = false
+                                                    onLineUp(message, false)
+                                                    scope.launch { host.showSnackbar("Added to the queue") }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             )

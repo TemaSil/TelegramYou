@@ -52,6 +52,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.ListItem
@@ -113,6 +114,8 @@ class MusicActions(
     val onStop: () -> Unit = {},
     val onSleep: (SleepTimer) -> Unit = {},
     val onSave: () -> Unit = {},
+    /** An Up next track taken out, by its place there. */
+    val onRemoveUpNext: (Int) -> Unit = {},
     /** Saved Messages' music as the queue; see MusicPlayer.playSaved. */
     val onPlaySaved: (Long) -> Unit = {},
     val onDownloadAll: () -> Unit = {},
@@ -644,6 +647,7 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
                 )
+                UpNext(state, actions)
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
@@ -656,7 +660,9 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
                 )
                 LazyColumn(state = list, modifier = Modifier.fillMaxWidth()) {
                     itemsIndexed(shown, key = { _, entry -> entry.value.messageId }) { _, entry ->
-                        val playing = entry.index == state.queue.current
+                        // Not while an Up next track plays: the queue only
+                        // keeps its place there.
+                        val playing = entry.index == state.queue.current && state.queue.interlude == null
                         ListItem(
                             modifier = Modifier.clickable { actions.onPlayAt(entry.index) },
                             colors = if (playing) {
@@ -713,6 +719,57 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
         }
     }
 }
+
+/**
+ * Up next, over the queue: the track from it playing now, and what is lined
+ * up after, each to take out again. Nothing at all while it is empty.
+ */
+@Composable
+private fun UpNext(state: NowPlaying, actions: MusicActions) {
+    val queue = state.queue
+    if (queue.interlude == null && queue.upNext.isEmpty()) return
+    Column(Modifier.fillMaxWidth()) {
+        Text(
+            "Up next",
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+        )
+        queue.interlude?.let { now ->
+            ListItem(
+                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                headlineContent = { Text(now.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                supportingContent = { Text(now.performer.ifBlank { "Playing" }, maxLines = 1) },
+                leadingContent = { Icon(Symbols.GraphicEq, contentDescription = "Playing", tint = MaterialTheme.colorScheme.primary) }
+            )
+        }
+        // A few, and how many more: Up next is a short list by nature, and
+        // the queue under it is what the sheet is for.
+        queue.upNext.take(UP_NEXT_SHOWN).forEachIndexed { position, track ->
+            ListItem(
+                headlineContent = { Text(track.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                supportingContent = { Text(track.performer.ifBlank { track.senderName }, maxLines = 1) },
+                leadingContent = { Icon(Symbols.QueueMusic, contentDescription = null) },
+                trailingContent = {
+                    IconButton(onClick = { actions.onRemoveUpNext(position) }) {
+                        Icon(Symbols.Close, contentDescription = "Remove ${track.title} from Up next")
+                    }
+                }
+            )
+        }
+        if (queue.upNext.size > UP_NEXT_SHOWN) {
+            Text(
+                "and ${queue.upNext.size - UP_NEXT_SHOWN} more",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
+            )
+        }
+        HorizontalDivider(Modifier.padding(top = 4.dp))
+    }
+}
+
+private const val UP_NEXT_SHOWN = 4
 
 /** The width the seeker was laid out at, for turning a touch into a fraction. */
 private fun Modifier.onSizeChangedWidth(onWidth: (Float) -> Unit): Modifier =

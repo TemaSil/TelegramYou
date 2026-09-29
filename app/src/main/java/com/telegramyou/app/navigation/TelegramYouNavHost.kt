@@ -173,6 +173,7 @@ fun TelegramYouNavHost(
             onStop = { music?.stop() },
             onSleep = { music?.setSleep(it) },
             onSave = { music?.saveToLibrary() },
+            onRemoveUpNext = { music?.removeUpNext(it) },
             onPlaySaved = { music?.playSaved(it) },
             onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
             onNoticeShown = { music?.onNoticeShown() },
@@ -773,6 +774,7 @@ fun TelegramYouNavHost(
                         music?.playEverywhere(message, state.tracks, state.cursor, query = state.query)
                     }
                 },
+                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
                 musicBar = musicBar
             )
         }
@@ -1121,6 +1123,7 @@ fun TelegramYouNavHost(
                 onVideoClosed = chatViewModel::onVideoClosed,
                 onGalleryPage = chatViewModel::onGalleryPage,
                 onSaveGif = chatViewModel::onSaveGif,
+                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
                 onContactOpen = { contact -> navController.navigateTo(Route.Person(contact.userId)) },
                 onContactAdd = chatViewModel::onContactAdd,
                 onContactPickerOpen = chatViewModel::onContactPickerOpen,
