@@ -62,6 +62,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.SharedMediaKind
+import com.telegramyou.app.music.OfflineProgress
 import com.telegramyou.app.telegram.model.fileExtension
 import com.telegramyou.app.telegram.model.firstLink
 import com.telegramyou.app.telegram.model.linkHost
@@ -104,7 +105,10 @@ fun ChatMediaScreen(
     playingId: Long? = null,
     loadingId: Long? = null,
     progress: Float = 0f,
-    onPlayToggled: (ChatMessage) -> Unit = {}
+    onPlayToggled: (ChatMessage) -> Unit = {},
+    /** This chat's music being downloaded for offline, or null. */
+    offline: OfflineProgress? = null,
+    onDownloadAll: () -> Unit = {}
 ) {
     val kinds = SharedMediaKind.entries
     val pager = rememberPagerState { kinds.size }
@@ -210,6 +214,28 @@ fun ChatMediaScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(vertical = 8.dp)
                     ) {
+                        // The whole chat's music onto the phone, for the
+                        // train and the plane; its progress while it goes.
+                        if (kind == SharedMediaKind.Music) {
+                            item(key = "offline") {
+                                if (offline == null) {
+                                    ListItem(
+                                        headlineContent = { Text("Download all for offline") },
+                                        supportingContent = { Text("Every track in this chat, to play without a connection") },
+                                        leadingContent = { Icon(Symbols.Download, contentDescription = null) },
+                                        modifier = Modifier.clickable(onClick = onDownloadAll)
+                                    )
+                                } else {
+                                    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                                        Text("Downloading ${offline.done} of ${offline.total}", style = MaterialTheme.typography.bodyMedium)
+                                        LinearWavyProgressIndicator(
+                                            progress = { if (offline.total > 0) offline.done.toFloat() / offline.total else 0f },
+                                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         items(tab.items, key = { it.id }) { message ->
                             when (kind) {
                                 SharedMediaKind.Files -> FileRow(

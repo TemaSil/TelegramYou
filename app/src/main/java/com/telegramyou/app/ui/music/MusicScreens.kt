@@ -1,5 +1,21 @@
 package com.telegramyou.app.ui.music
 
+import android.content.Intent
+import android.media.audiofx.AudioEffect
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil3.compose.AsyncImage
+import com.telegramyou.app.telegram.model.SleepTimer
+import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
@@ -92,7 +108,13 @@ class MusicActions(
     val onSpeed: () -> Unit = {},
     val onPlayAt: (Int) -> Unit = {},
     val onLoadMore: () -> Unit = {},
-    val onStop: () -> Unit = {}
+    val onStop: () -> Unit = {},
+    val onSleep: (SleepTimer) -> Unit = {},
+    val onSave: () -> Unit = {},
+    val onDownloadAll: () -> Unit = {},
+    val onNoticeShown: () -> Unit = {},
+    /** The player's audio session, for the platform's equaliser panel. */
+    val audioSession: () -> Int = { 0 }
 )
 
 /**
@@ -102,12 +124,14 @@ class MusicActions(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun TrackTheme(track: Track?, content: @Composable () -> Unit) {
+private fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composable () -> Unit) {
     val dark = isSystemInDarkTheme()
-    val seed = remember(track?.messageId) {
-        val name = (track?.performer.orEmpty() + track?.title.orEmpty()).hashCode()
-        // A hue from the name, at the saturation and lightness a seed needs.
-        android.graphics.Color.HSVToColor(floatArrayOf(((name ushr 1) % 360).toFloat(), 0.55f, 0.75f))
+    val seed = remember(track?.messageId, coverSeed) {
+        coverSeed ?: run {
+            val name = (track?.performer.orEmpty() + track?.title.orEmpty()).hashCode()
+            // A hue from the name, at the saturation and lightness a seed needs.
+            android.graphics.Color.HSVToColor(floatArrayOf(((name ushr 1) % 360).toFloat(), 0.55f, 0.75f))
+        }
     }
     val scheme = remember(seed, dark) { schemeFromSeed(seed, dark).toColorScheme(dark) }
     MaterialExpressiveTheme(
@@ -135,7 +159,7 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
         exit = shrinkVertically() + fadeOut()
     ) {
         if (track == null) return@AnimatedVisibility
-        TrackTheme(track) {
+        TrackTheme(track, state.coverSeed) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -193,12 +217,16 @@ private fun Cover(track: Track, size: Int, corner: Int) {
             .background(Brush.linearGradient(listOf(colors.primary, colors.tertiary))),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            Symbols.MusicNote,
-            contentDescription = null,
-            tint = colors.onPrimary,
-            modifier = Modifier.size((size * 0.45f).dp)
-        )
+        if (track.coverPath != null) {
+            AsyncImage(model = File(track.coverPath), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else {
+            Icon(
+                Symbols.MusicNote,
+                contentDescription = null,
+                tint = colors.onPrimary,
+                modifier = Modifier.size((size * 0.45f).dp)
+            )
+        }
     }
 }
 
@@ -239,8 +267,20 @@ private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int) 
 fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
-    TrackTheme(track) {
+    var menuOpen by remember { mutableStateOf(false) }
+    var sleepOpen by remember { mutableStateOf(false) }
+    val host = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    val equaliser = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+    state.notice?.let { message ->
+        LaunchedEffect(message) {
+            host.showSnackbar(message)
+            actions.onNoticeShown()
+        }
+    }
+    TrackTheme(track, state.coverSeed) {
         Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+          Box(Modifier.fillMaxSize()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -260,6 +300,53 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = { queueOpen = true }) { Icon(Symbols.QueueMusic, contentDescription = "Queue") }
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = "More") }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Save to Saved Messages") },
+                                leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    actions.onSave()
+                                }
+                            )
+                            if (state.queue.chatId > 0) {
+                                DropdownMenuItem(
+                                    text = { Text("Download all for offline") },
+                                    leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        actions.onDownloadAll()
+                                    }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = { Text("Sleep timer") },
+                                leadingIcon = { Icon(Symbols.Bedtime, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    sleepOpen = true
+                                }
+                            )
+                            // The platform's equaliser panel, or whichever app
+                            // provides one; offered only where there is one.
+                            val panel = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
+                                .putExtra(AudioEffect.EXTRA_AUDIO_SESSION, actions.audioSession())
+                                .putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
+                                .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+                            if (panel.resolveActivity(context.packageManager) != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Equaliser") },
+                                    leadingIcon = { Icon(Symbols.Equalizer, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        equaliser.launch(panel)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
                 if (track == null) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -297,12 +384,21 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            Symbols.MusicNote,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(96.dp)
-                        )
+                        if (track.coverPath != null) {
+                            AsyncImage(
+                                model = File(track.coverPath),
+                                contentDescription = "Cover of ${track.title}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                Symbols.MusicNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(96.dp)
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.weight(0.4f))
@@ -362,11 +458,59 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
                         Text(speedLabel(state.speed), modifier = Modifier.semantics { contentDescription = "Speed ${speedLabel(state.speed)}" })
                     }
                 }
+                if (state.sleep != SleepTimer.Off) {
+                    AssistChip(
+                        onClick = { sleepOpen = true },
+                        label = {
+                            Text(
+                                if (state.sleep == SleepTimer.EndOfTrack) "Stops after this track"
+                                else "Sleep timer: ${state.sleep.label}"
+                            )
+                        },
+                        leadingIcon = { Icon(Symbols.Bedtime, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    )
+                }
+                state.offline?.let { offline ->
+                    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        Text(
+                            "Downloading ${offline.done} of ${offline.total} for offline",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        LinearWavyProgressIndicator(
+                            progress = { if (offline.total > 0) offline.done.toFloat() / offline.total else 0f },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        )
+                    }
+                }
                 Spacer(Modifier.weight(0.2f))
             }
+            SnackbarHost(host, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+          }
         }
         if (queueOpen) {
             QueueSheet(state, actions, onDismiss = { queueOpen = false })
+        }
+        if (sleepOpen) {
+            AlertDialog(
+                onDismissRequest = { sleepOpen = false },
+                icon = { Icon(Symbols.Bedtime, contentDescription = null) },
+                title = { Text("Sleep timer") },
+                text = {
+                    Column {
+                        SleepTimer.entries.forEach { timer ->
+                            ListItem(
+                                headlineContent = { Text(timer.label) },
+                                leadingContent = { RadioButton(selected = state.sleep == timer, onClick = null) },
+                                modifier = Modifier.clickable {
+                                    sleepOpen = false
+                                    actions.onSleep(timer)
+                                }
+                            )
+                        }
+                    }
+                },
+                confirmButton = { TextButton(onClick = { sleepOpen = false }) { Text("Close") } }
+            )
         }
     }
 }

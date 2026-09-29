@@ -260,6 +260,14 @@ interface TelegramMessages {
     suspend fun searchPublicPosts(query: String, limit: Int = 30): PostSearch
 
     /**
+     * Music from every chat, newest first — "My music" — matching [query]
+     * when it is not blank: one page, and the cursor for the next, null at
+     * the end.
+     */
+    suspend fun allMusic(query: String = "", cursor: String = "", limit: Int = 50): Pair<List<ChatMessage>, String?> =
+        emptyList<ChatMessage>() to null
+
+    /**
      * One page of a chat's shared media of [kind], newest first: the page
      * older than [beforeMessageId], or the newest for 0. Empty when there is
      * no more. What the shared media tabs page through, back to the first

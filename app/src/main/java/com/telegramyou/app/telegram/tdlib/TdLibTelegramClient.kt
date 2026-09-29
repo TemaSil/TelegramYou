@@ -725,6 +725,32 @@ class TdLibTelegramClient(
             .sortedByDescending { it.id }
     }
 
+    override suspend fun allMusic(query: String, cursor: String, limit: Int): Pair<List<ChatMessage>, String?> {
+        awaitReady()
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchMessages")
+                    .put("query", query.trim())
+                    .put("filter", JSONObject().put("@type", "searchMessagesFilterAudio"))
+                    .put("offset", cursor)
+                    .put("limit", limit)
+                    .put("min_date", 0)
+                    .put("max_date", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "allMusic: ${e.message}")
+            return emptyList<ChatMessage>() to null
+        }
+        val messages = found.optJSONArray("messages")
+        val out = mutableListOf<ChatMessage>()
+        for (i in 0 until (messages?.length() ?: 0)) {
+            val message = messages?.optJSONObject(i) ?: continue
+            out += mapMessage(message.optLong("chat_id"), message)
+        }
+        return out to found.optString("next_offset").takeIf { it.isNotBlank() }
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         awaitReady()
@@ -4312,7 +4338,12 @@ class TdLibTelegramClient(
                     durationSeconds = audio.optInt("duration"),
                     fileName = audio.optString("file_name"),
                     fileId = file?.optInt("id")?.takeIf { it != 0 },
-                    path = file?.localPathIfDownloaded()
+                    path = file?.localPathIfDownloaded(),
+                    // Telegram's thumbnail of the album cover, where the file has one.
+                    coverFileId = audio.optJSONObject("album_cover_thumbnail")?.optJSONObject("file")
+                        ?.optInt("id")?.takeIf { it != 0 },
+                    coverPath = audio.optJSONObject("album_cover_thumbnail")?.optJSONObject("file")
+                        ?.localPathIfDownloaded()
                 )
             },
             scheduledAt = message.optJSONObject("scheduling_state")

@@ -229,6 +229,29 @@ admins and permissions, invite links and forum topics, below in section 6.
 `GroupManagement` and friends in `:core` (`Groups.kt`, with tests) decide
 what the screens offer; `TelegramGroups` is the twelfth domain interface.
 
+**1.6.3 — done 30 September.** Everything below is in, as planned, with
+these notes on how:
+- **Shared media** is `SharedMediaKind` in `:core`, a TDLib search filter
+  per tab, paged by `SharedMediaViewModel`. Files open through FileProvider
+  from a copy in `opened/`, from the tab and from a bubble alike.
+- **The player** is `MusicPlayer`, one for the app: ExoPlayer, one track
+  at a time and fetched as it comes up. `PlaybackService` gives it a Media3
+  session whose Next and Previous the queue answers. The queue is
+  `MusicQueue` in `:core`, only ever appended to.
+- **The seven:**
+  - My music is TDLib's global `searchMessages` with the music filter;
+  - Saved Messages takes a forward;
+  - offline pages the chat to its first track, then fetches each;
+  - resume applies from ten minutes of track (`resumeFrom`);
+  - the colour is `seedFromPixels` over Telegram's cover thumbnail, or a
+    hue from the name without one;
+  - the sleep timer is `SleepTimer`;
+  - the equaliser is the platform's panel, offered only where a phone has
+    one.
+- **Still open:** the playlists of 1.6.4, album covers larger than
+  Telegram's thumbnail, and music in the global search tab — My music
+  covers finding a track.
+
 **1.6.3 — next, on the owner's word of 29 September: files, properly.**
 A chat's shared media in tabs as the official client has them — photos and
 videos, files, music, voice, links, GIFs — where today there is only the

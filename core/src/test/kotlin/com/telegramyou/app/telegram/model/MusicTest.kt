@@ -82,6 +82,14 @@ class MusicTest {
     }
 
     @Test
+    fun `only a long track carries on, and not from its edges`() {
+        assertNull(resumeFrom(durationSeconds = 200, savedMs = 60_000))
+        assertEquals(300_000L, resumeFrom(durationSeconds = 3_600, savedMs = 300_000))
+        assertNull(resumeFrom(durationSeconds = 3_600, savedMs = 3_000))
+        assertNull(resumeFrom(durationSeconds = 3_600, savedMs = 3_599_000))
+    }
+
+    @Test
     fun `speed steps and comes back to normal`() {
         assertEquals(1.25f, nextMusicSpeed(1f))
         assertEquals(1f, nextMusicSpeed(0.75f))

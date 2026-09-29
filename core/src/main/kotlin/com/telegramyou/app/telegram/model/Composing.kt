@@ -128,7 +128,11 @@ data class AudioContent(
     /** TDLib's id for the file, which a download is asked for by. */
     val fileId: Int? = null,
     /** The file on this device, once it is here. */
-    val path: String? = null
+    val path: String? = null,
+    /** The album cover's file id — Telegram's thumbnail of it — when there is one. */
+    val coverFileId: Int? = null,
+    /** The cover on this device, once it is here. */
+    val coverPath: String? = null
 ) {
     /** The title, or the file's name when the file carries no tags. */
     val displayTitle: String get() = title.ifBlank { fileName.substringBeforeLast('.').ifBlank { "Audio" } }

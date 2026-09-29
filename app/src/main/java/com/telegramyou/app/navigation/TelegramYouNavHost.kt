@@ -82,6 +82,8 @@ import com.telegramyou.app.music.NowPlaying
 import com.telegramyou.app.ui.music.MiniPlayer
 import com.telegramyou.app.ui.music.MusicActions
 import com.telegramyou.app.ui.music.PlayerScreen
+import com.telegramyou.app.ui.music.MyMusicScreen
+import com.telegramyou.app.ui.music.MyMusicViewModel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.SharedMediaKind
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -165,7 +167,12 @@ fun TelegramYouNavHost(
             onSpeed = { music?.cycleSpeed() },
             onPlayAt = { music?.playAt(it) },
             onLoadMore = { music?.loadMore() },
-            onStop = { music?.stop() }
+            onStop = { music?.stop() },
+            onSleep = { music?.setSleep(it) },
+            onSave = { music?.saveToLibrary() },
+            onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
+            onNoticeShown = { music?.onNoticeShown() },
+            audioSession = { music?.audioSessionId ?: 0 }
         )
     }
     val musicBar: @Composable () -> Unit = {
@@ -345,6 +352,7 @@ fun TelegramYouNavHost(
             CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
             HomeScreen(
                 musicBar = musicBar,
+                onOpenMyMusic = { navController.navigateTo(Route.MyMusic) },
                 state = state,
                 tab = tab,
                 onTabSelected = { picked ->
@@ -709,6 +717,27 @@ fun TelegramYouNavHost(
                 onMessageShown = storageViewModel::onMessageShown
             )
         }
+        composable(Route.MyMusic.PATTERN) {
+            val myMusic: MyMusicViewModel = viewModel(factory = viewModelFactory)
+            val state by myMusic.uiState.collectAsStateWithLifecycle()
+            MyMusicScreen(
+                state = state,
+                nowPlaying = nowPlaying,
+                onBack = { navController.popBackStack() },
+                onQuery = myMusic::onQuery,
+                onNearEnd = myMusic::onNearEnd,
+                // Every chat's tracks as the queue, from the one tapped.
+                onPlay = { message ->
+                    if (nowPlaying.track?.messageId == message.id) {
+                        music?.toggle()
+                    } else {
+                        music?.playEverywhere(message, state.tracks, state.cursor)
+                    }
+                },
+                musicBar = musicBar
+            )
+        }
+
         composable(
             route = Route.Player.PATTERN,
             // Up from the mini player and back down into it, as a sheet of
@@ -758,6 +787,8 @@ fun TelegramYouNavHost(
                 playingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isPlaying } ?: state.playingVoiceId,
                 loadingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isLoading } ?: state.loadingVoiceId,
                 progress = if (nowPlaying.track != null && nowPlaying.isPlaying) nowPlaying.progress else state.voiceProgress,
+                offline = nowPlaying.offline?.takeIf { it.chatId == state.detail?.chat?.id },
+                onDownloadAll = { state.detail?.chat?.id?.let { music?.downloadChat(it) } },
                 onBack = { navController.popBackStack() },
                 // One entry point, two kinds of thing behind it: the grid
                 // holds photos and videos alike, and which viewer opens is

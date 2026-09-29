@@ -1276,6 +1276,21 @@ class DemoTelegramClient(
         return all.subList(at + 1, (at + 1 + limit).coerceAtMost(all.size)).toList()
     }
 
+    override suspend fun allMusic(query: String, cursor: String, limit: Int): Pair<List<ChatMessage>, String?> {
+        delay(150)
+        val all = chatMessages.values.flatten()
+            .filter { it.contentType == MessageContentType.Audio && it.audio != null }
+            .filter { track ->
+                query.isBlank() ||
+                    track.audio!!.displayTitle.contains(query, ignoreCase = true) ||
+                    track.audio!!.performer.contains(query, ignoreCase = true)
+            }
+            .sortedByDescending { it.date }
+        val from = cursor.toIntOrNull() ?: 0
+        val page = all.drop(from).take(limit)
+        return page to (from + page.size).takeIf { it < all.size }?.toString()
+    }
+
     override suspend fun sharedMedia(
         chatId: Long,
         kind: SharedMediaKind,

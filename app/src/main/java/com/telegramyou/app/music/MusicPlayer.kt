@@ -15,6 +15,12 @@ import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MusicQueue
 import com.telegramyou.app.telegram.model.QueueOrder
 import com.telegramyou.app.telegram.model.RepeatMode
+import com.telegramyou.app.telegram.model.SleepTimer
+import com.telegramyou.app.telegram.model.resumeFrom
+import com.telegramyou.app.ui.theme.seedFromPixels
+import android.graphics.BitmapFactory
+import android.media.audiofx.AudioEffect
+import kotlinx.coroutines.withContext
 import com.telegramyou.app.telegram.model.SharedMediaKind
 import com.telegramyou.app.telegram.model.Track
 import com.telegramyou.app.telegram.model.asTrack
@@ -42,11 +48,21 @@ data class NowPlaying(
     val durationMs: Long = 0,
     val speed: Float = 1f,
     /** More of the chat's music is being paged in. */
-    val isLoadingMore: Boolean = false
+    val isLoadingMore: Boolean = false,
+    /** The playing track's cover as a Material You seed, once it is here. */
+    val coverSeed: Int? = null,
+    val sleep: SleepTimer = SleepTimer.Off,
+    /** A chat's music being fetched for offline: how far along. */
+    val offline: OfflineProgress? = null,
+    /** Said once: "Saved to Saved Messages". */
+    val notice: String? = null
 ) {
     val track: Track? get() = queue.playing
     val progress: Float get() = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 }
+
+/** A chat's music being downloaded: [done] of [total], for the bar. */
+data class OfflineProgress(val chatId: Long, val done: Int, val total: Int)
 
 /**
  * The app's one music player: a chat's music as its queue, played by
@@ -71,6 +87,7 @@ class MusicPlayer(
 
     private var exo: ExoPlayer? = null
     private var ticker: Job? = null
+    private var ticks = 0
     private var starting: Job? = null
 
     /**
@@ -116,17 +133,37 @@ class MusicPlayer(
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _state.update { it.copy(isPlaying = isPlaying) }
                     if (isPlaying) tick() else ticker?.cancel()
+                    if (!isPlaying) keepPosition()
                 }
 
                 override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) advance(auto = true)
+                    if (playbackState == Player.STATE_ENDED) {
+                        forgetPosition()
+                        if (_state.value.sleep == SleepTimer.EndOfTrack) {
+                            // The timer was for this track: stop here.
+                            _state.update { it.copy(sleep = SleepTimer.Off) }
+                        } else {
+                            advance(auto = true)
+                        }
+                    }
                     if (playbackState == Player.STATE_READY) {
                         _state.update { it.copy(durationMs = created.duration.coerceAtLeast(0)) }
                     }
                 }
             })
             exo = created
+            // Equaliser apps listen for a player's session opening, and
+            // attach to it: the platform's audio effects, not ours.
+            context.sendBroadcast(
+                Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
+                    .putExtra(AudioEffect.EXTRA_AUDIO_SESSION, created.audioSessionId)
+                    .putExtra(AudioEffect.EXTRA_PACKAGE_NAME, context.packageName)
+                    .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
+            )
         }
+
+    /** The player's audio session, for the platform's equaliser panel. */
+    val audioSessionId: Int get() = exo?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
 
     /**
      * A track tapped in a chat or in its Music tab: that chat's music
@@ -152,6 +189,7 @@ class MusicPlayer(
 
     /** A row of the queue tapped: that track, the queue untouched. */
     fun playAt(index: Int) {
+        keepPosition()
         _state.update { it.copy(queue = it.queue.startingAt(index)) }
         startCurrent()
     }
@@ -201,6 +239,8 @@ class MusicPlayer(
 
     /** Everything stops and the mini player goes. */
     fun stop() {
+        keepPosition()
+        sleeper?.cancel()
         starting?.cancel()
         exo?.stop()
         exo?.clearMediaItems()
@@ -216,12 +256,20 @@ class MusicPlayer(
     fun loadMore() {
         val state = _state.value
         val queue = state.queue
-        if (queue.isComplete || state.isLoadingMore || queue.chatId == 0L) return
+        if (queue.isComplete || state.isLoadingMore || queue.tracks.isEmpty()) return
         _state.update { it.copy(isLoadingMore = true) }
         scope.launch {
             val before = queue.tracks.lastOrNull()?.messageId ?: 0L
             val page = runCatching {
-                repository.sharedMedia(queue.chatId, SharedMediaKind.Music, before, PAGE)
+                if (queue.chatId == MY_MUSIC) {
+                    // Every chat's: the next page from where the last left off.
+                    val cursor = myMusicCursor ?: return@runCatching emptyList()
+                    val (found, next) = repository.allMusic(cursor = cursor, limit = PAGE)
+                    myMusicCursor = next
+                    found
+                } else {
+                    repository.sharedMedia(queue.chatId, SharedMediaKind.Music, before, PAGE)
+                }
             }.getOrDefault(emptyList())
             _state.update {
                 // Only if it is still that chat's queue: another may have
@@ -230,13 +278,142 @@ class MusicPlayer(
                     it.copy(isLoadingMore = false)
                 } else {
                     it.copy(
-                        queue = it.queue.withMore(page.mapNotNull { m -> m.asTrack() }, complete = page.size < PAGE),
+                        queue = it.queue.withMore(
+                            page.mapNotNull { m -> m.asTrack() },
+                            complete = if (queue.chatId == MY_MUSIC) myMusicCursor == null else page.size < PAGE
+                        ),
                         isLoadingMore = false
                     )
                 }
             }
         }
     }
+
+    /**
+     * "My music": every chat's tracks as one queue, starting from [message].
+     * [loaded] is what the screen has of it; the rest pages in from
+     * [cursor] as it is reached.
+     */
+    fun playEverywhere(message: ChatMessage, loaded: List<ChatMessage>, cursor: String?) {
+        val track = message.asTrack() ?: return
+        myMusicCursor = cursor
+        var queue = MusicQueue(chatId = MY_MUSIC, sourceTitle = "My music")
+            .withMore(loaded.mapNotNull { it.asTrack() }, complete = cursor == null)
+        if (queue.indexOf(track.messageId) < 0) queue = queue.withMore(listOf(track), complete = queue.isComplete)
+        keepPosition()
+        _state.update { it.copy(queue = queue.startingAt(queue.indexOf(track.messageId))) }
+        startCurrent()
+    }
+
+    private var myMusicCursor: String? = null
+
+    // ── the seven extras (ROADMAP, 1.6.3) ──
+
+    /** Where long tracks were left, by chat and message; see resumeFrom. */
+    private val positions = context.getSharedPreferences("music_positions", Context.MODE_PRIVATE)
+
+    private fun positionKey(track: Track) = "${track.chatId}:${track.messageId}"
+
+    private fun keepPosition() {
+        val track = _state.value.track ?: return
+        val player = exo ?: return
+        if (track.durationSeconds < com.telegramyou.app.telegram.model.RESUME_MIN_SECONDS) return
+        positions.edit().putLong(positionKey(track), player.currentPosition).apply()
+    }
+
+    private fun forgetPosition() {
+        val track = _state.value.track ?: return
+        positions.edit().remove(positionKey(track)).apply()
+    }
+
+    /** The cover, fetched and turned into the player's colours; see TrackTheme. */
+    private fun fetchCover(track: Track) {
+        if (track.coverPath == null && track.coverFileId == null) return
+        scope.launch {
+            val path = track.coverPath ?: track.coverFileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+                ?: return@launch
+            val seed = withContext(Dispatchers.Default) {
+                runCatching {
+                    val bitmap = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 4 })
+                        ?: return@runCatching null
+                    val pixels = IntArray(bitmap.width * bitmap.height)
+                    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                    seedFromPixels(pixels)
+                }.getOrNull()
+            }
+            _state.update { state ->
+                if (state.track?.messageId != track.messageId) return@update state
+                val tracks = state.queue.tracks.map { if (it.messageId == track.messageId) it.copy(coverPath = path) else it }
+                state.copy(queue = state.queue.copy(tracks = tracks), coverSeed = seed)
+            }
+        }
+    }
+
+    private var sleeper: Job? = null
+
+    /** The sleep timer: off, after so many minutes, or at the end of this track. */
+    fun setSleep(timer: SleepTimer) {
+        sleeper?.cancel()
+        _state.update { it.copy(sleep = timer) }
+        if (timer.minutes > 0) {
+            sleeper = scope.launch {
+                delay(timer.minutes * 60_000L)
+                exo?.pause()
+                _state.update { it.copy(sleep = SleepTimer.Off, notice = "Sleep timer: music stopped") }
+            }
+        }
+    }
+
+    /**
+     * Saved Messages as the library: the track forwarded there, where it
+     * stays whatever happens to the chat it came from.
+     */
+    fun saveToLibrary() {
+        val track = _state.value.track ?: return
+        scope.launch {
+            val saved = repository.chats.value.firstOrNull { it.isSavedMessages }?.id
+                ?: repository.authState.value.me?.id
+                ?: return@launch
+            val done = runCatching {
+                repository.forwardMessages(track.chatId, listOf(track.messageId), saved, false)
+            }.isSuccess
+            _state.update { it.copy(notice = if (done) "Saved to Saved Messages" else "Could not save it") }
+        }
+    }
+
+    /**
+     * Every track of a chat fetched onto the phone, for listening without a
+     * connection: paged through to the first, then downloaded one by one,
+     * the progress in [NowPlaying.offline].
+     */
+    fun downloadChat(chatId: Long) {
+        if (_state.value.offline != null) return
+        scope.launch {
+            val all = mutableListOf<ChatMessage>()
+            var before = 0L
+            while (true) {
+                val page = runCatching { repository.sharedMedia(chatId, SharedMediaKind.Music, before, PAGE) }
+                    .getOrDefault(emptyList())
+                all += page
+                if (page.size < PAGE) break
+                before = page.last().id
+            }
+            val files = all.mapNotNull { it.asTrack()?.takeIf { track -> track.path == null }?.fileId }.distinct()
+            _state.update { it.copy(offline = OfflineProgress(chatId, 0, files.size)) }
+            files.forEachIndexed { index, fileId ->
+                runCatching { repository.downloadFile(fileId) }
+                _state.update { it.copy(offline = OfflineProgress(chatId, index + 1, files.size)) }
+            }
+            _state.update {
+                it.copy(
+                    offline = null,
+                    notice = if (files.isEmpty()) "All of it is on the phone already" else "${files.size} tracks downloaded"
+                )
+            }
+        }
+    }
+
+    fun onNoticeShown() = _state.update { it.copy(notice = null) }
 
     private fun advance(auto: Boolean) {
         val queue = _state.value.queue
@@ -262,7 +439,8 @@ class MusicPlayer(
     private fun startCurrent() {
         val track = _state.value.queue.playing ?: return
         starting?.cancel()
-        _state.update { it.copy(isLoading = true, positionMs = 0, durationMs = track.durationSeconds * 1000L) }
+        _state.update { it.copy(isLoading = true, positionMs = 0, durationMs = track.durationSeconds * 1000L, coverSeed = null) }
+        fetchCover(track)
         exo?.pause()
         starting = scope.launch {
             val path = track.path?.takeIf { exists(it) }
@@ -292,6 +470,8 @@ class MusicPlayer(
             )
             player.playbackParameters = PlaybackParameters(_state.value.speed)
             player.prepare()
+            // A long track carries on where it was left; see resumeFrom.
+            resumeFrom(track.durationSeconds, positions.getLong(positionKey(track), 0))?.let(player::seekTo)
             player.play()
             // The session, and with it the notification, from the first track.
             // Started, not started in the foreground: Media3 moves the service
@@ -315,16 +495,21 @@ class MusicPlayer(
                 _state.update {
                     it.copy(positionMs = player.currentPosition, durationMs = player.duration.coerceAtLeast(it.durationMs))
                 }
+                if (++ticks % KEEP_EVERY_TICKS == 0) keepPosition()
                 delay(TICK_MS)
             }
         }
     }
 
     private companion object {
+        /** The queue's chat id for "My music", every chat's tracks. */
+        const val MY_MUSIC = -1L
         const val PAGE = 50
         const val PREFETCH_WITHIN = 3
         const val RESTART_WITHIN_MS = 3_000L
         const val TICK_MS = 250L
+        /** Where a long track is, written down every ten seconds of it. */
+        const val KEEP_EVERY_TICKS = 40
         const val WAIT_FOR_PAGE_STEPS = 40
         const val WAIT_FOR_PAGE_STEP_MS = 250L
     }

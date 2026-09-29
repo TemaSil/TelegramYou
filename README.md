@@ -109,6 +109,13 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.3
+
+- **Shared media in tabs** — media, files, music, voice, links and GIFs, back to the first thing sent; files open in the app that reads them.
+- **A music player** in Material 3 Expressive: a mini player that follows you, a full player in each track's own colours, and the chat's whole music as a queue that never jumps.
+- **My music** — every chat's tracks in one place, searchable.
+- **Sleep timer, equaliser, save to Saved Messages, offline** — a whole chat's music onto the phone, and long tracks carry on where they stopped.
+
 ## New in 1.6.2
 
 - **Music files** play with a slider to drag anywhere in the track.

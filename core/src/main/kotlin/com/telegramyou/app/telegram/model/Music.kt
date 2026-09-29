@@ -15,6 +15,8 @@ data class Track(
     val path: String? = null,
     /** The album cover, once it is here. */
     val coverPath: String? = null,
+    /** The cover's file id, for fetching it. */
+    val coverFileId: Int? = null,
     /** Who sent it into the chat. */
     val senderName: String = ""
 )
@@ -30,6 +32,8 @@ fun ChatMessage.asTrack(): Track? {
         durationSeconds = audio.durationSeconds,
         fileId = audio.fileId ?: voiceFileId,
         path = audio.path ?: voicePath,
+        coverPath = audio.coverPath,
+        coverFileId = audio.coverFileId,
         senderName = if (isOutgoing) "You" else senderName.orEmpty()
     )
 }
@@ -162,4 +166,28 @@ val MUSIC_SPEEDS = listOf(1f, 1.25f, 1.5f, 2f, 0.75f)
 fun nextMusicSpeed(speed: Float): Float {
     val at = MUSIC_SPEEDS.indexOfFirst { kotlin.math.abs(it - speed) < 0.01f }
     return MUSIC_SPEEDS[(at + 1).mod(MUSIC_SPEEDS.size)]
+}
+
+/**
+ * Whether a track should carry on where it was left rather than start over:
+ * only a long one — a podcast, a lecture, a mix — and only from somewhere
+ * worth coming back to, not its first seconds or its last.
+ */
+fun resumeFrom(durationSeconds: Int, savedMs: Long): Long? {
+    if (durationSeconds < RESUME_MIN_SECONDS) return null
+    val end = durationSeconds * 1000L
+    return savedMs.takeIf { it in RESUME_SKIP_MS..(end - RESUME_SKIP_MS) }
+}
+
+/** Tracks shorter than this start over; see resumeFrom. */
+const val RESUME_MIN_SECONDS = 10 * 60
+private const val RESUME_SKIP_MS = 10_000L
+
+/** When the sleep timer stops the music. */
+enum class SleepTimer(val label: String, val minutes: Int) {
+    Off("Off", 0),
+    Quarter("15 minutes", 15),
+    Half("30 minutes", 30),
+    Hour("1 hour", 60),
+    EndOfTrack("End of track", 0)
 }

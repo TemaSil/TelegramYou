@@ -1764,6 +1764,15 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.text("Tonal Spot"), "the player on the new track")
 
+        // Kept in Saved Messages, and a sleep timer for the end of the track.
+        tap(By.desc("More"))
+        tap(By.text("Save to Saved Messages"))
+        waitFor(By.text("Saved to Saved Messages"), "the track saved")
+        tap(By.desc("More"))
+        tap(By.text("Sleep timer"))
+        tap(By.text("End of track"))
+        waitFor(By.text("Stops after this track"), "the sleep timer set")
+
         tap(By.desc("Close player"))
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
         tap(By.desc("Stop music"))
@@ -1771,6 +1780,16 @@ class SmokeTest {
             "the mini player stayed after Stop",
             device.wait(Until.gone(By.descStartsWith("Now playing")), STEP_TIMEOUT)
         )
+
+        // Every chat's music in one place, from the chat list's menu.
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.desc("More"))
+        tap(By.text("My music"))
+        waitFor(By.text("Morning Light"), "the channel's tracks in My music")
+        waitFor(By.textContains("from Material Sound"), "where each came from")
+        screenshot("80-my-music")
+        tap(By.desc("Play Morning Light"))
+        waitFor(By.desc("Now playing: Morning Light"), "the mini player over My music")
     }
 
     /**

@@ -184,6 +184,7 @@ fun HomeScreen(
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
+    onOpenMyMusic: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
     onOpenFolders: () -> Unit = {},
     onOpenDevices: () -> Unit = {},
@@ -531,7 +532,8 @@ fun HomeScreen(
                             onThemeChange = onThemeChange,
                             onOpenProxy = onOpenProxy,
                             onOpenSavedMessages = onOpenSavedMessages,
-                            onOpenContacts = onOpenContacts
+                            onOpenContacts = onOpenContacts,
+                            onOpenMyMusic = onOpenMyMusic
                         )
                         // Stories first, then the folders: the tabs choose what
                         // the list below shows, so they sit against it, and the
@@ -827,7 +829,8 @@ private fun HomeTitleBar(
     onThemeChange: (ThemeChoice) -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenSavedMessages: () -> Unit = {},
-    onOpenContacts: () -> Unit = {}
+    onOpenContacts: () -> Unit = {},
+    onOpenMyMusic: () -> Unit = {}
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
@@ -879,6 +882,14 @@ private fun HomeTitleBar(
                         onClick = {
                             menuOpen = false
                             onOpenSavedMessages()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("My music") },
+                        leadingIcon = { Icon(Symbols.LibraryMusic, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onOpenMyMusic()
                         }
                     )
                 }
