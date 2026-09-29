@@ -246,7 +246,9 @@ data class ChatUiState(
 
 class ChatViewModel(
     private val repository: TelegramRepository,
-    savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle,
+    /** The app's voice messages, which outlive this screen; its own where none is given, as in tests. */
+    private val voice: com.telegramyou.app.music.VoicePlayback = com.telegramyou.app.music.VoicePlayback(repository, null)
 ) : ViewModel() {
 
     /**
@@ -1120,8 +1122,21 @@ class ChatViewModel(
 
     // ── voice ────────────────────────────────────────────────────────────
 
-    private val voicePlayer = VoicePlayer()
-    private var progressJob: Job? = null
+    // Voice messages play in the app's VoicePlayback, so they go on when
+    // this chat is closed; the bubbles here show what it is doing.
+    init {
+        viewModelScope.launch {
+            voice.state.collect { now ->
+                val here = now.messageId != null && now.chatId == chatId
+                _uiState.update {
+                    it.copy(
+                        playingVoiceId = if (here && now.isPlaying) now.messageId else null,
+                        voiceProgress = if (here) now.progress else 0f
+                    )
+                }
+            }
+        }
+    }
 
     /**
      * Plays a voice message, stops it, or fetches it first.
@@ -1133,10 +1148,10 @@ class ChatViewModel(
      * otherwise fetch every one of them to play none.
      */
     fun onVoiceToggled(message: ChatMessage) {
-        if (_uiState.value.playingVoiceId == message.id) {
-            voicePlayer.stop()
-            progressJob?.cancel()
-            _uiState.update { it.copy(playingVoiceId = null, voiceProgress = 0f) }
+        // The one under way, playing or paused from the bar: pause or go on.
+        val now = voice.state.value
+        if (now.messageId == message.id && now.chatId == chatId) {
+            voice.toggle()
             return
         }
 
@@ -1170,30 +1185,25 @@ class ChatViewModel(
      * silent.
      */
     fun onVoiceSeek(message: ChatMessage, fraction: Float) {
-        if (_uiState.value.playingVoiceId != message.id) {
+        if (voice.state.value.messageId != message.id) {
             onVoiceToggled(message)
             return
         }
-        voicePlayer.seekTo(fraction)
-        _uiState.update { it.copy(voiceProgress = fraction) }
+        voice.seekTo(fraction)
     }
 
+    /**
+     * [messageId] plays, and the chat's voice messages below it after it —
+     * a run of five is heard as five, not one and a tap four times more.
+     */
     private fun start(messageId: Long, path: String) {
-        val started = voicePlayer.play(messageId, path) {
-            // The audio ran out on its own; nothing else would tell the bubble
-            // to stop showing a pause button.
-            _uiState.update { it.copy(playingVoiceId = null, voiceProgress = 0f) }
-        }
-        _uiState.update {
-            it.copy(
-                playingVoiceId = if (started) messageId else null,
-                voiceProgress = 0f
-            )
-        }
-        if (started) {
-            followProgress()
-            onContentOpened(messageId)
-        }
+        val messages = _uiState.value.messages
+        val message = messages.firstOrNull { it.id == messageId }?.copy(voicePath = path) ?: return
+        val after = messages
+            .filter { it.id > messageId && it.contentType == MessageContentType.Voice }
+            .sortedBy { it.id }
+        voice.play(message, after)
+        if (voice.state.value.messageId == messageId) onContentOpened(messageId)
     }
 
     /** Messages whose content has been reported opened, so each is told once. */
@@ -1212,32 +1222,6 @@ class ChatViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
-            }
-        }
-    }
-
-    /**
-     * Reports where playback has got to, while it is playing.
-     *
-     * A poll rather than a callback, because MediaPlayer offers no position
-     * updates — it answers when asked. Ten a second is smooth enough for a
-     * bar that is a hundred pixels wide and far cheaper than a frame clock.
-     *
-     * The previous job is cancelled first: two tickers writing the same field
-     * would fight over which message's position it holds.
-     *
-     * The loop ends on the player, not on this class's own record of what is
-     * playing. A player that finished, was released, or never really started
-     * leaves that record set — and a loop reading it would tick forever with
-     * nothing to report. It did, in a unit test, where MediaPlayer is a stub
-     * that starts successfully and plays nothing.
-     */
-    private fun followProgress() {
-        progressJob?.cancel()
-        progressJob = viewModelScope.launch {
-            while (voicePlayer.isPlaying()) {
-                _uiState.update { it.copy(voiceProgress = voicePlayer.progress()) }
-                delay(PROGRESS_TICK_MS)
             }
         }
     }
@@ -1291,9 +1275,8 @@ class ChatViewModel(
         }
         repository.releaseChat(chatId)
         if (topicId != 0) repository.closeOpenTopic(chatId, topicId)
-        // The screen can go away mid-sentence, and a MediaPlayer left holding
-        // a file handle outlives it.
-        voicePlayer.stop()
+        // Voice messages are not stopped: they are the app's, and go on
+        // after the chat is closed, with the bar to stop them.
     }
 
     /**

@@ -759,7 +759,7 @@ internal fun VoiceMessage(
                 Icon(
                     if (state == VoiceState.Playing) Symbols.PauseFilled
                     else Symbols.PlayArrowFilled,
-                    contentDescription = if (state == VoiceState.Playing) "Pause" else "Play",
+                    contentDescription = if (state == VoiceState.Playing) "Pause voice message" else "Play voice message",
                     tint = tint
                 )
             }

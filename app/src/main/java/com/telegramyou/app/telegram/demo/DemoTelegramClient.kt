@@ -2521,6 +2521,12 @@ class DemoTelegramClient(
                 .copy(location = LocationContent(37.7793, -122.4193, title = "Blue Bottle Coffee", address = "66 Mint St, San Francisco")),
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
+            // Two voice messages in a row, as people send them: tapping the
+            // first plays both, the second after the first.
+            demoMessage(903, 2, "0:12", false, yesterday + 200, "Lina Park", contentType = MessageContentType.Voice)
+                .copy(voiceFileId = DEMO_AUDIO_FILE_ID, waveform = DEMO_WAVEFORM),
+            demoMessage(904, 2, "0:12", false, yesterday + 215, "Lina Park", contentType = MessageContentType.Voice)
+                .copy(voiceFileId = DEMO_AUDIO_FILE_ID, waveform = DEMO_WAVEFORM.reversed()),
             // A GIF and a round video message, the two kinds of video people
             // send most. The demo's one clip stands in for both; the circle
             // crops it square, as it would a real one.
@@ -2788,6 +2794,9 @@ private val DEMO_AUDIO_FILE_ID = 1602
 /** The rail entry for the demo account's own posted stories. */
 private val MY_STORIES_ID = 99L
 private val DEMO_AUDIO_SECONDS = 12
+
+/** The shape drawn for the demo's voice messages, in Telegram's 5-bit levels. */
+private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)
 
 /** A small text file in Design Circle, so a file can be opened offline. */
 private val DEMO_NOTES_FILE_ID = 1603

@@ -147,6 +147,7 @@ class MainActivity : ComponentActivity() {
                             geeks = app.geeks,
                             queryHistory = app.queryHistory,
                             music = app.music,
+                            voice = app.voice,
                             openChatId = pendingChatId,
                             onChatOpened = { pendingChatId = null },
                             openDownloads = pendingDownloads,

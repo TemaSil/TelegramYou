@@ -1733,6 +1733,38 @@ class SmokeTest {
     }
 
     /**
+     * Voice messages as a run and as the app's: two of Lina's in a row play
+     * one after the other, the speed changes from the bar, and the bar — and
+     * the voice — stay when the chat is left, until stopped there.
+     */
+    @Test
+    fun voiceMessagesPlayInARowAndOutliveTheChat() {
+        signIn()
+        waitFor(By.text("Lina Park"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        scrollBackTo(By.desc("Play voice message"), "Lina's voice messages")
+        tap(By.desc("Play voice message"))
+        waitFor(By.textContains("1 more after this"), "the bar saying another follows")
+        tap(By.desc("Voice speed 1×"))
+        waitFor(By.desc("Voice speed 1.5×"), "the speed changed from the bar")
+        screenshot("83-voice-bar")
+        // The first ends by itself — twelve seconds at 1.5× — and the
+        // second follows with nothing more to come.
+        assertTrue(
+            "the second voice message did not follow the first",
+            device.wait(Until.hasObject(By.text("Voice message")), 30_000)
+        )
+        backTo(By.text("Material Design"), "the chat list")
+        waitFor(By.descStartsWith("Voice message from"), "the bar over the chat list")
+        tap(By.desc("Stop voice message"))
+        assertTrue(
+            "the bar stayed after Stop",
+            device.wait(Until.gone(By.descStartsWith("Voice message from")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
      * The download manager, from the chat list's menu: a finished file and a
      * paused one, as the demo seeds them; the paused one resumed and paused
      * again from its row, the whole queue from the bar, and a finished file

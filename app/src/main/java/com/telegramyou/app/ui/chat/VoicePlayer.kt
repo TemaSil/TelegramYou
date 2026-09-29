@@ -36,7 +36,10 @@ class VoicePlayer {
      * showing a pause button for something that is no longer playing, and
      * nothing else would tell it.
      */
-    fun play(messageId: Long, path: String, onFinished: () -> Unit): Boolean {
+    fun play(messageId: Long, path: String, onFinished: () -> Unit): Boolean = play(messageId, path, 1f, onFinished)
+
+    /** As [play], at [speed] — 1.5× and 2× are how many people hear voice messages. */
+    fun play(messageId: Long, path: String, speed: Float, onFinished: () -> Unit): Boolean {
         stop()
         return try {
             player = MediaPlayer().apply {
@@ -57,6 +60,7 @@ class VoicePlayer {
                 focus = AudioFocus.duck()
                 start()
             }
+            setSpeed(speed)
             playingId = messageId
             true
         } catch (e: Exception) {
@@ -115,6 +119,40 @@ class VoicePlayer {
             if (total > 0) active.seekTo((total * fraction.coerceIn(0f, 1f)).toInt())
         } catch (e: IllegalStateException) {
             Log.w(TAG, "seekTo: ${e.message}")
+        }
+    }
+
+    /** Held where it is; the music under it comes back up meanwhile. */
+    fun pause() {
+        try {
+            player?.pause()
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "pause: ${e.message}")
+        }
+        focus?.release()
+        focus = null
+    }
+
+    fun resume() {
+        val active = player ?: return
+        focus?.release()
+        focus = AudioFocus.duck()
+        try {
+            active.start()
+        } catch (e: IllegalStateException) {
+            Log.w(TAG, "resume: ${e.message}")
+        }
+    }
+
+    /** The speed, kept while it plays; it has to be set after start, and again after a pause. */
+    fun setSpeed(speed: Float) {
+        val active = player ?: return
+        if (speed == 1f && !isPlaying()) return
+        try {
+            // Setting params on a paused player starts it, so only while playing.
+            if (isPlaying()) active.playbackParams = active.playbackParams.setSpeed(speed)
+        } catch (e: Exception) {
+            Log.w(TAG, "setSpeed: ${e.message}")
         }
     }
 

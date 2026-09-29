@@ -54,6 +54,11 @@ class TelegramYouApp : Application() {
     lateinit var updates: AppUpdates
         private set
 
+    /** Voice messages, one for the app so they outlive a chat; see VoicePlayback. */
+    val voice: com.telegramyou.app.music.VoicePlayback by lazy {
+        com.telegramyou.app.music.VoicePlayback(telegramRepository, getSharedPreferences("voice", MODE_PRIVATE))
+    }
+
     /** The music player, one for the app; see MusicPlayer. */
     val music: com.telegramyou.app.music.MusicPlayer by lazy {
         com.telegramyou.app.music.MusicPlayer(this, telegramRepository)

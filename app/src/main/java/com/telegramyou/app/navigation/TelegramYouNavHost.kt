@@ -136,6 +136,8 @@ fun TelegramYouNavHost(
     queryHistory: QueryHistory? = null,
     /** The app's music player; absent in previews. */
     music: MusicPlayer? = null,
+    /** The app's voice messages; absent in previews. */
+    voice: com.telegramyou.app.music.VoicePlayback? = null,
     /** A chat a notification asked to open, or null. */
     openChatId: Long? = null,
     /** Called once the request above has been acted on. */
@@ -151,7 +153,7 @@ fun TelegramYouNavHost(
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
     val viewModelFactory = remember(repository) {
-        telegramViewModelFactory(repository, queryHistory ?: InMemoryQueryHistory())
+        telegramViewModelFactory(repository, queryHistory ?: InMemoryQueryHistory(), voice)
     }
     val geekSettings = LocalGeekSettings.current
 
@@ -180,8 +182,20 @@ fun TelegramYouNavHost(
             audioSession = { music?.audioSessionId ?: 0 }
         )
     }
+    val voiceFlow = remember(voice) { voice?.state ?: MutableStateFlow(com.telegramyou.app.music.VoiceNow()) }
+    val voiceNow by voiceFlow.collectAsStateWithLifecycle()
+    // The voice message over the music, when both are on: it is the one
+    // talking, and the shorter-lived.
     val musicBar: @Composable () -> Unit = {
-        MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
+        androidx.compose.foundation.layout.Column {
+            com.telegramyou.app.ui.music.VoiceBar(
+                state = voiceNow,
+                onToggle = { voice?.toggle() },
+                onSpeed = { voice?.cycleSpeed() },
+                onStop = { voice?.stop() }
+            )
+            MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
+        }
     }
     /** A track tapped: the player's, and the same track again is play and pause. */
     val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
