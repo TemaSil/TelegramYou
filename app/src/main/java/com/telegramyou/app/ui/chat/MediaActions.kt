@@ -65,6 +65,38 @@ object MediaActions {
         clipboard.setPrimaryClip(ClipData.newUri(context.contentResolver, "Photo", uri))
     }.isSuccess
 
+    /**
+     * Opens a file from a chat in whichever app on the phone reads it — a
+     * PDF reader, a text editor, an archive manager — through Android's own
+     * chooser when there are several. A copy in opened/, one at a time, as
+     * the clipboard's is: the other app is handed that file and nothing else.
+     * False when no app on the phone opens this kind of file.
+     */
+    fun openFile(context: Context, path: String, mime: String?, name: String?): Boolean {
+        val directory = File(context.cacheDir, "opened").apply { mkdirs() }
+        directory.listFiles()?.forEach { it.delete() }
+        val copy = File(directory, name?.takeIf { it.isNotBlank() } ?: displayName(path))
+        val copied = runCatching {
+            open(context, path)?.use { input -> copy.outputStream().use { input.copyTo(it) } } ?: error("nothing to read")
+        }.isSuccess
+        if (!copied) return false
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", copy)
+        val type = mime?.takeIf { it.isNotBlank() }
+            ?: android.webkit.MimeTypeMap.getSingleton()
+                .getMimeTypeFromExtension(copy.extension.lowercase())
+            ?: "*/*"
+        val view = android.content.Intent(android.content.Intent.ACTION_VIEW)
+            .setDataAndType(uri, type)
+            .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        return try {
+            context.startActivity(android.content.Intent.createChooser(view, copy.name).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            false
+        }
+    }
+
     /** A file path, or a Uri — the demo's media is packaged as resources. */
     private fun open(context: Context, path: String): InputStream? =
         if (path.contains("://")) context.contentResolver.openInputStream(Uri.parse(path))

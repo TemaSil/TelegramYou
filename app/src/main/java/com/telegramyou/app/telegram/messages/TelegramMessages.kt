@@ -260,6 +260,23 @@ interface TelegramMessages {
     suspend fun searchPublicPosts(query: String, limit: Int = 30): PostSearch
 
     /**
+     * One page of a chat's shared media of [kind], newest first: the page
+     * older than [beforeMessageId], or the newest for 0. Empty when there is
+     * no more. What the shared media tabs page through, back to the first
+     * thing ever sent there.
+     */
+    suspend fun sharedMedia(
+        chatId: Long,
+        kind: com.telegramyou.app.telegram.model.SharedMediaKind,
+        beforeMessageId: Long = 0,
+        limit: Int = 50
+    ): List<ChatMessage> = if (kind == com.telegramyou.app.telegram.model.SharedMediaKind.Media && beforeMessageId == 0L) {
+        chatMedia(chatId, limit)
+    } else {
+        emptyList()
+    }
+
+    /**
      * The photos and videos in a chat, newest first.
      *
      * A search with an empty query and a content filter rather than a listing

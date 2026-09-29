@@ -179,6 +179,10 @@ fun ChatScreen(
     onForwardTo: (ChatPreview) -> Unit,
     onVoiceToggled: (ChatMessage) -> Unit,
     onVoiceSeek: (ChatMessage, Float) -> Unit,
+    /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
+    onDocumentOpened: (ChatMessage) -> Unit = {},
+    onFileOpened: () -> Unit = {},
+    onFileRefused: (String?) -> Unit = {},
     onPhotoVisible: (ChatMessage) -> Unit,
     onPhotoOpened: (ChatMessage) -> Unit,
     onPhotoClosed: () -> Unit,
@@ -555,6 +559,13 @@ fun ChatScreen(
     val detail = state.detail
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
+    // A file fetched and ready: handed to whichever app on the phone reads it.
+    val fileContext = LocalContext.current
+    state.fileToOpen?.let { file ->
+        LaunchedEffect(file) {
+            if (MediaActions.openFile(fileContext, file.path, file.mime, file.name)) onFileOpened() else onFileRefused(file.name)
+        }
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -942,6 +953,8 @@ fun ChatScreen(
                                     0f
                                 },
                                 onVoiceSeek = { at -> onVoiceSeek(message, at) },
+                                onDocumentOpen = { onDocumentOpened(message) },
+                                documentOpening = state.openingFileId == message.id,
                                 onPhotoVisible = { onPhotoVisible(message) },
                                 onPhotoOpened = { onPhotoOpened(message) },
                                 onVideoOpened = { onVideoOpened(message) },

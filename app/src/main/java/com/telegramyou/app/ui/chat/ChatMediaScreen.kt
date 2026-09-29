@@ -40,24 +40,51 @@ import androidx.compose.material3.LinearProgressIndicator
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.ui.media.transferProgress
 import com.telegramyou.app.telegram.model.ChatMessage
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Tab
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.telegramyou.app.telegram.model.MessageContentType
+import com.telegramyou.app.telegram.model.SharedMediaKind
+import com.telegramyou.app.telegram.model.fileExtension
+import com.telegramyou.app.telegram.model.firstLink
+import com.telegramyou.app.telegram.model.linkHost
+import kotlinx.coroutines.launch
 
 /**
- * Every photo in one conversation, newest first.
+ * A chat's shared media, a tab each as the official client has them —
+ * Media, Files, Music, Voice, Links, GIFs — swiped between or picked from
+ * Material's scrollable tab row. Every tab pages back to the first thing
+ * ever sent (SharedMediaViewModel), and each is drawn the way its content is
+ * read: pictures in a grid of squares, everything else as a list of rows.
  *
- * A `LazyVerticalGrid` of squares, which is the shape this content is read in
- * — a grid that kept each photo's aspect ratio would be a ragged column of
- * different widths, and the point of a grid is to scan it.
- *
- * Adaptive rather than a fixed column count: three on a phone, more on
- * anything wider, without this screen deciding what device it is on.
+ * The grid is adaptive rather than a fixed column count: three on a phone,
+ * more on anything wider, without this screen deciding what device it is on.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChatMediaScreen(
     title: String,
-    media: List<ChatMessage>,
-    isLoading: Boolean,
+    state: SharedMediaUiState,
     onBack: () -> Unit,
+    onTabShown: (SharedMediaKind) -> Unit,
+    onNearEnd: (SharedMediaKind) -> Unit,
     onOpen: (ChatMessage) -> Unit,
     /** Non-null while one of these is open full screen. */
     viewingPhoto: ChatMessage? = null,
@@ -68,62 +95,145 @@ fun ChatMediaScreen(
     /** Files in flight, by id, so a tile can show what it is waiting for. */
     transfers: Map<Int, FileTransfer> = emptyMap(),
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
-    onGalleryPage: (ChatMessage) -> Unit = {}
+    onGalleryPage: (ChatMessage) -> Unit = {},
+    onFileTapped: (ChatMessage) -> Unit = {},
+    onFileOpened: () -> Unit = {},
+    onFileRefused: (String?) -> Unit = {},
+    onErrorShown: () -> Unit = {},
+    /** The voice note or track playing, and how far through it is. */
+    playingId: Long? = null,
+    loadingId: Long? = null,
+    progress: Float = 0f,
+    onPlayToggled: (ChatMessage) -> Unit = {}
 ) {
+    val kinds = SharedMediaKind.entries
+    val pager = rememberPagerState { kinds.size }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val host = remember { SnackbarHostState() }
+    // The tab in view asks for its first page; the others wait to be seen.
+    LaunchedEffect(pager.currentPage) { onTabShown(kinds[pager.currentPage]) }
+    state.fileToOpen?.let { file ->
+        LaunchedEffect(file) {
+            if (MediaActions.openFile(context, file.path, file.mime, file.name)) onFileOpened() else onFileRefused(file.name)
+        }
+    }
+    state.errorMessage?.let { message ->
+        LaunchedEffect(message) {
+            host.showSnackbar(message)
+            onErrorShown()
+        }
+    }
     Scaffold(
+        snackbarHost = { SnackbarHost(host) },
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Symbols.ArrowBack,
-                            contentDescription = "Back"
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                "Shared media",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+                PrimaryScrollableTabRow(selectedTabIndex = pager.currentPage, edgePadding = 8.dp) {
+                    kinds.forEachIndexed { index, kind ->
+                        Tab(
+                            selected = pager.currentPage == index,
+                            onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                            text = { Text(kind.label) }
                         )
                     }
                 }
-            )
+            }
         }
     ) { padding ->
-        when {
-            isLoading && media.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentAlignment = Alignment.Center
-                ) {
-                    LoadingIndicator()
-                }
-            }
-            media.isEmpty() -> {
-                Box(
+        HorizontalPager(
+            state = pager,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            // Beside the one in view only: a tab is a network request.
+            beyondViewportPageCount = 0
+        ) { page ->
+            val kind = kinds[page]
+            val tab = state.tab(kind)
+            when {
+                !tab.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                tab.items.isEmpty() -> Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(padding)
                         .padding(32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "No photos in this chat yet",
+                        kind.emptyText,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
                 }
-            }
-            else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(minSize = 112.dp),
-                    modifier = Modifier.fillMaxSize().padding(padding),
-                    contentPadding = PaddingValues(2.dp),
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    items(media, key = { it.id }) { message ->
-                        MediaTile(
-                            message = message,
-                            transfer = message.transferId()?.let { transfers[it] },
-                            onClick = { onOpen(message) }
-                        )
+                kind == SharedMediaKind.Media || kind == SharedMediaKind.Gifs -> {
+                    val grid = rememberLazyGridState()
+                    NearEnd(grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { onNearEnd(kind) }
+                    LazyVerticalGrid(
+                        state = grid,
+                        columns = GridCells.Adaptive(minSize = 112.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        items(tab.items, key = { it.id }) { message ->
+                            MediaTile(
+                                message = message,
+                                transfer = message.transferId()?.let { transfers[it] },
+                                onClick = { onOpen(message) }
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    val list = rememberLazyListState()
+                    NearEnd(list.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { onNearEnd(kind) }
+                    LazyColumn(
+                        state = list,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(tab.items, key = { it.id }) { message ->
+                            when (kind) {
+                                SharedMediaKind.Files -> FileRow(
+                                    message = message,
+                                    opening = state.openingFileId == message.id,
+                                    onClick = { onFileTapped(message) }
+                                )
+                                SharedMediaKind.Links -> LinkRow(message)
+                                else -> PlayableRow(
+                                    message = message,
+                                    playing = playingId == message.id,
+                                    loading = loadingId == message.id,
+                                    progress = if (playingId == message.id) progress else 0f,
+                                    onToggle = { onPlayToggled(message) }
+                                )
+                            }
+                        }
+                        if (tab.isLoading) {
+                            item(key = "more") {
+                                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                                    LoadingIndicator(Modifier.size(32.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -132,6 +242,7 @@ fun ChatMediaScreen(
         // The conversation's gallery, not a second one: opened from the
         // grid, it pages through the grid's photos and videos the same way.
         (viewingPhoto ?: viewingVideo)?.let { opened ->
+            val media = state.tab(SharedMediaKind.Media).items + state.tab(SharedMediaKind.Gifs).items
             val gallery = remember(media, opened) { galleryOf(media, opened) }
             MediaGallery(
                 items = gallery,
@@ -145,6 +256,165 @@ fun ChatMediaScreen(
             )
         }
     }
+}
+
+/** Asks for the next page once the last row shown is within a few of the end. */
+@Composable
+private fun NearEnd(lastVisible: Int?, count: Int, onNearEnd: () -> Unit) {
+    val near = lastVisible != null && lastVisible >= count - NEAR_END_ROWS
+    LaunchedEffect(near, count) { if (near) onNearEnd() }
+}
+
+private const val NEAR_END_ROWS = 6
+
+/** Who sent it and when, the line every row of a tab ends on. */
+private fun sentLine(message: ChatMessage): String =
+    listOfNotNull(
+        (if (message.isOutgoing) "You" else message.senderName)?.takeIf { it.isNotBlank() },
+        message.timeLabel.takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+
+/**
+ * A file: its extension on a tonal square, as the official client marks
+ * one, the name and size, and who sent it. Tapping opens it in whichever app
+ * reads it, fetching it first — the row shows the wait.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun FileRow(message: ChatMessage, opening: Boolean, onClick: () -> Unit) {
+    ListItem(
+        modifier = Modifier.clickable(onClick = onClick),
+        headlineContent = { Text(message.fileName ?: "File", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        supportingContent = {
+            Text(
+                listOfNotNull(message.fileSizeLabel, sentLine(message).takeIf { it.isNotBlank() }).joinToString(" · "),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        leadingContent = {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    val extension = fileExtension(message.fileName)
+                    if (extension != null) {
+                        Text(extension, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(Symbols.Description, contentDescription = null)
+                    }
+                }
+            }
+        },
+        trailingContent = if (opening) {
+            { LoadingIndicator(Modifier.size(28.dp)) }
+        } else if (message.documentPath == null && message.documentFileId != null) {
+            { Icon(Symbols.Download, contentDescription = "Download ${message.fileName ?: "file"}") }
+        } else {
+            null
+        }
+    )
+}
+
+/**
+ * A link: its card's title when Telegram made one, its site otherwise, the
+ * address under it; tapping opens it in the browser.
+ */
+@Composable
+private fun LinkRow(message: ChatMessage) {
+    val uriHandler = LocalUriHandler.current
+    val link = message.linkPreview?.url ?: firstLink(message.text) ?: return
+    val host = linkHost(link)
+    ListItem(
+        modifier = Modifier.clickable {
+            runCatching { uriHandler.openUri(if ("://" in link) link else "https://$link") }
+        },
+        headlineContent = {
+            Text(
+                message.linkPreview?.title?.takeIf { it.isNotBlank() } ?: host,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        supportingContent = {
+            Column {
+                Text(link, color = MaterialTheme.colorScheme.primary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(sentLine(message), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+        },
+        leadingContent = {
+            Surface(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        host.firstOrNull()?.uppercase() ?: "#",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    )
+}
+
+/**
+ * A track, a voice note or a round video message: a play button that is
+ * the row's own state, what it is, and while it plays how far through.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun PlayableRow(
+    message: ChatMessage,
+    playing: Boolean,
+    loading: Boolean,
+    progress: Float,
+    onToggle: () -> Unit
+) {
+    val audio = message.audio
+    val title = when {
+        audio != null -> audio.displayTitle
+        message.contentType == MessageContentType.VideoNote -> "Video message"
+        else -> "Voice message"
+    }
+    val details = listOfNotNull(
+        audio?.performer?.takeIf { it.isNotBlank() },
+        audio?.durationSeconds?.takeIf { it > 0 }?.let { formatDuration(it.toLong()) }
+            ?: message.video?.durationSeconds?.takeIf { it > 0 }?.let { formatDuration(it.toLong()) },
+        sentLine(message).takeIf { it.isNotBlank() }
+    ).joinToString(" · ")
+    ListItem(
+        modifier = Modifier.clickable(onClick = onToggle),
+        headlineContent = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        supportingContent = {
+            Column {
+                Text(details, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (playing) {
+                    LinearWavyProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp)
+                    )
+                }
+            }
+        },
+        leadingContent = {
+            FilledTonalIconButton(onClick = onToggle, modifier = Modifier.size(48.dp)) {
+                when {
+                    loading -> LoadingIndicator(Modifier.size(28.dp))
+                    playing -> Icon(Symbols.PauseFilled, contentDescription = "Pause")
+                    else -> Icon(Symbols.PlayArrowFilled, contentDescription = "Play $title")
+                }
+            }
+        }
+    )
 }
 
 /** A video's square in the grid: its poster, with a play badge over it. */
@@ -226,7 +496,7 @@ private fun ChatMessage.transferId(): Int? =
  * while being read.
  */
 @Composable
-private fun MediaTile(
+internal fun MediaTile(
     message: ChatMessage,
     transfer: FileTransfer?,
     onClick: () -> Unit

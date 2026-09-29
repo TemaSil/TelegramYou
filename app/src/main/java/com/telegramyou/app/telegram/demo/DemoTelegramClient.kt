@@ -1,6 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
 import com.telegramyou.app.telegram.model.ForumTopic
+import com.telegramyou.app.telegram.model.SharedMediaKind
 import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.JoinRequest
 import com.telegramyou.app.telegram.model.adminTitle
@@ -1246,6 +1247,22 @@ class DemoTelegramClient(
         return all.subList(at + 1, (at + 1 + limit).coerceAtMost(all.size)).toList()
     }
 
+    override suspend fun sharedMedia(
+        chatId: Long,
+        kind: SharedMediaKind,
+        beforeMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        delay(150)
+        // By date rather than id: the demo's ids are not in time order.
+        val sorted = chatMessages[chatId].orEmpty()
+            .filter { kind.matches(it) }
+            .sortedByDescending { it.date }
+        val start = if (beforeMessageId == 0L) 0 else sorted.indexOfFirst { it.id == beforeMessageId } + 1
+        if (start <= 0 && beforeMessageId != 0L) return emptyList()
+        return sorted.drop(start).take(limit)
+    }
+
     override suspend fun searchChatMessages(
         chatId: Long,
         query: String,
@@ -1534,6 +1551,7 @@ class DemoTelegramClient(
      */
     override suspend fun downloadFile(fileId: Int): String? {
         if (fileId == DEMO_AUDIO_FILE_ID) return withContext(Dispatchers.IO) { demoAudioFile().absolutePath }
+        if (fileId == DEMO_NOTES_FILE_ID) return withContext(Dispatchers.IO) { demoNotesFile().absolutePath }
         if (fileId != DEMO_VIDEO_FILE_ID) return null
         val total = DEMO_VIDEO_BYTES
         var done = 0L
@@ -2368,6 +2386,11 @@ class DemoTelegramClient(
         // the interface visible without an account, and that has to include
         // the parts which only appear with more than one person in the room.
         chatMessages[3] = (designCircleArchive(now, day) + listOf(
+            // Older than the rest, so the chat reads as it always did, and
+            // enough of each kind for the shared media tabs to have rows.
+            demoMessage(1901, 3, "Expressive-guidelines.pdf", false, now - 3 * day, "Noor", contentType = MessageContentType.Document, fileName = "Expressive-guidelines.pdf", fileSizeLabel = "2.1 MB").copy(mimeType = "application/pdf"),
+            demoMessage(1902, 3, "The motion spec, if anyone wants it: m3.material.io/styles/motion", false, now - 3 * day + 120, "Noor"),
+            demoMessage(1903, 3, "release-notes.txt", true, now - 3 * day + 240, isRead = true, contentType = MessageContentType.Document, fileName = "release-notes.txt", fileSizeLabel = "1 KB").copy(documentFileId = DEMO_NOTES_FILE_ID, mimeType = "text/plain"),
             demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
             demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB"),
             demoMessage(22, 3, "Got them. The tonal palette is the part I want to steal.", false, now - day - 4 * 60 * 60, "Ivan"),
@@ -2579,6 +2602,18 @@ private val DEMO_AUDIO_FILE_ID = 1602
 /** The rail entry for the demo account's own posted stories. */
 private val MY_STORIES_ID = 99L
 private val DEMO_AUDIO_SECONDS = 12
+
+/** A small text file in Design Circle, so a file can be opened offline. */
+private val DEMO_NOTES_FILE_ID = 1603
+
+/** The demo's text file, written on first open like the song. */
+private fun demoNotesFile(): java.io.File {
+    val file = java.io.File(System.getProperty("java.io.tmpdir") ?: "/tmp", "release-notes.txt")
+    if (!file.exists()) {
+        file.writeText("TelegramYou release notes\n\nGroups, music and files — made in the demo.\n")
+    }
+    return file
+}
 
 /**
  * The demo song: a soft arpeggio of sine tones, written as a WAV into the

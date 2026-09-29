@@ -8,6 +8,8 @@
     clipboard/ holds the one photo last copied from a message (see
     MediaActions): a copy, so the clipboard is handed that file and not a
     door into TDLib's whole download directory.
+    opened/ holds the one file last opened from a chat in another app, a
+    copy for the same reason (MediaActions.openFile).
 
     One directory, inside the app's own cache: the camera app needs a writable
     Uri and nothing else should be reachable through the provider. A path that
@@ -18,4 +20,5 @@
     <cache-path name="camera" path="camera/" />
     <cache-path name="updates" path="updates/" />
     <cache-path name="clipboard" path="clipboard/" />
+    <cache-path name="opened" path="opened/" />
 </paths>

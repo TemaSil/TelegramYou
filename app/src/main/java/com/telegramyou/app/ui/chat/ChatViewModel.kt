@@ -76,6 +76,10 @@ data class ChatUiState(
     val detail: ChatDetail? = null,
     /** The forum topic this screen is on, by name; null in any other chat. */
     val topicName: String? = null,
+    /** A file in a bubble being fetched before it opens, by message id. */
+    val openingFileId: Long? = null,
+    /** A file fetched and waiting for the screen to open it. */
+    val fileToOpen: FileToOpen? = null,
     val draft: String = "",
     val pendingAttachment: AttachmentDraft? = null,
     val replyTo: ChatMessage? = null,
@@ -1382,6 +1386,37 @@ class ChatViewModel(
      * the length of a download would read as broken. The dialog shows a
      * spinner and starts playing when the bytes land.
      */
+    /**
+     * A file in a bubble tapped: opened at once when it is on the phone,
+     * fetched first when it is not, the bubble showing the wait.
+     */
+    fun onDocumentOpened(message: ChatMessage) {
+        message.documentPath?.let { path ->
+            _uiState.update { it.copy(fileToOpen = FileToOpen(path, message.mimeType, message.fileName)) }
+            return
+        }
+        val fileId = message.documentFileId ?: return
+        if (_uiState.value.openingFileId != null) return
+        _uiState.update { it.copy(openingFileId = message.id) }
+        viewModelScope.launch {
+            val path = runCatching { repository.downloadFile(fileId) }.getOrNull()
+            _uiState.update { state ->
+                val kept = if (path == null) state else state.mapMessage(message.id) { it.copy(documentPath = path) }
+                kept.copy(
+                    openingFileId = null,
+                    fileToOpen = path?.let { FileToOpen(it, message.mimeType, message.fileName) },
+                    errorMessage = if (path == null) "Could not download ${message.fileName ?: "the file"}" else kept.errorMessage
+                )
+            }
+        }
+    }
+
+    fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }
+
+    fun onFileRefused(name: String?) = _uiState.update {
+        it.copy(fileToOpen = null, errorMessage = "No app on this phone opens ${name ?: "this file"}")
+    }
+
     fun onVideoOpened(message: ChatMessage) {
         if (message.video == null) return
         _uiState.update { it.copy(viewingVideo = message) }

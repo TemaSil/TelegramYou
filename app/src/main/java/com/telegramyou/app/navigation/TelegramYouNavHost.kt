@@ -76,6 +76,8 @@ import com.telegramyou.app.ui.people.PersonScreen
 import com.telegramyou.app.ui.people.PersonViewModel
 import com.telegramyou.app.ui.chat.ChatScreen
 import com.telegramyou.app.ui.chat.ChatMediaScreen
+import com.telegramyou.app.ui.chat.SharedMediaViewModel
+import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory
 import com.telegramyou.app.ui.components.RequestNotificationPermission
@@ -670,13 +672,31 @@ fun TelegramYouNavHost(
         ) {
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
             val state by chatViewModel.uiState.collectAsStateWithLifecycle()
-            // On every visit, not once: photos arrive while this screen is
-            // closed, and a grid showing yesterday's set is quietly wrong.
-            LaunchedEffect(Unit) { chatViewModel.loadMedia() }
+            val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
+            val media by mediaViewModel.uiState.collectAsStateWithLifecycle()
             ChatMediaScreen(
-                title = state.detail?.chat?.title ?: "Media",
-                media = state.media,
-                isLoading = state.isLoadingMedia,
+                title = state.detail?.chat?.title ?: media.title.ifBlank { "Media" },
+                state = media,
+                onTabShown = mediaViewModel::onTabShown,
+                onNearEnd = mediaViewModel::onNearEnd,
+                onFileTapped = mediaViewModel::onFileTapped,
+                onFileOpened = mediaViewModel::onFileOpened,
+                onFileRefused = mediaViewModel::onFileRefused,
+                onErrorShown = mediaViewModel::onErrorShown,
+                // The chat's own player for now: one voice note or track at
+                // a time, the same as in the conversation.
+                playingId = state.playingVoiceId,
+                loadingId = state.loadingVoiceId,
+                progress = state.voiceProgress,
+                // A round video message opens in the player; a voice note or
+                // a track plays in place.
+                onPlayToggled = { message ->
+                    if (message.contentType == MessageContentType.VideoNote) {
+                        chatViewModel.onVideoOpened(message)
+                    } else {
+                        chatViewModel.onVoiceToggled(message)
+                    }
+                },
                 onBack = { navController.popBackStack() },
                 // One entry point, two kinds of thing behind it: the grid
                 // holds photos and videos alike, and which viewer opens is
@@ -949,6 +969,9 @@ fun TelegramYouNavHost(
                 },
                 onVoiceToggled = chatViewModel::onVoiceToggled,
                 onVoiceSeek = chatViewModel::onVoiceSeek,
+                onDocumentOpened = chatViewModel::onDocumentOpened,
+                onFileOpened = chatViewModel::onFileOpened,
+                onFileRefused = chatViewModel::onFileRefused,
                 onPhotoVisible = chatViewModel::onPhotoVisible,
                 onPhotoOpened = chatViewModel::onPhotoOpened,
                 onPhotoClosed = chatViewModel::onPhotoClosed,

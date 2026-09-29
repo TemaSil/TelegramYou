@@ -68,6 +68,7 @@ import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
+import com.telegramyou.app.telegram.model.SharedMediaKind
 import com.telegramyou.app.telegram.model.ForumTopic
 import com.telegramyou.app.telegram.model.GroupManagement
 import com.telegramyou.app.telegram.model.GroupMember
@@ -80,6 +81,7 @@ import com.telegramyou.app.telegram.model.MemberAction
 import com.telegramyou.app.telegram.model.MemberRole
 import com.telegramyou.app.telegram.model.TOPIC_COLORS
 import com.telegramyou.app.ui.media.FileTransfer
+import com.telegramyou.app.ui.media.formatBytes
 // Aliased: this class has a toggleReaction of its own, with a different job.
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import kotlinx.coroutines.CompletableDeferred
@@ -684,6 +686,43 @@ class TdLibTelegramClient(
         // Newest first, which is the order a grid of media is read in — and
         // the opposite of the conversation, where the newest is at the bottom.
         return parseMessages(chatId, found.optJSONArray("messages")).asReversed()
+    }
+
+    override suspend fun sharedMedia(
+        chatId: Long,
+        kind: SharedMediaKind,
+        beforeMessageId: Long,
+        limit: Int
+    ): List<ChatMessage> {
+        awaitReady()
+        val filter = when (kind) {
+            SharedMediaKind.Media -> "searchMessagesFilterPhotoAndVideo"
+            SharedMediaKind.Files -> "searchMessagesFilterDocument"
+            SharedMediaKind.Music -> "searchMessagesFilterAudio"
+            SharedMediaKind.Voice -> "searchMessagesFilterVoiceAndVideoNote"
+            SharedMediaKind.Links -> "searchMessagesFilterUrl"
+            SharedMediaKind.Gifs -> "searchMessagesFilterAnimation"
+        }
+        val found = try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "searchChatMessages")
+                    .put("chat_id", chatId)
+                    .put("query", "")
+                    .put("filter", JSONObject().put("@type", filter))
+                    .put("limit", limit)
+                    .put("from_message_id", beforeMessageId)
+                    .put("offset", 0)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "sharedMedia: ${e.message}")
+            return emptyList()
+        }
+        // Newest first, whatever order the page came in, and without the
+        // message it was asked from, which a page may repeat.
+        return parseMessages(chatId, found.optJSONArray("messages"))
+            .filter { beforeMessageId == 0L || it.id < beforeMessageId }
+            .sortedByDescending { it.id }
     }
 
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
@@ -4212,7 +4251,18 @@ class TdLibTelegramClient(
                     ?: animatedEmojiSticker(content)
                 )?.let(::stickerOf),
             fileName = content?.optJSONObject("document")?.optString("file_name"),
-            fileSizeLabel = null,
+            fileSizeLabel = content?.optJSONObject("document")?.optJSONObject("document")
+                ?.let { file -> file.optLong("size").takeIf { it > 0 } ?: file.optLong("expected_size") }
+                ?.takeIf { it > 0 }
+                ?.let(::formatBytes),
+            documentFileId = content?.optJSONObject("document")?.optJSONObject("document")
+                ?.optInt("id")?.takeIf { it != 0 },
+            documentPath = content?.optJSONObject("document")?.optJSONObject("document")
+                ?.optJSONObject("local")
+                ?.takeIf { it.optBoolean("is_downloading_completed") }
+                ?.optString("path")
+                ?.takeIf { it.isNotBlank() },
+            mimeType = content?.optJSONObject("document")?.optString("mime_type")?.takeIf { it.isNotBlank() },
             mediaEmoji = when (contentType) {
                 MessageContentType.Photo -> "🖼️"
                 MessageContentType.Document -> "📎"

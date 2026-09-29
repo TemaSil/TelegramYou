@@ -11,6 +11,7 @@ import com.telegramyou.app.settings.InMemoryQueryHistory
 import com.telegramyou.app.settings.QueryHistory
 import com.telegramyou.app.ui.auth.AuthViewModel
 import com.telegramyou.app.ui.chat.ChatViewModel
+import com.telegramyou.app.ui.chat.SharedMediaViewModel
 import com.telegramyou.app.ui.groups.GroupViewModel
 import com.telegramyou.app.ui.home.HomeViewModel
 import com.telegramyou.app.ui.newchat.NewChatViewModel
@@ -45,6 +46,7 @@ fun telegramViewModelFactory(
         initializer { HomeViewModel(repository, queryHistory) }
         initializer { ChatViewModel(repository, createSavedStateHandle()) }
         initializer { GroupViewModel(repository, createSavedStateHandle()) }
+        initializer { SharedMediaViewModel(repository, createSavedStateHandle()) }
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
         initializer { NewStoryViewModel(repository) }
         initializer { NewChatViewModel(repository) }

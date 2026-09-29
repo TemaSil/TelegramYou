@@ -407,6 +407,12 @@ data class ChatMessage(
     val sticker: StickerContent? = null,
     val fileName: String? = null,
     val fileSizeLabel: String? = null,
+    /** A file's TDLib id, which a download is asked for by. */
+    val documentFileId: Int? = null,
+    /** The file on this device, once it is here. */
+    val documentPath: String? = null,
+    /** What the file says it is — "application/pdf" — for opening it. */
+    val mimeType: String? = null,
     val mediaEmoji: String? = null,
     /**
      * In the server's order, which is by popularity — not ours to re-sort.

@@ -35,6 +35,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -133,6 +134,10 @@ internal fun MessageBubble(
     onVoiceToggled: () -> Unit,
     voiceProgress: Float,
     onVoiceSeek: (Float) -> Unit,
+    /** A file tapped: opened in whichever app reads it. */
+    onDocumentOpen: () -> Unit = {},
+    /** The file is being fetched before it can be opened. */
+    documentOpening: Boolean = false,
     onPhotoVisible: () -> Unit,
     onPhotoOpened: () -> Unit,
     onVideoOpened: () -> Unit,
@@ -469,8 +474,18 @@ internal fun MessageBubble(
                         }
                     }
                     MessageContentType.Document -> {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Symbols.Description, contentDescription = null)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(onClick = onDocumentOpen)
+                                .semantics { contentDescription = "Open ${message.fileName ?: "file"}" }
+                        ) {
+                            if (documentOpening) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Symbols.Description, contentDescription = null)
+                            }
                             Spacer(Modifier.width(8.dp))
                             Column {
                                 Text(message.fileName ?: "File", fontWeight = FontWeight.SemiBold)
