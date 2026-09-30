@@ -113,7 +113,9 @@ internal fun SearchPage(
     onExpandedChange: (Boolean) -> Unit,
     actions: SearchActions,
     onOpenChat: (Long) -> Unit,
-    contentPadding: PaddingValues
+    contentPadding: PaddingValues,
+    /** The mini player, under the field while something plays: music started from the Music tab shows here. */
+    musicBar: @Composable () -> Unit = {}
 ) {
     // The field waits with the caret in it and the keyboard up, unless
     // Settings → For geeks says to open search without it.
@@ -183,6 +185,7 @@ internal fun SearchPage(
                 }
             }
         )
+        musicBar()
         val bottom = PaddingValues(bottom = contentPadding.calculateBottomPadding() + 16.dp)
         if (search.query.isBlank()) {
             SearchFrontPage(search = search, actions = actions, open = open, grows = grows, padding = bottom)
