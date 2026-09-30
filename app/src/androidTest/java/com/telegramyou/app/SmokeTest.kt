@@ -1898,7 +1898,9 @@ class SmokeTest {
         device.pressBack()
         device.waitForIdle(IDLE_TIMEOUT)
 
-        tap(By.desc("Now playing: Morning Light"))
+        // Whatever is playing by now: a twelve-second track can have ended
+        // and handed over to the next while the shade was open.
+        tap(By.descStartsWith("Now playing"))
         waitFor(By.desc("Close player"), "the full player")
         waitFor(By.desc("Pause"), "the track playing")
         screenshot("78-player")
