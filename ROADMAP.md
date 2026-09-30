@@ -374,6 +374,58 @@ watch's browsing were left for later, since nothing here can test them).
   and Open chat. Switched on in For geeks → Experiments, reached from My
   music.
 
+**1.6.5 — done 30 September: a crash fix.** The player's cover grew and
+shrank on playback through its padding on an expressive spring, which
+overshoots: padding sprang below zero and Compose threw, closing the app
+when a track started or paused. CI never saw it — the emulator runs with
+animations off — and the owner's copy of For geeks → Diagnostics → Last
+crash named it. The cover scales instead. Also: a guarded start for the
+playback service from the background, and the connection service as
+remote messaging from Android 14 (data sync is capped at six hours a day
+from Android 15).
+
+**1.6.6 — done 30 September: the player within reach.**
+- **The player in the shade and on the lock screen**, which it never was:
+  the media session was not added to the playback service, and Media3
+  shows only the service's sessions. The smoke test now opens the shade and
+  looks for it.
+- **Pull the player down to close it**, from anywhere on it.
+- **Titles on one line**, running across with `basicMarquee` when too long.
+- **The library as a Music tab** on the bottom bar while it is on; "My
+  music" opens it; **Saved Messages leads it**, even with one track.
+- **The connection notice at minimum importance** and posted once per
+  service. It cannot go: there is no Google push here.
+
+**1.6.7 — done 30 September: music at hand.**
+- **The mini player at the foot** — over the navigation bar, over the
+  composer in a chat — and **swiped sideways** to change track. The voice
+  bar stays at the top, with the same thin progress line.
+- **The player rises from below** instead of 1.6.6's container transform,
+  which the owner found heavy to follow.
+- **Open chat lands on the track's message**, from the player and the
+  library.
+- **The cover breathes into a scalloped square** on the beat — a shallow
+  `Morph` from graphics-shapes — instead of the rippling edges, which read
+  as twitching.
+- **Large titles for Music and Search**, as Settings has.
+
+**Next, as of 30 September** — none of it started, in the order it seems
+worth doing:
+1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the
+   one everyday Telegram thing this client still only plays.
+2. **Android Auto and a watch** — the player as a `MediaLibraryService`
+   with a browse tree (the library's albums, artists and playlists), so a
+   car and a watch can pick music, not only control it. Left out of 1.6.4
+   because nothing here can test it; an emulator image with Auto's desktop
+   head unit is the way in.
+3. **The library, finished** — album names and covers from the files' own
+   tags once downloaded (`MediaMetadataRetriever`), "most forwarded and
+   reacted", Share and Reply to the sender from the player; then out of
+   For geeks.
+4. **Global notification settings** — sounds and previews per kind of chat.
+5. **Translation**, then **inline bots and Mini Apps**; languages last, on
+   purpose.
+
 **1.6.4 — the owner's idea: a music library, as an experiment.** Off by
 default, under For geeks. Every track in every chat
 (`searchMessages` with `searchMessagesFilterAudio`) as a music app would
