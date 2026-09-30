@@ -1850,8 +1850,10 @@ class SmokeTest {
             device.wait(Until.gone(By.descStartsWith("Now playing")), STEP_TIMEOUT)
         )
 
-        // Every chat's music in one place, from the chat list's menu.
-        backTo(By.text("Material Design"), "the chat list")
+        // Every chat's music in one place, from the chat list's menu. The
+        // bottom bar's Chats, not a chat's name: the list comes back scrolled
+        // to the channel, low down, with the top chats out of view.
+        backTo(By.text("Chats"), "the chat list")
         // The list comes back scrolled to where the channel was, low down,
         // with the collapsing header — and its menu — scrolled away above.
         repeat(4) {
