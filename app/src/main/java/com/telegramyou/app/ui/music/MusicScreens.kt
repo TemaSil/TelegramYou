@@ -462,7 +462,13 @@ fun PlayerScreen(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    listOf(track.performer, track.senderName.takeIf { it.isNotBlank() }?.let { "sent by $it" })
+                    // "sent by" only when it says something: a channel's own
+                    // name under its own performer's was the same word twice.
+                    listOf(
+                        track.performer,
+                        track.senderName.takeIf { it.isNotBlank() && !it.equals(track.performer, ignoreCase = true) }
+                            ?.let { "sent by $it" }
+                    )
                         .filter { !it.isNullOrBlank() }
                         .joinToString(" · "),
                     style = MaterialTheme.typography.bodyLarge,
@@ -574,7 +580,12 @@ private fun OrderButton(order: QueueOrder, onOrder: (QueueOrder) -> Unit) {
         IconButton(
             onClick = { open = true },
             colors = if (order != QueueOrder.Listed) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
-        ) { Icon(orderIcon(order), contentDescription = "Order: ${order.label}") }
+        ) {
+            // Plain order shows the shuffle symbol, untinted, as players do:
+            // an arrow down on its own read as "download". The arrows are in
+            // the menu, beside their words.
+            Icon(if (order == QueueOrder.Listed) Symbols.Shuffle else orderIcon(order), contentDescription = "Order: ${order.label}")
+        }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             QueueOrder.entries.forEach { option ->
                 DropdownMenuItem(
