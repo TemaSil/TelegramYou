@@ -32,6 +32,8 @@ import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.rememberScrollableState
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -425,10 +427,17 @@ fun PlayerScreen(
     // Inside a ModalBottomSheet (PlayerSheet), which draws the surface,
     // takes the status and navigation bars' insets, and is what a pull down
     // or Back closes — the gesture this screen used to do by hand.
+    // A scroll that moves nothing, so a drag anywhere on the player reaches
+    // the sheet as nested scroll and the sheet follows the finger down: the
+    // sheet takes its drag from the content's scrolling, and a player has
+    // nothing of its own to scroll.
+    val passDragToSheet = rememberScrollableState { 0f }
     TrackTheme(track, state.coverSeed) {
         Surface(
             color = Color.Transparent,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .scrollable(passDragToSheet, Orientation.Vertical)
         ) {
           Box(Modifier.fillMaxSize()) {
             Column(

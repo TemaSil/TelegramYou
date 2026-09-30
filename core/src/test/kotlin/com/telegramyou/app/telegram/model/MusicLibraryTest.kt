@@ -86,6 +86,7 @@ class MusicLibraryTest {
         val one = buildLibrary(messages.filter { it.id != 31L }, chats)
         assertEquals(listOf("Tonal Spot"), one.saved?.tracks?.map { it.track.title })
         assertEquals("1 track", one.saved?.subtitle)
+        assertEquals("Saved Messages", one.playlists.first().title)
         assertEquals(null, buildLibrary(messages.filter { it.chatId != 6L }, chats).saved)
     }
 

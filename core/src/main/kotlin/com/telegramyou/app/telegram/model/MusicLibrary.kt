@@ -130,9 +130,12 @@ fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): Mu
         }
         .sortedByDescending { album -> album.tracks.maxOf { it.message.date } }
 
+    // Two tracks make a chat a playlist — except Saved Messages, which is
+    // one from its first: it leads the front page, and a playlist tab
+    // without it looked as if it had been lost.
     val playlists = all
         .groupBy { it.message.chatId }
-        .filterValues { it.size >= 2 }
+        .filter { (chatId, tracks) -> tracks.size >= 2 || chats[chatId]?.isSaved == true }
         .map { (chatId, tracks) ->
             val chat = chats[chatId]
             LibraryCollection(
