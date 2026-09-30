@@ -4,6 +4,56 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 1.6.7-539
+
+2026-09-30 · [`3e7441c`](https://github.com/TemaSil/TelegramYou/commit/3e7441c5df49b6ed88b4a36f7429cda9b3854104)
+
+<p>
+  <img src="builds/1.6.7-539/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/1.6.7-539/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/1.6.7-539/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/1.6.7-539/84-library.jpg" width="160" alt="Music library" title="Music library">
+  <img src="builds/1.6.7-539/78-player.jpg" width="160" alt="Music player" title="Music player">
+  <img src="builds/1.6.7-539/79-queue.jpg" width="160" alt="Queue" title="Queue">
+  <img src="builds/1.6.7-539/80-my-music.jpg" width="160" alt="My music" title="My music">
+  <img src="builds/1.6.7-539/81-search-music.jpg" width="160" alt="Music in search" title="Music in search">
+  <img src="builds/1.6.7-539/76-shared-files.jpg" width="160" alt="Shared files" title="Shared files">
+  <img src="builds/1.6.7-539/82-downloads.jpg" width="160" alt="Downloads" title="Downloads">
+  <img src="builds/1.6.7-539/73-forum-topics.jpg" width="160" alt="Forum topics" title="Forum topics">
+  <img src="builds/1.6.7-539/70-group-members.jpg" width="160" alt="Admins" title="Admins">
+  <img src="builds/1.6.7-539/72-invite-links.jpg" width="160" alt="Invite links" title="Invite links">
+  <img src="builds/1.6.7-539/57b-panel-expanded.jpg" width="160" alt="Emoji, GIFs and stickers" title="Emoji, GIFs and stickers">
+  <img src="builds/1.6.7-539/52c-appearance-chat-background.jpg" width="160" alt="Chat background" title="Chat background">
+  <img src="builds/1.6.7-539/52-appearance.jpg" width="160" alt="Appearance" title="Appearance">
+  <img src="builds/1.6.7-539/62-app-lock.jpg" width="160" alt="App lock" title="App lock">
+  <img src="builds/1.6.7-539/65-selection.jpg" width="160" alt="Selecting messages" title="Selecting messages">
+  <img src="builds/1.6.7-539/63-contact-and-place.jpg" width="160" alt="Contacts and places" title="Contacts and places">
+  <img src="builds/1.6.7-539/66-jumbo-emoji.jpg" width="160" alt="Emoji" title="Emoji">
+  <img src="builds/1.6.7-539/44a-message-menu.jpg" width="160" alt="Reactions" title="Reactions">
+  <img src="builds/1.6.7-539/60-gallery.jpg" width="160" alt="Photo viewer" title="Photo viewer">
+  <img src="builds/1.6.7-539/56-folders.jpg" width="160" alt="Folders" title="Folders">
+  <img src="builds/1.6.7-539/31-video-note.jpg" width="160" alt="Video messages" title="Video messages">
+  <img src="builds/1.6.7-539/34-poll.jpg" width="160" alt="Polls" title="Polls">
+  <img src="builds/1.6.7-539/35-bot.jpg" width="160" alt="Bot buttons" title="Bot buttons">
+  <img src="builds/1.6.7-539/37-post-search.jpg" width="160" alt="Post search" title="Post search">
+  <img src="builds/1.6.7-539/28-old-search-hit.jpg" width="160" alt="Search in chat" title="Search in chat">
+  <img src="builds/1.6.7-539/36-search.jpg" width="160" alt="Search" title="Search">
+  <img src="builds/1.6.7-539/21-story.jpg" width="160" alt="Stories" title="Stories">
+  <img src="builds/1.6.7-539/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/1.6.7-539/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/1.6.7-539/32-privacy.jpg" width="160" alt="Privacy" title="Privacy">
+  <img src="builds/1.6.7-539/29-devices.jpg" width="160" alt="Devices" title="Devices">
+  <img src="builds/1.6.7-539/30-storage.jpg" width="160" alt="Data and storage" title="Data and storage">
+  <img src="builds/1.6.7-539/41-settings.jpg" width="160" alt="Settings" title="Settings">
+  <img src="builds/1.6.7-539/42-profile.jpg" width="160" alt="Profile" title="Profile">
+  <img src="builds/1.6.7-539/25-updates.jpg" width="160" alt="App update" title="App update">
+  <img src="builds/1.6.7-539/33-for-geeks.jpg" width="160" alt="For geeks" title="For geeks">
+  <img src="builds/1.6.7-539/26-qr-login.jpg" width="160" alt="QR login" title="QR login">
+  <img src="builds/1.6.7-539/27-email-code.jpg" width="160" alt="Email login" title="Email login">
+  <img src="builds/1.6.7-539/23-proxy.jpg" width="160" alt="Proxy" title="Proxy">
+  <img src="builds/1.6.7-539/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+</p>
+
 ## 1.6.5-524
 
 2026-09-30 · [`896e320`](https://github.com/TemaSil/TelegramYou/commit/896e320e850609cc6853f2f32b963240668bd7bb)
