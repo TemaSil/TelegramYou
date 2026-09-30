@@ -1,3 +1,2 @@
-# The player stays open
-- Fixed: the app closed when a track started or paused
-- Fixed: it could close when the next track began with the screen off
+# The player, within reach
+- Pull the player down to close it, from anywhere on it

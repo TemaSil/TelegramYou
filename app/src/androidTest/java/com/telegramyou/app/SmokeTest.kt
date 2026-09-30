@@ -1917,7 +1917,9 @@ class SmokeTest {
         tap(By.text("15 minutes"))
         waitFor(By.text("Sleep timer: 15 minutes"), "the sleep timer set")
 
-        tap(By.desc("Close player"))
+        // Closed by pulling it down from the cover, not by the arrow at the
+        // top: the reach a one-handed phone asked for.
+        dragList(0.3, 0.8)
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
         tap(By.desc("Stop music"))
         assertTrue(

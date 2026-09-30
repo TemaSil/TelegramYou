@@ -20,6 +20,11 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.animate
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -312,8 +317,30 @@ fun PlayerScreen(
             if (result == SnackbarResult.ActionPerformed && savedTo != null) actions.onPlaySaved(savedTo)
         }
     }
+    // Pulled down, the player follows the finger; let go far enough down,
+    // or flicked, it closes — the arrow at the top is a long reach on a
+    // phone held in one hand. Let go short of that, it springs back.
+    var pulled by remember { mutableFloatStateOf(0f) }
+    val closeAfter = with(LocalDensity.current) { CLOSE_AFTER_DP.dp.toPx() }
+    val pull = rememberDraggableState { delta -> pulled = (pulled + delta).coerceAtLeast(0f) }
     TrackTheme(track, state.coverSeed) {
-        Surface(color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxSize()) {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { translationY = pulled }
+                .draggable(
+                    state = pull,
+                    orientation = Orientation.Vertical,
+                    onDragStopped = { velocity ->
+                        if (pulled > closeAfter || velocity > CLOSE_FLING) {
+                            onBack()
+                        } else {
+                            animate(pulled, 0f) { value, _ -> pulled = value }
+                        }
+                    }
+                )
+        ) {
           Box(Modifier.fillMaxSize()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -892,6 +919,11 @@ private const val UP_NEXT_SHOWN = 4
 
 /** The cover while paused: what 20 dp in from each side was on a phone. */
 private const val PAUSED_COVER_SCALE = 0.9f
+
+/** How far the player is pulled down before letting go closes it. */
+private const val CLOSE_AFTER_DP = 120
+/** A flick down faster than this, in px a second, closes it from anywhere. */
+private const val CLOSE_FLING = 1_500f
 
 /** A pill's colours: the secondary tone while its setting is on, the surface's while it is not. */
 @Composable
