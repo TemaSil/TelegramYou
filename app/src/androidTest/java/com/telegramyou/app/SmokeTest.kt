@@ -1920,6 +1920,13 @@ class SmokeTest {
             SystemClock.sleep(600)
         }
         waitFor(By.text("Tonal Spot"), "the player on the new track")
+        // Round and round on this one track from here: the demo's are
+        // twelve seconds long, and saving it carries it on from where it
+        // was, so without this it could end and hand over to the next track
+        // before "Tonal Spot" was looked for in Saved Messages' queue.
+        tap(By.desc("Repeat off"))
+        tap(By.desc("Repeat all"))
+        waitFor(By.desc("Repeat one"), "the track on repeat")
 
         // Three ways through the queue, from one button's menu.
         tap(By.desc("Order: In order"))

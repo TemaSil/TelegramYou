@@ -205,25 +205,6 @@ fun TelegramYouNavHost(
             MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
         }
     }
-    // The music library, as a screen of its own and as Home's Music tab —
-    // the same page either way, with a back arrow only as the screen.
-    val libraryPage: @Composable (onBack: (() -> Unit)?) -> Unit = { back ->
-        val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
-        val state by library.uiState.collectAsStateWithLifecycle()
-        com.telegramyou.app.ui.music.MusicLibraryScreen(
-            state = state,
-            actions = com.telegramyou.app.ui.music.LibraryActions(
-                onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
-                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
-                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
-                onSearch = { navController.navigateTo(Route.MyMusic) }
-            ),
-            onBack = back,
-            musicBar = musicBar
-        )
-    }
-    /** Home's Music tab: the library without a way back, since it is a tab. */
-    val musicTab: @Composable () -> Unit = { libraryPage(null) }
     /** A track tapped: the player's, and the same track again is play and pause. */
     val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
         if (nowPlaying.track?.messageId == message.id) {
@@ -259,6 +240,25 @@ fun TelegramYouNavHost(
             }
         }
     }
+    // The music library, as a screen of its own and as Home's Music tab —
+    // the same page either way, with a back arrow only as the screen.
+    val libraryPage: @Composable (onBack: (() -> Unit)?) -> Unit = { back ->
+        val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
+        val state by library.uiState.collectAsStateWithLifecycle()
+        com.telegramyou.app.ui.music.MusicLibraryScreen(
+            state = state,
+            actions = com.telegramyou.app.ui.music.LibraryActions(
+                onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
+                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
+                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
+                onSearch = { navController.navigateTo(Route.MyMusic) }
+            ),
+            onBack = back,
+            musicBar = musicBar
+        )
+    }
+    /** Home's Music tab: the library without a way back, since it is a tab. */
+    val musicTab: @Composable () -> Unit = { libraryPage(null) }
 
     LaunchedEffect(auth.state) {
         when (auth.state) {
