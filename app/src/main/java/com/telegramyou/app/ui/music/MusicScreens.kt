@@ -64,6 +64,8 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.LoadingIndicator
@@ -170,8 +172,13 @@ internal fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composa
 /**
  * The mini player: a strip under a screen's top bar while something plays,
  * as the official client has one — the track, play and pause, the next one,
- * and how far through it is as Expressive's wavy line. Tapping it opens the
- * full player. It goes when the music is stopped.
+ * and how far through it is as a thin line along its bottom edge. Tapping it
+ * opens the full player. It goes when the music is stopped.
+ *
+ * The line was Expressive's wavy indicator on a row of its own, which made
+ * the strip a third taller over every chat for something a glance needs
+ * only the length of; the wave stays in the full player, where the seek bar
+ * is the point.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -198,7 +205,7 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                 Column {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 2.dp)
+                        modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 6.dp, bottom = 6.dp)
                     ) {
                         Cover(track, size = 40, corner = 12)
                         Column(
@@ -218,11 +225,17 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                         IconButton(onClick = actions.onNext) { Icon(Symbols.SkipNext, contentDescription = "Next track") }
                         IconButton(onClick = actions.onStop) { Icon(Symbols.Close, contentDescription = "Stop music") }
                     }
-                    LinearWavyProgressIndicator(
+                    // Flush with the bottom edge, whose rounding trims its ends.
+                    LinearProgressIndicator(
                         progress = { state.progress },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                            .height(3.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.12f),
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
                     )
                 }
             }

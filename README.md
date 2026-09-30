@@ -112,6 +112,7 @@ a wide screen the navigation becomes a rail.
 ## New in 1.6.6
 
 - **Pull the player down to close it** — from anywhere on it, not only the arrow at the top.
+- **A slimmer mini player** — its progress is a thin line along the bottom edge instead of a wave on a row of its own.
 
 ## New in 1.6.5
 
