@@ -1605,9 +1605,10 @@ class DemoTelegramClient(
      * The demo's download list, seeded with what a phone that has used the
      * app a while would have: a file finished, and one paused half-way.
      */
-    // Lazily: made on first use rather than as the client is built, when the
-    // file's own values were not all there yet — every id read as 0, the two
-    // seeds shared one key, and the list came up as one paused file of 0 B.
+    // Lazily: made on first use rather than as the client is built. The ids
+    // and sizes it reads are declared at the foot of this class, so are set
+    // after this line would run — every id read as 0, the two seeds shared
+    // one key, and the list came up as one paused file of 0 B.
     private val demoDownloads: MutableStateFlow<Map<Int, DownloadEntry>> by lazy {
         val now = System.currentTimeMillis() / 1000
         MutableStateFlow(
@@ -2800,7 +2801,7 @@ private val DEMO_TYPING_MS = 3_000L
 private val DEMO_JOIN_TITLE = "Expressive Design Club"
 
 private val DEMO_VIDEO_FILE_ID = 1601
-private const val DEMO_AUDIO_FILE_ID = 1602
+private val DEMO_AUDIO_FILE_ID = 1602
 
 /** The rail entry for the demo account's own posted stories. */
 private val MY_STORIES_ID = 99L
@@ -2813,18 +2814,18 @@ private val DEMO_MUSIC_ALBUM_ID = 4_040L
 private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)
 
 /** A small text file in Design Circle, so a file can be opened offline. */
-private const val DEMO_NOTES_FILE_ID = 1603
+private val DEMO_NOTES_FILE_ID = 1603
 
 /**
  * Two files in Design Circle for the download manager: the guidelines,
  * listed and paused part-way, and the brand kit, slow enough to pause.
  */
-private const val DEMO_GUIDE_FILE_ID = 1604
-private const val DEMO_KIT_FILE_ID = 1605
-private const val DEMO_GUIDE_BYTES = 2_200_000L
-private const val DEMO_KIT_BYTES = 5_000_000L
-private const val DEMO_DOWNLOAD_STEPS = 25
-private const val DEMO_DOWNLOAD_STEP_MS = 400L
+private val DEMO_GUIDE_FILE_ID = 1604
+private val DEMO_KIT_FILE_ID = 1605
+private val DEMO_GUIDE_BYTES = 2_200_000L
+private val DEMO_KIT_BYTES = 5_000_000L
+private val DEMO_DOWNLOAD_STEPS = 25
+private val DEMO_DOWNLOAD_STEP_MS = 400L
 
 /** A made-up file of [bytes] in the temporary directory, standing for a download. */
 private fun demoDownloadedFile(name: String): java.io.File {
