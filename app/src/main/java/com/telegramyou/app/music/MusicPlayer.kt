@@ -621,7 +621,16 @@ class MusicPlayer(
             // to the foreground itself once something plays, and a service
             // promised to the foreground that then failed to play would be
             // killed for breaking the promise.
-            context.startService(Intent(context, PlaybackService::class.java))
+            // Guarded, because this also runs when a track ends and the next
+            // one starts with the screen off: should the service have gone by
+            // then, Android refuses to start one for an app in the
+            // background, and that refusal is an exception. Unguarded it
+            // closed the app mid-listen; guarded, the music plays on.
+            try {
+                context.startService(Intent(context, PlaybackService::class.java))
+            } catch (_: IllegalStateException) {
+            } catch (_: SecurityException) {
+            }
             // Near the end of what is loaded, the next page on its way.
             if (_state.value.queue.needsMore(within = PREFETCH_WITHIN)) loadMore()
             prefetchNext()

@@ -4,11 +4,14 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
+import androidx.core.app.ServiceCompat
 import com.telegramyou.app.MainActivity
 import com.telegramyou.app.R
 import com.telegramyou.app.TelegramYouApp
@@ -54,8 +57,34 @@ class TelegramForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /**
+     * A foreground service's time is up (Android 15's cap on data sync).
+     * Not expected with the type chosen in onStartCommand, but the platform's
+     * answer to a service that ignores this is to crash the app, so it stops.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        stopSelf()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(ONGOING_NOTIFICATION_ID, ongoingNotification())
+        // Remote messaging from Android 14, where the type exists: a
+        // messenger's connection is what it is for, and it has no time limit.
+        // Data sync, the only fitting type before it, is capped at six hours
+        // a day from Android 15, and a service still running at the cap is a
+        // crash — after hours of use, most likely with music keeping the app
+        // alive in the background.
+        ServiceCompat.startForeground(
+            this,
+            ONGOING_NOTIFICATION_ID,
+            ongoingNotification(),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+            } else {
+                0
+            }
+        )
         // Once per service, not once per start. The activity starts this in
         // onCreate, so every rotation or theme change is another start — and
         // each used to add another collector, until one message was being
