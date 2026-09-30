@@ -1826,10 +1826,13 @@ class SmokeTest {
         tap(By.text("Play saved"))
         waitFor(By.text("Saved Messages"), "the player on Saved Messages' music")
         waitFor(By.text("Tonal Spot"), "the saved track playing")
+        // Fifteen minutes rather than the end of the track: the demo's track
+        // is twelve seconds long, and by now it can have ended, taking an
+        // end-of-track timer with it before the chip could be seen.
         tap(By.desc("More"))
         tap(By.text("Sleep timer"))
-        tap(By.text("End of track"))
-        waitFor(By.text("Stops after this track"), "the sleep timer set")
+        tap(By.text("15 minutes"))
+        waitFor(By.text("Sleep timer: 15 minutes"), "the sleep timer set")
 
         tap(By.desc("Close player"))
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
