@@ -135,7 +135,9 @@ fun MyMusicScreen(
     onPlay: (ChatMessage) -> Unit,
     musicBar: @Composable () -> Unit = {},
     /** A track into the player's Up next: first (true) or last. */
-    onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> }
+    onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
+    /** The music library, where For geeks has it on; null hides the way in. */
+    onOpenLibrary: (() -> Unit)? = null
 ) {
     val host = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -146,6 +148,13 @@ fun MyMusicScreen(
                 title = { Text("My music") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                },
+                actions = {
+                    if (onOpenLibrary != null) {
+                        IconButton(onClick = onOpenLibrary) {
+                            Icon(Symbols.LibraryMusic, contentDescription = "Music library")
+                        }
+                    }
                 }
             )
         }

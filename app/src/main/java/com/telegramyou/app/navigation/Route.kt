@@ -146,6 +146,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** The music library, an experiment; see MusicLibraryScreen. */
+    data object Library : Route {
+        const val PATTERN = "library"
+        override val path = PATTERN
+    }
+
     /** Every chat's music in one place; see MyMusicScreen. */
     data object MyMusic : Route {
         const val PATTERN = "music"

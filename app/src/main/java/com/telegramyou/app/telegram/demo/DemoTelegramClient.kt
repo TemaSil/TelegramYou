@@ -1109,9 +1109,17 @@ class DemoTelegramClient(
                 now - (names.size - index) * day, DEMO_MUSIC_CHANNEL
             ).copy(
                 contentType = MessageContentType.Audio,
+                // Four of them posted together, as an album; three performers
+                // between them — enough for the music library to have albums
+                // and artists to show.
+                albumId = if (index in 4..7) DEMO_MUSIC_ALBUM_ID else null,
                 audio = AudioContent(
                     title = name,
-                    performer = "Material Sound",
+                    performer = when (index) {
+                        in 4..7 -> "Shape Shifters"
+                        in 8..11 -> "Tonal Collective"
+                        else -> "Material Sound"
+                    },
                     durationSeconds = DEMO_AUDIO_SECONDS,
                     fileName = "${name.lowercase().replace(' ', '-')}.wav",
                     fileId = DEMO_AUDIO_FILE_ID
@@ -2794,6 +2802,9 @@ private val DEMO_AUDIO_FILE_ID = 1602
 /** The rail entry for the demo account's own posted stories. */
 private val MY_STORIES_ID = 99L
 private val DEMO_AUDIO_SECONDS = 12
+
+/** The album in the demo's music channel: four tracks posted as one post. */
+private val DEMO_MUSIC_ALBUM_ID = 4_040L
 
 /** The shape drawn for the demo's voice messages, in Telegram's 5-bit levels. */
 private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)

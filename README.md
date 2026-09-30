@@ -109,6 +109,13 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.4
+
+- **Up next** — Play next and Add to queue on any track, from a chat, My music or the library, before the queue goes on.
+- **Voice messages, properly** — a run of them plays one after another, keeps going when you leave the chat with a bar to pause, change speed or stop, and 1×, 1.5× or 2× is remembered.
+- **No gaps** — the next track is fetched while this one plays.
+- **Music library** (For geeks → Experiments) — every chat's music as albums, artists and playlists, what people in your chats sent, and a reaction onto a track's message from the player.
+
 ## New in 1.6.3
 
 - **Shared media in tabs** — media, files, music, voice, links and GIFs, back to the first thing sent; files open in the app that reads them.

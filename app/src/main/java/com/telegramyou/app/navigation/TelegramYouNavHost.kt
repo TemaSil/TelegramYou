@@ -176,6 +176,7 @@ fun TelegramYouNavHost(
             onSleep = { music?.setSleep(it) },
             onSave = { music?.saveToLibrary() },
             onRemoveUpNext = { music?.removeUpNext(it) },
+            onReact = { music?.react(it) },
             onPlaySaved = { music?.playSaved(it) },
             onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
             onNoticeShown = { music?.onNoticeShown() },
@@ -789,6 +790,25 @@ fun TelegramYouNavHost(
                     }
                 },
                 onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
+                onOpenLibrary = if (geekSettings.musicLibrary) {
+                    { navController.navigateTo(Route.Library) }
+                } else {
+                    null
+                },
+                musicBar = musicBar
+            )
+        }
+        composable(Route.Library.PATTERN) {
+            val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
+            val state by library.uiState.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.music.MusicLibraryScreen(
+                state = state,
+                actions = com.telegramyou.app.ui.music.LibraryActions(
+                    onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
+                    onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
+                    onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) }
+                ),
+                onBack = { navController.popBackStack() },
                 musicBar = musicBar
             )
         }
@@ -800,7 +820,12 @@ fun TelegramYouNavHost(
             enterTransition = { slideInVertically { it } },
             popExitTransition = { slideOutVertically { it } }
         ) {
-            PlayerScreen(nowPlaying, musicActions, onBack = { navController.popBackStack() })
+            PlayerScreen(
+                nowPlaying,
+                musicActions,
+                onBack = { navController.popBackStack() },
+                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) }
+            )
         }
 
         composable(

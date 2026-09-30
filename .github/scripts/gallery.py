@@ -32,6 +32,7 @@ SHOWCASE = [
     ("03-chats", "Chat list"),
     ("04-chat", "Conversation"),
     ("06-group-header", "Group"),
+    ("84-library", "Music library"),
     ("78-player", "Music player"),
     ("79-queue", "Queue"),
     ("80-my-music", "My music"),

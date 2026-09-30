@@ -349,6 +349,31 @@ Recording round video messages moved out of it: it needs CameraX, whose
 versions cannot be read from where this is written — the Build workflow
 prints them now — and a camera screen is not a thing to add blind.
 
+**1.6.4 — done 30 September: the library, and four things the pains of
+1.6.3 turned up** (chosen by the owner the same day; Android Auto and a
+watch's browsing were left for later, since nothing here can test them).
+- **Up next** — `MusicQueue.upNext` and `interlude`: tracks lined up from
+  anywhere play after the current one and before the queue goes on from
+  where it was; kept when another chat's music replaces the queue. Play
+  next and Add to queue on a track's message menu, in My music and in the
+  library; Up next heads the queue sheet. Tested in :core.
+- **No gaps** — the next track's file is fetched while this one plays.
+- **Voice messages in a row** — `VoicePlayback`, one for the app: the
+  chat's voice messages below the one tapped follow it, each reported
+  listened to; it goes on when the chat is closed, under a bar in the
+  mini player's shape (tertiary, so it is not taken for a song) with the
+  speed — 1×, 1.5×, 2×, remembered — pause and stop. It still ducks the
+  music, as 1.6.3 made it.
+- **The library**, below, as planned — built by `buildLibrary` in :core
+  from the same global search as My music: an album is tracks posted
+  together as one post (Telegram has no albums), an artist a performer, a
+  playlist a chat with music, Saved Messages first. The front page is
+  Material's carousel of what just arrived and "From your chats", what
+  people (not channels, not you) sent; each track says who sent it where.
+  The player's menu has a row of reactions onto the track's own message
+  and Open chat. Switched on in For geeks → Experiments, reached from My
+  music.
+
 **1.6.4 — the owner's idea: a music library, as an experiment.** Off by
 default, under For geeks. Every track in every chat
 (`searchMessages` with `searchMessagesFilterAudio`) as a music app would

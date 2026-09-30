@@ -33,6 +33,7 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_HIDE_ALL, now.hideAllChatsTab)
             .putBoolean(KEY_SEARCH_NO_KEYBOARD, now.searchWithoutKeyboard)
             .putBoolean(KEY_IPV6, now.preferIpv6)
+            .putBoolean(KEY_MUSIC_LIBRARY, now.musicLibrary)
             .apply()
     }
 
@@ -47,7 +48,8 @@ class GeekStore(context: Context) {
             hideStories = preferences.getBoolean(KEY_HIDE_STORIES, false),
             hideAllChatsTab = preferences.getBoolean(KEY_HIDE_ALL, false),
             searchWithoutKeyboard = preferences.getBoolean(KEY_SEARCH_NO_KEYBOARD, false),
-            preferIpv6 = preferences.getBoolean(KEY_IPV6, false)
+            preferIpv6 = preferences.getBoolean(KEY_IPV6, false),
+            musicLibrary = preferences.getBoolean(KEY_MUSIC_LIBRARY, false)
         )
     }
 
@@ -62,6 +64,7 @@ class GeekStore(context: Context) {
         const val KEY_HIDE_ALL = "hide_all_chats_tab"
         const val KEY_SEARCH_NO_KEYBOARD = "search_without_keyboard"
         const val KEY_IPV6 = "prefer_ipv6"
+        const val KEY_MUSIC_LIBRARY = "music_library"
     }
 }
 

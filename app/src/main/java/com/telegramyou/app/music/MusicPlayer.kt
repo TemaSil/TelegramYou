@@ -388,6 +388,37 @@ class MusicPlayer(
     }
 
     private var myMusicCursor: String? = null
+
+    /**
+     * A collection of the music library — an album, an artist, a playlist,
+     * every track — as the queue, from [start] or its first, shuffled if
+     * asked. Complete as it is: the library has already found every track.
+     */
+    fun playCollection(title: String, messages: List<ChatMessage>, start: ChatMessage? = null, shuffle: Boolean = false) {
+        // In the order given — an album already as posted — so without the
+        // album marks the queue would otherwise reorder by.
+        val tracks = messages.mapNotNull { it.asTrack()?.copy(albumId = null) }
+        if (tracks.isEmpty()) return
+        val previous = _state.value.queue
+        var queue = MusicQueue(chatId = LIBRARY, sourceTitle = title, repeat = previous.repeat, upNext = previous.upNext)
+            .withMore(tracks, complete = true)
+        val first = start?.let { s -> queue.tracks.indexOfFirst { it.messageId == s.id && it.chatId == s.chatId } }
+            ?.takeIf { it >= 0 } ?: if (shuffle) tracks.indices.random() else 0
+        queue = queue.startingAt(first)
+        queue = queue.ordered(if (shuffle) QueueOrder.Shuffled else QueueOrder.Listed)
+        keepPosition()
+        _state.update { it.copy(queue = queue) }
+        startCurrent()
+    }
+
+    /** A reaction from the player onto the track's own message, where its sender sees it. */
+    fun react(emoji: String) {
+        val track = _state.value.track ?: return
+        scope.launch {
+            val done = runCatching { repository.toggleReaction(track.chatId, track.messageId, emoji) }.isSuccess
+            _state.update { it.copy(notice = if (done) "Reacted $emoji to ${track.title}" else "Could not react to it") }
+        }
+    }
     private var myMusicQuery: String = ""
 
     // ── the seven extras (ROADMAP, 1.6.3) ──
@@ -636,6 +667,8 @@ class MusicPlayer(
     private companion object {
         /** The queue's chat id for "My music", every chat's tracks. */
         const val MY_MUSIC = -1L
+        /** The queue's chat id for a collection of the music library. */
+        const val LIBRARY = -2L
         const val PAGE = 50
         const val PREFETCH_WITHIN = 3
         const val RESTART_WITHIN_MS = 3_000L

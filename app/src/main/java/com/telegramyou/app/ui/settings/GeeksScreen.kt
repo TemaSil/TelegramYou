@@ -144,6 +144,14 @@ fun GeeksScreen(
                 ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
             }
 
+            SettingsGroup("Experiments") {
+                switch(
+                    title = "Music library",
+                    summary = "Every chat's music as albums, artists and playlists, in the chat list's menu",
+                    checked = settings.musicLibrary
+                ) { on -> onChange { it.copy(musicLibrary = on) } }
+            }
+
             SettingsGroup("Connection") {
                 switch(
                     title = "Prefer IPv6",

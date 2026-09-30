@@ -116,6 +116,10 @@ class MusicActions(
     val onSave: () -> Unit = {},
     /** An Up next track taken out, by its place there. */
     val onRemoveUpNext: (Int) -> Unit = {},
+    /** A reaction onto the playing track's own message, where its sender sees it. */
+    val onReact: (String) -> Unit = {},
+    /** The chat the playing track is in. */
+    val onOpenChat: (Long) -> Unit = {},
     /** Saved Messages' music as the queue; see MusicPlayer.playSaved. */
     val onPlaySaved: (Long) -> Unit = {},
     val onDownloadAll: () -> Unit = {},
@@ -131,7 +135,7 @@ class MusicActions(
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composable () -> Unit) {
+internal fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composable () -> Unit) {
     val dark = isSystemInDarkTheme()
     val seed = remember(track?.messageId, coverSeed) {
         coverSeed ?: run {
@@ -215,7 +219,7 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
 
 /** The cover, or — without one yet — the note on the track's own colour. */
 @Composable
-private fun Cover(track: Track, size: Int, corner: Int) {
+internal fun Cover(track: Track, size: Int, corner: Int) {
     val colors = MaterialTheme.colorScheme
     Box(
         modifier = Modifier
@@ -271,7 +275,12 @@ private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int) 
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
+fun PlayerScreen(
+    state: NowPlaying,
+    actions: MusicActions,
+    onBack: () -> Unit,
+    onOpenChat: (Long) -> Unit = actions.onOpenChat
+) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -318,6 +327,33 @@ fun PlayerScreen(state: NowPlaying, actions: MusicActions, onBack: () -> Unit) {
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = "More") }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            // A reaction straight onto the message the track
+                            // came in: whoever sent it sees it, without the
+                            // chat being opened.
+                            if (track != null && track.chatId > 0) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp)
+                                ) {
+                                    PLAYER_REACTIONS.forEach { emoji ->
+                                        TextButton(onClick = {
+                                            menuOpen = false
+                                            actions.onReact(emoji)
+                                        }) { Text(emoji, style = MaterialTheme.typography.titleLarge) }
+                                    }
+                                }
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text("Open chat") },
+                                    leadingIcon = { Icon(Symbols.Chat, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        onOpenChat(track.chatId)
+                                    }
+                                )
+                            }
                             DropdownMenuItem(
                                 text = { Text("Save to Saved Messages") },
                                 leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },
@@ -770,6 +806,9 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** The reactions the player offers: the few people give music. */
+private val PLAYER_REACTIONS = listOf("❤️", "🔥", "👍", "😢")
 
 /** The width the seeker was laid out at, for turning a touch into a fraction. */
 private fun Modifier.onSizeChangedWidth(onWidth: (Float) -> Unit): Modifier =

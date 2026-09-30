@@ -26,7 +26,9 @@ data class GeekSettings(
      */
     val searchWithoutKeyboard: Boolean = false,
     /** TDLib's `prefer_ipv6`: reach Telegram over IPv6 where both are offered. */
-    val preferIpv6: Boolean = false
+    val preferIpv6: Boolean = false,
+    /** The music library, an experiment: every chat's music as albums, artists and playlists. */
+    val musicLibrary: Boolean = false
 )
 
 /** What a double tap on a message does. */

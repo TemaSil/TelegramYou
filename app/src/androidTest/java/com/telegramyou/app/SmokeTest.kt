@@ -1733,6 +1733,40 @@ class SmokeTest {
     }
 
     /**
+     * The music library, switched on under For geeks and reached from My
+     * music: its front page, an album — four tracks posted together — and
+     * that album played from its first track as posted.
+     */
+    @Test
+    fun theMusicLibraryPlaysAnAlbum() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("For geeks"))
+        tap(By.text("For geeks"))
+        scrollDownTo(By.text("Music library"))
+        tap(By.text("Music library"))
+        device.pressBack()
+        waitFor(By.text("For geeks"), "the settings again")
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list again")
+        scrollBackToChatMenu()
+        tap(By.desc("More"))
+        tap(By.text("My music"))
+        tap(By.desc("Music library"))
+        waitFor(By.text("Just arrived"), "the library's front page")
+        screenshot("84-library")
+        tap(By.text("Albums"))
+        tap(By.text("Shape Shifters"))
+        waitFor(By.textStartsWith("Album · 4 tracks"), "the album's page")
+        screenshot("85-album")
+        tap(By.text("Play"))
+        waitFor(By.desc("Now playing: Wavy Line"), "the album from its first track")
+    }
+
+    /**
      * Voice messages as a run and as the app's: two of Lina's in a row play
      * one after the other, the speed changes from the bar, and the bar — and
      * the voice — stay when the chat is left, until stopped there.
@@ -2667,6 +2701,19 @@ class SmokeTest {
             device.pressBack()
         }
         waitFor(selector, what)
+    }
+
+    /** The chat list scrolled back up to its collapsing header, where the menu is. */
+    private fun scrollBackToChatMenu() {
+        repeat(4) {
+            if (device.wait(Until.hasObject(By.desc("More")), SHORT_WAIT)) return
+            try {
+                device.findObjects(By.scrollable(true))
+                    .maxByOrNull { it.visibleBounds.height() }
+                    ?.scroll(Direction.UP, 0.8f)
+            } catch (_: StaleObjectException) {
+            }
+        }
     }
 
     /** Scrolls whatever scrolls on screen down until [selector] shows. */
