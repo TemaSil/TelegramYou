@@ -1119,6 +1119,14 @@ class SmokeTest {
      * order, and it does not matter which one does.
      */
     private fun signIn() {
+        // The notification permission granted from the shell before anything
+        // asks for it, as location is: answering the system dialog raced it,
+        // and on a fresh emulator the dialog could arrive after the look for
+        // it had given up, and stand over the chat list for the whole test.
+        if (Build.VERSION.SDK_INT >= 33) {
+            val app = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+            device.executeShellCommand("pm grant $app android.permission.POST_NOTIFICATIONS")
+        }
         val loginIsUp = device.wait(
             Until.hasObject(By.text("Your phone")),
             DIALOG_TIMEOUT
