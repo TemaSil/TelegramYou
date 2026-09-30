@@ -57,6 +57,7 @@ import com.telegramyou.app.telegram.model.parseMarkdown
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.LastMessageStatus
 import com.telegramyou.app.telegram.model.LinkPreview
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.telegram.model.ProxyServer
@@ -282,7 +283,8 @@ class DemoTelegramClient(
                     chat.copy(
                         lastMessage = text,
                         timestampLabel = msg.timeLabel,
-                        unreadCount = chat.unreadCount + 1
+                        unreadCount = chat.unreadCount + 1,
+                        lastMessageStatus = null
                     )
                 } else {
                     chat
@@ -2173,7 +2175,9 @@ class DemoTelegramClient(
                             else -> text
                         },
                         timestampLabel = "now",
-                        unreadCount = 0
+                        unreadCount = 0,
+                        // One tick: the demo's other side never reads.
+                        lastMessageStatus = if (chat.isSavedMessages) null else LastMessageStatus.Sent
                     )
                 } else chat
             }.sortedByDescending { it.timestampLabel == "now" }
@@ -2209,7 +2213,9 @@ class DemoTelegramClient(
         ChatPreview(6, "Saved Messages", "Color tokens & springs", "Sat", isPinned = true, avatarColor = 66, isSavedMessages = true),
         ChatPreview(
             7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true,
-            avatarColor = 77, folderIds = setOf(FOLDER_WORK, FOLDER_NEWS)
+            avatarColor = 77, folderIds = setOf(FOLDER_WORK, FOLDER_NEWS),
+            // Our own, and read: the list's two ticks have a row to show on.
+            lastMessageStatus = LastMessageStatus.Read
         ),
         ChatPreview(
             8, "Mom", "Call me when free 💚", "Thu", unreadCount = 2,

@@ -419,6 +419,9 @@ caption, laid in the bubble's Box, is under the track instead of over it.
 The player's previous, play and next became a `ButtonGroup` (weighted, as
 the profile's must be), and Appearance → Music can put the mini player back
 at the top, off by default.
+From a user: the chat list shows the ticks of the account's own last message
+(`ChatPreview.lastMessageStatus`, from the message's sending state and the
+chat's `last_read_outbox_message_id`).
 
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:

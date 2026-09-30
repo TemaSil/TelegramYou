@@ -55,6 +55,7 @@ import com.telegramyou.app.telegram.model.isAudioFileName
 import com.telegramyou.app.telegram.model.packWaveform
 import com.telegramyou.app.telegram.model.unpackWaveform
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.LastMessageStatus
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ProxyKind
@@ -4324,7 +4325,20 @@ class TdLibTelegramClient(
             isArchived = positions.isArchived(id),
             canDeleteForEveryone = chat.optBoolean("can_be_deleted_for_all_users"),
             isForum = type == "chatTypeSupergroup" &&
-                supergroups[chat.optJSONObject("type")?.optLong("supergroup_id")]?.optBoolean("is_forum") == true
+                supergroups[chat.optJSONObject("type")?.optLong("supergroup_id")]?.optBoolean("is_forum") == true,
+            // Our own last message: on its way, refused, or read once the
+            // chat's last_read_outbox_message_id has reached it.
+            lastMessageStatus = last?.takeIf { it.optBoolean("is_outgoing") && !saved }?.let { message ->
+                when (message.optJSONObject("sending_state")?.optString("@type")) {
+                    "messageSendingStatePending" -> LastMessageStatus.Sending
+                    "messageSendingStateFailed" -> LastMessageStatus.Failed
+                    else -> if (message.optLong("id") <= chat.optLong("last_read_outbox_message_id")) {
+                        LastMessageStatus.Read
+                    } else {
+                        LastMessageStatus.Sent
+                    }
+                }
+            }
         )
     }
 

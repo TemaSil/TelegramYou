@@ -116,6 +116,7 @@ a wide screen the navigation becomes a rail.
 - **A smoother composer** — the reply banner and the attachment chip fold away rather than vanish, so the mini player and the capsule settle instead of jumping.
 - **The player's buttons as Expressive button groups**, both rows — the one under the finger widens and the others give way.
 - **Mini player at the top** (Appearance → Music), off by default — for whoever preferred it under the title, as until 1.6.7.
+- **Ticks in the chat list** — when the last message is yours, one tick for sent and two for read before the time, as the official client has it; a clock while it sends. Asked for by a user.
 - **Fixed:** a track sent with a caption drew the caption over the track.
 
 ## New in 1.6.7

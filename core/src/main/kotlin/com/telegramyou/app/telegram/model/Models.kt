@@ -155,8 +155,18 @@ data class ChatPreview(
      * A forum: a supergroup split into topics. It opens onto its topics
      * rather than onto one conversation — see ForumTopic.
      */
-    val isForum: Boolean = false
+    val isForum: Boolean = false,
+    /**
+     * Where the last message stands when it is the account's own — the
+     * ticks the official client puts before the time in its chat list,
+     * asked for by a user in 1.6.8. Null when the last message is someone
+     * else's, and in Saved Messages, where there is nobody to read it.
+     */
+    val lastMessageStatus: LastMessageStatus? = null
 )
+
+/** The account's own last message in a chat, as the row's ticks show it. */
+enum class LastMessageStatus { Sending, Sent, Read, Failed }
 
 /**
  * One of the account's chat folders.

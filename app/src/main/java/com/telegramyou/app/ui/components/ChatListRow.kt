@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.components
 
 import com.telegramyou.app.ui.icons.Symbols
+import com.telegramyou.app.telegram.model.LastMessageStatus
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -213,15 +214,46 @@ fun ChatListRow(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = chat.timestampLabel,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (chat.unreadCount > 0 && !chat.isMuted) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Our own last message's ticks before the time, as the
+                        // official client has them — the same icons as in the
+                        // conversation: a clock on its way, one tick sent, two
+                        // read (in the accent, so read is seen at a glance),
+                        // the error mark if it was refused.
+                        chat.lastMessageStatus?.let { status ->
+                            Icon(
+                                imageVector = when (status) {
+                                    LastMessageStatus.Sending -> Symbols.Schedule
+                                    LastMessageStatus.Sent -> Symbols.Done
+                                    LastMessageStatus.Read -> Symbols.DoneAll
+                                    LastMessageStatus.Failed -> Symbols.ErrorOutlineFilled
+                                },
+                                contentDescription = when (status) {
+                                    LastMessageStatus.Sending -> "Sending"
+                                    LastMessageStatus.Sent -> "Sent"
+                                    LastMessageStatus.Read -> "Read"
+                                    LastMessageStatus.Failed -> "Not sent"
+                                },
+                                tint = when (status) {
+                                    LastMessageStatus.Read -> MaterialTheme.colorScheme.primary
+                                    LastMessageStatus.Failed -> MaterialTheme.colorScheme.error
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                },
+                                modifier = Modifier
+                                    .padding(end = 4.dp)
+                                    .size(16.dp)
+                            )
                         }
-                    )
+                        Text(
+                            text = chat.timestampLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (chat.unreadCount > 0 && !chat.isMuted) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                     if (chat.unreadCount > 0) {
                         // A muted chat still counts, but must not shout:
                         // the badge drops to a surface colour rather than
