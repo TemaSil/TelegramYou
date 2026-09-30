@@ -1795,6 +1795,10 @@ class SmokeTest {
             "the second voice message did not follow the first",
             device.wait(Until.hasObject(By.text("Voice message")), 30_000)
         )
+        // Paused from the bar, so it is still there to be seen from the chat
+        // list: eight seconds at 1.5× can run out on the way back to it.
+        tap(By.desc("Pause the voice bar"))
+        waitFor(By.desc("Resume the voice bar"), "the voice message paused")
         backTo(By.text("Material Design"), "the chat list")
         waitFor(By.descStartsWith("Voice message from"), "the bar over the chat list")
         tap(By.desc("Stop voice message"))
