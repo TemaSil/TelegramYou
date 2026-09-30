@@ -1891,13 +1891,15 @@ class SmokeTest {
         device.swipe(
             strip.left + strip.width() * 4 / 5, strip.centerY(),
             strip.left + strip.width() / 10, strip.centerY(),
-            10
+            20
         )
-        assertTrue(
-            "the swipe did not change the track",
-            device.wait(Until.gone(By.desc("Now playing: Morning Light")), STEP_TIMEOUT)
+        // Through waitFor's fresh look, not Until.gone: through UiAutomator's
+        // cache this once went on seeing Morning Light for twenty seconds
+        // after the log showed two other tracks had started.
+        waitFor(
+            By.desc(Pattern.compile("Now playing: (?!Morning Light).*")),
+            "the mini player on another track after the swipe"
         )
-        waitFor(By.descStartsWith("Now playing"), "the mini player on the next track")
         // And the system's own player, in the shade — which 1.6.3 to 1.6.5
         // never had, because the session was not the service's (see
         // PlaybackService). Looked for in System UI only: the app's own
