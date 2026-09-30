@@ -20,6 +20,8 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ButtonGroup
@@ -371,7 +373,15 @@ fun PlayerSheet(
         ModalBottomSheet(
             onDismissRequest = onDismiss,
             sheetState = sheet,
-            containerColor = MaterialTheme.colorScheme.surface
+            // The player draws the sheet itself — its colour, its corners,
+            // its handle — and moves it under a pull (PlayerScreen), so the
+            // sheet's own drag is off and it reserves no insets: the
+            // player's surface reaches the top of the screen and pads its
+            // own content.
+            sheetGesturesEnabled = false,
+            containerColor = Color.Transparent,
+            dragHandle = null,
+            contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
         ) {
             PlayerScreen(
                 state,
@@ -427,25 +437,47 @@ fun PlayerScreen(
     // Inside a ModalBottomSheet (PlayerSheet), which draws the surface,
     // takes the status and navigation bars' insets, and is what a pull down
     // or Back closes — the gesture this screen used to do by hand.
-    // A scroll that moves nothing, so a drag anywhere on the player reaches
-    // the sheet as nested scroll and the sheet follows the finger down: the
-    // sheet takes its drag from the content's scrolling, and a player has
-    // nothing of its own to scroll.
-    val passDragToSheet = rememberScrollableState { 0f }
+    // The sheet's own drag is off (see PlayerSheet): this surface is the
+    // sheet as it looks and as it moves. Pulled down, it follows the finger;
+    // let go far enough down, or flicked, it closes — the sheet then hides
+    // with its own animation — and short of that it springs back. The
+    // sheet's drag, fed through nested scroll from content that scrolls
+    // nothing, did not move for a pull on the emulator, twice; this one is
+    // the pull 1.6.6 shipped and tested.
+    var pulled by remember { mutableFloatStateOf(0f) }
+    val closeAfter = with(LocalDensity.current) { CLOSE_AFTER_DP.dp.toPx() }
+    val pull = rememberDraggableState { delta -> pulled = (pulled + delta).coerceAtLeast(0f) }
     TrackTheme(track, state.coverSeed) {
         Surface(
-            color = Color.Transparent,
+            color = MaterialTheme.colorScheme.surface,
+            shape = BottomSheetDefaults.ExpandedShape,
             modifier = Modifier
                 .fillMaxSize()
-                .scrollable(passDragToSheet, Orientation.Vertical)
+                // Outside the layer it moves, so the finger is read in a
+                // frame that stays put.
+                .draggable(
+                    state = pull,
+                    orientation = Orientation.Vertical,
+                    onDragStopped = { velocity ->
+                        if (pulled > closeAfter || velocity > CLOSE_FLING) {
+                            onBack()
+                        } else {
+                            animate(pulled, 0f) { value, _ -> pulled = value }
+                        }
+                    }
+                )
+                .graphicsLayer { translationY = pulled }
         ) {
           Box(Modifier.fillMaxSize()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
                     .padding(horizontal = 24.dp)
             ) {
+                BottomSheetDefaults.DragHandle()
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                     IconButton(onClick = onBack) { Icon(Symbols.KeyboardArrowDown, contentDescription = "Close player") }
                     Text(
@@ -800,7 +832,7 @@ fun PlayerScreen(
                 }
                 Spacer(Modifier.weight(0.2f))
             }
-            SnackbarHost(host, modifier = Modifier.align(Alignment.BottomCenter))
+            SnackbarHost(host, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
           }
         }
         if (queueOpen) {
@@ -1088,6 +1120,11 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** How far the player is pulled down before letting go closes it. */
+private const val CLOSE_AFTER_DP = 120
+/** A flick down faster than this, in px a second, closes it from anywhere. */
+private const val CLOSE_FLING = 1_500f
 
 /** The order button's share of the second row: about as wide as it is tall. */
 private const val ORDER_WEIGHT = 0.45f
