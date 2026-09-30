@@ -1778,7 +1778,13 @@ class SmokeTest {
         awaitNoHeadsUp()
         tap(By.text("Lina Park"))
         scrollBackTo(By.desc("Play voice message"), "Lina's voice messages")
-        tap(By.desc("Play voice message"))
+        // Scrolling up, the second of the two comes into view first; both
+        // on screen, and the upper one tapped, so there is one to follow.
+        repeat(4) {
+            if (device.findObjects(By.desc("Play voice message")).size >= 2) return@repeat
+            dragList(0.4, 0.6)
+        }
+        tapTopmost(By.desc("Play voice message"))
         waitFor(By.textContains("1 more after this"), "the bar saying another follows")
         tap(By.desc("Voice speed 1×"))
         waitFor(By.desc("Voice speed 1.5×"), "the speed changed from the bar")
@@ -1908,8 +1914,10 @@ class SmokeTest {
             device.wait(Until.gone(By.descStartsWith("Now playing")), STEP_TIMEOUT)
         )
 
-        // Every chat's music in one place, from the chat list's menu.
-        backTo(By.text("Material Design"), "the chat list")
+        // Every chat's music in one place, from the chat list's menu. The
+        // bottom bar's Chats, not a chat's name: the list comes back scrolled
+        // to the channel, low down, with the top chats out of view.
+        backTo(By.text("Chats"), "the chat list")
         // The list comes back scrolled to where the channel was, low down,
         // with the collapsing header — and its menu — scrolled away above.
         repeat(4) {
