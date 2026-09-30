@@ -442,7 +442,8 @@ fun HomeScreen(
                             searchActions.onResultOpened(id)
                             onOpenChat(id)
                         },
-                        contentPadding = padding
+                        contentPadding = padding,
+                        musicBar = musicBar
                     )
                     return@AnimatedContent
                 }
