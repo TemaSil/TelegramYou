@@ -1885,21 +1885,6 @@ class SmokeTest {
         tap(By.desc("Play Morning Light"))
         waitFor(By.desc("Now playing: Morning Light"), "the mini player")
         screenshot("77-mini-player")
-        // Thrown to the left, the mini player goes on to the next track —
-        // at the foot of the screen since 1.6.7, over the composer here.
-        val strip = device.findObject(By.descStartsWith("Now playing")).visibleBounds
-        device.swipe(
-            strip.left + strip.width() * 4 / 5, strip.centerY(),
-            strip.left + strip.width() / 10, strip.centerY(),
-            20
-        )
-        // Through waitFor's fresh look, not Until.gone: through UiAutomator's
-        // cache this once went on seeing Morning Light for twenty seconds
-        // after the log showed two other tracks had started.
-        waitFor(
-            By.desc(Pattern.compile("Now playing: (?!Morning Light).*")),
-            "the mini player on another track after the swipe"
-        )
         // And the system's own player, in the shade — which 1.6.3 to 1.6.5
         // never had, because the session was not the service's (see
         // PlaybackService). Looked for in System UI only: the app's own
@@ -1977,11 +1962,26 @@ class SmokeTest {
         // top: the reach a one-handed phone asked for.
         dragList(0.3, 0.8)
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
-        tap(By.desc("Stop music"))
-        assertTrue(
-            "the mini player stayed after Stop",
-            device.wait(Until.gone(By.descStartsWith("Now playing")), STEP_TIMEOUT)
+        // Swiped away, as a notification is, the music stops (1.6.8).
+        val strip = device.findObject(By.descStartsWith("Now playing")).visibleBounds
+        device.swipe(
+            strip.left + strip.width() / 10, strip.centerY(),
+            strip.left + strip.width() * 9 / 10, strip.centerY(),
+            20
         )
+        // Looked for fresh, as waitFor looks: through UiAutomator's cache
+        // a mini player that had changed stayed "there" for twenty seconds.
+        val stopBy = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        var gone = false
+        while (!gone && SystemClock.uptimeMillis() < stopBy) {
+            if (Build.VERSION.SDK_INT >= 34) {
+                InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+            }
+            gone = !device.hasObject(By.descStartsWith("Now playing"))
+            if (!gone) SystemClock.sleep(300)
+        }
+        if (!gone) screenshot("failed-swiping-the-mini-player-away")
+        assertTrue("the mini player stayed after it was swiped away", gone)
 
         // Every chat's music in one place, from the chat list's menu. The
         // bottom bar's Chats, not a chat's name: the list comes back scrolled

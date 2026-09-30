@@ -12,7 +12,6 @@ import com.telegramyou.app.ui.stories.NewStoryViewModel
 import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import kotlinx.coroutines.launch
@@ -83,7 +82,6 @@ import com.telegramyou.app.music.MusicPlayer
 import com.telegramyou.app.music.NowPlaying
 import com.telegramyou.app.ui.music.MiniPlayer
 import com.telegramyou.app.ui.music.MusicActions
-import com.telegramyou.app.ui.music.PlayerScreen
 import com.telegramyou.app.ui.music.MyMusicScreen
 import com.telegramyou.app.ui.music.MyMusicViewModel
 import com.telegramyou.app.telegram.model.ChatMessage
@@ -168,7 +166,6 @@ fun TelegramYouNavHost(
             onToggle = { music?.toggle() },
             onNext = { music?.next() },
             onPrevious = { music?.previous() },
-            onPreviousTrack = { music?.previousTrack() },
             onSeek = { music?.seekTo(it) },
             onOrder = { music?.setOrder(it) },
             onRepeat = { music?.cycleRepeat() },
@@ -192,6 +189,8 @@ fun TelegramYouNavHost(
     val voiceNow by voiceFlow.collectAsStateWithLifecycle()
     // The voice message over the music, when both are on: it is the one
     // talking, and the shorter-lived.
+    // The full player, a bottom sheet over whatever screen is open (1.6.8).
+    var playerOpen by rememberSaveable { mutableStateOf(false) }
     // Split since 1.6.7: the voice bar stays at the top of a screen, and the
     // mini player goes to its foot, over the navigation bar or the
     // composer, where the thumb is.
@@ -204,7 +203,7 @@ fun TelegramYouNavHost(
         )
     }
     val playerBar: @Composable () -> Unit = {
-        MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
+        MiniPlayer(nowPlaying, musicActions, onOpen = { playerOpen = true })
     }
     /** A track tapped: the player's, and the same track again is play and pause. */
     val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
@@ -343,16 +342,13 @@ fun TelegramYouNavHost(
             )
         },
         exitTransition = {
-            // Under the player rising over it, the screen stays where it is.
-            if (targetState.destination.route == Route.Player.PATTERN) ExitTransition.KeepUntilTransitionsFinished
-            else if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
+            if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
                 animationSpec = spring()
             )
         },
         popEnterTransition = {
-            if (initialState.destination.route == Route.Player.PATTERN) EnterTransition.None
-            else if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
+            if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
                 animationSpec = spring()
             )
@@ -856,27 +852,6 @@ fun TelegramYouNavHost(
         }
 
         composable(
-            route = Route.Player.PATTERN,
-            // Up from the foot, where the mini player is, and back down —
-            // a sheet of the screen. It opened out of the mini player as a
-            // container transform in 1.6.6, which the owner found heavy to
-            // follow; with the mini player at the bottom, rising from there
-            // says the same thing more simply.
-            enterTransition = { slideInVertically(spring(stiffness = Spring.StiffnessMediumLow)) { it } },
-            popExitTransition = { slideOutVertically(spring(stiffness = Spring.StiffnessMediumLow)) { it } }
-        ) {
-            val looks by appearance.settings.collectAsStateWithLifecycle()
-            PlayerScreen(
-                nowPlaying,
-                musicActions,
-                onBack = { navController.popBackStack() },
-                // At the track's own message, not the bottom of the chat.
-                onOpenChat = { chatId -> openChatAt(chatId, nowPlaying.track?.messageId) },
-                coverMoves = looks.coverMoves
-            )
-        }
-
-        composable(
             route = Route.ChatMedia.PATTERN,
             arguments = Route.ChatMedia.arguments
         ) {
@@ -1314,6 +1289,18 @@ fun TelegramYouNavHost(
             }
             }
         }
+    }
+    // Over every screen: the full player, as a sheet. It goes with the music.
+    if (playerOpen && nowPlaying.track != null) {
+        val looks by appearance.settings.collectAsStateWithLifecycle()
+        com.telegramyou.app.ui.music.PlayerSheet(
+            state = nowPlaying,
+            actions = musicActions,
+            onDismiss = { playerOpen = false },
+            // At the track's own message, not the bottom of the chat.
+            onOpenChat = { chatId -> openChatAt(chatId, nowPlaying.track?.messageId) },
+            coverMoves = looks.coverMoves
+        )
     }
     }
     }

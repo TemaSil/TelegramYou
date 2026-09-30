@@ -35,6 +35,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -1124,8 +1126,14 @@ fun ChatScreen(
 
                 AnimatedVisibility(
                     visible = state.replyTo != null || state.editing != null,
-                    enter = fadeIn() + slideInVertically { it / 2 },
-                    exit = fadeOut()
+                    // Folding as well as fading, both ways: with only a fade
+                    // the banner's height went at once when a reply was sent
+                    // or dismissed, and the mini player and the capsule
+                    // under it dropped in one jump.
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
                 ) {
                     // One banner for both: they are alternatives, never both at
                     // once, and each cancels the other when chosen.
@@ -1140,8 +1148,11 @@ fun ChatScreen(
 
                 AnimatedVisibility(
                     visible = state.pendingAttachment != null,
-                    enter = fadeIn() + slideInVertically { it / 2 },
-                    exit = fadeOut()
+                    // As the reply banner above: folding, so nothing under it jumps.
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
                 ) {
                     AttachmentChip(
                         draft = state.pendingAttachment,

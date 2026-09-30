@@ -20,6 +20,7 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.animation.core.Animatable
@@ -122,8 +123,6 @@ class MusicActions(
     val onToggle: () -> Unit = {},
     val onNext: () -> Unit = {},
     val onPrevious: () -> Unit = {},
-    /** The track before, whatever the position: the mini player's swipe. */
-    val onPreviousTrack: () -> Unit = {},
     val onSeek: (Float) -> Unit = {},
     val onOrder: (QueueOrder) -> Unit = {},
     val onRepeat: () -> Unit = {},
@@ -201,9 +200,10 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
         exit = shrinkVertically() + fadeOut()
     ) {
         if (track == null) return@AnimatedVisibility
-        // Swiped left, the next track; right, the one before — the strip
-        // follows the finger, goes off the side it was thrown to and comes
-        // back in from the other with the new track, as a pager would.
+        // Swiped away to either side, the music stops — as a notification
+        // is swiped away. It changed the track in 1.6.7, and on a phone the
+        // whole strip leaving read as dismissing it anyway; the owner asked
+        // for it to mean that.
         val swipe = remember { Animatable(0f) }
         val scope = rememberCoroutineScope()
         var width by remember { mutableIntStateOf(0) }
@@ -229,11 +229,8 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                                 swipe.animateTo(0f, spring)
                                 return@draggable
                             }
-                            val out = if (forward) -width.toFloat() else width.toFloat()
-                            swipe.animateTo(out, spring)
-                            if (forward) actions.onNext() else actions.onPreviousTrack()
-                            swipe.snapTo(-out)
-                            swipe.animateTo(0f, spring)
+                            swipe.animateTo(if (forward) -width.toFloat() else width.toFloat(), spring)
+                            actions.onStop()
                         }
                     )
                     .graphicsLayer {
@@ -336,6 +333,49 @@ private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int, 
 }
 
 /**
+ * The full player as Material's modal bottom sheet, opened out from the
+ * mini player straight to full height — the owner's call for 1.6.8, after
+ * a screen of its own (1.6.6) and a slide from the foot (1.6.7) both read
+ * as "some other screen". The sheet brings its own opening and closing:
+ * the drag handle, a pull down from anywhere on it, Back, and the scrim.
+ * In the track's own colours, as the screen was.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlayerSheet(
+    state: NowPlaying,
+    actions: MusicActions,
+    onDismiss: () -> Unit,
+    onOpenChat: (Long) -> Unit,
+    coverMoves: Boolean
+) {
+    val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+    // Closed by the sheet's own animation, then taken off screen.
+    val close: () -> Unit = {
+        scope.launch { sheet.hide() }.invokeOnCompletion { if (!sheet.isVisible) onDismiss() }
+    }
+    TrackTheme(state.track, state.coverSeed) {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheet,
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            PlayerScreen(
+                state,
+                actions,
+                onBack = close,
+                onOpenChat = { chatId ->
+                    close()
+                    onOpenChat(chatId)
+                },
+                coverMoves = coverMoves
+            )
+        }
+    }
+}
+
+/**
  * The full player: the cover large, the track, a wavy progress that is also
  * where the finger seeks, and the controls — previous, a play button that
  * changes shape as it plays, next — with the order, repeat and speed under
@@ -372,39 +412,19 @@ fun PlayerScreen(
             if (result == SnackbarResult.ActionPerformed && savedTo != null) actions.onPlaySaved(savedTo)
         }
     }
-    // Pulled down, the player follows the finger; let go far enough down,
-    // or flicked, it closes — the arrow at the top is a long reach on a
-    // phone held in one hand. Let go short of that, it springs back.
-    var pulled by remember { mutableFloatStateOf(0f) }
-    val closeAfter = with(LocalDensity.current) { CLOSE_AFTER_DP.dp.toPx() }
-    val pull = rememberDraggableState { delta -> pulled = (pulled + delta).coerceAtLeast(0f) }
+    // Inside a ModalBottomSheet (PlayerSheet), which draws the surface,
+    // takes the status and navigation bars' insets, and is what a pull down
+    // or Back closes — the gesture this screen used to do by hand.
     TrackTheme(track, state.coverSeed) {
         Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier
-                .fillMaxSize()
-                // Outside the layer it moves: inside, the finger's position
-                // would be read in the moved frame and the drag would lag.
-                .draggable(
-                    state = pull,
-                    orientation = Orientation.Vertical,
-                    onDragStopped = { velocity ->
-                        if (pulled > closeAfter || velocity > CLOSE_FLING) {
-                            onBack()
-                        } else {
-                            animate(pulled, 0f) { value, _ -> pulled = value }
-                        }
-                    }
-                )
-                .graphicsLayer { translationY = pulled }
+            color = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
         ) {
           Box(Modifier.fillMaxSize()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxSize()
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
                     .padding(horizontal = 24.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -699,7 +719,7 @@ fun PlayerScreen(
                 }
                 Spacer(Modifier.weight(0.2f))
             }
-            SnackbarHost(host, modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+            SnackbarHost(host, modifier = Modifier.align(Alignment.BottomCenter))
           }
         }
         if (queueOpen) {
@@ -982,18 +1002,14 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 
 private const val UP_NEXT_SHOWN = 4
 
-/** How far across the mini player a swipe goes to change the track. */
+/** How far across the mini player a swipe goes to put it away. */
 private const val SWIPE_TRACK_FRACTION = 0.3f
-/** A flick sideways faster than this, in px a second, changes it from anywhere. */
+/** A flick sideways faster than this, in px a second, puts it away from anywhere. */
 private const val SWIPE_TRACK_FLING = 1_200f
 
 /** The cover while paused: what 20 dp in from each side was on a phone. */
 private const val PAUSED_COVER_SCALE = 0.9f
 
-/** How far the player is pulled down before letting go closes it. */
-private const val CLOSE_AFTER_DP = 120
-/** A flick down faster than this, in px a second, closes it from anywhere. */
-private const val CLOSE_FLING = 1_500f
 
 /** A pill's colours: the secondary tone while its setting is on, the surface's while it is not. */
 @Composable

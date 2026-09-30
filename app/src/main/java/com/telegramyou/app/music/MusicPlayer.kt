@@ -270,15 +270,6 @@ class MusicPlayer(
         go(before)
     }
 
-    /**
-     * The track before, wherever this one is: a swipe on the mini player
-     * means the track, where the button's first press means its start.
-     */
-    fun previousTrack() {
-        val before = _state.value.queue.retreated() ?: run { exo?.seekTo(0); return }
-        go(before)
-    }
-
     /** [queue], with what it plays now, started. */
     private fun go(queue: MusicQueue) {
         keepPosition()

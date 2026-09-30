@@ -158,12 +158,6 @@ sealed interface Route {
         override val path = PATTERN
     }
 
-    /** The full music player; see PlayerScreen. */
-    data object Player : Route {
-        const val PATTERN = "player"
-        override val path = PATTERN
-    }
-
     data object NewStory : Route {
         const val PATTERN = "stories/new"
         override val path = PATTERN

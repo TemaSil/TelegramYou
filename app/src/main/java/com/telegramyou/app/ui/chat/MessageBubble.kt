@@ -627,7 +627,10 @@ internal fun MessageBubble(
                             Text(message.text)
                         }
                     }
-                    MessageContentType.Audio -> {
+                    // A column: this branch sits in the bubble's Box, and
+                    // without one a track's caption ("🎵 Разум") was drawn
+                    // over the track rather than under it.
+                    MessageContentType.Audio -> Column {
                         val audio = message.audio
                         if (audio != null) {
                             AudioMessage(

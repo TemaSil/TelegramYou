@@ -409,6 +409,14 @@ from Android 15).
   as twitching.
 - **Large titles for Music and Search**, as Settings has.
 
+**1.6.8 — done 30 September: the player as a sheet.** From the owner's test
+of 1.6.7 on a phone: the player opens as Material's modal bottom sheet,
+straight to full height (`skipPartiallyExpanded`), so its opening and
+closing are the sheet's own; the mini player is swiped away to stop the
+music rather than to change track, which read as dismissing it; the reply
+banner and attachment chip fold as they go; and an audio message's
+caption, laid in the bubble's Box, is under the track instead of over it.
+
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:
 1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the
