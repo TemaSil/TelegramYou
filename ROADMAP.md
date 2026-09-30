@@ -426,8 +426,8 @@ The composer's jump as the keyboard closed, filmed by the owner, was the
 gesture bar shrinking back at the end of the keyboard's animation; the lift
 is measured from the resting bar now. A flick back towards the newest
 message within 2.5 s of a drag that hid the keyboard brings it back — the
-simple half of iOS's interactive dismissal; the keyboard following the
-finger (`WindowInsetsAnimationController`, Android 11+) is left for later.
+simple half of iOS's interactive dismissal. The other half, the keyboard
+following the finger, is not wanted — the owner's word.
 
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:

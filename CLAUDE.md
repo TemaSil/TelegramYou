@@ -339,6 +339,12 @@ rule of 27 September 2026, so a push builds one APK rather than two.
   flight, and a name that says nothing makes that list useless — this has
   been asked for twice.
 - Do not push to `main`, and do not open a pull request unless asked.
+- **Release notes live in `CHANGELOG.md`, not the README** — the owner's
+  call of 30 September 2026, once people started arriving and starring. The
+  front page names only the latest version, in its "Latest" section, so it
+  shows the project is alive without a wall of history. On a release, put
+  the version's notes at the top of CHANGELOG.md and replace README's
+  "Latest" paragraph.
 - The repository has a second developer as of September 2026, so a change
   that only makes sense to somebody who watched it being made needs a comment
   or a README line.
