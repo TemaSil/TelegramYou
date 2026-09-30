@@ -1766,18 +1766,35 @@ class SmokeTest {
         waitFor(By.text("Saved Messages"), "Saved Messages first in the library")
         waitFor(By.text("Just arrived"), "the library's front page")
         screenshot("84-library")
+        // Scrolled, for how the large title folds; then each page, for how
+        // they look — pictures for a person to judge, not assertions.
+        dragList(0.75, 0.3)
+        screenshot("84b-library-scrolled")
+        dragList(0.3, 0.75)
+        tap(By.text("Playlists"))
+        waitFor(By.text("Saved Messages"), "the playlists")
+        screenshot("84c-library-playlists")
+        tap(By.text("Artists"))
+        waitFor(By.text("Shape Shifters"), "the artists")
+        screenshot("84d-library-artists")
+        tap(By.text("Tracks"))
+        waitFor(By.text("Morning Light"), "the tracks")
+        screenshot("84e-library-tracks")
         tap(By.text("Albums"))
         tap(By.text("Shape Shifters"))
         waitFor(By.textStartsWith("Album · 4 tracks"), "the album's page")
         screenshot("85-album")
         tap(By.text("Play"))
         waitFor(By.desc("Now playing: Wavy Line"), "the album from its first track")
+        // Back on the tab, with the mini player at its foot.
+        device.pressBack()
+        waitFor(By.text("Albums"), "the library's tabs again")
+        screenshot("85b-library-playing")
 
         // Off again: the tests share one install, and with the library on
         // "My music" opens the library instead of the list another test
         // expects. Stopped first, so no music runs into the next test.
         tap(By.desc("Stop music"))
-        device.pressBack()
         tap(By.text("Settings"))
         waitFor(By.text("Appearance"), "the settings")
         scrollSettingsTo(By.text("For geeks"))
