@@ -1903,6 +1903,14 @@ class SmokeTest {
         tap(By.descStartsWith("Now playing"))
         waitFor(By.desc("Close player"), "the full player")
         waitFor(By.desc("Pause"), "the track playing")
+        // Each track round and round from here, before one is picked from
+        // the queue: the demo's are twelve seconds long, and the one picked
+        // is saved and looked for again later, by which time it would have
+        // ended and handed over. Set this late, it once caught the queue
+        // passing through Repeat all and wrapping round to another track.
+        tap(By.desc("Repeat off"))
+        tap(By.desc("Repeat all"))
+        waitFor(By.desc("Repeat one"), "the track on repeat")
         screenshot("78-player")
 
         tap(By.text("Queue"))
@@ -1922,13 +1930,6 @@ class SmokeTest {
             SystemClock.sleep(600)
         }
         waitFor(By.text("Tonal Spot"), "the player on the new track")
-        // Round and round on this one track from here: the demo's are
-        // twelve seconds long, and saving it carries it on from where it
-        // was, so without this it could end and hand over to the next track
-        // before "Tonal Spot" was looked for in Saved Messages' queue.
-        tap(By.desc("Repeat off"))
-        tap(By.desc("Repeat all"))
-        waitFor(By.desc("Repeat one"), "the track on repeat")
 
         // Three ways through the queue, from one button's menu.
         tap(By.desc("Order: In order"))
