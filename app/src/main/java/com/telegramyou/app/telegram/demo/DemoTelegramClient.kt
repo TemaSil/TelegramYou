@@ -2533,6 +2533,19 @@ class DemoTelegramClient(
                 .copy(location = LocationContent(37.7793, -122.4193, title = "Blue Bottle Coffee", address = "66 Mint St, San Francisco")),
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
             demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
+            // A track Lina sent: what the music library's "From your chats"
+            // is for — music from people, not channels.
+            demoMessage(905, 2, "", false, yesterday + 190, "Lina Park").copy(
+                contentType = MessageContentType.Audio,
+                audio = AudioContent(
+                    title = "Spring Back",
+                    performer = "Tonal Collective",
+                    durationSeconds = DEMO_AUDIO_SECONDS,
+                    fileName = "spring-back.wav",
+                    fileId = DEMO_AUDIO_FILE_ID
+                ),
+                voiceFileId = DEMO_AUDIO_FILE_ID
+            ),
             // Two voice messages in a row, as people send them: tapping the
             // first plays both, the second after the first.
             demoMessage(903, 2, "0:12", false, yesterday + 200, "Lina Park", contentType = MessageContentType.Voice)

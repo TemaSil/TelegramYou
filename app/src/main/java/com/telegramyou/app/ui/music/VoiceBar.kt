@@ -73,7 +73,7 @@ fun VoiceBar(
                     ) {
                         Text(who, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            if (state.following > 0) "Voice message · ${state.following} more after this" else "Voice message",
+                            if (state.following > 0) "Voice message · ${state.following} more" else "Voice message",
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis

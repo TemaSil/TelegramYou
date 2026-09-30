@@ -213,7 +213,9 @@ private fun LibraryTabs(
             )
         }
     }
-    HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
+    // Pages from the top: a pager centres a page shorter than itself, and
+    // For you sat halfway down an empty screen.
+    HorizontalPager(state = pager, verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxSize()) { page ->
         when (page) {
             0 -> ForYou(library, actions, lineUp)
             1 -> CollectionGrid(library.playlists, "No chat has more than one track yet", onOpen)

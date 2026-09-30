@@ -1785,7 +1785,7 @@ class SmokeTest {
             dragList(0.4, 0.6)
         }
         tapTopmost(By.desc("Play voice message"))
-        waitFor(By.textContains("1 more after this"), "the bar saying another follows")
+        waitFor(By.text("Voice message · 1 more"), "the bar saying another follows")
         tap(By.desc("Voice speed 1×"))
         waitFor(By.desc("Voice speed 1.5×"), "the speed changed from the bar")
         screenshot("83-voice-bar")
