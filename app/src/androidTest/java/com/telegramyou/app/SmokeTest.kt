@@ -1888,11 +1888,16 @@ class SmokeTest {
         // And the system's own player, in the shade — which 1.6.3 to 1.6.5
         // never had, because the session was not the service's (see
         // PlaybackService). Looked for in System UI only: the app's own
-        // mini player says the same title under the shade.
+        // mini player says the same under the shade. By the channel's
+        // performers rather than one title: a twelve-second track can end
+        // while the shade comes down, and the next one is as good a proof.
         device.openNotification()
         assertTrue(
-            "the track is not in the shade's player",
-            device.wait(Until.hasObject(By.pkg("com.android.systemui").textContains("Morning Light")), STEP_TIMEOUT)
+            "the music is not in the shade's player",
+            device.wait(
+                Until.hasObject(By.pkg(SYSTEM_UI).text(Pattern.compile(".*(Tonal Collective|Shape Shifters|Material Sound).*"))),
+                STEP_TIMEOUT
+            )
         )
         screenshot("77b-shade-player")
         device.pressBack()
