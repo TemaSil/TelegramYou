@@ -114,7 +114,7 @@ a wide screen the navigation becomes a rail.
 - **The player as a bottom sheet** — Material's modal sheet, opened straight to full height, closed by its handle, a pull down or Back.
 - **Swipe the mini player away** to stop the music, as a notification is swiped away. Swiping it to change track, new in 1.6.7, read as dismissing it on a phone.
 - **A smoother composer** — the reply banner and the attachment chip fold away rather than vanish, so the mini player and the capsule settle instead of jumping.
-- **The player's buttons as an Expressive button group** — the one under the finger widens and the others give way.
+- **The player's buttons as Expressive button groups**, both rows — the one under the finger widens and the others give way.
 - **Mini player at the top** (Appearance → Music), off by default — for whoever preferred it under the title, as until 1.6.7.
 - **Fixed:** a track sent with a caption drew the caption over the track.
 

@@ -685,36 +685,70 @@ fun PlayerScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 // How it plays, as pills in the surface's own tone: second to
-                // the row above, and wide enough to hit without looking.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                // the row above, and wide enough to hit without looking. A
+                // ButtonGroup as the row above is, weighted the same way, so
+                // a press widens here too.
+                ButtonGroup(
+                    overflowIndicator = { menu -> ButtonGroupDefaults.OverflowIndicator(menuState = menu) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    OrderButton(state.queue.order, actions.onOrder)
-                    val repeatOn = state.queue.repeat != RepeatMode.Off
-                    FilledTonalButton(
-                        onClick = actions.onRepeat,
-                        colors = pillColors(repeatOn),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                    ) {
-                        Icon(
-                            if (state.queue.repeat == RepeatMode.One) Symbols.RepeatOne else Symbols.Repeat,
-                            contentDescription = state.queue.repeat.label
-                        )
-                    }
-                    FilledTonalButton(
-                        onClick = actions.onSpeed,
-                        colors = pillColors(state.speed != 1f),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                            .semantics { contentDescription = "Speed ${speedLabel(state.speed)}" }
-                    ) {
-                        Text(speedLabel(state.speed), style = MaterialTheme.typography.titleMedium)
-                    }
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            OrderButton(
+                                state.queue.order,
+                                actions.onOrder,
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(ORDER_WEIGHT)
+                                    .animateWidth(source)
+                                    .height(56.dp)
+                            )
+                        },
+                        menuContent = {
+                            DropdownMenuItem(text = { Text("Order: ${state.queue.order.label}") }, onClick = {})
+                        }
+                    )
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            FilledTonalButton(
+                                onClick = actions.onRepeat,
+                                colors = pillColors(state.queue.repeat != RepeatMode.Off),
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .animateWidth(source)
+                                    .height(56.dp)
+                            ) {
+                                Icon(
+                                    if (state.queue.repeat == RepeatMode.One) Symbols.RepeatOne else Symbols.Repeat,
+                                    contentDescription = state.queue.repeat.label
+                                )
+                            }
+                        },
+                        menuContent = { DropdownMenuItem(text = { Text(state.queue.repeat.label) }, onClick = actions.onRepeat) }
+                    )
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            FilledTonalButton(
+                                onClick = actions.onSpeed,
+                                colors = pillColors(state.speed != 1f),
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .animateWidth(source)
+                                    .height(56.dp)
+                                    .semantics { contentDescription = "Speed ${speedLabel(state.speed)}" }
+                            ) {
+                                Text(speedLabel(state.speed), style = MaterialTheme.typography.titleMedium)
+                            }
+                        },
+                        menuContent = {
+                            DropdownMenuItem(text = { Text("Speed ${speedLabel(state.speed)}") }, onClick = actions.onSpeed)
+                        }
+                    )
                 }
                 Spacer(Modifier.height(16.dp))
                 // The small things at the foot, as chips: the sleep timer on
@@ -794,14 +828,20 @@ fun PlayerScreen(
  * plain order, the way repeat is tonal when it is on.
  */
 @Composable
-private fun OrderButton(order: QueueOrder, onOrder: (QueueOrder) -> Unit) {
+private fun OrderButton(
+    order: QueueOrder,
+    onOrder: (QueueOrder) -> Unit,
+    modifier: Modifier = Modifier.size(56.dp),
+    interactionSource: MutableInteractionSource? = null
+) {
     var open by remember { mutableStateOf(false) }
-    Box {
+    Box(modifier) {
         FilledTonalIconButton(
             onClick = { open = true },
             colors = if (order != QueueOrder.Listed) IconButtonDefaults.filledTonalIconButtonColors() else
                 IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
-            modifier = Modifier.size(56.dp)
+            interactionSource = interactionSource,
+            modifier = Modifier.fillMaxSize()
         ) {
             // Plain order shows the shuffle symbol, untinted, as players do:
             // an arrow down on its own read as "download". The arrows are in
@@ -1039,6 +1079,9 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** The order button's share of the second row: about as wide as it is tall. */
+private const val ORDER_WEIGHT = 0.45f
 
 /** How far across the mini player a swipe goes to put it away. */
 private const val SWIPE_TRACK_FRACTION = 0.3f
