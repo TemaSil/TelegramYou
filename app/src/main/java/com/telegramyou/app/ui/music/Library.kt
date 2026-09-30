@@ -308,7 +308,7 @@ private fun ForYou(
             items(shown, key = { "s${it.message.chatId}:${it.message.id}" }) { item ->
                 TrackRow(item, onPlay = {
                     actions.onPlay(saved.title, saved.tracks.map { it.message }, item.message, false)
-                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
+                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) }, showWhere = false)
             }
             if (saved.tracks.size > shown.size) {
                 item(key = "saved-all") {
@@ -503,7 +503,9 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
                 item,
                 onPlay = { actions.onPlay(collection.title, messages, item.message, false) },
                 lineUp = lineUp,
-                onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) }
+                onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) },
+                // A playlist is one chat, and its name is the page's title.
+                showWhere = collection.kind != CollectionKind.Playlist
             )
         }
     }
@@ -511,7 +513,18 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
 
 /** A track: its cover, title, performer and length, and who sent it where; the menu lines it up or opens its chat. */
 @Composable
-private fun TrackRow(item: LibraryTrack, onPlay: () -> Unit, lineUp: (ChatMessage, Boolean) -> Unit, onOpenChat: () -> Unit) {
+private fun TrackRow(
+    item: LibraryTrack,
+    onPlay: () -> Unit,
+    lineUp: (ChatMessage, Boolean) -> Unit,
+    onOpenChat: () -> Unit,
+    /**
+     * Who sent it where, after the performer and length. Left off under a
+     * heading that already says where — Saved Messages' shelf, a
+     * playlist's page — where every row repeated the heading.
+     */
+    showWhere: Boolean = true
+) {
     var menu by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier.clickable(onClick = onPlay),
@@ -521,7 +534,7 @@ private fun TrackRow(item: LibraryTrack, onPlay: () -> Unit, lineUp: (ChatMessag
                 listOf(
                     item.track.performer,
                     item.track.durationSeconds.takeIf { it > 0 }?.let { formatDuration(it.toLong()) },
-                    item.provenance
+                    item.provenance.takeIf { showWhere }
                 ).filter { !it.isNullOrBlank() }.joinToString(" · "),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
