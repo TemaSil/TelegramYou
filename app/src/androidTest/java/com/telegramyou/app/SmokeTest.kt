@@ -2023,7 +2023,13 @@ class SmokeTest {
         waitFor(By.textContains("from Material Sound"), "a track found in every chat's music")
         screenshot("81-search-music")
         tap(By.desc("Play Tonal Spot"))
-        waitFor(By.desc("Now playing: Tonal Spot"), "the mini player over search")
+        // The mini player is at the foot of the page since 1.6.7, under the
+        // keyboard while there is one: the keyboard goes down first. Back
+        // only while it is up — without it, Back clears the query.
+        if (device.executeShellCommand("dumpsys input_method").contains("mInputShown=true")) {
+            device.pressBack()
+        }
+        waitFor(By.desc("Now playing: Tonal Spot"), "the mini player under search")
     }
 
     /**
