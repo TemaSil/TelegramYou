@@ -77,6 +77,7 @@ class MusicLibraryTest {
     fun `saved messages is its own shelf, newest first`() {
         val saved = library.saved!!
         assertEquals(listOf("Morning Light", "Tonal Spot"), saved.tracks.map { it.track.title })
+        assertEquals("Saved Messages", saved.tracks.first().provenance)
         assertEquals("Saved Messages", library.collection(saved.key)?.title)
     }
 

@@ -46,10 +46,14 @@ data class LibraryTrack(
     val chatTitle: String,
     val fromChannel: Boolean
 ) {
-    /** "Sent by Lina in Design Circle", or just the channel's name. */
+    /**
+     * "Sent by Lina in Design Circle", or just the chat's name for a
+     * channel's post and for one's own — "Sent by You in Saved Messages"
+     * said the same thing twice under the Saved Messages heading.
+     */
     val provenance: String
         get() = when {
-            fromChannel || track.senderName.isBlank() -> chatTitle
+            fromChannel || message.isOutgoing || track.senderName.isBlank() -> chatTitle
             track.senderName == chatTitle -> "Sent by ${track.senderName}"
             else -> "Sent by ${track.senderName} in $chatTitle"
         }
