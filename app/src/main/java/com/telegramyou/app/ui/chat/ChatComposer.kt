@@ -311,9 +311,11 @@ internal fun ComposerBar(
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "capsuleTop"
     )
+    // Held at zero: the spring overshoots, and a shape with a negative
+    // corner throws rather than drawing square.
     val capsuleShape = RoundedCornerShape(
-        topStart = topCorner,
-        topEnd = topCorner,
+        topStart = topCorner.coerceAtLeast(0.dp),
+        topEnd = topCorner.coerceAtLeast(0.dp),
         bottomStart = corner,
         bottomEnd = corner
     )

@@ -20,6 +20,8 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -407,17 +409,26 @@ fun PlayerScreen(
                 Spacer(Modifier.weight(0.4f))
                 // The cover breathes with the music: a touch larger while it
                 // plays, back when it stops, on the motion scheme's spring.
-                val inset by animateDpAsState(
-                    targetValue = if (state.isPlaying) 0.dp else 20.dp,
+                // As a scale, not as padding: an expressive spring overshoots
+                // its target, and padding springing to 0 went briefly below
+                // it — "Padding must be non-negative", which closed the app
+                // whenever a track started or paused (1.6.3 and 1.6.4). CI
+                // runs with animations off and never saw it. A scale past 1
+                // is just the bounce.
+                val scale by animateFloatAsState(
+                    targetValue = if (state.isPlaying) 1f else PAUSED_COVER_SCALE,
                     animationSpec = MaterialTheme.motionScheme.slowSpatialSpec(),
-                    label = "coverInset"
+                    label = "coverScale"
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .widthIn(max = 420.dp)
                         .aspectRatio(1f)
-                        .padding(inset),
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -878,6 +889,9 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** The cover while paused: what 20 dp in from each side was on a phone. */
+private const val PAUSED_COVER_SCALE = 0.9f
 
 /** A pill's colours: the secondary tone while its setting is on, the surface's while it is not. */
 @Composable

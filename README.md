@@ -109,6 +109,10 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.5
+
+- **Fixed: the app closing when a track started or paused.** The player's cover springs slightly past its size as it plays; that spring was on its padding, which cannot go below zero. It is a scale now.
+
 ## New in 1.6.4
 
 - **Up next** — Play next and Add to queue on any track, from a chat, My music or the library, before the queue goes on.
