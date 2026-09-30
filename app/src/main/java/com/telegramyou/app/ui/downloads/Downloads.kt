@@ -256,7 +256,9 @@ fun DownloadsScreen(
     state: DownloadsUiState,
     onBack: () -> Unit,
     onOpenChat: (Long) -> Unit,
-    musicBar: @Composable () -> Unit = {}
+    musicBar: @Composable () -> Unit = {},
+    /** The mini player, at the foot of the screen. */
+    playerBar: @Composable () -> Unit = {}
 ) {
     val context = LocalContext.current
     val copies = remember { SavedCopies(context) }
@@ -282,6 +284,7 @@ fun DownloadsScreen(
     }
 
     Scaffold(
+        bottomBar = { playerBar() },
         topBar = {
             TopAppBar(
                 title = { Text("Downloads") },

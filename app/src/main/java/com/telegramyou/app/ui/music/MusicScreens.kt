@@ -20,6 +20,9 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import kotlin.math.abs
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -66,7 +69,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.Shape
-import com.telegramyou.app.ui.motion.containerTransform
 import com.telegramyou.app.ui.motion.LocalReduceMotion
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.material3.LinearProgressIndicator
@@ -120,6 +122,8 @@ class MusicActions(
     val onToggle: () -> Unit = {},
     val onNext: () -> Unit = {},
     val onPrevious: () -> Unit = {},
+    /** The track before, whatever the position: the mini player's swipe. */
+    val onPreviousTrack: () -> Unit = {},
     val onSeek: (Float) -> Unit = {},
     val onOrder: (QueueOrder) -> Unit = {},
     val onRepeat: () -> Unit = {},
@@ -173,11 +177,8 @@ internal fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composa
     )
 }
 
-/** The one container the mini player and the full player share. */
-const val PLAYER_CONTAINER = "player"
-
-/** The mini player's corners, which the player opens out of. */
-val PlayerContainerShape: Shape = RoundedCornerShape(20.dp)
+/** The mini player's corners. */
+private val PlayerContainerShape: Shape = RoundedCornerShape(20.dp)
 
 /**
  * The mini player: a strip under a screen's top bar while something plays,
@@ -200,6 +201,14 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
         exit = shrinkVertically() + fadeOut()
     ) {
         if (track == null) return@AnimatedVisibility
+        // Swiped left, the next track; right, the one before — the strip
+        // follows the finger, goes off the side it was thrown to and comes
+        // back in from the other with the new track, as a pager would.
+        val swipe = remember { Animatable(0f) }
+        val scope = rememberCoroutineScope()
+        var width by remember { mutableIntStateOf(0) }
+        val drag = rememberDraggableState { delta -> scope.launch { swipe.snapTo(swipe.value + delta) } }
+        val spring = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
         TrackTheme(track, state.coverSeed) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -208,9 +217,29 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 4.dp)
-                    // The player opens out of this strip and closes back
-                    // into it, as a chat does out of its row.
-                    .containerTransform(PLAYER_CONTAINER, PlayerContainerShape)
+                    .onSizeChanged { width = it.width }
+                    .draggable(
+                        state = drag,
+                        orientation = Orientation.Horizontal,
+                        onDragStopped = { velocity ->
+                            val far = width * SWIPE_TRACK_FRACTION
+                            val forward = swipe.value < -far || velocity < -SWIPE_TRACK_FLING
+                            val back = swipe.value > far || velocity > SWIPE_TRACK_FLING
+                            if (!forward && !back) {
+                                swipe.animateTo(0f, spring)
+                                return@draggable
+                            }
+                            val out = if (forward) -width.toFloat() else width.toFloat()
+                            swipe.animateTo(out, spring)
+                            if (forward) actions.onNext() else actions.onPreviousTrack()
+                            swipe.snapTo(-out)
+                            swipe.animateTo(0f, spring)
+                        }
+                    )
+                    .graphicsLayer {
+                        translationX = swipe.value
+                        alpha = 1f - (abs(swipe.value) / width.coerceAtLeast(1)).coerceIn(0f, 1f) * 0.6f
+                    }
                     .clip(PlayerContainerShape)
                     .clickable(onClick = onOpen)
                     .semantics { contentDescription = "Now playing: ${track.title}" }
@@ -320,9 +349,7 @@ fun PlayerScreen(
     onBack: () -> Unit,
     onOpenChat: (Long) -> Unit = actions.onOpenChat,
     /** The cover's edges moving on the beat; Appearance → Motion. */
-    coverMoves: Boolean = true,
-    /** The container transform out of the mini player; see PLAYER_CONTAINER. */
-    modifier: Modifier = Modifier
+    coverMoves: Boolean = true
 ) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
@@ -356,8 +383,8 @@ fun PlayerScreen(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxSize()
-                .then(modifier)
-                .graphicsLayer { translationY = pulled }
+                // Outside the layer it moves: inside, the finger's position
+                // would be read in the moved frame and the drag would lag.
                 .draggable(
                     state = pull,
                     orientation = Orientation.Vertical,
@@ -369,6 +396,7 @@ fun PlayerScreen(
                         }
                     }
                 )
+                .graphicsLayer { translationY = pulled }
         ) {
           Box(Modifier.fillMaxSize()) {
             Column(
@@ -953,6 +981,11 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** How far across the mini player a swipe goes to change the track. */
+private const val SWIPE_TRACK_FRACTION = 0.3f
+/** A flick sideways faster than this, in px a second, changes it from anywhere. */
+private const val SWIPE_TRACK_FLING = 1_200f
 
 /** The cover while paused: what 20 dp in from each side was on a phone. */
 private const val PAUSED_COVER_SCALE = 0.9f

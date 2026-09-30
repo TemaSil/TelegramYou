@@ -1885,6 +1885,19 @@ class SmokeTest {
         tap(By.desc("Play Morning Light"))
         waitFor(By.desc("Now playing: Morning Light"), "the mini player")
         screenshot("77-mini-player")
+        // Thrown to the left, the mini player goes on to the next track —
+        // at the foot of the screen since 1.6.7, over the composer here.
+        val strip = device.findObject(By.descStartsWith("Now playing")).visibleBounds
+        device.swipe(
+            strip.left + strip.width() * 4 / 5, strip.centerY(),
+            strip.left + strip.width() / 10, strip.centerY(),
+            10
+        )
+        assertTrue(
+            "the swipe did not change the track",
+            device.wait(Until.gone(By.desc("Now playing: Morning Light")), STEP_TIMEOUT)
+        )
+        waitFor(By.descStartsWith("Now playing"), "the mini player on the next track")
         // And the system's own player, in the shade — which 1.6.3 to 1.6.5
         // never had, because the session was not the service's (see
         // PlaybackService). Looked for in System UI only: the app's own

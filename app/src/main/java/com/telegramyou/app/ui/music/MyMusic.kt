@@ -136,6 +136,8 @@ fun MyMusicScreen(
     onNearEnd: () -> Unit,
     onPlay: (ChatMessage) -> Unit,
     musicBar: @Composable () -> Unit = {},
+    /** The mini player, at the foot of the screen. */
+    playerBar: @Composable () -> Unit = {},
     /** A track into the player's Up next: first (true) or last. */
     onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
     /** The music library, where For geeks has it on; null hides the way in. */
@@ -144,6 +146,7 @@ fun MyMusicScreen(
     val host = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     Scaffold(
+        bottomBar = { playerBar() },
         snackbarHost = { SnackbarHost(host) },
         topBar = {
             TopAppBar(

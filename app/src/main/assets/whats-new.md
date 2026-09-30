@@ -1,5 +1,5 @@
-# The player, within reach
-- The player opens out of the mini player, and closes by pulling it down
-- Back in the shade and on the lock screen; titles stay on one line
-- Music library: a Music tab of its own, with Saved Messages first
-- A slimmer mini player, and a quieter "connected" notice
+# Music at hand
+- The mini player sits at the bottom; swipe it sideways to change track
+- The player rises from below; Open chat goes to the track's own message
+- The cover breathes into a scalloped shape on the beat, no more twitching
+- Music and Search get large titles, like Settings; a tidier voice bar

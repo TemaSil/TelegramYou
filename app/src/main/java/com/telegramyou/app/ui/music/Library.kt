@@ -68,6 +68,11 @@ import com.telegramyou.app.telegram.model.MusicLibrary
 import com.telegramyou.app.telegram.model.buildLibrary
 import com.telegramyou.app.ui.chat.formatDuration
 import com.telegramyou.app.ui.icons.Symbols
+import com.telegramyou.app.ui.components.LargeTitle
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.LargeTopAppBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -122,7 +127,8 @@ class MusicLibraryViewModel(private val repository: TelegramRepository) : ViewMo
 class LibraryActions(
     val onPlay: (title: String, tracks: List<ChatMessage>, start: ChatMessage?, shuffle: Boolean) -> Unit = { _, _, _, _ -> },
     val onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
-    val onOpenChat: (Long) -> Unit = {},
+    /** The chat a track is in, opened at the track's own message. */
+    val onOpenChat: (chatId: Long, messageId: Long) -> Unit = { _, _ -> },
     /** Every track, searchable: My music. */
     val onSearch: () -> Unit = {}
 )
@@ -144,7 +150,9 @@ fun MusicLibraryScreen(
     actions: LibraryActions,
     /** Null as a bottom-bar tab, where there is nowhere to go back to. */
     onBack: (() -> Unit)?,
-    musicBar: @Composable () -> Unit = {}
+    musicBar: @Composable () -> Unit = {},
+    /** The mini player, at the foot; none as Home's tab, whose own is there. */
+    playerBar: @Composable () -> Unit = {}
 ) {
     var openKey by rememberSaveable { mutableStateOf<String?>(null) }
     val open = openKey?.let { state.library.collection(it) }
@@ -155,8 +163,32 @@ fun MusicLibraryScreen(
         actions.onLineUp(message, first)
         scope.launch { host.showSnackbar(if (first) "Plays next" else "Added to the queue") }
     }
+    // As a tab, named large like Settings and Search, folding as the page
+    // scrolls; as a screen, or with a collection open, the ordinary bar.
+    val large = onBack == null && open == null
+    val largeBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val actionsRow: @Composable RowScope.() -> Unit = {
+        if (open == null) {
+            IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = "Search music") }
+        }
+        if (open == null && !state.library.isEmpty) {
+            IconButton(onClick = {
+                actions.onPlay("Music library", state.library.tracks.map { it.message }, null, true)
+            }) { Icon(Symbols.Shuffle, contentDescription = "Shuffle everything") }
+        }
+    }
     Scaffold(
+        modifier = if (large) Modifier.nestedScroll(largeBar.nestedScrollConnection) else Modifier,
+        bottomBar = { playerBar() },
         topBar = {
+            if (large) {
+                LargeTopAppBar(
+                    title = { LargeTitle("Music", largeBar.state.collapsedFraction) },
+                    actions = actionsRow,
+                    scrollBehavior = largeBar
+                )
+                return@Scaffold
+            }
             TopAppBar(
                 title = { Text(open?.title ?: if (onBack == null) "Music" else "Music library", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
@@ -166,16 +198,7 @@ fun MusicLibraryScreen(
                         }
                     }
                 },
-                actions = {
-                    if (open == null) {
-                        IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = "Search music") }
-                    }
-                    if (open == null && !state.library.isEmpty) {
-                        IconButton(onClick = {
-                            actions.onPlay("Music library", state.library.tracks.map { it.message }, null, true)
-                        }) { Icon(Symbols.Shuffle, contentDescription = "Shuffle everything") }
-                    }
-                }
+                actions = actionsRow
             )
         },
         snackbarHost = { SnackbarHost(host) }
@@ -285,7 +308,7 @@ private fun ForYou(
             items(shown, key = { "s${it.message.chatId}:${it.message.id}" }) { item ->
                 TrackRow(item, onPlay = {
                     actions.onPlay(saved.title, saved.tracks.map { it.message }, item.message, false)
-                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId) })
+                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
             }
             if (saved.tracks.size > shown.size) {
                 item(key = "saved-all") {
@@ -358,7 +381,7 @@ private fun ForYou(
         items(library.fromPeople, key = { "p${it.message.chatId}:${it.message.id}" }) { item ->
             TrackRow(item, onPlay = {
                 actions.onPlay("From your chats", library.fromPeople.map { it.message }, item.message, false)
-            }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId) })
+            }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
         }
     }
 }
@@ -429,7 +452,7 @@ private fun TrackList(tracks: List<LibraryTrack>, title: String, actions: Librar
                 item,
                 onPlay = { actions.onPlay(title, tracks.map { it.message }, item.message, false) },
                 lineUp = lineUp,
-                onOpenChat = { actions.onOpenChat(item.message.chatId) }
+                onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) }
             )
         }
     }
@@ -480,7 +503,7 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
                 item,
                 onPlay = { actions.onPlay(collection.title, messages, item.message, false) },
                 lineUp = lineUp,
-                onOpenChat = { actions.onOpenChat(item.message.chatId) }
+                onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) }
             )
         }
     }

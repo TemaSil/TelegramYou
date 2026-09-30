@@ -11,28 +11,30 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.asComposePath
+import androidx.graphics.shapes.CornerRounding
+import androidx.graphics.shapes.Morph
+import androidx.graphics.shapes.RoundedPolygon
+import androidx.graphics.shapes.toPath
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.unit.dp
 import com.telegramyou.app.ui.motion.LocalReduceMotion
-import kotlin.math.PI
 
 /**
- * The player's cover, clipped to a rounded square whose edges ripple a
- * little on the beat — the owner's idea for 1.6.4, and on unless switched off
- * in Appearance. Material's shapes move to say something is happening; here
- * what is happening is the music.
+ * The player's cover, a rounded square that breathes on the beat into a
+ * cookie — the scalloped square of Material's shape library, the family the
+ * avatars morph through — and back. On unless switched off in Appearance.
  *
- * Only the flat of each edge moves, a few dp inwards on a hit; the corners
- * keep their radius and the cover keeps its size, so at rest it is the plain
- * rounded square. The ripples drift slowly round the edge as well, so two
- * beats in a row do not look like the same frame twice. Still with Less
- * motion on, and still while paused: it settles back rather than stopping
- * mid-ripple.
+ * Its first version rippled the edges with a wave that also crept round
+ * them, and on a phone that read as twitching. This is a morph between two
+ * shapes instead, shallow, rising with a hit and settling slowly after it:
+ * the artwork stays whole, and the shape says the music is playing. Still
+ * with Less motion on, and settling back while paused rather than stopping
+ * mid-breath.
  *
  * The shape is set on the layer rather than through clip(): the beat is read
  * every frame, and reading it in the layer's block redraws the layer without
@@ -48,33 +50,27 @@ fun Modifier.pulsingCover(
 ): Modifier {
     val moving = enabled && !LocalReduceMotion.current
     val level = remember { mutableFloatStateOf(0f) }
-    val drift = remember { mutableFloatStateOf(0f) }
+    val morph = remember { CoverMorph() }
     DisposableEffect(moving) {
         onWatched(moving)
         onDispose { onWatched(false) }
     }
     LaunchedEffect(moving, playing) {
-        if (moving && playing) follow(beat, level, drift) else settle(level)
+        if (moving && playing) follow(beat, level) else settle(level)
     }
     return graphicsLayer {
-        val depth = level.floatValue * MAX_DEPTH.toPx()
-        shape = RippledShape(corner.toPx(), depth, drift.floatValue)
+        shape = if (level.floatValue <= 0f) RoundedCornerShape(corner) else MorphShape(morph.shape, level.floatValue)
         clip = true
     }
 }
 
-/** Frame by frame: the beat, eased a touch so a slice never reads as a jump. */
-private suspend fun follow(beat: () -> Float, level: MutableFloatState, drift: MutableFloatState) {
-    var last = 0L
+/** Frame by frame: quick to rise with a hit, slow to settle after it. */
+private suspend fun follow(beat: () -> Float, level: MutableFloatState) {
     while (true) {
-        withFrameNanos { now ->
-            val dt = if (last == 0L) 16f else (now - last) / 1_000_000f
-            last = now
+        withFrameNanos {
             val target = beat().coerceIn(0f, 1f)
-            // Up fast, down on the beat's own fall.
-            val rate = if (target > level.floatValue) 0.6f else 0.25f
+            val rate = if (target > level.floatValue) RISE else SETTLE
             level.floatValue += (target - level.floatValue) * rate
-            drift.floatValue = ((drift.floatValue + dt / DRIFT_MS * 2 * PI.toFloat()) % (2 * PI.toFloat()))
         }
     }
 }
@@ -84,24 +80,43 @@ private suspend fun settle(level: MutableFloatState) {
     animate(level.floatValue, 0f) { value, _ -> level.floatValue = value }
 }
 
-private class RippledShape(
-    private val corner: Float,
-    private val depth: Float,
-    private val phase: Float
-) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        val side = minOf(size.width, size.height)
-        val points = rippledSquare(side, corner, depth, waves = WAVES, phase = phase)
-        val path = Path()
-        path.moveTo(points[0], points[1])
-        for (i in 2 until points.size step 2) path.lineTo(points[i], points[i + 1])
-        path.close()
-        return Outline.Generic(path)
+/**
+ * The rounded square and the cookie, as one morph. Built from the same
+ * outline at two depths (scallopedSquare in :core): corners rounded to
+ * about the cover's 16 dp in both, the scallops rounded only in the cookie.
+ */
+private class CoverMorph {
+    val shape: Morph = Morph(polygon(0f), polygon(COOKIE_DEPTH))
+
+    private fun polygon(depth: Float): RoundedPolygon {
+        val vertices = scallopedSquare(SCALLOPS, depth)
+        val perEdge = SCALLOPS * 2
+        val rounding = List(vertices.size / 2) { v ->
+            when {
+                v % perEdge == 0 -> CornerRounding(CORNER, smoothing = 1f)
+                depth > 0f -> CornerRounding(SCALLOP, smoothing = 1f)
+                else -> CornerRounding.Unrounded
+            }
+        }
+        return RoundedPolygon(vertices = vertices, perVertexRounding = rounding).normalized()
     }
 }
 
-/** How far in an edge goes on the biggest hit: "a little at the edges". */
-private val MAX_DEPTH = 7.dp
-private const val WAVES = 3
-/** Once round the edge every eight seconds. */
-private const val DRIFT_MS = 8_000f
+/** One moment of the morph, scaled from its unit square to the cover. */
+private class MorphShape(private val morph: Morph, private val progress: Float) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
+        val path = morph.toPath(progress)
+        path.transform(android.graphics.Matrix().apply { setScale(size.width, size.height) })
+        return Outline.Generic(path.asComposePath())
+    }
+}
+
+/** Three scallops a side: enough to read as a cookie, few enough to stay soft. */
+private const val SCALLOPS = 3
+/** How deep the scallops go at the biggest hit, of the square's half-width. */
+private const val COOKIE_DEPTH = 0.07f
+/** The corners, of the half-width: about 16 dp on a phone's cover. */
+private const val CORNER = 0.09f
+private const val SCALLOP = 0.16f
+private const val RISE = 0.35f
+private const val SETTLE = 0.07f

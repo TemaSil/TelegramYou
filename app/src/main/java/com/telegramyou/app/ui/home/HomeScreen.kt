@@ -119,6 +119,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
+import com.telegramyou.app.ui.components.LargeTitle
 import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
@@ -185,6 +186,8 @@ fun HomeScreen(
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenMyMusic: () -> Unit = {},
+    /** The mini player, above the navigation bar. */
+    playerBar: @Composable () -> Unit = {},
     /** The Music tab's page; null keeps the tab off the bar. */
     musicPage: (@Composable () -> Unit)? = null,
     onOpenDownloads: () -> Unit = {},
@@ -310,12 +313,17 @@ fun HomeScreen(
     // way Android's own Settings does.
     // Search's does the same: the two are pages of the same kind.
     val settingsBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val searchBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
-        modifier = if (tab == HomeTab.Settings) {
-            Modifier.nestedScroll(settingsBar.nestedScrollConnection)
-        } else {
-            Modifier
+        modifier = when (tab) {
+            HomeTab.Settings -> Modifier.nestedScroll(settingsBar.nestedScrollConnection)
+            HomeTab.Search -> Modifier.nestedScroll(searchBar.nestedScrollConnection)
+            else -> Modifier
         },
+        // The mini player sits here, above the navigation bar, where the
+        // thumb is — the owner's call for 1.6.7. A voice message stays at the
+        // top of the screen.
+        bottomBar = { playerBar() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             // On the chat list the bar is the top of a header that scrolls
@@ -335,7 +343,17 @@ fun HomeScreen(
             // field's own placeholder; the field is the top of the page, as
             // in Gmail — see SearchPage.
             when (tab) {
-                HomeTab.Chats, HomeTab.Profile, HomeTab.Search, HomeTab.Music -> return@Scaffold
+                HomeTab.Chats, HomeTab.Profile, HomeTab.Music -> return@Scaffold
+                // Named large, as Settings is, over its field — asked for
+                // again in 1.6.7 so the three pages of the bar match.
+                HomeTab.Search -> LargeTopAppBar(
+                    title = { LargeTitle("Search", searchBar.state.collapsedFraction) },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = settingsBackground(),
+                        scrolledContainerColor = settingsBackground()
+                    ),
+                    scrollBehavior = searchBar
+                )
                 HomeTab.Settings -> LargeTopAppBar(
                     title = {
                         // Larger than the name on Home while the bar is open
@@ -344,15 +362,7 @@ fun HomeScreen(
                         // folded bar's size as the groups scroll up. One
                         // lambda draws both of the bar's title slots, so
                         // following the fold keeps them the same size.
-                        val folded = settingsBar.state.collapsedFraction
-                        Text(
-                            "Settings",
-                            style = AppTitleStyle.copy(
-                                fontSize = lerp(SettingsTitleOpen, SettingsTitleFolded, folded),
-                                lineHeight = lerp(44.sp, 28.sp, folded)
-                            ),
-                            maxLines = 1
-                        )
+                        LargeTitle("Settings", settingsBar.state.collapsedFraction)
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = settingsBackground(),
@@ -452,7 +462,10 @@ fun HomeScreen(
                 HomeTab.Music -> {
                     // Its own page with its own bar, which reaches under the
                     // status bar itself; Home's padding would do that twice.
-                    musicPage?.invoke()
+                    // The bottom's is kept, for the mini player under it.
+                    Box(Modifier.padding(bottom = padding.calculateBottomPadding())) {
+                        musicPage?.invoke()
+                    }
                     return@AnimatedContent
                 }
                 HomeTab.Chats -> Unit
@@ -1235,5 +1248,3 @@ private const val LOAD_MORE_AHEAD = 8
 private const val FADE_THROUGH_SCALE = 0.92f
 
 /** The Settings title with its bar open, and folded — see HomeScreen's top bar. */
-private val SettingsTitleOpen = 36.sp
-private val SettingsTitleFolded = 22.sp

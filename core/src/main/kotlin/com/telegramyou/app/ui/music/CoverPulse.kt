@@ -1,10 +1,7 @@
 package com.telegramyou.app.ui.music
 
-import kotlin.math.PI
-import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.max
-import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
@@ -61,62 +58,37 @@ fun loudness16(samples: ShortArray, from: Int = 0, to: Int = samples.size): Floa
 }
 
 /**
- * The outline of a rounded square whose edges ripple inwards: [size] across,
- * corners of radius [corner], each edge carrying [waves] ripples at most
- * [depth] deep, moved along by [phase] (radians). Points run clockwise from
- * the top edge, as x, y pairs, in the square's own coordinates.
+ * The vertices of a square with [scallops] scallops along each edge, as x, y
+ * pairs from -1 to 1, clockwise from the top-left corner — the cookie the
+ * player's cover breathes into on the beat (PulsingCover). Every edge runs
+ * corner, bulge, dent, bulge, … dent, bulge, and the dents sit [depth] in
+ * from the edge; the corners and the bulges stay on it.
  *
- * The ripples come to nothing at the corners, so a corner keeps its curve
- * and only the flat of each edge moves — "a little at the edges", which is
- * what was asked for. With [depth] 0 it is the plain rounded square. Inwards
- * only, because the cover is drawn inside this shape: an outward ripple would
- * be cut off by the cover's own edge.
+ * With [depth] 0 the dents are on the edge too and it is the plain square,
+ * with exactly the same vertices in the same order. That is the point: the
+ * rounded square and the cookie are one outline at two depths, so morphing
+ * between them moves points rather than rebuilding a shape.
  */
-fun rippledSquare(
-    size: Float,
-    corner: Float,
-    depth: Float,
-    waves: Int = 3,
-    phase: Float = 0f,
-    edgeSamples: Int = 40,
-    cornerSamples: Int = 8
-): FloatArray {
-    val c = corner.coerceIn(0f, size / 2)
-    val flat = size - 2 * c
-    val out = ArrayList<Float>((edgeSamples + cornerSamples) * 8)
-    // Each side: where its flat starts, which way it runs, which way is in,
-    // and the centre and starting angle of the corner that follows it.
-    val sides = listOf(
-        Side(c, 0f, 1f, 0f, 0f, 1f, size - c, c, -PI / 2),
-        Side(size, c, 0f, 1f, -1f, 0f, size - c, size - c, 0.0),
-        Side(size - c, size, -1f, 0f, 0f, -1f, c, size - c, PI / 2),
-        Side(0f, size - c, 0f, -1f, 1f, 0f, c, c, PI)
+fun scallopedSquare(scallops: Int, depth: Float): FloatArray {
+    val perEdge = scallops * 2
+    val out = FloatArray(4 * perEdge * 2)
+    // Each edge: where it starts, which way it runs, which way is in.
+    val edges = arrayOf(
+        floatArrayOf(-1f, -1f, 1f, 0f, 0f, 1f),
+        floatArrayOf(1f, -1f, 0f, 1f, -1f, 0f),
+        floatArrayOf(1f, 1f, -1f, 0f, 0f, -1f),
+        floatArrayOf(-1f, 1f, 0f, -1f, 1f, 0f)
     )
-    sides.forEachIndexed { index, side ->
-        for (i in 0 until edgeSamples) {
-            val u = i / edgeSamples.toFloat()
-            val along = u * flat
-            // Nothing at either end of the flat; ripples in between, each
-            // going from the edge to [depth] and back.
-            val envelope = sin(PI * u)
-            val ripple = 0.5 * (1 - cos(2 * PI * waves * u + phase + index * PI / 2))
-            val inset = (depth * envelope * ripple).toFloat()
-            out += side.x + side.dx * along + side.nx * inset
-            out += side.y + side.dy * along + side.ny * inset
-        }
-        for (i in 0 until cornerSamples) {
-            val a = side.angle + (PI / 2) * (i / cornerSamples.toDouble())
-            out += side.cx + (c * cos(a)).toFloat()
-            out += side.cy + (c * sin(a)).toFloat()
+    var i = 0
+    for (edge in edges) {
+        for (k in 0 until perEdge) {
+            val along = 2f * k / perEdge
+            // Odd steps are the dents; the corner (k = 0) and the even steps
+            // are on the edge.
+            val inset = if (k % 2 == 1) depth else 0f
+            out[i++] = edge[0] + edge[2] * along + edge[4] * inset
+            out[i++] = edge[1] + edge[3] * along + edge[5] * inset
         }
     }
-    return out.toFloatArray()
+    return out
 }
-
-private class Side(
-    val x: Float, val y: Float,
-    val dx: Float, val dy: Float,
-    val nx: Float, val ny: Float,
-    val cx: Float, val cy: Float,
-    val angle: Double
-)

@@ -187,6 +187,8 @@ fun ChatScreen(
     onMusicSeek: (Float) -> Unit = {},
     /** The mini player, under the header while something plays. */
     musicBar: @Composable () -> Unit = {},
+    /** The mini player, over the composer. */
+    playerBar: @Composable () -> Unit = {},
     onFileOpened: () -> Unit = {},
     onFileRefused: (String?) -> Unit = {},
     onPhotoVisible: (ChatMessage) -> Unit,
@@ -421,6 +423,8 @@ fun ChatScreen(
     val botKeyboard = state.replyKeyboard
     var botKeyboardShown by remember(botKeyboard) { mutableStateOf(true) }
     var botPanelHeight by remember { mutableIntStateOf(0) }
+    var playerBarHeight by remember { mutableIntStateOf(0) }
+    val playerBarPadding = with(LocalDensity.current) { playerBarHeight.toDp() }
     val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
     val botPanelPadding = if (botPanelVisible) with(LocalDensity.current) { botPanelHeight.toDp() } else 0.dp
 
@@ -812,7 +816,7 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 92.dp + botPanelPadding + composerLift
+                        bottom = 92.dp + botPanelPadding + playerBarPadding + composerLift
                     ),
                     // Bottom, as a list laid out from the bottom has by
                     // default: a short conversation sits on the composer.
@@ -1112,6 +1116,11 @@ fun ChatScreen(
                         }
                     }
                 }
+
+                // The mini player, over the composer: where the thumb is,
+                // as it sits over the navigation bar on Home (1.6.7). Measured,
+                // so the newest message is not left behind it.
+                Box(Modifier.onSizeChanged { playerBarHeight = it.height }) { playerBar() }
 
                 AnimatedVisibility(
                     visible = state.replyTo != null || state.editing != null,

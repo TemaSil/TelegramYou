@@ -109,6 +109,14 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
+## New in 1.6.7
+
+- **The mini player at the foot of the screen** — over the navigation bar, and over the composer in a chat, where the thumb is. Swipe it left for the next track and right for the one before. A voice message keeps its bar at the top, now with the same thin progress line and a speed button that sits level.
+- **The player rises from below** and falls back when pulled down, in place of the container transform of 1.6.6.
+- **Open chat goes to the track** — from the player or the library, the chat opens at the track's own message, lit for a moment.
+- **The cover breathes** — on the beat it morphs a little into a scalloped square from Material's shape library and settles back, instead of the rippling edges that read as twitching.
+- **Large titles for Music and Search**, folding as the page scrolls, as Settings has.
+
 ## New in 1.6.6
 
 - **The player in the shade and on the lock screen** — it never was: the media session was not the playback service's own, and Android shows only the service's.

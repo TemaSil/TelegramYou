@@ -56,44 +56,37 @@ class CoverPulseTest {
     }
 
     @Test
-    fun `without depth it is the rounded square, inside its bounds`() {
-        val points = rippledSquare(100f, 16f, depth = 0f)
-        for (i in points.indices step 2) {
-            val x = points[i]
-            val y = points[i + 1]
-            assertTrue(x in -0.001f..100.001f && y in -0.001f..100.001f)
-            val onFlat = x in 16f..84f || y in 16f..84f
-            if (!onFlat) {
-                // A corner: exactly the radius from its centre.
-                val cx = if (x < 50) 16f else 84f
-                val cy = if (y < 50) 16f else 84f
-                assertEquals(16f, hypot(x - cx, y - cy), 0.01f)
+    fun `the square and the cookie are the same vertices at two depths`() {
+        val square = scallopedSquare(3, depth = 0f)
+        val cookie = scallopedSquare(3, depth = 0.1f)
+        assertEquals(square.size, cookie.size)
+        assertEquals(4 * 6 * 2, square.size)
+        // Every vertex of the square is on its edge.
+        for (i in square.indices step 2) {
+            assertTrue(abs(square[i]) == 1f || abs(square[i + 1]) == 1f)
+        }
+    }
+
+    @Test
+    fun `corners and bulges stay put, dents go in by the depth`() {
+        val square = scallopedSquare(3, depth = 0f)
+        val cookie = scallopedSquare(3, depth = 0.1f)
+        var moved = 0
+        for (v in 0 until square.size / 2) {
+            val dx = cookie[v * 2] - square[v * 2]
+            val dy = cookie[v * 2 + 1] - square[v * 2 + 1]
+            val distance = hypot(dx, dy)
+            if (v % 6 % 2 == 1) {
+                assertEquals(0.1f, distance, 0.0001f)
+                moved++
+            } else {
+                assertEquals(0f, distance, 0f)
             }
+            assertTrue(cookie[v * 2] in -1f..1f && cookie[v * 2 + 1] in -1f..1f)
         }
-    }
-
-    @Test
-    fun `ripples go in, never out, and no deeper than asked`() {
-        val plain = rippledSquare(100f, 16f, depth = 0f)
-        val rippled = rippledSquare(100f, 16f, depth = 6f, phase = 1.3f)
-        assertEquals(plain.size, rippled.size)
-        var deepest = 0f
-        for (i in plain.indices) {
-            val moved = abs(rippled[i] - plain[i])
-            deepest = maxOf(deepest, moved)
-            assertTrue(rippled[i] in -0.001f..100.001f)
-        }
-        assertTrue("deepest $deepest", deepest in 3f..6.001f)
-    }
-
-    @Test
-    fun `corners keep their curve while the edges ripple`() {
-        val plain = rippledSquare(100f, 16f, depth = 0f)
-        val rippled = rippledSquare(100f, 16f, depth = 6f, phase = 0.7f)
-        // Each side's corner samples come after its 40 edge samples.
-        for (side in 0 until 4) {
-            val start = (side * 48 + 40) * 2
-            for (i in start until start + 16) assertEquals(plain[i], rippled[i], 0.0001f)
-        }
+        assertEquals(12, moved)
+        // The first vertex is the top-left corner.
+        assertEquals(-1f, cookie[0], 0f)
+        assertEquals(-1f, cookie[1], 0f)
     }
 }
