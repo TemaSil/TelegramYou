@@ -73,7 +73,8 @@ class AppearanceActions(
     val onBubbleCornersChange: (Int) -> Unit = {},
     val onMessageTextScaleChange: (Float) -> Unit = {},
     val onTwoLinePreviewsChange: (Boolean) -> Unit = {},
-    val onReduceMotionChange: (Boolean) -> Unit = {}
+    val onReduceMotionChange: (Boolean) -> Unit = {},
+    val onCoverMovesChange: (Boolean) -> Unit = {}
 )
 
 /**
@@ -286,6 +287,12 @@ fun AppearanceScreen(
                     summary = "Screens fade instead of opening out, and nothing bounces",
                     checked = settings.reduceMotion,
                     onChange = actions.onReduceMotionChange
+                )
+                switch(
+                    title = "Cover moves with the music",
+                    summary = if (settings.reduceMotion) "Held still by Less motion" else "The player's cover ripples at its edges on the beat",
+                    checked = settings.coverMoves,
+                    onChange = actions.onCoverMovesChange
                 )
             }
         }

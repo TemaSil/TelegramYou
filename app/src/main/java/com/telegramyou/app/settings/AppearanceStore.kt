@@ -56,6 +56,11 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_REDUCE_MOTION, enabled).apply()
     }
 
+    fun setCoverMoves(enabled: Boolean) {
+        _settings.update { it.copy(coverMoves = enabled) }
+        preferences.edit().putBoolean(KEY_COVER_MOVES, enabled).apply()
+    }
+
     /**
      * Puts the launcher back on the Teal icon: its alias on, every other one
      * off. The icon colour was a choice in 1.4 and is not any more, so an
@@ -156,7 +161,8 @@ class AppearanceStore(context: Context) {
                 preferences.getInt(KEY_BUBBLE_CORNERS, BubbleCorners.DEFAULT).toFloat()
             ),
             messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f)),
-            reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false)
+            reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false),
+            coverMoves = preferences.getBoolean(KEY_COVER_MOVES, true)
         )
     }
 
@@ -175,6 +181,7 @@ class AppearanceStore(context: Context) {
         const val KEY_MESSAGE_TEXT_SCALE = "message_text_scale"
         const val KEY_TWO_LINE_PREVIEWS = "two_line_previews"
         const val KEY_REDUCE_MOTION = "reduce_motion"
+        const val KEY_COVER_MOVES = "cover_moves"
 
         /** The namespace the manifest's launcher aliases are named in. */
         const val ALIAS_PACKAGE = "com.telegramyou.app"

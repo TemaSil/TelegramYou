@@ -76,7 +76,12 @@ data class AppearanceSettings(
      * fade rather than open out of what was tapped, springs settle without
      * bouncing, and a typing avatar holds its shape.
      */
-    val reduceMotion: Boolean = false
+    val reduceMotion: Boolean = false,
+    /**
+     * The music player's cover rippling a little at its edges on the beat.
+     * On by default; Less motion stills it whatever this says.
+     */
+    val coverMoves: Boolean = true
 )
 
 /**

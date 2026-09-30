@@ -9,7 +9,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MusicQueue
@@ -144,7 +146,22 @@ class MusicPlayer(
         }
     }
 
-    private fun player(): ExoPlayer = exo ?: ExoPlayer.Builder(context)
+    /** The beat of what is playing, for the player's cover; see AudioPulse. */
+    val pulse = AudioPulse()
+
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun player(): ExoPlayer = exo ?: ExoPlayer.Builder(
+        context,
+        // Media3's own renderers, with a look at the sound on its way out.
+        object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean
+            ): AudioSink? = super.buildAudioSink(context, enableFloatOutput, enableAudioOutputPlaybackParams)
+                ?.let { PulseSink(it, pulse) }
+        }
+    )
         // Music, and it pauses for a call and ducks for a navigation prompt.
         .setAudioAttributes(
             androidx.media3.common.AudioAttributes.Builder()

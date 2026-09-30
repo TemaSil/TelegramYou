@@ -342,7 +342,7 @@ private fun CollectionGrid(collections: List<LibraryCollection>, emptyText: Stri
                         Cover(
                             cover,
                             size = 152,
-                            corner = if (collection.kind == CollectionKind.Artist) 76 else 24
+                            corner = if (collection.kind == CollectionKind.Artist) 76 else 16
                         )
                     }
                 }
@@ -389,7 +389,7 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
             ) {
                 val cover = collection.cover ?: collection.tracks.first().track
                 TrackTheme(cover) {
-                    Cover(cover, size = 200, corner = if (collection.kind == CollectionKind.Artist) 100 else 32)
+                    Cover(cover, size = 200, corner = if (collection.kind == CollectionKind.Artist) 100 else 16)
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(collection.title, style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)

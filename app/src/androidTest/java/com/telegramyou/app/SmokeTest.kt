@@ -2285,6 +2285,9 @@ class SmokeTest {
         tap(By.text("Two-line previews"))
         scrollDownTo(By.text("Less motion"))
         tap(By.text("Less motion"))
+        // The player's cover, which Less motion holds still: its switch says so.
+        scrollDownTo(By.text("Cover moves with the music"))
+        waitFor(By.text("Held still by Less motion"), "the cover switch answering Less motion")
 
         // Back lands on the Settings tab, and back again would leave the
         // app: the chat list is its own tab.

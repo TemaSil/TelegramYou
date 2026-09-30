@@ -114,7 +114,7 @@ a wide screen the navigation becomes a rail.
 - **Up next** — Play next and Add to queue on any track, from a chat, My music or the library, before the queue goes on.
 - **Voice messages, properly** — a run of them plays one after another, keeps going when you leave the chat with a bar to pause, change speed or stop, and 1×, 1.5× or 2× is remembered.
 - **No gaps** — the next track is fetched while this one plays.
-- **A player shaped like Material means it** — play is the wide one, previous and next squared-off beside it, repeat and speed as pills, the sleep timer and the queue as chips.
+- **A player shaped like Material means it** — play is the wide one, previous and next squared-off beside it, repeat and speed as pills, the sleep timer and the queue as chips. The cover's corners are squarer, and its edges ripple a little on the beat (Appearance → Motion to turn it off).
 - **Last crash** (For geeks → Diagnostics) — if the app closes on its own, what happened is kept on the phone to read and copy into a report. Never sent anywhere.
 - **Music library** (For geeks → Experiments) — every chat's music as albums, artists and playlists, what people in your chats sent, and a reaction onto a track's message from the player.
 

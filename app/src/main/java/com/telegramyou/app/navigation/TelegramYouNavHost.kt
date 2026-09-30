@@ -180,7 +180,9 @@ fun TelegramYouNavHost(
             onPlaySaved = { music?.playSaved(it) },
             onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
             onNoticeShown = { music?.onNoticeShown() },
-            audioSession = { music?.audioSessionId ?: 0 }
+            audioSession = { music?.audioSessionId ?: 0 },
+            pulse = { music?.pulse?.now() ?: 0f },
+            onPulseWatched = { watched -> music?.pulse?.enabled = watched }
         )
     }
     val voiceFlow = remember(voice) { voice?.state ?: MutableStateFlow(com.telegramyou.app.music.VoiceNow()) }
@@ -592,7 +594,8 @@ fun TelegramYouNavHost(
                     onBubbleCornersChange = appearance::setBubbleCorners,
                     onMessageTextScaleChange = appearance::setMessageTextScale,
                     onTwoLinePreviewsChange = appearance::setTwoLinePreviews,
-                    onReduceMotionChange = appearance::setReduceMotion
+                    onReduceMotionChange = appearance::setReduceMotion,
+                    onCoverMovesChange = appearance::setCoverMoves
                 )
             )
         }
@@ -820,11 +823,13 @@ fun TelegramYouNavHost(
             enterTransition = { slideInVertically { it } },
             popExitTransition = { slideOutVertically { it } }
         ) {
+            val looks by appearance.settings.collectAsStateWithLifecycle()
             PlayerScreen(
                 nowPlaying,
                 musicActions,
                 onBack = { navController.popBackStack() },
-                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) }
+                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
+                coverMoves = looks.coverMoves
             )
         }
 

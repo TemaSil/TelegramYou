@@ -127,7 +127,11 @@ class MusicActions(
     val onDownloadAll: () -> Unit = {},
     val onNoticeShown: () -> Unit = {},
     /** The player's audio session, for the platform's equaliser panel. */
-    val audioSession: () -> Int = { 0 }
+    val audioSession: () -> Int = { 0 },
+    /** The beat being heard now, 0 to 1, for the cover; see AudioPulse. */
+    val pulse: () -> Float = { 0f },
+    /** Whether anyone is looking at the cover move: the analysis runs only then. */
+    val onPulseWatched: (Boolean) -> Unit = {}
 )
 
 /**
@@ -281,7 +285,9 @@ fun PlayerScreen(
     state: NowPlaying,
     actions: MusicActions,
     onBack: () -> Unit,
-    onOpenChat: (Long) -> Unit = actions.onOpenChat
+    onOpenChat: (Long) -> Unit = actions.onOpenChat,
+    /** The cover's edges moving on the beat; Appearance → Motion. */
+    coverMoves: Boolean = true
 ) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
@@ -417,7 +423,15 @@ fun PlayerScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(36.dp))
+                            // Square-cornered enough to read as a cover
+                            // rather than a button: Material's large shape.
+                            .pulsingCover(
+                                corner = 16.dp,
+                                playing = state.isPlaying,
+                                enabled = coverMoves,
+                                beat = actions.pulse,
+                                onWatched = actions.onPulseWatched
+                            )
                             .background(
                                 Brush.linearGradient(
                                     listOf(
