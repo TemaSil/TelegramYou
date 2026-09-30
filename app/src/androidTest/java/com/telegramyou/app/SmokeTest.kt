@@ -1760,10 +1760,10 @@ class SmokeTest {
         waitFor(By.text("For geeks"), "the settings again")
         tap(By.text("Chats"))
         waitFor(By.text("Material Design"), "the chat list again")
-        scrollBackToChatMenu()
-        tap(By.desc("More"))
-        tap(By.text("My music"))
-        tap(By.desc("Music library"))
+        // With the library on, it is a tab of its own, and Saved Messages —
+        // where a person keeps their music — leads its front page.
+        tap(By.text("Music"))
+        waitFor(By.text("Saved Messages"), "Saved Messages first in the library")
         waitFor(By.text("Just arrived"), "the library's front page")
         screenshot("84-library")
         tap(By.text("Albums"))
@@ -1772,6 +1772,20 @@ class SmokeTest {
         screenshot("85-album")
         tap(By.text("Play"))
         waitFor(By.desc("Now playing: Wavy Line"), "the album from its first track")
+
+        // Off again: the tests share one install, and with the library on
+        // "My music" opens the library instead of the list another test
+        // expects. Stopped first, so no music runs into the next test.
+        tap(By.desc("Stop music"))
+        device.pressBack()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("For geeks"))
+        tap(By.text("For geeks"))
+        scrollDownTo(By.text("Music library"))
+        tap(By.text("Music library"))
+        device.pressBack()
+        waitFor(By.text("For geeks"), "the settings again")
     }
 
     /**
@@ -1871,6 +1885,18 @@ class SmokeTest {
         tap(By.desc("Play Morning Light"))
         waitFor(By.desc("Now playing: Morning Light"), "the mini player")
         screenshot("77-mini-player")
+        // And the system's own player, in the shade — which 1.6.3 to 1.6.5
+        // never had, because the session was not the service's (see
+        // PlaybackService). Looked for in System UI only: the app's own
+        // mini player says the same title under the shade.
+        device.openNotification()
+        assertTrue(
+            "the track is not in the shade's player",
+            device.wait(Until.hasObject(By.pkg("com.android.systemui").textContains("Morning Light")), STEP_TIMEOUT)
+        )
+        screenshot("77b-shade-player")
+        device.pressBack()
+        device.waitForIdle(IDLE_TIMEOUT)
 
         tap(By.desc("Now playing: Morning Light"))
         waitFor(By.desc("Close player"), "the full player")

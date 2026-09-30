@@ -74,6 +74,21 @@ class MusicLibraryTest {
     }
 
     @Test
+    fun `saved messages is its own shelf, newest first`() {
+        val saved = library.saved!!
+        assertEquals(listOf("Morning Light", "Tonal Spot"), saved.tracks.map { it.track.title })
+        assertEquals("Saved Messages", library.collection(saved.key)?.title)
+    }
+
+    @Test
+    fun `one saved track is still a shelf, and none is no shelf`() {
+        val one = buildLibrary(messages.filter { it.id != 31L }, chats)
+        assertEquals(listOf("Tonal Spot"), one.saved?.tracks?.map { it.track.title })
+        assertEquals("1 track", one.saved?.subtitle)
+        assertEquals(null, buildLibrary(messages.filter { it.chatId != 6L }, chats).saved)
+    }
+
+    @Test
     fun `a collection is found again by its key`() {
         val key = library.albums.single().key
         assertEquals("Shape Shifters", library.collection(key)?.title)

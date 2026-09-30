@@ -100,7 +100,13 @@ class TelegramForegroundService : Service() {
         return START_STICKY
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        running = true
+    }
+
     override fun onDestroy() {
+        running = false
         scope.cancel()
         super.onDestroy()
     }
@@ -334,6 +340,10 @@ class TelegramForegroundService : Service() {
             .setContentIntent(open)
             .setOngoing(true)
             .setSilent(true)
+            // Below Android 8, where there are no channels: as far down as
+            // a notification goes. See TelegramYouApp's channels.
+            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setShowWhen(false)
             .build()
     }
 
@@ -347,7 +357,14 @@ class TelegramForegroundService : Service() {
         private const val ONGOING_NOTIFICATION_ID = 42
         private const val MAX_LINES_PER_CHAT = 6
 
+        /** Whether the service is up, so opening the app does not start it again. */
+        @Volatile private var running = false
+
         fun start(context: android.content.Context) {
+            // Every start posts its notification again, and the activity
+            // starts this each time it is made: a notice swiped away came
+            // straight back on the next open. Once is enough.
+            if (running) return
             context.startForegroundService(Intent(context, TelegramForegroundService::class.java))
         }
 

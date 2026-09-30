@@ -153,10 +153,15 @@ class TelegramYouApp : Application() {
     /**
      * Two channels, because they are two different promises.
      *
-     * The sync channel is IMPORTANCE_LOW: it exists because Android requires
-     * a foreground service to show something, and nobody wants to be told
-     * their messenger is connected. Messages are IMPORTANCE_HIGH, since a
-     * message is the thing a person installed this for.
+     * The connection channel is IMPORTANCE_MIN: it exists because Android
+     * requires a foreground service to show something, and nobody wants to
+     * be told their messenger is connected — the owner, 30 September 2026:
+     * "no need to see it in the shade". Minimum importance keeps it out of
+     * the status bar and folded at the foot of the shade, where it can be
+     * swiped away. It cannot go altogether: this client has no Google push,
+     * so the service is what delivers messages while the app is closed.
+     * Messages are IMPORTANCE_HIGH, since a message is the thing a person
+     * installed this for.
      *
      * Separate channels also hand the settings app the right knobs: someone
      * can silence the connection notice without silencing their messages,
@@ -167,9 +172,10 @@ class TelegramYouApp : Application() {
         val sync = NotificationChannel(
             CHANNEL_SYNC,
             getString(R.string.notification_channel_name),
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_MIN
         ).apply {
             description = getString(R.string.notification_channel_desc)
+            setShowBadge(false)
         }
         val messages = NotificationChannel(
             CHANNEL_MESSAGES,
@@ -188,6 +194,9 @@ class TelegramYouApp : Application() {
             description = getString(R.string.notification_channel_downloads_desc)
         }
         val manager = getSystemService(NotificationManager::class.java)
+        // The channel it replaces, which was LOW: a channel's importance
+        // cannot be lowered by the app once made, so it is a new channel.
+        manager.deleteNotificationChannel(OLD_CHANNEL_SYNC)
         manager.createNotificationChannel(sync)
         manager.createNotificationChannel(messages)
         manager.createNotificationChannel(downloads)
@@ -196,7 +205,8 @@ class TelegramYouApp : Application() {
     companion object {
         private const val PREFS = "backend"
         private const val KEY_DEMO = "demo"
-        const val CHANNEL_SYNC = "telegram_sync"
+        const val CHANNEL_SYNC = "telegram_connection"
+        private const val OLD_CHANNEL_SYNC = "telegram_sync"
         const val CHANNEL_MESSAGES = "telegram_messages"
         const val CHANNEL_DOWNLOADS = "telegram_downloads"
     }

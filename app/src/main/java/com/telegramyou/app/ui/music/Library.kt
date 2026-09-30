@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -121,8 +122,13 @@ class MusicLibraryViewModel(private val repository: TelegramRepository) : ViewMo
 class LibraryActions(
     val onPlay: (title: String, tracks: List<ChatMessage>, start: ChatMessage?, shuffle: Boolean) -> Unit = { _, _, _, _ -> },
     val onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
-    val onOpenChat: (Long) -> Unit = {}
+    val onOpenChat: (Long) -> Unit = {},
+    /** Every track, searchable: My music. */
+    val onSearch: () -> Unit = {}
 )
+
+/** Saved Messages' tracks on the front page before "All" opens the rest. */
+private const val SAVED_SHOWN = 5
 
 private val LIBRARY_TABS = listOf("For you", "Playlists", "Albums", "Artists", "Tracks")
 
@@ -136,7 +142,8 @@ private val LIBRARY_TABS = listOf("For you", "Playlists", "Albums", "Artists", "
 fun MusicLibraryScreen(
     state: LibraryUiState,
     actions: LibraryActions,
-    onBack: () -> Unit,
+    /** Null as a bottom-bar tab, where there is nowhere to go back to. */
+    onBack: (() -> Unit)?,
     musicBar: @Composable () -> Unit = {}
 ) {
     var openKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -151,13 +158,18 @@ fun MusicLibraryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(open?.title ?: "Music library", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(open?.title ?: if (onBack == null) "Music" else "Music library", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
-                    IconButton(onClick = { if (open != null) openKey = null else onBack() }) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                    if (open != null || onBack != null) {
+                        IconButton(onClick = { if (open != null) openKey = null else onBack?.invoke() }) {
+                            Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 },
                 actions = {
+                    if (open == null) {
+                        IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = "Search music") }
+                    }
                     if (open == null && !state.library.isEmpty) {
                         IconButton(onClick = {
                             actions.onPlay("Music library", state.library.tracks.map { it.message }, null, true)
@@ -217,7 +229,7 @@ private fun LibraryTabs(
     // For you sat halfway down an empty screen.
     HorizontalPager(state = pager, verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxSize()) { page ->
         when (page) {
-            0 -> ForYou(library, actions, lineUp)
+            0 -> ForYou(library, actions, lineUp, onOpen)
             1 -> CollectionGrid(library.playlists, "No chat has more than one track yet", onOpen)
             2 -> CollectionGrid(library.albums, "Albums are tracks posted together, and there are none yet", onOpen)
             3 -> CollectionGrid(library.artists, "No track names its performer yet", onOpen)
@@ -232,8 +244,57 @@ private fun LibraryTabs(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ForYou(library: MusicLibrary, actions: LibraryActions, lineUp: (ChatMessage, Boolean) -> Unit) {
+private fun ForYou(
+    library: MusicLibrary,
+    actions: LibraryActions,
+    lineUp: (ChatMessage, Boolean) -> Unit,
+    onOpen: (LibraryCollection) -> Unit
+) {
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        // Saved Messages first: it is where a person keeps what they mean to
+        // keep, so it is their library before anything the chats brought.
+        val saved = library.saved
+        item(key = "saved-header") {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(end = 8.dp)
+            ) {
+                Box(Modifier.weight(1f)) { Header("Saved Messages") }
+                if (saved != null) {
+                    IconButton(onClick = {
+                        actions.onPlay(saved.title, saved.tracks.map { it.message }, null, true)
+                    }) { Icon(Symbols.Shuffle, contentDescription = "Shuffle Saved Messages") }
+                    FilledTonalButton(
+                        onClick = { actions.onPlay(saved.title, saved.tracks.map { it.message }, null, false) },
+                        modifier = Modifier.padding(top = 12.dp)
+                    ) { Text("Play") }
+                }
+            }
+        }
+        if (saved == null) {
+            item(key = "saved-none") {
+                Text(
+                    "Forward a track to Saved Messages to keep it here, first in your library.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        } else {
+            val shown = saved.tracks.take(SAVED_SHOWN)
+            items(shown, key = { "s${it.message.chatId}:${it.message.id}" }) { item ->
+                TrackRow(item, onPlay = {
+                    actions.onPlay(saved.title, saved.tracks.map { it.message }, item.message, false)
+                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId) })
+            }
+            if (saved.tracks.size > shown.size) {
+                item(key = "saved-all") {
+                    TextButton(onClick = { onOpen(saved) }, modifier = Modifier.padding(horizontal = 8.dp)) {
+                        Text("All ${saved.tracks.size} tracks")
+                    }
+                }
+            }
+        }
         item(key = "latest-header") { Header("Just arrived") }
         item(key = "latest") {
             val latest = library.latest

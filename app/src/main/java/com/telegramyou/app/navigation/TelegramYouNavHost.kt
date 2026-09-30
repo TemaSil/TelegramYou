@@ -51,6 +51,11 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavBackStackEntry
+import androidx.compose.animation.AnimatedContentScope
+import com.telegramyou.app.ui.music.PLAYER_CONTAINER
+import com.telegramyou.app.ui.music.PlayerContainerShape
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.telegramyou.app.settings.AppearanceStore
@@ -200,6 +205,25 @@ fun TelegramYouNavHost(
             MiniPlayer(nowPlaying, musicActions, onOpen = { navController.navigateTo(Route.Player) })
         }
     }
+    // The music library, as a screen of its own and as Home's Music tab —
+    // the same page either way, with a back arrow only as the screen.
+    val libraryPage: @Composable (onBack: (() -> Unit)?) -> Unit = { back ->
+        val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
+        val state by library.uiState.collectAsStateWithLifecycle()
+        com.telegramyou.app.ui.music.MusicLibraryScreen(
+            state = state,
+            actions = com.telegramyou.app.ui.music.LibraryActions(
+                onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
+                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
+                onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
+                onSearch = { navController.navigateTo(Route.MyMusic) }
+            ),
+            onBack = back,
+            musicBar = musicBar
+        )
+    }
+    /** Home's Music tab: the library without a way back, since it is a tab. */
+    val musicTab: @Composable () -> Unit = { libraryPage(null) }
     /** A track tapped: the player's, and the same track again is play and pause. */
     val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
         if (nowPlaying.track?.messageId == message.id) {
@@ -309,13 +333,15 @@ fun TelegramYouNavHost(
             )
         },
         exitTransition = {
-            if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
+            // Under the player opening out of the mini player, the screen
+            // stays where it is: the container is the movement.
+            if (reduceMotion || targetState.destination.route == Route.Player.PATTERN) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.Start,
                 animationSpec = spring()
             )
         },
         popEnterTransition = {
-            if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
+            if (reduceMotion || initialState.destination.route == Route.Player.PATTERN) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
                 towards = AnimatedContentTransitionScope.SlideDirection.End,
                 animationSpec = spring()
             )
@@ -376,11 +402,21 @@ fun TelegramYouNavHost(
             // not about the account: nothing outside the screen asks which
             // tab is showing.
             var tab by rememberSaveable { mutableStateOf(HomeTab.Chats) }
+            // The Music tab goes with the library: switched off in For geeks
+            // while it was open, the bar lands back on Chats.
+            LaunchedEffect(geekSettings.musicLibrary) {
+                if (!geekSettings.musicLibrary && tab == HomeTab.Music) tab = HomeTab.Chats
+            }
 
             CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
             HomeScreen(
                 musicBar = musicBar,
-                onOpenMyMusic = { navController.navigateTo(Route.MyMusic) },
+                // With the library on, it is where "My music" goes: the
+                // library leads, and the plain searchable list is its search.
+                onOpenMyMusic = {
+                    navController.navigateTo(if (geekSettings.musicLibrary) Route.Library else Route.MyMusic)
+                },
+                musicPage = if (geekSettings.musicLibrary) musicTab else null,
                 onOpenDownloads = { navController.navigateTo(Route.Downloads) },
                 state = state,
                 tab = tab,
@@ -764,7 +800,7 @@ fun TelegramYouNavHost(
                 onOpenDownloads = { navController.navigateTo(Route.Downloads) }
             )
         }
-        composable(Route.Downloads.PATTERN) {
+        musicComposable(Route.Downloads.PATTERN) {
             val downloads: com.telegramyou.app.ui.downloads.DownloadsViewModel = viewModel(factory = viewModelFactory)
             val state by downloads.uiState.collectAsStateWithLifecycle()
             com.telegramyou.app.ui.downloads.DownloadsScreen(
@@ -775,7 +811,7 @@ fun TelegramYouNavHost(
                 musicBar = musicBar
             )
         }
-        composable(Route.MyMusic.PATTERN) {
+        musicComposable(Route.MyMusic.PATTERN) {
             val myMusic: MyMusicViewModel = viewModel(factory = viewModelFactory)
             val state by myMusic.uiState.collectAsStateWithLifecycle()
             MyMusicScreen(
@@ -801,36 +837,35 @@ fun TelegramYouNavHost(
                 musicBar = musicBar
             )
         }
-        composable(Route.Library.PATTERN) {
-            val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
-            val state by library.uiState.collectAsStateWithLifecycle()
-            com.telegramyou.app.ui.music.MusicLibraryScreen(
-                state = state,
-                actions = com.telegramyou.app.ui.music.LibraryActions(
-                    onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
-                    onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
-                    onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) }
-                ),
-                onBack = { navController.popBackStack() },
-                musicBar = musicBar
-            )
+        musicComposable(Route.Library.PATTERN) {
+            libraryPage({ navController.popBackStack() })
         }
 
         composable(
             route = Route.Player.PATTERN,
-            // Up from the mini player and back down into it, as a sheet of
-            // the screen would.
-            enterTransition = { slideInVertically { it } },
-            popExitTransition = { slideOutVertically { it } }
+            // Out of the mini player and back into it, as one container —
+            // see PLAYER_CONTAINER. The screen itself only fades; with Less
+            // motion, where there is no container, it rises and falls as a
+            // sheet of the screen would.
+            enterTransition = { if (reduceMotion) slideInVertically { it } else fadeIn(spring()) },
+            popExitTransition = { if (reduceMotion) slideOutVertically { it } else fadeOut(spring()) }
         ) {
             val looks by appearance.settings.collectAsStateWithLifecycle()
+            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) {
             PlayerScreen(
                 nowPlaying,
                 musicActions,
                 onBack = { navController.popBackStack() },
                 onOpenChat = { chatId -> navController.navigateTo(chatRoute(chatId)) },
-                coverMoves = looks.coverMoves
+                coverMoves = looks.coverMoves,
+                modifier = Modifier.containerTransform(
+                    PLAYER_CONTAINER,
+                    PlayerContainerShape,
+                    isScreen = true,
+                    bounds = ChatContainerSpring
+                )
             )
+            }
         }
 
         composable(
@@ -1270,3 +1305,14 @@ fun TelegramYouNavHost(
 
 /** Destinations that open out of an element on the chat list; see containerTransform. */
 private val containerRoutes = setOf(Route.Chat.PATTERN, Route.Story.PATTERN)
+
+/**
+ * A destination the mini player sits on, so the player can open out of it:
+ * the container transform needs the destination's own transition to ride.
+ */
+private fun NavGraphBuilder.musicComposable(
+    route: String,
+    content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
+) = composable(route) { entry ->
+    CompositionLocalProvider(LocalNavAnimatedScope provides this) { content(entry) }
+}

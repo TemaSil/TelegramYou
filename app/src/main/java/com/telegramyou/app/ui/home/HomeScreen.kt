@@ -185,6 +185,8 @@ fun HomeScreen(
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenMyMusic: () -> Unit = {},
+    /** The Music tab's page; null keeps the tab off the bar. */
+    musicPage: (@Composable () -> Unit)? = null,
     onOpenDownloads: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
     onOpenFolders: () -> Unit = {},
@@ -264,7 +266,7 @@ fun HomeScreen(
     val updateState = updates?.state?.collectAsStateWithLifecycle()?.value
     val updateWaiting = updateState is UpdateState.Available || updateState is UpdateState.Ready
     val navigationItems: NavigationSuiteScope.() -> Unit = {
-        HomeTab.entries.forEach { entry ->
+        HomeTab.entries.filter { it != HomeTab.Music || musicPage != null }.forEach { entry ->
             item(
                 selected = tab == entry,
                 onClick = { onTabSelected(entry) },
@@ -333,7 +335,7 @@ fun HomeScreen(
             // field's own placeholder; the field is the top of the page, as
             // in Gmail — see SearchPage.
             when (tab) {
-                HomeTab.Chats, HomeTab.Profile, HomeTab.Search -> return@Scaffold
+                HomeTab.Chats, HomeTab.Profile, HomeTab.Search, HomeTab.Music -> return@Scaffold
                 HomeTab.Settings -> LargeTopAppBar(
                     title = {
                         // Larger than the name on Home while the bar is open
@@ -445,6 +447,12 @@ fun HomeScreen(
                         contentPadding = padding,
                         musicBar = musicBar
                     )
+                    return@AnimatedContent
+                }
+                HomeTab.Music -> {
+                    // Its own page with its own bar, which reaches under the
+                    // status bar itself; Home's padding would do that twice.
+                    musicPage?.invoke()
                     return@AnimatedContent
                 }
                 HomeTab.Chats -> Unit

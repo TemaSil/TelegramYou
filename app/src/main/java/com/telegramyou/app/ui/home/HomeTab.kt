@@ -4,7 +4,8 @@ import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * The four destinations of Home's bottom bar.
+ * The destinations of Home's bottom bar: four, and Music as a fifth while
+ * the music library is on.
  *
  * Tabs rather than routes, and deliberately: a bottom bar's whole promise is
  * that the four are siblings a tap apart, with no back stack between them.
@@ -23,6 +24,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class HomeTab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
     Chats("Chats", Symbols.Chat, Symbols.ChatFilled),
     Search("Search", Symbols.Search, Symbols.SearchFilled),
+    // Only while the music library is on (For geeks → Experiments): it is
+    // the library, a tap away rather than behind the chat list's menu.
+    Music("Music", Symbols.LibraryMusic, Symbols.LibraryMusicFilled),
     // Settings before Profile, with the profile at the end of the bar the
     // way the official client places it — the owner's call.
     Settings("Settings", Symbols.Settings, Symbols.SettingsFilled),

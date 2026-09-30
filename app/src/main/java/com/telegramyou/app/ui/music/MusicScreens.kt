@@ -65,6 +65,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Shape
+import com.telegramyou.app.ui.motion.containerTransform
+import com.telegramyou.app.ui.motion.LocalReduceMotion
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -169,6 +173,12 @@ internal fun TrackTheme(track: Track?, coverSeed: Int? = null, content: @Composa
     )
 }
 
+/** The one container the mini player and the full player share. */
+const val PLAYER_CONTAINER = "player"
+
+/** The mini player's corners, which the player opens out of. */
+val PlayerContainerShape: Shape = RoundedCornerShape(20.dp)
+
 /**
  * The mini player: a strip under a screen's top bar while something plays,
  * as the official client has one — the track, play and pause, the next one,
@@ -194,11 +204,14 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = RoundedCornerShape(20.dp),
+                shape = PlayerContainerShape,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 4.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    // The player opens out of this strip and closes back
+                    // into it, as a chat does out of its row.
+                    .containerTransform(PLAYER_CONTAINER, PlayerContainerShape)
+                    .clip(PlayerContainerShape)
                     .clickable(onClick = onOpen)
                     .semantics { contentDescription = "Now playing: ${track.title}" }
             ) {
@@ -307,7 +320,9 @@ fun PlayerScreen(
     onBack: () -> Unit,
     onOpenChat: (Long) -> Unit = actions.onOpenChat,
     /** The cover's edges moving on the beat; Appearance → Motion. */
-    coverMoves: Boolean = true
+    coverMoves: Boolean = true,
+    /** The container transform out of the mini player; see PLAYER_CONTAINER. */
+    modifier: Modifier = Modifier
 ) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
@@ -341,6 +356,7 @@ fun PlayerScreen(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .fillMaxSize()
+                .then(modifier)
                 .graphicsLayer { translationY = pulled }
                 .draggable(
                     state = pull,
@@ -511,13 +527,20 @@ fun PlayerScreen(
                     }
                 }
                 Spacer(Modifier.weight(0.4f))
+                // One line each, running across when too long for it: a title
+                // on two lines pushed the controls down for that track only,
+                // and they jumped from one track to the next. Held still and
+                // cut short with Less motion.
+                val still = LocalReduceMotion.current
+                val running = if (still) Modifier else Modifier.basicMarquee(iterations = Int.MAX_VALUE)
                 Text(
                     track.title,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                    maxLines = 1,
+                    overflow = if (still) TextOverflow.Ellipsis else TextOverflow.Clip,
+                    textAlign = TextAlign.Center,
+                    modifier = running
                 )
                 Text(
                     // "sent by" only when it says something: a channel's own
@@ -532,7 +555,8 @@ fun PlayerScreen(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = if (still) TextOverflow.Ellipsis else TextOverflow.Clip,
+                    modifier = running
                 )
                 Spacer(Modifier.height(20.dp))
                 Seeker(state, actions.onSeek)

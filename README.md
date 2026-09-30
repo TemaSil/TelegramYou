@@ -111,8 +111,12 @@ a wide screen the navigation becomes a rail.
 
 ## New in 1.6.6
 
-- **Pull the player down to close it** — from anywhere on it, not only the arrow at the top.
+- **The player in the shade and on the lock screen** — it never was: the media session was not the playback service's own, and Android shows only the service's.
+- **The player opens out of the mini player** as one container, the way a chat opens out of its row, and **closes by pulling it down** from anywhere on it.
 - **A slimmer mini player** — its progress is a thin line along the bottom edge instead of a wave on a row of its own.
+- **Titles on one line** — a long one runs across rather than wrapping, so the controls no longer move from track to track.
+- **Music library** (For geeks → Experiments) — a Music tab on the bottom bar, "My music" opens it, and Saved Messages leads its front page.
+- **A quieter connection notice** — the "connected" notification Android requires for the background connection is at minimum importance: no status-bar icon, folded at the foot of the shade, and it no longer comes back each time the app opens.
 
 ## New in 1.6.5
 

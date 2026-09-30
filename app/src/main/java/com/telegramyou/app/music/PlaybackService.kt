@@ -45,6 +45,13 @@ class PlaybackService : MediaSessionService() {
             .setSessionActivity(open)
             .build()
         session = built
+        // Added to the service now, not when a controller first connects:
+        // the media notification — the shade's player, the lock screen's —
+        // is kept only for sessions the service holds, and the service only
+        // takes one in by itself when a MediaController binds to it. Nothing
+        // in the app does, so the session played with no notification at
+        // all, which is how it reached a phone in 1.6.3 to 1.6.5.
+        addSession(built)
         // Shuffle and repeat beside the track buttons in the shade and on the
         // lock screen — asked for of Telegram's player, which has neither
         // there. Each button shows the state now and sets the next one.

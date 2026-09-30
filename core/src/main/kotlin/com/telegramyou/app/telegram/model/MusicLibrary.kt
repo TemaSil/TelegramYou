@@ -25,12 +25,18 @@ data class MusicLibrary(
      * channels. "What your chats are playing", honestly named: Telegram does
      * not say who listened to what, only who sent it.
      */
-    val fromPeople: List<LibraryTrack> = emptyList()
+    val fromPeople: List<LibraryTrack> = emptyList(),
+    /**
+     * Saved Messages' music, newest first, even a single track: where a
+     * person keeps what they mean to keep, so the front page leads with it —
+     * the owner's call for 1.6.6. Null when Saved Messages has none.
+     */
+    val saved: LibraryCollection? = null
 ) {
     val isEmpty: Boolean get() = tracks.isEmpty()
 
     fun collection(key: String): LibraryCollection? =
-        (albums.asSequence() + artists + playlists).firstOrNull { it.key == key }
+        (albums.asSequence() + artists + playlists + listOfNotNull(saved)).firstOrNull { it.key == key }
 }
 
 /** A track with where it came from, for the social half of the library. */
@@ -139,7 +145,22 @@ fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): Mu
                 .thenBy { it.title.lowercase() }
         )
 
+    val saved = all
+        .filter { chats[it.message.chatId]?.isSaved == true }
+        .takeIf { it.isNotEmpty() }
+        ?.let { tracks ->
+            val chatId = tracks.first().message.chatId
+            LibraryCollection(
+                key = "chat:$chatId",
+                kind = CollectionKind.Playlist,
+                title = chats[chatId]?.title?.ifBlank { null } ?: "Saved Messages",
+                subtitle = countLabel(tracks.size),
+                tracks = tracks
+            )
+        }
+
     return MusicLibrary(
+        saved = saved,
         tracks = unique.sortedBy { it.track.title.lowercase() },
         artists = artists,
         albums = albums,
