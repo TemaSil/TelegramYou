@@ -306,6 +306,14 @@ internal fun ComposerBar(
     } else {
         with(density) { (restingHeight / 2).toDp() }
     }
+    // Closer over the keyboard than over the bottom of the screen; eased
+    // between the two rather than switched, since the switch lands the moment
+    // the keyboard is gone and read as a last small hop.
+    val bottomMargin by animateDpAsState(
+        targetValue = if (WindowInsets.isImeVisible || expressionsOpen) COMPOSER_MARGIN_OVER_KEYBOARD else COMPOSER_MARGIN,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "composerBottomMargin"
+    )
     val topCorner by animateDpAsState(
         targetValue = if (attachedAbove) COMPOSER_JOIN_CORNER else corner,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
@@ -342,8 +350,7 @@ internal fun ComposerBar(
                 start = 16.dp,
                 end = 16.dp,
                 top = if (attachedAbove) 0.dp else COMPOSER_MARGIN,
-                bottom = if (WindowInsets.isImeVisible || expressionsOpen) COMPOSER_MARGIN_OVER_KEYBOARD
-                else COMPOSER_MARGIN
+                bottom = bottomMargin
             )
     ) {
         // No shadow, and that is the correction rather than an omission. The

@@ -422,6 +422,12 @@ at the top, off by default.
 From a user: the chat list shows the ticks of the account's own last message
 (`ChatPreview.lastMessageStatus`, from the message's sending state and the
 chat's `last_read_outbox_message_id`).
+The composer's jump as the keyboard closed, filmed by the owner, was the
+gesture bar shrinking back at the end of the keyboard's animation; the lift
+is measured from the resting bar now. A flick back towards the newest
+message within 2.5 s of a drag that hid the keyboard brings it back — the
+simple half of iOS's interactive dismissal; the keyboard following the
+finger (`WindowInsetsAnimationController`, Android 11+) is left for later.
 
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:

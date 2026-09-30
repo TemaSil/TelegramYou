@@ -117,6 +117,7 @@ a wide screen the navigation becomes a rail.
 - **The player's buttons as Expressive button groups**, both rows — the one under the finger widens and the others give way.
 - **Mini player at the top** (Appearance → Music), off by default — for whoever preferred it under the title, as until 1.6.7.
 - **Ticks in the chat list** — when the last message is yours, one tick for sent and two for read before the time, as the official client has it; a clock while it sends. Asked for by a user.
+- **The composer no longer jumps as the keyboard goes** — on gesture navigation the bar under the keyboard shrinks the moment it closes, and the composer used to fall that difference in one step. And **the keyboard comes back** when a drag that put it away is followed by a quick flick back down to the newest messages, as on iOS.
 - **Fixed:** a track sent with a caption drew the caption over the track.
 
 ## New in 1.6.7

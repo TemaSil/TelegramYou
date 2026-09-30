@@ -12,6 +12,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.runtime.mutableLongStateOf
+import android.os.SystemClock
+import androidx.compose.ui.unit.Velocity
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.foundation.layout.exclude
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.activity.compose.BackHandler
@@ -387,9 +394,35 @@ fun ChatScreen(
     // field keeps its text and its caret, so a tap on it brings the keyboard
     // straight back. Only a drag counts — the list moving by itself, for a
     // new message or a jump to a reply, leaves the keyboard where it is.
+    //
+    // And back, as on iOS: put away by a drag, the keyboard comes back up if
+    // the conversation is flicked back down towards the newest message
+    // within a couple of seconds — changed one's mind, carried on typing.
+    // Only when the drag was what put it away; someone who was only reading
+    // is not handed a keyboard for scrolling.
+    var hiddenByDragAt by remember { mutableLongStateOf(0L) }
+    val keyboardInsets = WindowInsets.ime
+    val insetDensity = LocalDensity.current
     LaunchedEffect(listState) {
         listState.interactionSource.interactions.collect { interaction ->
-            if (interaction is DragInteraction.Start) keyboardController?.hide()
+            if (interaction is DragInteraction.Start) {
+                if (keyboardInsets.getBottom(insetDensity) > 0) hiddenByDragAt = SystemClock.uptimeMillis()
+                keyboardController?.hide()
+            }
+        }
+    }
+    val keyboardBack = remember {
+        object : NestedScrollConnection {
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                // The list is laid out from the bottom: towards the newest
+                // message is the finger going up, a negative velocity.
+                val recently = SystemClock.uptimeMillis() - hiddenByDragAt < KEYBOARD_BACK_WITHIN_MS
+                if (recently && available.y < -KEYBOARD_BACK_FLING) {
+                    hiddenByDragAt = 0L
+                    keyboardController?.show()
+                }
+                return Velocity.Zero
+            }
         }
     }
     // Held across the launch because TakePicture answers with a boolean, not
@@ -457,7 +490,20 @@ fun ChatScreen(
     } else {
         PANEL_DEFAULT_HEIGHT
     }
-    val navBarHeight = with(density) { navInsets.getBottom(density).toDp() }
+    // The navigation bar's height with the keyboard down, and only that. On
+    // gesture navigation the bar grows while the keyboard is up — it holds
+    // the keyboard's own hide and switch buttons — and drops back the moment
+    // the keyboard is gone. The composer used to stand on the bar as it was
+    // at each frame, so it rode the keyboard down and then fell the
+    // difference in one step at the end: the jump the owner filmed.
+    // Measured from the resting bar, the composer's height over the bottom
+    // is the keyboard's own all the way down, and never steps.
+    var restingNav by remember { mutableIntStateOf(navInsets.getBottom(density)) }
+    LaunchedEffect(imeInsets, navInsets) {
+        snapshotFlow { (imeInsets.getBottom(density) == 0) to navInsets.getBottom(density) }
+            .collect { (keyboardDown, nav) -> if (keyboardDown) restingNav = nav }
+    }
+    val navBarHeight = with(density) { restingNav.toDp() }
     // How far the composer stands off the bottom of the list's Box, which
     // runs under the navigation bar: the bar's height, except with the panel
     // up, which stands under the composer and carries the inset itself. With
@@ -754,11 +800,13 @@ fun ChatScreen(
                     top = padding.calculateTopPadding(),
                     end = padding.calculateEndPadding(LocalLayoutDirection.current)
                 )
-                // The keyboard less the navigation bar it covers, said
-                // outright rather than left to whether the Scaffold consumed
-                // the bar: composerLift adds the bar back.
+                // The keyboard less the resting navigation bar, which
+                // composerLift adds back — so the capsule's height over the
+                // bottom is exactly the keyboard's, frame by frame, however
+                // the bar changes under it (see restingNav). The bar is still
+                // consumed for what is inside.
+                .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets(bottom = restingNav)))
                 .consumeWindowInsets(WindowInsets.navigationBars)
-                .imePadding()
         ) {
             musicBar()
             detail?.pinnedMessage?.let { pinned ->
@@ -809,7 +857,9 @@ fun ChatScreen(
                     // To the bottom of the screen: the conversation shows
                     // under the capsule's margin too, rather than a band of
                     // bare background beneath it, on the owner's word.
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(keyboardBack),
                     // Sixteen on three sides, and room for the composer on
                     // the fourth. The list runs underneath it now, so without
                     // this the newest message would sit behind the capsule
@@ -1544,3 +1594,8 @@ private val PANEL_DEFAULT_HEIGHT = 300.dp
 
 /** No shorter than this, whatever a floating or split keyboard measured. */
 private val PANEL_MIN_HEIGHT = 240.dp
+
+/** How soon after a drag put the keyboard away a flick back brings it up. */
+private const val KEYBOARD_BACK_WITHIN_MS = 2_500L
+/** How fast that flick back has to be, in px a second: a deliberate one. */
+private const val KEYBOARD_BACK_FLING = 2_500f
