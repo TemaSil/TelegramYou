@@ -81,7 +81,13 @@ data class AppearanceSettings(
      * The music player's cover rippling a little at its edges on the beat.
      * On by default; Less motion stills it whatever this says.
      */
-    val coverMoves: Boolean = true
+    val coverMoves: Boolean = true,
+    /**
+     * The mini player under the screen's title, where it was until 1.6.7,
+     * rather than at the foot over the navigation bar or the composer. Off
+     * by default; for whoever preferred it there.
+     */
+    val miniPlayerOnTop: Boolean = false
 )
 
 /**

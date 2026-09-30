@@ -194,16 +194,22 @@ fun TelegramYouNavHost(
     // Split since 1.6.7: the voice bar stays at the top of a screen, and the
     // mini player goes to its foot, over the navigation bar or the
     // composer, where the thumb is.
+    // Unless Appearance → Music puts the mini player back at the top, with
+    // the voice bar, where it was until 1.6.7.
+    val barLooks by appearance.settings.collectAsStateWithLifecycle()
     val musicBar: @Composable () -> Unit = {
-        com.telegramyou.app.ui.music.VoiceBar(
-            state = voiceNow,
-            onToggle = { voice?.toggle() },
-            onSpeed = { voice?.cycleSpeed() },
-            onStop = { voice?.stop() }
-        )
+        androidx.compose.foundation.layout.Column {
+            com.telegramyou.app.ui.music.VoiceBar(
+                state = voiceNow,
+                onToggle = { voice?.toggle() },
+                onSpeed = { voice?.cycleSpeed() },
+                onStop = { voice?.stop() }
+            )
+            if (barLooks.miniPlayerOnTop) MiniPlayer(nowPlaying, musicActions, onOpen = { playerOpen = true })
+        }
     }
     val playerBar: @Composable () -> Unit = {
-        MiniPlayer(nowPlaying, musicActions, onOpen = { playerOpen = true })
+        if (!barLooks.miniPlayerOnTop) MiniPlayer(nowPlaying, musicActions, onOpen = { playerOpen = true })
     }
     /** A track tapped: the player's, and the same track again is play and pause. */
     val playTrack: (ChatMessage, String, List<ChatMessage>, Boolean) -> Unit = { message, source, loaded, complete ->
@@ -639,7 +645,8 @@ fun TelegramYouNavHost(
                     onMessageTextScaleChange = appearance::setMessageTextScale,
                     onTwoLinePreviewsChange = appearance::setTwoLinePreviews,
                     onReduceMotionChange = appearance::setReduceMotion,
-                    onCoverMovesChange = appearance::setCoverMoves
+                    onCoverMovesChange = appearance::setCoverMoves,
+                    onMiniPlayerOnTopChange = appearance::setMiniPlayerOnTop
                 )
             )
         }

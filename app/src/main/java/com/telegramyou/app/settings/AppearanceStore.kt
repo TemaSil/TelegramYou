@@ -61,6 +61,11 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_COVER_MOVES, enabled).apply()
     }
 
+    fun setMiniPlayerOnTop(enabled: Boolean) {
+        _settings.update { it.copy(miniPlayerOnTop = enabled) }
+        preferences.edit().putBoolean(KEY_MINI_PLAYER_ON_TOP, enabled).apply()
+    }
+
     /**
      * Puts the launcher back on the Teal icon: its alias on, every other one
      * off. The icon colour was a choice in 1.4 and is not any more, so an
@@ -162,7 +167,8 @@ class AppearanceStore(context: Context) {
             ),
             messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f)),
             reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false),
-            coverMoves = preferences.getBoolean(KEY_COVER_MOVES, true)
+            coverMoves = preferences.getBoolean(KEY_COVER_MOVES, true),
+            miniPlayerOnTop = preferences.getBoolean(KEY_MINI_PLAYER_ON_TOP, false)
         )
     }
 
@@ -182,6 +188,7 @@ class AppearanceStore(context: Context) {
         const val KEY_TWO_LINE_PREVIEWS = "two_line_previews"
         const val KEY_REDUCE_MOTION = "reduce_motion"
         const val KEY_COVER_MOVES = "cover_moves"
+        const val KEY_MINI_PLAYER_ON_TOP = "mini_player_on_top"
 
         /** The namespace the manifest's launcher aliases are named in. */
         const val ALIAS_PACKAGE = "com.telegramyou.app"

@@ -74,7 +74,8 @@ class AppearanceActions(
     val onMessageTextScaleChange: (Float) -> Unit = {},
     val onTwoLinePreviewsChange: (Boolean) -> Unit = {},
     val onReduceMotionChange: (Boolean) -> Unit = {},
-    val onCoverMovesChange: (Boolean) -> Unit = {}
+    val onCoverMovesChange: (Boolean) -> Unit = {},
+    val onMiniPlayerOnTopChange: (Boolean) -> Unit = {}
 )
 
 /**
@@ -290,9 +291,18 @@ fun AppearanceScreen(
                 )
                 switch(
                     title = "Cover moves with the music",
-                    summary = if (settings.reduceMotion) "Held still by Less motion" else "The player's cover ripples at its edges on the beat",
+                    summary = if (settings.reduceMotion) "Held still by Less motion" else "The player's cover breathes into a scalloped shape on the beat",
                     checked = settings.coverMoves,
                     onChange = actions.onCoverMovesChange
+                )
+            }
+
+            SettingsGroup("Music") {
+                switch(
+                    title = "Mini player at the top",
+                    summary = "Under the screen's title, rather than above the navigation bar and the composer",
+                    checked = settings.miniPlayerOnTop,
+                    onChange = actions.onMiniPlayerOnTopChange
                 )
             }
         }

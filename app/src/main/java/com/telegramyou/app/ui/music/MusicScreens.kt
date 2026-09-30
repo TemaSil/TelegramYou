@@ -20,6 +20,9 @@ import com.telegramyou.app.telegram.model.SleepTimer
 import java.io.File
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ButtonGroup
 import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
 import androidx.compose.runtime.mutableIntStateOf
@@ -313,7 +316,13 @@ internal fun Cover(track: Track, size: Int, corner: Int) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int, modifier: Modifier = Modifier.size(size.dp)) {
+private fun PlayPauseButton(
+    state: NowPlaying,
+    onToggle: () -> Unit,
+    size: Int,
+    modifier: Modifier = Modifier.size(size.dp),
+    interactionSource: MutableInteractionSource? = null
+) {
     val corner by animateDpAsState(
         targetValue = if (state.isPlaying) (size / 3.2f).dp else (size / 2f).dp,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
@@ -322,6 +331,7 @@ private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int, 
     FilledIconButton(
         onClick = onToggle,
         shape = RoundedCornerShape(corner),
+        interactionSource = interactionSource,
         modifier = modifier
     ) {
         when {
@@ -612,38 +622,66 @@ fun PlayerScreen(
                 // Material's own advice for a player's controls: the one
                 // that matters breaks from the shapes around it. Previous and
                 // next are squared-off; play is wider than both, full height,
-                // and changes shape as it plays.
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                // and changes shape as it plays. An Expressive ButtonGroup
+                // (1.6.8): the button under the finger widens and the others
+                // give way. Every item weighted — see the profile's group
+                // and ROADMAP, "ButtonGroup", for why that is not optional.
+                ButtonGroup(
+                    overflowIndicator = { menu -> ButtonGroupDefaults.OverflowIndicator(menuState = menu) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    FilledTonalIconButton(
-                        onClick = actions.onPrevious,
-                        shape = RoundedCornerShape(28.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(88.dp)
-                    ) {
-                        Icon(Symbols.SkipPrevious, contentDescription = "Previous track", modifier = Modifier.size(32.dp))
-                    }
-                    PlayPauseButton(
-                        state,
-                        actions.onToggle,
-                        size = 88,
-                        modifier = Modifier
-                            .weight(1.6f)
-                            .height(88.dp)
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            FilledTonalIconButton(
+                                onClick = actions.onPrevious,
+                                shape = RoundedCornerShape(28.dp),
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .animateWidth(source)
+                                    .height(88.dp)
+                            ) {
+                                Icon(Symbols.SkipPrevious, contentDescription = "Previous track", modifier = Modifier.size(32.dp))
+                            }
+                        },
+                        menuContent = { DropdownMenuItem(text = { Text("Previous track") }, onClick = actions.onPrevious) }
                     )
-                    FilledTonalIconButton(
-                        onClick = actions.onNext,
-                        shape = RoundedCornerShape(28.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(88.dp)
-                    ) {
-                        Icon(Symbols.SkipNext, contentDescription = "Next track", modifier = Modifier.size(32.dp))
-                    }
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            PlayPauseButton(
+                                state,
+                                actions.onToggle,
+                                size = 88,
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(1.6f)
+                                    .animateWidth(source)
+                                    .height(88.dp)
+                            )
+                        },
+                        menuContent = {
+                            DropdownMenuItem(text = { Text(if (state.isPlaying) "Pause" else "Play") }, onClick = actions.onToggle)
+                        }
+                    )
+                    customItem(
+                        buttonGroupContent = {
+                            val source = remember { MutableInteractionSource() }
+                            FilledTonalIconButton(
+                                onClick = actions.onNext,
+                                shape = RoundedCornerShape(28.dp),
+                                interactionSource = source,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .animateWidth(source)
+                                    .height(88.dp)
+                            ) {
+                                Icon(Symbols.SkipNext, contentDescription = "Next track", modifier = Modifier.size(32.dp))
+                            }
+                        },
+                        menuContent = { DropdownMenuItem(text = { Text("Next track") }, onClick = actions.onNext) }
+                    )
                 }
                 Spacer(Modifier.height(12.dp))
                 // How it plays, as pills in the surface's own tone: second to

@@ -416,6 +416,9 @@ closing are the sheet's own; the mini player is swiped away to stop the
 music rather than to change track, which read as dismissing it; the reply
 banner and attachment chip fold as they go; and an audio message's
 caption, laid in the bubble's Box, is under the track instead of over it.
+The player's previous, play and next became a `ButtonGroup` (weighted, as
+the profile's must be), and Appearance → Music can put the mini player back
+at the top, off by default.
 
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:
