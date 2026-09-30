@@ -1877,7 +1877,7 @@ class SmokeTest {
         waitFor(By.desc("Pause"), "the track playing")
         screenshot("78-player")
 
-        tap(By.desc("Queue"))
+        tap(By.text("Queue"))
         waitFor(By.textContains("12 tracks"), "the channel's whole music in the queue")
         // The oldest track is at the far end of the queue: found by its
         // search rather than by scrolling to it.
@@ -1913,7 +1913,6 @@ class SmokeTest {
         // Fifteen minutes rather than the end of the track: the demo's track
         // is twelve seconds long, and by now it can have ended, taking an
         // end-of-track timer with it before the chip could be seen.
-        tap(By.desc("More"))
         tap(By.text("Sleep timer"))
         tap(By.text("15 minutes"))
         waitFor(By.text("Sleep timer: 15 minutes"), "the sleep timer set")

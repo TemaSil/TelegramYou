@@ -52,6 +52,8 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
@@ -248,7 +250,7 @@ internal fun Cover(track: Track, size: Int, corner: Int) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int) {
+private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int, modifier: Modifier = Modifier.size(size.dp)) {
     val corner by animateDpAsState(
         targetValue = if (state.isPlaying) (size / 3.2f).dp else (size / 2f).dp,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
@@ -257,7 +259,7 @@ private fun PlayPauseButton(state: NowPlaying, onToggle: () -> Unit, size: Int) 
     FilledIconButton(
         onClick = onToggle,
         shape = RoundedCornerShape(corner),
-        modifier = Modifier.size(size.dp)
+        modifier = modifier
     ) {
         when {
             state.isLoading -> LoadingIndicator(Modifier.size((size * 0.6f).dp), color = MaterialTheme.colorScheme.onPrimary)
@@ -323,7 +325,6 @@ fun PlayerScreen(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = { queueOpen = true }) { Icon(Symbols.QueueMusic, contentDescription = "Queue") }
                     Box {
                         IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = "More") }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -372,14 +373,6 @@ fun PlayerScreen(
                                     }
                                 )
                             }
-                            DropdownMenuItem(
-                                text = { Text("Sleep timer") },
-                                leadingIcon = { Icon(Symbols.Bedtime, contentDescription = null) },
-                                onClick = {
-                                    menuOpen = false
-                                    sleepOpen = true
-                                }
-                            )
                             // The platform's equaliser panel, or whichever app
                             // provides one; offered only where there is one.
                             val panel = Intent(AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
@@ -478,49 +471,101 @@ fun PlayerScreen(
                 )
                 Spacer(Modifier.height(20.dp))
                 Seeker(state, actions.onSeek)
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(16.dp))
+                // Material's own advice for a player's controls: the one
+                // that matters breaks from the shapes around it. Previous and
+                // next are squared-off; play is wider than both, full height,
+                // and changes shape as it plays.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    FilledTonalIconButton(onClick = actions.onPrevious, modifier = Modifier.size(64.dp)) {
+                    FilledTonalIconButton(
+                        onClick = actions.onPrevious,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(88.dp)
+                    ) {
                         Icon(Symbols.SkipPrevious, contentDescription = "Previous track", modifier = Modifier.size(32.dp))
                     }
-                    PlayPauseButton(state, actions.onToggle, size = 96)
-                    FilledTonalIconButton(onClick = actions.onNext, modifier = Modifier.size(64.dp)) {
+                    PlayPauseButton(
+                        state,
+                        actions.onToggle,
+                        size = 88,
+                        modifier = Modifier
+                            .weight(1.6f)
+                            .height(88.dp)
+                    )
+                    FilledTonalIconButton(
+                        onClick = actions.onNext,
+                        shape = RoundedCornerShape(28.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(88.dp)
+                    ) {
                         Icon(Symbols.SkipNext, contentDescription = "Next track", modifier = Modifier.size(32.dp))
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
+                // How it plays, as pills in the surface's own tone: second to
+                // the row above, and wide enough to hit without looking.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     OrderButton(state.queue.order, actions.onOrder)
-                    IconButton(
+                    val repeatOn = state.queue.repeat != RepeatMode.Off
+                    FilledTonalButton(
                         onClick = actions.onRepeat,
-                        colors = if (state.queue.repeat != RepeatMode.Off) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
+                        colors = pillColors(repeatOn),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
                     ) {
                         Icon(
                             if (state.queue.repeat == RepeatMode.One) Symbols.RepeatOne else Symbols.Repeat,
                             contentDescription = state.queue.repeat.label
                         )
                     }
-                    TextButton(onClick = actions.onSpeed) {
-                        Text(speedLabel(state.speed), modifier = Modifier.semantics { contentDescription = "Speed ${speedLabel(state.speed)}" })
+                    FilledTonalButton(
+                        onClick = actions.onSpeed,
+                        colors = pillColors(state.speed != 1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp)
+                            .semantics { contentDescription = "Speed ${speedLabel(state.speed)}" }
+                    ) {
+                        Text(speedLabel(state.speed), style = MaterialTheme.typography.titleMedium)
                     }
                 }
-                if (state.sleep != SleepTimer.Off) {
+                Spacer(Modifier.height(16.dp))
+                // The small things at the foot, as chips: the sleep timer on
+                // the left, the queue on the right.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     AssistChip(
                         onClick = { sleepOpen = true },
                         label = {
                             Text(
-                                if (state.sleep == SleepTimer.EndOfTrack) "Stops after this track"
-                                else "Sleep timer: ${state.sleep.label}"
+                                when (state.sleep) {
+                                    SleepTimer.Off -> "Sleep timer"
+                                    SleepTimer.EndOfTrack -> "Stops after this track"
+                                    else -> "Sleep timer: ${state.sleep.label}"
+                                }
                             )
                         },
                         leadingIcon = { Icon(Symbols.Bedtime, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    )
+                    AssistChip(
+                        onClick = { queueOpen = true },
+                        label = { Text("Queue") },
+                        leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                 }
                 state.offline?.let { offline ->
@@ -577,9 +622,11 @@ fun PlayerScreen(
 private fun OrderButton(order: QueueOrder, onOrder: (QueueOrder) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
-        IconButton(
+        FilledTonalIconButton(
             onClick = { open = true },
-            colors = if (order != QueueOrder.Listed) IconButtonDefaults.filledTonalIconButtonColors() else IconButtonDefaults.iconButtonColors()
+            colors = if (order != QueueOrder.Listed) IconButtonDefaults.filledTonalIconButtonColors() else
+                IconButtonDefaults.filledTonalIconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
+            modifier = Modifier.size(56.dp)
         ) {
             // Plain order shows the shuffle symbol, untinted, as players do:
             // an arrow down on its own read as "download". The arrows are in
@@ -817,6 +864,17 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
 }
 
 private const val UP_NEXT_SHOWN = 4
+
+/** A pill's colours: the secondary tone while its setting is on, the surface's while it is not. */
+@Composable
+private fun pillColors(on: Boolean) = if (on) {
+    ButtonDefaults.filledTonalButtonColors()
+} else {
+    ButtonDefaults.filledTonalButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    )
+}
 
 /** The reactions the player offers: the few people give music. */
 private val PLAYER_REACTIONS = listOf("❤️", "🔥", "👍", "😢")

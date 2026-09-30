@@ -22,6 +22,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -31,6 +34,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.settings.DoubleTapAction
 import com.telegramyou.app.settings.GeekSettings
+import android.content.ClipData
+import android.content.ClipboardManager
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.foundation.text.selection.SelectionContainer
+import com.telegramyou.app.CrashLog
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Settings → For geeks: the small things a power user reaches for, each a
@@ -45,6 +54,41 @@ fun GeeksScreen(
     onChange: ((GeekSettings) -> GeekSettings) -> Unit
 ) {
     var choosingDoubleTap by rememberSaveable { mutableStateOf(false) }
+    val context = LocalContext.current
+    var crash by remember { mutableStateOf(CrashLog.read(context)) }
+    var showingCrash by remember { mutableStateOf(false) }
+    if (showingCrash && crash != null) {
+        AlertDialog(
+            onDismissRequest = { showingCrash = false },
+            title = { Text("Last crash") },
+            text = {
+                SelectionContainer {
+                    Text(
+                        crash.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("TelegramYou crash", crash))
+                    showingCrash = false
+                }) { Text("Copy") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    CrashLog.clear(context)
+                    crash = null
+                    showingCrash = false
+                }) { Text("Clear") }
+            }
+        )
+    }
     if (choosingDoubleTap) {
         AlertDialog(
             onDismissRequest = { choosingDoubleTap = false },
@@ -158,6 +202,18 @@ fun GeeksScreen(
                     summary = "Reach Telegram over IPv6 where the network offers both",
                     checked = settings.preferIpv6
                 ) { on -> onChange { it.copy(preferIpv6 = on) } }
+            }
+
+            // The last crash, when there has been one: to read and copy into
+            // a report. See CrashLog.
+            if (crash != null) {
+                SettingsGroup("Diagnostics") {
+                    link(
+                        title = "Last crash",
+                        summary = crash!!.lineSequence().drop(2).firstOrNull().orEmpty().ifBlank { "Tap to see it" },
+                        onClick = { showingCrash = true }
+                    )
+                }
             }
         }
     }

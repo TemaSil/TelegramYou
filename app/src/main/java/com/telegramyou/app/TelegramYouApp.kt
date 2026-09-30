@@ -74,6 +74,8 @@ class TelegramYouApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // First, so a crash anywhere after it is kept; see CrashLog.
+        CrashLog.install(this)
         createNotificationChannels()
         com.telegramyou.app.music.AudioFocus.init(this)
         appearance = AppearanceStore(this)
