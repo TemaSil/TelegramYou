@@ -29,7 +29,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -165,15 +167,21 @@ fun MyMusicScreen(
                 .padding(padding)
         ) {
             musicBar()
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQuery,
+            // The same pill as search's own field, not a boxed text field:
+            // one way of searching across the app.
+            SearchBarDefaults.InputField(
+                query = state.query,
+                onQueryChange = onQuery,
+                onSearch = {},
+                expanded = false,
+                onExpandedChange = {},
                 placeholder = { Text("Search every chat's music") },
                 leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
-                singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .clip(SearchBarDefaults.inputFieldShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             when {
                 !state.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
