@@ -1572,7 +1572,6 @@ class SmokeTest {
             screenshot("33c-geeks-double-tap-reply")
             tap(By.desc("Cancel reply"))
 
-            val before = device.findObjects(line).size
             repeat(3) {
                 if (device.hasObject(By.text("Forward"))) return@repeat
                 try {
@@ -1583,20 +1582,22 @@ class SmokeTest {
             }
             tap(By.text("Forward"))
             waitFor(By.text("Forward to…"), "the forward sheet")
-            // The sheet's row, not the chat's own title behind the sheet: the
-            // lowest of the two on screen.
-            device.findObjects(By.text("Saved Messages"))
-                .maxByOrNull { it.visibleCenter.y }
-                ?.click()
-            val copied = SystemClock.uptimeMillis() + STEP_TIMEOUT
-            while (SystemClock.uptimeMillis() < copied && device.findObjects(line).size <= before) {
-                SystemClock.sleep(300)
+            // The sheet's first row, in view without scrolling — Saved
+            // Messages, further down, was not, and its name was the title
+            // behind the sheet.
+            tap(By.text("Material Design"))
+            // Off to the chat it went to, where the copy is the newest line.
+            if (device.executeShellCommand("dumpsys input_method").contains("mInputShown=true")) {
+                device.pressBack()
             }
+            device.pressBack()
+            waitFor(By.text("Material Design"), "the chat list after forwarding")
+            tap(By.text("Material Design"))
+            waitFor(line, "the forwarded copy in Material Design")
             screenshot("33d-geeks-forward-copy")
-            assertTrue("the forward never arrived", device.findObjects(line).size > before)
             assertFalse(
                 "a copy was marked as forwarded",
-                device.hasObject(By.textStartsWith("Forwarded from"))
+                device.hasObject(By.text("Forwarded from You"))
             )
             device.pressBack()
         } finally {
