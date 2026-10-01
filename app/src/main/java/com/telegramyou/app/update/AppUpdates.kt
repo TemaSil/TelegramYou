@@ -60,6 +60,14 @@ class AppUpdates(private val context: Context) {
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
 
+    /**
+     * The newest release as last read, update or not — the quiet check at
+     * start-up included. What's new dates this version by it when it is
+     * this version.
+     */
+    private val _latest = MutableStateFlow<Release?>(null)
+    val latest: StateFlow<Release?> = _latest.asStateFlow()
+
     /** This build's version, as its APK and the release name write it. */
     val installed: AppVersion = AppVersion.find(BuildConfig.VERSION_NAME) ?: AppVersion(listOf(0))
 
@@ -89,6 +97,7 @@ class AppUpdates(private val context: Context) {
                 if (!quiet) _state.value = UpdateState.Failed("Could not reach GitHub")
                 return@launch
             }
+            if (result != null) _latest.value = result
             _state.value = when {
                 result != null && isUpdate(result, installed, installedBuild) -> UpdateState.Available(result)
                 quiet -> _state.value
@@ -179,7 +188,13 @@ class AppUpdates(private val context: Context) {
             }
             // Each build type updates to its own kind: a release to the
             // release APK, a debug build to the debug one.
-            return releaseOf(json.optString("name"), json.optString("body"), byName, BuildConfig.UPDATE_ASSET)
+            return releaseOf(
+                json.optString("name"),
+                json.optString("body"),
+                byName,
+                BuildConfig.UPDATE_ASSET,
+                publishedAt = json.optString("published_at")
+            )
         } finally {
             connection.disconnect()
         }

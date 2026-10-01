@@ -456,7 +456,8 @@ For geeks, gone over switch by switch at the owner's ask: all eleven reach
 what they say, but Hide the All tab took the archive with it (its row is
 the All page's) — it is in the menu then — and the demo ignored Forward
 without quoting, so nothing could test it; a new UI test drives five of
-the switches that had none. Also the dependency bump of the same day: androidx activity 1.13,
+the switches that had none. What's new in App update now says when the version came out
+(`releasedLabel`, from the release's `published_at`). Also the dependency bump of the same day: androidx activity 1.13,
 core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
 AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
 

@@ -50,7 +50,9 @@ data class Release(
     /** The commit it was built from, when the release says. */
     val commit: String? = null,
     /** What it brings, when the release carries notes; see [WhatsNew]. */
-    val notes: WhatsNew? = null
+    val notes: WhatsNew? = null,
+    /** When it went up, in epoch seconds; see [releasedLabel]. */
+    val publishedSeconds: Long? = null
 ) {
     /** "1.1 (build 430)" — two builds of one version need telling apart. */
     val label: String get() = versionLabel(version, build)
@@ -69,13 +71,14 @@ fun releaseOf(
     name: String,
     body: String,
     assets: Map<String, Pair<String, Long>>,
-    assetName: String = APK_ASSET
+    assetName: String = APK_ASSET,
+    publishedAt: String? = null
 ): Release? {
     val version = AppVersion.find(name) ?: return null
     val build = Regex("""\bbuild (\d+)""").find(name)?.groupValues?.get(1)?.toIntOrNull()
     val (url, size) = assets[assetName] ?: return null
     val commit = Regex("""\b[0-9a-f]{40}\b""").find(body)?.value
-    return Release(version, build, url, size, commit, whatsNewIn(body))
+    return Release(version, build, url, size, commit, whatsNewIn(body), publishedSecondsOf(publishedAt))
 }
 
 /**

@@ -1,5 +1,6 @@
 package com.telegramyou.app.update
 
+import java.time.ZoneId
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -65,6 +66,7 @@ val LocalAppUpdates = staticCompositionLocalOf<AppUpdates?> { null }
 fun AppUpdateScreen(onBack: () -> Unit) {
     val updates = LocalAppUpdates.current
     val state = updates?.state?.collectAsStateWithLifecycle()?.value ?: UpdateState.Idle
+    val latest = updates?.latest?.collectAsStateWithLifecycle()?.value
     val installed = updates?.installed?.toString() ?: "—"
     // This build's own notes, shipped in its assets.
     val context = LocalContext.current
@@ -196,12 +198,21 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                 else -> null
             }
             val notes = incoming?.notes ?: installedNotes
+            // When the version the notes are about went up: the incoming
+            // release's own date, or — for this version's notes — the newest
+            // release's, when that is this version. Unknown until GitHub has
+            // been asked, and then simply not shown.
+            val dated = if (incoming?.notes != null) incoming else latest?.takeIf { it.version == updates?.installed }
+            val released = dated?.publishedSeconds?.let {
+                releasedLabel(it, System.currentTimeMillis() / 1000, ZoneId.systemDefault())
+            }
             if (notes != null) {
                 item(key = "whats-new") {
                     WhatsNewCard(
                         heading = if (incoming?.notes != null) "What's new in ${incoming.version}"
                         else "What's new in this version",
-                        notes = notes
+                        notes = notes,
+                        released = released
                     )
                 }
             }
@@ -211,7 +222,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
 
 /** An update's notes: a heading, its title, a line for each thing. */
 @Composable
-private fun WhatsNewCard(heading: String, notes: WhatsNew) {
+private fun WhatsNewCard(heading: String, notes: WhatsNew, released: String?) {
     Card(
         colors = CardDefaults.cardColors(containerColor = settingsRowColor()),
         shape = MaterialTheme.shapes.large
@@ -220,6 +231,10 @@ private fun WhatsNewCard(heading: String, notes: WhatsNew) {
             Text(heading, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(4.dp))
             Text(notes.title, style = MaterialTheme.typography.titleMedium)
+            released?.let {
+                Spacer(Modifier.height(2.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Spacer(Modifier.height(12.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 notes.items.forEach { line ->
