@@ -1,4 +1,4 @@
-# The mini player floats
-- The mini player floats over the page, with nothing behind it
-- Music's tabs take the bar's colour as the page scrolls under it
-- The mini player's swipe is gone: its cross stops the music
+# Avatars come back
+- Avatars load again after clearing the cache in Settings → Storage
+- An avatar whose download was cut off is asked for again
+- Under the hood: the libraries the app is built on, brought up to date

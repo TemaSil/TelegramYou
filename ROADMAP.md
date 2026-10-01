@@ -440,6 +440,18 @@ large bar's own colour as it folds — its `containerColor` to
 itself — so bar and tabs read as one head. The swipe that stopped the music
 is gone: it missed more than it landed, and the cross is enough.
 
+**1.6.10 — done 1 October: avatars after a cache clear.** From the owner's
+phone: every avatar blank after Settings → Storage had cleared profile
+photos, back after a restart. Chats and users are cached as TDLib last
+described them, and deleting the files does not redescribe them, so the
+cached object went on calling a deleted file downloaded
+(`localPathIfDownloaded`), and each picture was asked for once per process.
+The path is now checked on disk, a clear that includes profile photos asks
+for them all again, and a download that stops short is retried up to three
+times. Also the dependency bump of the same day: androidx activity 1.13,
+core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
+AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
+
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:
 1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the

@@ -480,6 +480,11 @@ internal fun JSONObject.localPathIfDownloaded(): String? = optJSONObject("local"
     ?.takeIf { it.optBoolean("is_downloading_completed") }
     ?.optString("path")
     ?.takeIf { it.isNotBlank() }
+    // And still there. A chat or a user is cached as TDLib last described
+    // it, and Settings → Storage deleting the files does not redescribe them:
+    // the cached object kept calling a deleted avatar downloaded, nothing
+    // asked for it again, and every avatar went blank until a restart (1.6.10).
+    ?.takeIf { java.io.File(it).exists() }
 
 /**
  * Reactions hang off interaction_info, alongside view and forward counts,

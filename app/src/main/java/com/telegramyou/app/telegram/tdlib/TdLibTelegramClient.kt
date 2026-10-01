@@ -211,6 +211,15 @@ class TdLibTelegramClient(
      */
     private val requestedPhotos = ConcurrentHashMap.newKeySet<Int>()
     private val downloadedPhotos = ConcurrentHashMap<Int, String>()
+    /**
+     * How often each picture has been asked for. A download that stops
+     * short — the network went, TDLib gave up — is asked for again the next
+     * time the picture is wanted, up to [PHOTO_ATTEMPTS] times: asked once
+     * per process, as before 1.6.10, a dropped connection left an avatar on
+     * initials for as long as the connection service kept the process alive,
+     * which is days.
+     */
+    private val photoAttempts = ConcurrentHashMap<Int, Int>()
     private val photoRepublishPending = AtomicBoolean(false)
     private val chatsRepublishPending = AtomicBoolean(false)
 
@@ -3108,6 +3117,15 @@ class TdLibTelegramClient(
                 .put("return_deleted_file_statistics", false)
                 .put("chat_limit", 0)
         )
+        // Whatever was deleted is wanted back where it shows: the avatars
+        // on the chat list are asked for again now, rather than left on
+        // initials (1.6.10). A fresh start for their attempts too.
+        if (StorageKind.ProfilePhotos in kinds) {
+            requestedPhotos.clear()
+            downloadedPhotos.clear()
+            photoAttempts.clear()
+            republishPhotos()
+        }
         return storageUsage()
     }
 
@@ -3314,6 +3332,7 @@ class TdLibTelegramClient(
         storyKeys.clear()
         requestedPhotos.clear()
         downloadedPhotos.clear()
+        photoAttempts.clear()
         _chats.value = emptyList()
         _stories.value = emptyList()
         _folders.value = emptyList()
@@ -3488,9 +3507,19 @@ class TdLibTelegramClient(
                 val file = update.optJSONObject("file") ?: return
                 val id = file.optInt("id")
                 if (id in requestedPhotos) {
-                    file.localPathIfDownloaded()?.let { path ->
-                        downloadedPhotos[id] = path
-                        republishPhotos()
+                    val path = file.localPathIfDownloaded()
+                    val local = file.optJSONObject("local")
+                    when {
+                        path != null -> {
+                            downloadedPhotos[id] = path
+                            republishPhotos()
+                        }
+                        // Stopped short, or deleted under us: free to be
+                        // asked for again, the next time it is wanted.
+                        local?.optBoolean("is_downloading_active") != true -> {
+                            requestedPhotos.remove(id)
+                            downloadedPhotos.remove(id)
+                        }
                     }
                 }
                 val local = file.optJSONObject("local")
@@ -4649,8 +4678,15 @@ class TdLibTelegramClient(
         file ?: return null
         file.localPathIfDownloaded()?.let { return it }
         val id = file.optInt("id").takeIf { it != 0 } ?: return null
-        downloadedPhotos[id]?.let { return it }
+        downloadedPhotos[id]?.let { path ->
+            if (File(path).exists()) return path
+            // Deleted since it arrived (Settings → Storage): ask again.
+            downloadedPhotos.remove(id)
+            requestedPhotos.remove(id)
+        }
+        if ((photoAttempts[id] ?: 0) >= PHOTO_ATTEMPTS) return null
         if (requestedPhotos.add(id)) {
+            photoAttempts.merge(id, 1, Int::plus)
             engine?.sendFireAndForget(
                 JSONObject()
                     .put("@type", "downloadFile")
@@ -4724,6 +4760,8 @@ class TdLibTelegramClient(
 
         /** How long arriving avatars are gathered before one redraw. */
         private const val PHOTO_REPUBLISH_MILLIS = 300L
+        /** Tries at a picture before it is left on initials for this run. */
+        private const val PHOTO_ATTEMPTS = 3
         private const val CHATS_REPUBLISH_MILLIS = 50L
 
         /** How many messages a conversation opens with. */

@@ -109,11 +109,11 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.6.9 · 1 October 2026
+## Latest: 1.6.10 · 1 October 2026
 
-The mini player floats over the page with nothing behind it, the Music
-tab's tabs take the bar's colour as the page scrolls, and the mini player
-stops from its cross rather than a swipe.
+Avatars come back after the cache is cleared in Settings → Storage, an
+avatar whose download was cut off is asked for again, and the libraries
+underneath are up to date.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

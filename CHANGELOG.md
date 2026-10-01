@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 1.6.10
+
+- **Fixed: avatars stayed blank after clearing the cache** (Settings → Storage) until the app was restarted. The app kept calling the deleted pictures downloaded and never asked for them again; it now checks the file is still there, and asks again straight after a clear.
+- **An avatar whose download was cut off is asked for again**, up to three times, rather than once for as long as the app runs — which, with the connection kept alive, could be days.
+- **Up-to-date libraries** — AndroidX activity, core, lifecycle, navigation and datastore, which had fallen a year behind, along with coroutines, Coil and the build tools.
+
 ## 1.6.9
 
 - **The mini player floats** — the chats, Music, Settings and the rest run on under it, where a band of background used to sit round the capsule.
