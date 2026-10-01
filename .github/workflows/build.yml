@@ -125,6 +125,9 @@ jobs:
           PRERELEASE = re.compile(r"-(alpha|beta|rc|dev|M|eap)", re.IGNORECASE)
 
           boms = []
+          # One annotation for the lot, a line per library: GitHub shows ten
+          # annotations a step, and one each crowded half of them out.
+          newest = []
           for name, repo, path in COORDINATES:
               try:
                   xml = urllib.request.urlopen(
@@ -138,10 +141,15 @@ jobs:
               # This one has only ever shipped alphas; showing "stable" for it
               # would print an empty list and say nothing.
               shown = stable if stable else found[-10:]
-              print(f"::notice title={name}::" + ", ".join(shown))
+              # The newest pre-release beside it, which for material3 is the
+              # line this project actually pins.
+              ahead = f" (pre-release {found[-1]})" if found[-1] != shown[-1] else ""
+              newest.append(f"{name} {shown[-1]}{ahead}")
               print(f"{name}: latest {found[-1]}, shown {shown}")
               if name == "compose-bom":
                   boms = [v for v in found if not PRERELEASE.search(v)][-30:]
+
+          print("::notice title=Newest stable::" + "%0A".join(newest))
 
           # Which material3 each BOM pins. A BOM constrains versions without
           # naming them anywhere readable, and the difference decides how much

@@ -134,8 +134,9 @@ feels dated.** The Build workflow prints what Google's Maven and Maven
 Central offer on every run — compose-bom, material3, AGP, Kotlin, Media3,
 the navigation suite, and since October 2026 every other androidx library the
 app pins by version (activity, core, lifecycle, navigation, datastore,
-graphics-shapes, the test libraries) — as check-run annotations, one per
-library. The full line, with the newest pre-release too, is in the step's log.
+graphics-shapes, the test libraries) — as one check-run annotation titled
+`Newest stable`, a line per library. The last ten versions of each, and the
+newest pre-release, are in the step's log.
 Libraries from Maven Central (coroutines, Coil, Lottie and the rest) can be
 read from here directly: `repo1.maven.org` is reachable, `dl.google.com` is
 not.

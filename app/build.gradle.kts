@@ -311,7 +311,9 @@ dependencies {
     // Expressive is not public in any stable material3 — MaterialExpressiveTheme,
     // MotionScheme and LoadingIndicator are all `internal` in 1.4.0, the newest
     // stable there is. It is public only from the 1.5.0 alphas, and material3
-    // 1.5.0-alpha29 declares Compose core 1.12.0, which is what this BOM pins.
+    // 1.5.0-alpha29 declares Compose core 1.12.0, which is what this BOM pins
+    // — and foundation 1.13.0-alpha01 besides, so what actually runs is
+    // Compose 1.13.0-alpha01 (the Build workflow's Resolved annotations).
     // Hence compileSdk 37, AGP 9 and Gradle 9 as well: the whole stack moves
     // together or not at all.
     val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
@@ -325,18 +327,18 @@ dependencies {
     // never idle — the typing indicator and the Expressive loading indicator
     // are infinite animations, which is exactly the case that hangs it.
     // UiAutomator reads the accessibility tree instead and does not care.
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test:runner:1.6.2")
-    androidTestImplementation("androidx.test:core-ktx:1.6.1")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test:core-ktx:1.7.0")
     // TestStorage itself, for files other than screenshots — the accessibility
     // tree dump. Declared rather than leaned on: core-ktx pulls it in, but a
     // class this code names directly belongs in the build file.
-    androidTestImplementation("androidx.test.services:storage:1.5.0")
+    androidTestImplementation("androidx.test.services:storage:1.6.0")
     // The service behind useTestStorageService above. androidTestUtil, not
     // androidTestImplementation: it is an APK installed alongside the tests
     // rather than a library they link against.
-    androidTestUtil("androidx.test.services:test-services:1.5.0")
+    androidTestUtil("androidx.test.services:test-services:1.6.0")
 
     // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
     // this is the only way to reach Expressive at all. It is an alpha, and
@@ -387,15 +389,15 @@ dependencies {
     // Worth knowing that this one is stable while material3 is an alpha. The
     // catalogue of thirty-five named shapes lives in material3 and every one
     // of them is `internal` there, so the shapes are built from this instead.
-    implementation("androidx.graphics:graphics-shapes:1.0.1")
+    implementation("androidx.graphics:graphics-shapes:1.1.0")
     // Android's own emoji picker — categories, recents, skin tones — for
     // the emoji tab of the composer's panel, rather than a grid of our own.
     implementation("androidx.emoji2:emoji2-emojipicker:1.7.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.core:core-ktx:1.15.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.core:core-ktx:1.19.1")
 
     // Images in bubbles. Coil rather than hand-rolled decoding: a photo in a
     // scrolling list needs a cache, request cancellation when the row leaves
@@ -403,12 +405,12 @@ dependencies {
     // is a library's job. 3.x is the Compose-first line and loads a File or a
     // content:// Uri without help.
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("androidx.navigation:navigation-compose:2.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     // Pure-logic tests that run on the JVM: no device, no emulator, seconds.
     testImplementation("junit:junit:4.13.2")
