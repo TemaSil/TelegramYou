@@ -1,5 +1,4 @@
-# The player as a sheet
-- The player opens as a full-height sheet; its buttons widen as you press
-- Swipe the mini player away to stop the music; or keep it at the top
-- The composer glides with the keyboard; flick back to bring the keyboard up
-- Sent and read ticks in the chat list, as the official client has them
+# The mini player floats
+- The mini player floats over the page, with nothing behind it
+- Music's tabs take the bar's colour as the page scrolls under it
+- The mini player's swipe is gone: its cross stops the music

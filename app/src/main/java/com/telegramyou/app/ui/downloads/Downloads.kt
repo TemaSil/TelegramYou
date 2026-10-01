@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.downloads
 
+import com.telegramyou.app.ui.components.withoutBottom
 import android.content.Context
 import android.os.Build
 import androidx.compose.foundation.clickable
@@ -322,13 +323,15 @@ fun DownloadsScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // The foot goes to the list: it runs on under the mini
+                // player (see withoutBottom).
+                .padding(padding.withoutBottom())
         ) {
             musicBar()
             when {
                 !state.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 sections.isEmpty -> EmptyDownloads()
-                else -> LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+                else -> LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + padding.calculateBottomPadding())) {
                     if (sections.active.isNotEmpty()) {
                         item(key = "active-header") { SectionHeader("Downloading") }
                         items(sections.active, key = { "a${it.fileId}" }) { entry ->

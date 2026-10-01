@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 1.6.9
+
+- **The mini player floats** — the chats, Music, Settings and the rest run on under it, where a band of background used to sit round the capsule.
+- **One head on the Music tab** — as the page scrolls under the bar, the tabs below it, and the mini player when it is at the top, take the bar's colour with it.
+- **No swipe on the mini player** — it missed more often than it landed on a phone; the cross stops the music.
+
 ## 1.6.8
 
 - **The player as a bottom sheet** — Material's modal sheet, opened straight to full height, closed by its handle, a pull down or Back.

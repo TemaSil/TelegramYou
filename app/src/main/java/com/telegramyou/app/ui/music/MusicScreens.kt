@@ -26,9 +26,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.ui.graphics.Color
-import kotlin.math.abs
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.rememberDraggableState
@@ -207,15 +204,8 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
         exit = shrinkVertically() + fadeOut()
     ) {
         if (track == null) return@AnimatedVisibility
-        // Swiped away to either side, the music stops — as a notification
-        // is swiped away. It changed the track in 1.6.7, and on a phone the
-        // whole strip leaving read as dismissing it anyway; the owner asked
-        // for it to mean that.
-        val swipe = remember { Animatable(0f) }
-        val scope = rememberCoroutineScope()
-        var width by remember { mutableIntStateOf(0) }
-        val drag = rememberDraggableState { delta -> scope.launch { swipe.snapTo(swipe.value + delta) } }
-        val spring = MaterialTheme.motionScheme.fastSpatialSpec<Float>()
+        // No swipe: one put the strip away in 1.6.8, and on a phone it
+        // missed more than it landed. The cross is there for that.
         TrackTheme(track, state.coverSeed) {
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -224,26 +214,6 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp, vertical = 4.dp)
-                    .onSizeChanged { width = it.width }
-                    .draggable(
-                        state = drag,
-                        orientation = Orientation.Horizontal,
-                        onDragStopped = { velocity ->
-                            val far = width * SWIPE_TRACK_FRACTION
-                            val forward = swipe.value < -far || velocity < -SWIPE_TRACK_FLING
-                            val back = swipe.value > far || velocity > SWIPE_TRACK_FLING
-                            if (!forward && !back) {
-                                swipe.animateTo(0f, spring)
-                                return@draggable
-                            }
-                            swipe.animateTo(if (forward) -width.toFloat() else width.toFloat(), spring)
-                            actions.onStop()
-                        }
-                    )
-                    .graphicsLayer {
-                        translationX = swipe.value
-                        alpha = 1f - (abs(swipe.value) / width.coerceAtLeast(1)).coerceIn(0f, 1f) * 0.6f
-                    }
                     .clip(PlayerContainerShape)
                     .clickable(onClick = onOpen)
                     .semantics { contentDescription = "Now playing: ${track.title}" }
@@ -1128,11 +1098,6 @@ private const val CLOSE_FLING = 1_500f
 
 /** The order button's share of the second row: about as wide as it is tall. */
 private const val ORDER_WEIGHT = 0.45f
-
-/** How far across the mini player a swipe goes to put it away. */
-private const val SWIPE_TRACK_FRACTION = 0.3f
-/** A flick sideways faster than this, in px a second, puts it away from anywhere. */
-private const val SWIPE_TRACK_FLING = 1_200f
 
 /** The cover while paused: what 20 dp in from each side was on a phone. */
 private const val PAUSED_COVER_SCALE = 0.9f

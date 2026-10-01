@@ -117,9 +117,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import com.telegramyou.app.ui.components.LargeTitle
+import com.telegramyou.app.ui.components.withoutBottom
 import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.MessageHit
@@ -189,7 +191,7 @@ fun HomeScreen(
     /** The mini player, above the navigation bar. */
     playerBar: @Composable () -> Unit = {},
     /** The Music tab's page; null keeps the tab off the bar. */
-    musicPage: (@Composable () -> Unit)? = null,
+    musicPage: (@Composable (foot: Dp) -> Unit)? = null,
     onOpenDownloads: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
     onOpenFolders: () -> Unit = {},
@@ -462,10 +464,9 @@ fun HomeScreen(
                 HomeTab.Music -> {
                     // Its own page with its own bar, which reaches under the
                     // status bar itself; Home's padding would do that twice.
-                    // The bottom's is kept, for the mini player under it.
-                    Box(Modifier.padding(bottom = padding.calculateBottomPadding())) {
-                        musicPage?.invoke()
-                    }
+                    // The bottom's goes to its lists, which run on under the
+                    // mini player floating there.
+                    musicPage?.invoke(padding.calculateBottomPadding())
                     return@AnimatedContent
                 }
                 HomeTab.Chats -> Unit
@@ -538,7 +539,9 @@ fun HomeScreen(
                     // where it stands, and insetting first would leave the
                     // system bars sitting over bare window colour.
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .padding(padding)
+                    // Not the foot: the chats run on under the mini player,
+                    // which floats over them (see withoutBottom).
+                    .padding(padding.withoutBottom())
             ) {
                 // On the column, so the scroll of whichever page is showing
                 // reaches the header on its way up. Only the vertical half is
@@ -618,7 +621,8 @@ fun HomeScreen(
                                     onMarkRead = onMarkRead,
                                     onArchivedChange = onArchivedChange,
                                     onClearHistory = { chat -> pendingRemoval = PendingRemoval.Clear(chat) },
-                                    onRemove = { chat -> pendingRemoval = PendingRemoval.Remove(chat) }
+                                    onRemove = { chat -> pendingRemoval = PendingRemoval.Remove(chat) },
+                                    bottom = padding.calculateBottomPadding()
                                 )
                             }
                         // The panel under the chats, rounded where it meets the
@@ -731,7 +735,9 @@ private fun ChatListPage(
     onMarkRead: (Long) -> Unit,
     onArchivedChange: (Long, Boolean) -> Unit,
     onClearHistory: (ChatPreview) -> Unit,
-    onRemove: (ChatPreview) -> Unit
+    onRemove: (ChatPreview) -> Unit,
+    /** The mini player's height, when it floats over the foot of the list. */
+    bottom: Dp
 ) {
     val listState = rememberLazyListState()
     // Near the end rather than at it, so the next chats are on their way
@@ -762,8 +768,9 @@ private fun ChatListPage(
         // rather than wedged into its rounded corner. Below, room for
         // the floating button and only for it: the navigation bar is
         // outside this Scaffold, under the suite, so clearing it too
-        // would leave a gap below the last chat.
-        contentPadding = PaddingValues(top = 20.dp, bottom = 96.dp),
+        // would leave a gap below the last chat. The mini player, which
+        // floats over the list and lifts the button, adds its own height.
+        contentPadding = PaddingValues(top = 20.dp, bottom = 96.dp + bottom),
         // The hairline Material leaves between segmented list
         // items, through which the panel behind them shows.
         verticalArrangement = Arrangement.spacedBy(2.dp)

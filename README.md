@@ -109,11 +109,11 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.6.8 · 30 September 2026
+## Latest: 1.6.9 · 1 October 2026
 
-The player opens as a full-height sheet with Expressive button groups, the
-mini player sits at the foot and swipes away, the composer no longer jumps
-as the keyboard goes, and the chat list shows sent and read ticks.
+The mini player floats over the page with nothing behind it, the Music
+tab's tabs take the bar's colour as the page scrolls, and the mini player
+stops from its cross rather than a swipe.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

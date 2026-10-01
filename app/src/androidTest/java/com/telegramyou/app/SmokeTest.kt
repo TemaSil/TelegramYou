@@ -1250,6 +1250,17 @@ class SmokeTest {
     }
 
     /** A vertical drag through the middle of the screen, which is the list. */
+    /** Appearance → Mini player at the top, switched over; back on Settings. */
+    private fun setMiniPlayerOnTop() {
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        tap(By.text("Appearance"))
+        scrollDownTo(By.text("Mini player at the top"))
+        tap(By.text("Mini player at the top"))
+        device.pressBack()
+        waitFor(By.text("Appearance"), "the settings again")
+    }
+
     private fun dragList(fromY: Double, toY: Double) {
         val x = device.displayWidth / 2
         val h = device.displayHeight
@@ -1790,13 +1801,29 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.text("Albums"), "the library's tabs again")
         screenshot("85b-library-playing")
+        // Scrolled: the tabs take the bar's scrolled colour with it, and the
+        // page runs on under the mini player rather than stopping above it
+        // (1.6.9). Pictures for a person to judge, not assertions.
+        dragList(0.75, 0.3)
+        screenshot("85c-library-playing-scrolled")
+        // The chats run on under it too, with no band of background round it.
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list with the mini player")
+        dragList(0.75, 0.45)
+        screenshot("85d-chats-playing")
+        // With the mini player at the top, it takes the head's colour as well.
+        setMiniPlayerOnTop()
+        tap(By.text("Music"))
+        waitFor(By.text("Albums"), "the library's tabs with the mini player on top")
+        dragList(0.75, 0.3)
+        screenshot("85e-library-player-on-top")
 
         // Off again: the tests share one install, and with the library on
         // "My music" opens the library instead of the list another test
-        // expects. Stopped first, so no music runs into the next test.
-        tap(By.desc("Stop music"))
-        tap(By.text("Settings"))
-        waitFor(By.text("Appearance"), "the settings")
+        // expects. Stopped first, so no music runs into the next test — if
+        // the album has not already played out on a slow emulator.
+        if (device.hasObject(By.desc("Stop music"))) tap(By.desc("Stop music"))
+        setMiniPlayerOnTop()
         scrollSettingsTo(By.text("For geeks"))
         tap(By.text("For geeks"))
         scrollDownTo(By.text("Music library"))
@@ -1979,13 +2006,9 @@ class SmokeTest {
         // top: the reach a one-handed phone asked for.
         dragList(0.3, 0.8)
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player on the new track")
-        // Swiped away, as a notification is, the music stops (1.6.8).
-        val strip = device.findObject(By.descStartsWith("Now playing")).visibleBounds
-        device.swipe(
-            strip.left + strip.width() / 10, strip.centerY(),
-            strip.left + strip.width() * 9 / 10, strip.centerY(),
-            20
-        )
+        // The cross stops it. A sideways swipe did too in 1.6.8, and went
+        // for missing more often than it landed on a phone.
+        tap(By.desc("Stop music"))
         // Looked for fresh, as waitFor looks: through UiAutomator's cache
         // a mini player that had changed stayed "there" for twenty seconds.
         val stopBy = SystemClock.uptimeMillis() + STEP_TIMEOUT
@@ -1997,8 +2020,8 @@ class SmokeTest {
             gone = !device.hasObject(By.descStartsWith("Now playing"))
             if (!gone) SystemClock.sleep(300)
         }
-        if (!gone) screenshot("failed-swiping-the-mini-player-away")
-        assertTrue("the mini player stayed after it was swiped away", gone)
+        if (!gone) screenshot("failed-stopping-the-mini-player")
+        assertTrue("the mini player stayed after Stop", gone)
 
         // Every chat's music in one place, from the chat list's menu. The
         // bottom bar's Chats, not a chat's name: the list comes back scrolled

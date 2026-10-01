@@ -429,6 +429,17 @@ message within 2.5 s of a drag that hid the keyboard brings it back — the
 simple half of iOS's interactive dismissal. The other half, the keyboard
 following the finger, is not wanted — the owner's word.
 
+**1.6.9 — done 1 October: the mini player floats.** From the owner's test
+of 1.6.8: the capsule sat in a band of the page's background, because every
+page took the whole of its Scaffold's padding and stopped above the
+bottomBar. Pages take the top and sides now (`withoutBottom`) and add the
+foot to their list's contentPadding, so they run on under it. On the Music
+tab the tabs, and the mini player when it is at the top, are painted in the
+large bar's own colour as it folds — its `containerColor` to
+`scrolledContainerColor`, eased by `collapsedFraction`, as the bar does
+itself — so bar and tabs read as one head. The swipe that stopped the music
+is gone: it missed more than it landed, and the cross is enough.
+
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:
 1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the

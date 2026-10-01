@@ -256,7 +256,7 @@ fun TelegramYouNavHost(
     }
     // The music library, as a screen of its own and as Home's Music tab —
     // the same page either way, with a back arrow only as the screen.
-    val libraryPage: @Composable (onBack: (() -> Unit)?) -> Unit = { back ->
+    val libraryPage: @Composable (onBack: (() -> Unit)?, foot: androidx.compose.ui.unit.Dp) -> Unit = { back, foot ->
         val library: com.telegramyou.app.ui.music.MusicLibraryViewModel = viewModel(factory = viewModelFactory)
         val state by library.uiState.collectAsStateWithLifecycle()
         com.telegramyou.app.ui.music.MusicLibraryScreen(
@@ -269,11 +269,12 @@ fun TelegramYouNavHost(
             ),
             onBack = back,
             musicBar = musicBar,
-            playerBar = if (back != null) playerBar else ({})
+            playerBar = if (back != null) playerBar else ({}),
+            foot = foot
         )
     }
     /** Home's Music tab: the library without a way back, since it is a tab. */
-    val musicTab: @Composable () -> Unit = { libraryPage(null) }
+    val musicTab: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { foot -> libraryPage(null, foot) }
 
     LaunchedEffect(auth.state) {
         when (auth.state) {
@@ -855,7 +856,7 @@ fun TelegramYouNavHost(
             )
         }
         composable(Route.Library.PATTERN) {
-            libraryPage({ navController.popBackStack() })
+            libraryPage({ navController.popBackStack() }, androidx.compose.ui.unit.Dp(0f))
         }
 
         composable(

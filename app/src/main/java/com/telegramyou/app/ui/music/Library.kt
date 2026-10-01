@@ -1,5 +1,13 @@
 package com.telegramyou.app.ui.music
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.unit.Dp
+import com.telegramyou.app.ui.components.withoutBottom
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -152,7 +160,9 @@ fun MusicLibraryScreen(
     onBack: (() -> Unit)?,
     musicBar: @Composable () -> Unit = {},
     /** The mini player, at the foot; none as Home's tab, whose own is there. */
-    playerBar: @Composable () -> Unit = {}
+    playerBar: @Composable () -> Unit = {},
+    /** Home's mini player, floating over the foot of the page as a tab. */
+    foot: Dp = 0.dp
 ) {
     var openKey by rememberSaveable { mutableStateOf<String?>(null) }
     val open = openKey?.let { state.library.collection(it) }
@@ -167,6 +177,24 @@ fun MusicLibraryScreen(
     // scrolls; as a screen, or with a collection open, the ordinary bar.
     val large = onBack == null && open == null
     val largeBar = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // The bar's colour, deepening as the page scrolls under it, carried on
+    // down through the mini player and the tabs: one head over the page
+    // rather than a bar with two strips of the page's colour under it (the
+    // owner's ask, 1.6.9). Worked out as the large bar works out its own —
+    // its colours, eased by how far it has folded — and read at draw time,
+    // so a scroll repaints the head without recomposing the page.
+    val barColors = TopAppBarDefaults.topAppBarColors()
+    val headColor: () -> Color = {
+        if (!large) {
+            barColors.containerColor
+        } else {
+            lerp(
+                barColors.containerColor,
+                barColors.scrolledContainerColor,
+                FastOutLinearInEasing.transform(largeBar.state.collapsedFraction)
+            )
+        }
+    }
     val actionsRow: @Composable RowScope.() -> Unit = {
         if (open == null) {
             IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = "Search music") }
@@ -203,12 +231,15 @@ fun MusicLibraryScreen(
         },
         snackbarHost = { SnackbarHost(host) }
     ) { padding ->
+        // The foot goes to the lists, which run on under a floating mini
+        // player (see withoutBottom).
+        CompositionLocalProvider(LocalFoot provides padding.calculateBottomPadding() + foot) {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding.withoutBottom())
         ) {
-            musicBar()
+            Box(Modifier.drawBehind { drawRect(headColor()) }) { musicBar() }
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 state.library.isEmpty -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -220,8 +251,9 @@ fun MusicLibraryScreen(
                     )
                 }
                 open != null -> CollectionPage(open, actions, lineUp)
-                else -> LibraryTabs(state.library, actions, lineUp, onOpen = { openKey = it.key })
+                else -> LibraryTabs(state.library, actions, lineUp, headColor, onOpen = { openKey = it.key })
             }
+        }
         }
     }
 }
@@ -231,12 +263,15 @@ private fun LibraryTabs(
     library: MusicLibrary,
     actions: LibraryActions,
     lineUp: (ChatMessage, Boolean) -> Unit,
+    headColor: () -> Color,
     onOpen: (LibraryCollection) -> Unit
 ) {
     val pager = rememberPagerState { LIBRARY_TABS.size }
     val scope = rememberCoroutineScope()
     PrimaryScrollableTabRow(
         selectedTabIndex = pager.currentPage,
+        containerColor = Color.Transparent,
+        modifier = Modifier.drawBehind { drawRect(headColor()) },
         edgePadding = 8.dp,
         minTabWidth = 0.dp
     ) {
@@ -273,7 +308,7 @@ private fun ForYou(
     lineUp: (ChatMessage, Boolean) -> Unit,
     onOpen: (LibraryCollection) -> Unit
 ) {
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + LocalFoot.current)) {
         // Saved Messages first: it is where a person keeps what they mean to
         // keep, so it is their library before anything the chats brought.
         val saved = library.saved
@@ -407,7 +442,7 @@ private fun CollectionGrid(collections: List<LibraryCollection>, emptyText: Stri
     }
     LazyVerticalGrid(
         columns = GridCells.Adaptive(152.dp),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + LocalFoot.current),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -446,7 +481,7 @@ private fun CollectionGrid(collections: List<LibraryCollection>, emptyText: Stri
 
 @Composable
 private fun TrackList(tracks: List<LibraryTrack>, title: String, actions: LibraryActions, lineUp: (ChatMessage, Boolean) -> Unit) {
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + LocalFoot.current)) {
         items(tracks, key = { "t${it.message.chatId}:${it.message.id}" }) { item ->
             TrackRow(
                 item,
@@ -463,7 +498,7 @@ private fun TrackList(tracks: List<LibraryTrack>, title: String, actions: Librar
 @Composable
 private fun CollectionPage(collection: LibraryCollection, actions: LibraryActions, lineUp: (ChatMessage, Boolean) -> Unit) {
     val messages = collection.tracks.map { it.message }
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + LocalFoot.current)) {
         item(key = "head") {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -576,3 +611,6 @@ private fun TrackRow(
         }
     )
 }
+
+/** How much of the page's foot a mini player floats over; see withoutBottom. */
+private val LocalFoot = compositionLocalOf { 0.dp }

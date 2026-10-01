@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.ui.components.withoutBottom
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.auth.PhoneEntry
 import android.content.Intent
@@ -148,9 +149,11 @@ fun ProfileContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(contentPadding)
+            // The foot inside the scroll, so the page runs on under a
+            // floating mini player rather than stopping above it.
+            .padding(contentPadding.withoutBottom())
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 24.dp)
+            .padding(bottom = 24.dp + contentPadding.calculateBottomPadding())
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             IconButton(onClick = { showingQr = true }) {

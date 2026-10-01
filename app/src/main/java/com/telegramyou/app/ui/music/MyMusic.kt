@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.music
 
+import com.telegramyou.app.ui.components.withoutBottom
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,7 +168,9 @@ fun MyMusicScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
+                // The foot goes to the list: it runs on under the mini
+                // player (see withoutBottom).
+                .padding(padding.withoutBottom())
         ) {
             musicBar()
             // The same pill as search's own field, not a boxed text field:
@@ -202,7 +205,7 @@ fun MyMusicScreen(
                     LaunchedEffect(last, state.tracks.size) {
                         if (last >= state.tracks.size - 8) onNearEnd()
                     }
-                    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp)) {
+                    LazyColumn(state = list, contentPadding = PaddingValues(bottom = 16.dp + padding.calculateBottomPadding())) {
                         items(state.tracks, key = { "${it.chatId}:${it.id}" }) { message ->
                             val audio = message.audio ?: return@items
                             val playing = nowPlaying.track?.messageId == message.id && nowPlaying.isPlaying

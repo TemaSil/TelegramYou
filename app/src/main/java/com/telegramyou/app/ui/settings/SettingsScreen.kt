@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.ui.components.withoutBottom
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import com.telegramyou.app.update.LocalAppUpdates
@@ -132,9 +133,11 @@ fun SettingsContent(
         modifier = modifier
             .fillMaxSize()
             .background(settingsBackground())
-            .padding(contentPadding)
+            // The foot inside the scroll, so the page runs on under a
+            // floating mini player rather than stopping above it.
+            .padding(contentPadding.withoutBottom())
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 24.dp)
+            .padding(bottom = 24.dp + contentPadding.calculateBottomPadding())
     ) {
         if (me != null) {
             SettingsGroup {
