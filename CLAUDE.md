@@ -131,8 +131,14 @@ actually looks like today.
 
 **Check for newer versions at the start of a session, and when anything here
 feels dated.** The Build workflow prints what Google's Maven and Maven
-Central offer on every run — compose-bom, material3, AGP, Kotlin, Media3 and
-the navigation suite — as check-run annotations titled `Available versions`.
+Central offer on every run — compose-bom, material3, AGP, Kotlin, Media3,
+the navigation suite, and since October 2026 every other androidx library the
+app pins by version (activity, core, lifecycle, navigation, datastore,
+graphics-shapes, the test libraries) — as check-run annotations, one per
+library. The full line, with the newest pre-release too, is in the step's log.
+Libraries from Maven Central (coroutines, Coil, Lottie and the rest) can be
+read from here directly: `repo1.maven.org` is reachable, `dl.google.com` is
+not.
 Read those rather than guessing: this environment cannot reach
 `dl.google.com` at all, so a version invented from memory is a red build.
 

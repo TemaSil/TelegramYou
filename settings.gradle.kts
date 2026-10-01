@@ -10,7 +10,7 @@ pluginManagement {
     // dl.google.com are unavailable; keeping AGP out of the root plugins block
     // is what makes `gradle :core:test` work there.
     plugins {
-        id("com.android.application") version "9.4.0"
+        id("com.android.application") version "9.4.1"
         id("org.jetbrains.kotlin.jvm") version "2.4.20"
         id("org.jetbrains.kotlin.plugin.compose") version "2.4.20"
     }

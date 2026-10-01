@@ -59,18 +59,18 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # KVM is what makes an x86_64 emulator usable rather than an hour of
       # ARM interpretation. GitHub's ubuntu runners have it; it just needs to
@@ -87,7 +87,7 @@ jobs:
       # snapshot, it starts in seconds. The key names everything that would
       # make a different device — change any of them and it is rebuilt.
       - name: Restore the emulator
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -189,7 +189,7 @@ jobs:
       # next job of the same run, never fetched from outside.
       - name: Hand the evidence on
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: evidence-shard-${{ matrix.shard }}
           path: evidence/
@@ -205,10 +205,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Gather the quarters
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: evidence-shard-*
           merge-multiple: true

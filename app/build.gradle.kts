@@ -402,19 +402,19 @@ dependencies {
     // the window, and downsampling to the size actually drawn — all of which
     // is a library's job. 3.x is the Compose-first line and loads a File or a
     // content:// Uri without help.
-    implementation("io.coil-kt.coil3:coil-compose:3.6.2")
+    implementation("io.coil-kt.coil3:coil-compose:3.6.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.navigation:navigation-compose:2.8.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Pure-logic tests that run on the JVM: no device, no emulator, seconds.
     testImplementation("junit:junit:4.13.2")
     // viewModelScope runs on Dispatchers.Main, which does not exist on the
     // JVM until a test provides one.
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
 }
 
 // ── TDLib's native libraries ────────────────────────────────────────────────

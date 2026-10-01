@@ -41,9 +41,9 @@ jobs:
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
@@ -60,11 +60,11 @@ jobs:
       # stable channel. AGP installs what compileSdk needs by itself, which
       # is how compileSdk 36 was satisfied before, so this stays out of its
       # way rather than duplicating it badly.
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # What the repositories actually offer, as annotations.
       #
@@ -103,6 +103,21 @@ jobs:
               # release line too, and not reachable from where this is written.
               ("camerax", GOOGLE, "androidx/camera/camera-video"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
+              # The rest of androidx the app names by version. Each moves on
+              # its own line, none is reachable from where this is written,
+              # and until October 2026 none was printed here — so they sat a
+              # year behind without anyone being able to tell.
+              ("activity", GOOGLE, "androidx/activity/activity-compose"),
+              ("core", GOOGLE, "androidx/core/core-ktx"),
+              ("lifecycle", GOOGLE, "androidx/lifecycle/lifecycle-runtime-compose"),
+              ("navigation", GOOGLE, "androidx/navigation/navigation-compose"),
+              ("datastore", GOOGLE, "androidx/datastore/datastore-preferences"),
+              ("graphics-shapes", GOOGLE, "androidx/graphics/graphics-shapes"),
+              ("uiautomator", GOOGLE, "androidx/test/uiautomator/uiautomator"),
+              ("test-runner", GOOGLE, "androidx/test/runner"),
+              ("test-core", GOOGLE, "androidx/test/core-ktx"),
+              ("test-ext-junit", GOOGLE, "androidx/test/ext/junit"),
+              ("test-services", GOOGLE, "androidx/test/services/test-services"),
           )
 
           # -alpha, -beta, -rc, -dev and friends. A BOM's own date-shaped
@@ -222,7 +237,11 @@ jobs:
           for lib in androidx.compose.material3:material3 \
                      androidx.compose.foundation:foundation \
                      androidx.compose.ui:ui; do
-            found=$(grep -o "$lib:[0-9][^ ]*" deps.txt | sort -u | tail -1)
+            # The version Gradle settled on: after the arrow when a request
+            # was raised, otherwise the one asked for. Reading only the
+            # request reported ui 1.9.0 for a build that ran 1.12.
+            found=$(grep -oE "$lib(:[0-9][^ ]*)? -> [0-9][^ ]*|$lib:[0-9][^ ]*" deps.txt \
+              | sed -E 's/(:[^: ]+)? -> /:/' | sort -uV | tail -1)
             [ -n "$found" ] && echo "::notice title=Resolved::$found"
           done
 
@@ -246,7 +265,7 @@ jobs:
 
       # Without this a green "Unit tests" step is ambiguous: Gradle reports
       # success when it runs no tests at all.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results
@@ -255,7 +274,7 @@ jobs:
             core/build/test-results/**/*.xml
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: apk-debug
@@ -443,7 +462,7 @@ jobs:
 
       - name: Publish the APK
         if: success() && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: latest
           # The build is in the title as well as the version: from 1.1 the

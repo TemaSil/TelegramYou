@@ -44,13 +44,13 @@ jobs:
           sudo apt-get install -y make git zlib1g-dev libssl-dev gperf php-cli \
             cmake clang libc++-dev libc++abi-dev perl
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Check out TDLib
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: tdlib/td
           ref: ${{ github.event.inputs.tdlib_ref || 'master' }}
@@ -130,14 +130,14 @@ jobs:
             cp "$src" JsonClient.java
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: tdlib-jnilibs-java
           path: tdlib-jnilibs-java.zip
           if-no-files-found: error
 
       - name: Publish as a release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: tdlib-java-${{ steps.rev.outputs.sha }}
           name: TDLib ${{ steps.rev.outputs.sha }} (Android, JSONJava)
