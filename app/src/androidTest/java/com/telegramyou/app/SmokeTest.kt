@@ -1495,6 +1495,124 @@ class SmokeTest {
     }
 
     /**
+     * The rest of For geeks, each where it acts: stories gone from the chat
+     * list, the All tab gone and the archive reached from the menu instead,
+     * search opening with the keyboard down, a double tap replying, and a
+     * forward arriving as a copy with no "Forwarded from".
+     *
+     * Set through the store rather than tapped one by one — the switches
+     * themselves are the screen's, tested above — and put back however the
+     * test ends: the tests share one install, and a chat list with no All
+     * tab would fail every test after this one.
+     */
+    @Test
+    fun theOtherGeekSwitchesReachTheirScreens() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val geeks = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp).geeks
+        try {
+            geeks.update {
+                it.copy(
+                    hideStories = true,
+                    hideAllChatsTab = true,
+                    searchWithoutKeyboard = true,
+                    doubleTap = com.telegramyou.app.settings.DoubleTapAction.Reply,
+                    forwardWithoutQuote = true
+                )
+            }
+            // No stories, and no All: the first folder leads.
+            waitFor(By.text("Work"), "the folders without All")
+            val gone = SystemClock.uptimeMillis() + STEP_TIMEOUT
+            while (SystemClock.uptimeMillis() < gone &&
+                (device.hasObject(By.text("My story")) || device.hasObject(By.text("All")))
+            ) {
+                if (Build.VERSION.SDK_INT >= 34) {
+                    InstrumentationRegistry.getInstrumentation().uiAutomation.clearCache()
+                }
+                SystemClock.sleep(300)
+            }
+            screenshot("33b-geeks-no-stories-no-all")
+            assertFalse("the stories stayed", device.hasObject(By.text("My story")))
+            assertFalse("the All tab stayed", device.hasObject(By.text("All")))
+
+            // The archive, whose row only the All tab carries, from the menu.
+            tap(By.desc("More"))
+            tap(By.text("Archived chats"))
+            waitFor(By.text("Archive"), "the archive from the menu")
+            device.pressBack()
+            waitFor(By.text("Work"), "the chat list again")
+
+            // Search with the keyboard down.
+            tap(By.text("Search"))
+            SystemClock.sleep(1_500)
+            assertFalse(
+                "the keyboard came up although asked not to",
+                device.executeShellCommand("dumpsys input_method").contains("mInputShown=true")
+            )
+            tap(By.text("Chats"))
+            waitFor(By.text("Work"), "the chat list after search")
+
+            // A double tap replies; then a forward to the same chat is a copy.
+            tap(By.desc("More"))
+            tap(By.text("Saved Messages"))
+            val line = By.text("Color tokens & springs")
+            waitFor(line, "Saved Messages")
+            repeat(3) {
+                if (device.hasObject(By.desc("Cancel reply"))) return@repeat
+                device.findObject(line)?.visibleCenter?.let { at ->
+                    device.click(at.x, at.y)
+                    // Past Compose's shortest double tap, well inside its longest.
+                    SystemClock.sleep(90)
+                    device.click(at.x, at.y)
+                }
+                device.wait(Until.hasObject(By.desc("Cancel reply")), SHORT_WAIT)
+            }
+            waitFor(By.desc("Cancel reply"), "the reply a double tap starts")
+            screenshot("33c-geeks-double-tap-reply")
+            tap(By.desc("Cancel reply"))
+
+            val before = device.findObjects(line).size
+            repeat(3) {
+                if (device.hasObject(By.text("Forward"))) return@repeat
+                try {
+                    device.findObject(line)?.longClick()
+                } catch (_: StaleObjectException) {
+                }
+                device.wait(Until.hasObject(By.text("Forward")), SHORT_WAIT)
+            }
+            tap(By.text("Forward"))
+            waitFor(By.text("Forward to…"), "the forward sheet")
+            // The sheet's row, not the chat's own title behind the sheet: the
+            // lowest of the two on screen.
+            device.findObjects(By.text("Saved Messages"))
+                .maxByOrNull { it.visibleCenter.y }
+                ?.click()
+            val copied = SystemClock.uptimeMillis() + STEP_TIMEOUT
+            while (SystemClock.uptimeMillis() < copied && device.findObjects(line).size <= before) {
+                SystemClock.sleep(300)
+            }
+            screenshot("33d-geeks-forward-copy")
+            assertTrue("the forward never arrived", device.findObjects(line).size > before)
+            assertFalse(
+                "a copy was marked as forwarded",
+                device.hasObject(By.textStartsWith("Forwarded from"))
+            )
+            device.pressBack()
+        } finally {
+            geeks.update {
+                it.copy(
+                    hideStories = false,
+                    hideAllChatsTab = false,
+                    searchWithoutKeyboard = false,
+                    doubleTap = com.telegramyou.app.settings.DoubleTapAction.Nothing,
+                    forwardWithoutQuote = false
+                )
+            }
+        }
+    }
+
+    /**
      * A poll answered with one tap, and a bot's two kinds of buttons: one
      * under its message that asks the bot and shows its answer, and a key of
      * its keyboard under the composer that sends a message it replies to.

@@ -450,7 +450,13 @@ The path is now checked on disk, a clear that includes profile photos asks
 for them all again, and a download that stops short is retried up to three
 times. Saved Messages and bots no longer show an online dot — the first
 is the account itself, the second a program — and a bot's header says
-"bot". Also the dependency bump of the same day: androidx activity 1.13,
+"bot". The reply banner and the attachment chip keep what they showed while
+they fold, so the mini player above glides down instead of dropping. And
+For geeks, gone over switch by switch at the owner's ask: all eleven reach
+what they say, but Hide the All tab took the archive with it (its row is
+the All page's) — it is in the menu then — and the demo ignored Forward
+without quoting, so nothing could test it; a new UI test drives five of
+the switches that had none. Also the dependency bump of the same day: androidx activity 1.13,
 core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
 AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
 

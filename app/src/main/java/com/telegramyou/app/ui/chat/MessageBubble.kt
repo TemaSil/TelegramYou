@@ -419,7 +419,9 @@ internal fun MessageBubble(
                         DoubleTapAction.Nothing -> null
                         DoubleTapAction.React -> ({ if (!isSelecting) onReactionToggled(QUICK_REACTION) })
                         DoubleTapAction.Reply -> ({ if (!isSelecting) onReply() })
-                        DoubleTapAction.Copy -> ({ if (!isSelecting) onCopy() })
+                        // Nothing to copy from a photo or a sticker with no
+                        // caption, and copying "" emptied the clipboard.
+                        DoubleTapAction.Copy -> ({ if (!isSelecting && message.text.isNotBlank()) onCopy() })
                     }
                 )
         ) {

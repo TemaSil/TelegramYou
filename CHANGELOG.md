@@ -14,6 +14,8 @@ README.md.
 - **Fixed: avatars stayed blank after clearing the cache** (Settings → Storage) until the app was restarted. The app kept calling the deleted pictures downloaded and never asked for them again; it now checks the file is still there, and asks again straight after a clear.
 - **An avatar whose download was cut off is asked for again**, up to three times, rather than once for as long as the app runs — which, with the connection kept alive, could be days.
 - **No online dot for Saved Messages or bots** — Saved Messages is the account itself, always online while it uses the app, and a bot is a program. A bot's chat says "bot" under its name, as the official client does.
+- **The mini player glides back down** when a reply or an attachment is dismissed. The banner was emptied before it folded, so it had no height to fold from and the capsule above dropped in one jump.
+- **For geeks, checked over** — with Hide the All tab on, the archive (whose row only All carries) is in the chat list's menu; a double tap set to copy does nothing on a message with no text, rather than emptying the clipboard; and a UI test now drives stories hidden, All hidden, search without the keyboard, double tap to reply and forwarding without quoting.
 - **Up-to-date libraries** — AndroidX activity, core, lifecycle, navigation and datastore, which had fallen a year behind, along with coroutines, Coil and the build tools.
 
 ## 1.6.9

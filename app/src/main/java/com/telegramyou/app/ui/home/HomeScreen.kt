@@ -560,7 +560,8 @@ fun HomeScreen(
                             onOpenSavedMessages = onOpenSavedMessages,
                             onOpenContacts = onOpenContacts,
                             onOpenMyMusic = onOpenMyMusic,
-                            onOpenDownloads = onOpenDownloads
+                            onOpenDownloads = onOpenDownloads,
+                            onOpenArchive = if (skipped > 0 && state.archiveSummary != null) onOpenArchive else null
                         )
                         // Stories first, then the folders: the tabs choose what
                         // the list below shows, so they sit against it, and the
@@ -862,7 +863,9 @@ private fun HomeTitleBar(
     onOpenSavedMessages: () -> Unit = {},
     onOpenContacts: () -> Unit = {},
     onOpenMyMusic: () -> Unit = {},
-    onOpenDownloads: () -> Unit = {}
+    onOpenDownloads: () -> Unit = {},
+    /** Set when the All tab is hidden, whose top row is the only other way in. */
+    onOpenArchive: (() -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     TopAppBar(
@@ -934,6 +937,19 @@ private fun HomeTitleBar(
                             onOpenDownloads()
                         }
                     )
+                    // The archive's row heads the All tab and no other, so
+                    // with For geeks → Hide the All tab on, the archive had
+                    // no way in at all until 1.6.10.
+                    onOpenArchive?.let { open ->
+                        DropdownMenuItem(
+                            text = { Text("Archived chats") },
+                            leadingIcon = { Icon(Symbols.Archive, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                open()
+                            }
+                        )
+                    }
                 }
             }
         },

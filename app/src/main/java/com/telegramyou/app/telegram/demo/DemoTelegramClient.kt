@@ -1456,6 +1456,7 @@ class DemoTelegramClient(
         delay(160)
         val source = chatMessages[fromChatId].orEmpty().filter { it.id in messageIds }
         val target = chatMessages.getOrPut(toChatId) { mutableListOf() }
+        val sourceTitle = _chats.value.firstOrNull { it.id == fromChatId }?.title
         source.forEach { original ->
             // A forward is a new message in the target chat, outgoing because
             // we are the one sending it, and without the original's reactions
@@ -1470,7 +1471,18 @@ class DemoTelegramClient(
                 reactions = emptyList(),
                 isRead = false,
                 canBeEdited = false,
-                canBeDeletedForEveryone = true
+                canBeDeletedForEveryone = true,
+                // "Forwarded from", as Telegram puts it on a forward — and
+                // not on a copy, which For geeks → Forward without quoting
+                // asks for. The demo ignored the switch until 1.6.10, so the
+                // UI test had nothing to tell the two apart by.
+                forwardedFrom = if (withoutQuote) {
+                    null
+                } else {
+                    original.forwardedFrom
+                        ?: original.senderName
+                        ?: if (original.isOutgoing) "You" else sourceTitle
+                }
             ).also { _messageUpdates.tryEmit(MessageUpdate.Added(it)) }
         }
     }

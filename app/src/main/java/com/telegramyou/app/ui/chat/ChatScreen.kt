@@ -1174,6 +1174,21 @@ fun ChatScreen(
                 // so the newest message is not left behind it.
                 Box(Modifier.onSizeChanged { playerBarHeight = it.height }) { playerBar() }
 
+                // What the banner and the chip last showed, kept while they
+                // fold away: the state is cleared the moment a reply is sent
+                // or dismissed, and an exit animating an empty banner had no
+                // height to shrink from — it went at once, and the mini
+                // player above dropped in one jump (fixed in 1.6.10).
+                val bannerNow = state.editing ?: state.replyTo
+                var bannerShown by remember { mutableStateOf(bannerNow) }
+                var bannerEditing by remember { mutableStateOf(state.editing != null) }
+                if (bannerNow != null) {
+                    bannerShown = bannerNow
+                    bannerEditing = state.editing != null
+                }
+                var attachmentShown by remember { mutableStateOf(state.pendingAttachment) }
+                state.pendingAttachment?.let { attachmentShown = it }
+
                 AnimatedVisibility(
                     visible = state.replyTo != null || state.editing != null,
                     // Folding as well as fading, both ways: with only a fade
@@ -1187,10 +1202,10 @@ fun ChatScreen(
                 ) {
                     // One banner for both: they are alternatives, never both at
                     // once, and each cancels the other when chosen.
-                    (state.editing ?: state.replyTo)?.let { message ->
+                    bannerShown?.let { message ->
                         ComposerBanner(
                             message = message,
-                            isEditing = state.editing != null,
+                            isEditing = bannerEditing,
                             onCancel = onComposerBannerCancelled
                         )
                     }
@@ -1205,7 +1220,7 @@ fun ChatScreen(
                         shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
                 ) {
                     AttachmentChip(
-                        draft = state.pendingAttachment,
+                        draft = attachmentShown,
                         onClear = onAttachmentCleared
                     )
                 }
