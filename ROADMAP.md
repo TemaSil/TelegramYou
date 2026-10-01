@@ -470,10 +470,13 @@ worth doing:
    car and a watch can pick music, not only control it. Left out of 1.6.4
    because nothing here can test it; an emulator image with Auto's desktop
    head unit is the way in.
-3. **The library, finished** — album names and covers from the files' own
-   tags once downloaded (`MediaMetadataRetriever`), "most forwarded and
-   reacted", Share and Reply to the sender from the player; then out of
-   For geeks.
+3. **The player and the library, finished** — Share and Reply to the
+   sender from the player, which everyone has; for the library, album
+   names and covers from the files' own tags once downloaded
+   (`MediaMetadataRetriever`) and "most forwarded and reacted". The
+   library itself stays under For geeks — the owner's word, 1 October:
+   music is not the main part of this client, and it comes out only if
+   people ask for it (so far one has).
 4. **Global notification settings** — sounds and previews per kind of chat.
 5. **Translation**, then **inline bots and Mini Apps**; languages last, on
    purpose.
