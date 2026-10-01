@@ -13,6 +13,7 @@ README.md.
 
 - **Fixed: avatars stayed blank after clearing the cache** (Settings → Storage) until the app was restarted. The app kept calling the deleted pictures downloaded and never asked for them again; it now checks the file is still there, and asks again straight after a clear.
 - **An avatar whose download was cut off is asked for again**, up to three times, rather than once for as long as the app runs — which, with the connection kept alive, could be days.
+- **No online dot for Saved Messages or bots** — Saved Messages is the account itself, always online while it uses the app, and a bot is a program. A bot's chat says "bot" under its name, as the official client does.
 - **Up-to-date libraries** — AndroidX activity, core, lifecycle, navigation and datastore, which had fallen a year behind, along with coroutines, Coil and the build tools.
 
 ## 1.6.9

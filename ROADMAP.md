@@ -448,7 +448,9 @@ cached object went on calling a deleted file downloaded
 (`localPathIfDownloaded`), and each picture was asked for once per process.
 The path is now checked on disk, a clear that includes profile photos asks
 for them all again, and a download that stops short is retried up to three
-times. Also the dependency bump of the same day: androidx activity 1.13,
+times. Saved Messages and bots no longer show an online dot — the first
+is the account itself, the second a program — and a bot's header says
+"bot". Also the dependency bump of the same day: androidx activity 1.13,
 core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
 AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
 

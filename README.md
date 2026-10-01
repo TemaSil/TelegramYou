@@ -112,7 +112,8 @@ a wide screen the navigation becomes a rail.
 ## Latest: 1.6.10 · 1 October 2026
 
 Avatars come back after the cache is cleared in Settings → Storage, an
-avatar whose download was cut off is asked for again, and the libraries
+avatar whose download was cut off is asked for again, Saved Messages and
+bots lose an online dot they never had reason for, and the libraries
 underneath are up to date.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·

@@ -4332,7 +4332,11 @@ class TdLibTelegramClient(
             isPinned = positions.isPinned(id),
             isMuted = notificationsOf(chat).isMuted(nowSeconds()),
             notifications = notificationsOf(chat),
-            isOnline = privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
+            // Nobody there to be online: Saved Messages is the account
+            // itself, which is always online while it is using the app, and
+            // a bot is a program. The official client shows neither a dot.
+            isOnline = !saved && !isBotChat(chat) &&
+                privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
             isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
             photoPath = photoPath(chat.optJSONObject("photo")?.optJSONObject("small")),
             // A channel is a supergroup with is_channel set inside its type.
@@ -4341,7 +4345,7 @@ class TdLibTelegramClient(
             isChannel = chat.optJSONObject("type")?.optBoolean("is_channel") == true,
             isGroup = type == "chatTypeBasicGroup" ||
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
-            isBot = privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot",
+            isBot = isBotChat(chat),
             isSavedMessages = saved,
             draft = chat.optJSONObject("draft_message")
                 ?.optJSONObject("input_message_text")
@@ -4379,6 +4383,9 @@ class TdLibTelegramClient(
     }
 
     /** The other person in a private chat, if this client has heard of them. */
+    private fun isBotChat(chat: JSONObject): Boolean =
+        privateChatUser(chat)?.optJSONObject("type")?.optString("@type") == "userTypeBot"
+
     private fun privateChatUser(chat: JSONObject): JSONObject? {
         val type = chat.optJSONObject("type") ?: return null
         if (type.optString("@type") != "chatTypePrivate") return null
@@ -4391,8 +4398,13 @@ class TdLibTelegramClient(
             // Where the person is, the way the header of every messenger
             // says it — this used to be the words "private chat".
             // Nobody to be online: it is the account talking to itself.
-            "chatTypePrivate" -> if (isSavedMessages(chat)) null else privateChatUser(chat)
-                ?.let { presenceLabel(presenceOf(it), nowSeconds(), ZoneId.systemDefault()) }
+            // A bot is a bot, as the official client says, not "last seen".
+            "chatTypePrivate" -> when {
+                isSavedMessages(chat) -> null
+                isBotChat(chat) -> "bot"
+                else -> privateChatUser(chat)
+                    ?.let { presenceLabel(presenceOf(it), nowSeconds(), ZoneId.systemDefault()) }
+            }
             // How many are in it, from the group objects TDLib keeps current;
             // this used to say "group" for groups and channels alike.
             "chatTypeBasicGroup" -> {
