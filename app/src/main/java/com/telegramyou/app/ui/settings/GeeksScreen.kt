@@ -57,6 +57,42 @@ fun GeeksScreen(
     val context = LocalContext.current
     var crash by remember { mutableStateOf(CrashLog.read(context)) }
     var showingCrash by remember { mutableStateOf(false) }
+    var playerLog by remember { mutableStateOf(com.telegramyou.app.music.PlayerLog.read(context)) }
+    var showingPlayerLog by remember { mutableStateOf(false) }
+    if (showingPlayerLog && playerLog != null) {
+        // The newest at the top: the stop being asked about is the last one.
+        val newestFirst = remember(playerLog) { playerLog.orEmpty().lines().filter { it.isNotBlank() }.reversed().joinToString("\n") }
+        AlertDialog(
+            onDismissRequest = { showingPlayerLog = false },
+            title = { Text("Player log") },
+            text = {
+                SelectionContainer {
+                    Text(
+                        newestFirst,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier
+                            .heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState())
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(ClipboardManager::class.java)
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("TelegramYou player log", newestFirst))
+                    showingPlayerLog = false
+                }) { Text("Copy") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    com.telegramyou.app.music.PlayerLog.clear(context)
+                    playerLog = null
+                    showingPlayerLog = false
+                }) { Text("Clear") }
+            }
+        )
+    }
     if (showingCrash && crash != null) {
         AlertDialog(
             onDismissRequest = { showingCrash = false },
@@ -206,13 +242,24 @@ fun GeeksScreen(
 
             // The last crash, when there has been one: to read and copy into
             // a report. See CrashLog.
-            if (crash != null) {
+            // And the music player's log (1.7), for music that stops or
+            // skips by itself: what it did, and the reason the system gave.
+            if (crash != null || playerLog != null) {
                 SettingsGroup("Diagnostics") {
-                    link(
-                        title = "Last crash",
-                        summary = crash!!.lineSequence().drop(2).firstOrNull().orEmpty().ifBlank { "Tap to see it" },
-                        onClick = { showingCrash = true }
-                    )
+                    if (crash != null) {
+                        link(
+                            title = "Last crash",
+                            summary = crash!!.lineSequence().drop(2).firstOrNull().orEmpty().ifBlank { "Tap to see it" },
+                            onClick = { showingCrash = true }
+                        )
+                    }
+                    if (playerLog != null) {
+                        link(
+                            title = "Player log",
+                            summary = "Why music last stopped or skipped",
+                            onClick = { showingPlayerLog = true }
+                        )
+                    }
                 }
             }
         }

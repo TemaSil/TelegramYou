@@ -116,10 +116,13 @@ class MusicPlayer(
             override fun isCommandAvailable(command: Int): Boolean =
                 availableCommands.contains(command)
 
-            override fun seekToNext() = next()
-            override fun seekToNextMediaItem() = next()
-            override fun seekToPrevious() = previous()
-            override fun seekToPreviousMediaItem() = previous()
+            // From the shade, the lock screen, a headset's or a car's button:
+            // logged as theirs, so a skip nobody touched the screen for can
+            // be told apart.
+            override fun seekToNext() { PlayerLog.add("next, from the system (shade, headset, car)"); next() }
+            override fun seekToNextMediaItem() { PlayerLog.add("next, from the system (shade, headset, car)"); next() }
+            override fun seekToPrevious() { PlayerLog.add("previous, from the system"); previous() }
+            override fun seekToPreviousMediaItem() { PlayerLog.add("previous, from the system"); previous() }
             override fun hasNextMediaItem(): Boolean = true
             override fun hasPreviousMediaItem(): Boolean = true
 
@@ -181,8 +184,36 @@ class MusicPlayer(
                     if (!isPlaying) keepPosition()
                 }
 
+                override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    PlayerLog.add((if (playWhenReady) "play" else "pause") + ", " + playWhenReadyReason(reason))
+                }
+
+                override fun onPlaybackSuppressionReasonChanged(reason: Int) {
+                    if (reason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+                        PlayerLog.add("held silent by the system (suppression $reason: audio focus lost for a while, or the output is unsuitable)")
+                    }
+                }
+
+                // A failure used to stop the music with nothing said. Now it
+                // is logged and named, and the track is tried once more from
+                // where it was; a second failure goes on to the next.
+                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    val track = _state.value.track
+                    PlayerLog.add("error ${error.errorCodeName}: ${error.message} — ${track?.title}")
+                    val retry = track != null && retriedFor != track.messageId
+                    if (retry) {
+                        retriedFor = track.messageId
+                        carryOnFrom = created.currentPosition
+                        startCurrent()
+                    } else {
+                        _state.update { it.copy(notice = "Could not play ${track?.title ?: "the track"}") }
+                        advance(auto = true)
+                    }
+                }
+
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     if (playbackState == Player.STATE_ENDED) {
+                        PlayerLog.add("ended at ${created.currentPosition / 1000}s of ${created.duration / 1000}s — ${_state.value.track?.title}")
                         forgetPosition()
                         if (_state.value.sleep == SleepTimer.EndOfTrack) {
                             // The timer was for this track: stop here.
@@ -580,6 +611,10 @@ class MusicPlayer(
     private fun advance(auto: Boolean) {
         val queue = _state.value.queue
         val next = queue.advanced(auto)
+        PlayerLog.add(
+            (if (auto) "on to the next by itself" else "next, asked for") +
+                (next?.playing?.let { " → ${it.title}" } ?: if (queue.needsMore()) " → fetching more" else " → end of the queue, pausing")
+        )
         when {
             next != null -> go(next)
             queue.needsMore() -> {
@@ -605,11 +640,21 @@ class MusicPlayer(
         _state.update { it.copy(isLoading = true, positionMs = 0, durationMs = track.durationSeconds * 1000L, coverSeed = null) }
         fetchCover(track)
         exo?.pause()
+        PlayerLog.add("start ${track.title}" + if (track.path?.let { exists(it) } == true) " (on the phone)" else " (fetching)")
         starting = scope.launch {
-            val path = track.path?.takeIf { exists(it) }
+            // Once more after a moment if the fetch fails: a download that
+            // failed used to leave the player silent with nothing said, which
+            // read as music stopping by itself.
+            var path = track.path?.takeIf { exists(it) }
                 ?: track.fileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+            if (path == null && track.fileId != null) {
+                PlayerLog.add("fetch failed, trying again — ${track.title}")
+                delay(FETCH_RETRY_MS)
+                path = runCatching { repository.downloadFile(track.fileId!!) }.getOrNull()
+            }
             if (path == null) {
-                _state.update { it.copy(isLoading = false) }
+                PlayerLog.add("could not fetch ${track.title}; stopped")
+                _state.update { it.copy(isLoading = false, notice = "Could not load ${track.title}") }
                 return@launch
             }
             // Kept on the track, so coming back to it does not fetch again.
@@ -655,6 +700,9 @@ class MusicPlayer(
     }
 
     private var prefetching: Job? = null
+
+    /** The track a failed playback was retried for, so it is retried once. */
+    private var retriedFor: Long? = null
 
     /**
      * The next track's file fetched while this one plays, so one ends and
@@ -703,5 +751,18 @@ class MusicPlayer(
         const val KEEP_EVERY_TICKS = 40
         const val WAIT_FOR_PAGE_STEPS = 40
         const val WAIT_FOR_PAGE_STEP_MS = 250L
+        /** How long before a failed fetch of a track is tried again. */
+        const val FETCH_RETRY_MS = 2_000L
     }
+}
+
+/** Media3's reason for a play or a pause, in words for the player log. */
+private fun playWhenReadyReason(reason: Int): String = when (reason) {
+    Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> "asked for (this app, the shade or a button)"
+    Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> "another app took the audio (a call, a video, navigation)"
+    Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> "headphones or Bluetooth disconnected"
+    Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE -> "from elsewhere (a watch, a car, another device)"
+    Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM -> "the track ended"
+    Player.PLAY_WHEN_READY_CHANGE_REASON_SUPPRESSED_TOO_LONG -> "held silent too long by the system"
+    else -> "reason $reason"
 }

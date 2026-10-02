@@ -474,7 +474,11 @@ test's emulator has an emulated front camera. The player's menu gained
 Share and lost its arrow down, and closes by carrying the pull's own
 speed to the edge instead of handing over to the sheet's `hide()`, with a
 scrim of its own that fades with the pull. Forwarding opens the chat it
-went to and searches contacts. Also in it, the back gesture. The dependency bump took
+went to and searches contacts. The owner's tracks sometimes skipping or stopping
+by themselves, not yet reproduced: the player logs every play, pause,
+skip and error with Media3's reason (`PlayerLog`, For geeks →
+Diagnostics), retries a failed fetch and a failed playback once, and says
+so when it gives up — it had stopped in silence. Also in it, the back gesture. The dependency bump took
 navigation-compose from 2.8 to 2.10, and from 2.9 the predictive back
 gesture no longer runs a NavHost's pop transitions: it has its own
 (`predictivePopEnterTransition`/`predictivePopExitTransition`, defaulting
