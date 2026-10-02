@@ -11,7 +11,9 @@ import com.telegramyou.app.ui.chat.LocalFileLoader
 import com.telegramyou.app.ui.stories.NewStoryViewModel
 import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.navigation.NavBackStackEntry
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import kotlinx.coroutines.launch
@@ -337,6 +339,18 @@ fun TelegramYouNavHost(
     // its circle. See containerTransform.
     // Less motion: screens cross-fade in place rather than slide.
     val reduceMotion = LocalReduceMotion.current
+    val popEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = spring()
+        )
+    }
+    val popExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = spring()
+        )
+    }
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this) {
     NavHost(
@@ -354,17 +368,30 @@ fun TelegramYouNavHost(
                 animationSpec = spring()
             )
         },
-        popEnterTransition = {
-            if (reduceMotion) fadeIn(spring()) else fadeIn(spring()) + slideIntoContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = spring()
-            )
+        popEnterTransition = popEnter,
+        popExitTransition = popExit,
+        // The back gesture, the same as Back. Navigation 2.9 gave it a
+        // transition of its own — the page shrinking to 70% while the one
+        // under it fades in — which our upgrade to 2.10 in 1.6.10 brought
+        // in unasked: a swipe back from Proxy then moved nothing like a tap
+        // on its arrow did. A destination cannot set its own here with a
+        // string route, so the two that set their own way back — Home under
+        // a chat or a story, and the chat and the story themselves, which
+        // the container transform carries — are repeated as they are below.
+        predictivePopEnterTransition = {
+            when {
+                targetState.destination.route == Route.Home.PATTERN &&
+                    initialState.destination.route in containerRoutes -> fadeIn(spring())
+                targetState.destination.route in containerRoutes -> fadeIn(spring())
+                else -> popEnter()
+            }
         },
-        popExitTransition = {
-            if (reduceMotion) fadeOut(spring()) else fadeOut(spring()) + slideOutOfContainer(
-                towards = AnimatedContentTransitionScope.SlideDirection.End,
-                animationSpec = spring()
-            )
+        predictivePopExitTransition = {
+            if (initialState.destination.route in containerRoutes) {
+                ExitTransition.KeepUntilTransitionsFinished
+            } else {
+                popExit()
+            }
         }
     ) {
         composable(Route.Auth.PATTERN) {

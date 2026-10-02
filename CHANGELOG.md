@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 1.6.11
+
+- **Fixed: the back gesture moved differently from the back arrow.** Since the navigation library's update in 1.6.10, a swipe back shrank the page instead of sliding it away, as the arrow still did. The gesture follows the same transitions again — and a chat or a story still shrinks back into its row.
+
 ## 1.6.10
 
 - **Fixed: avatars stayed blank after clearing the cache** (Settings → Storage) until the app was restarted. The app kept calling the deleted pictures downloaded and never asked for them again; it now checks the file is still there, and asks again straight after a clear.

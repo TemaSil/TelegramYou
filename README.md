@@ -109,13 +109,10 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.6.10 · 1 October 2026
+## Latest: 1.6.11 · 2 October 2026
 
-Avatars come back after the cache is cleared in Settings → Storage, an
-avatar whose download was cut off is asked for again, Saved Messages and
-bots lose an online dot they never had reason for, the mini player glides
-back down after a reply, For geeks was gone over, and the libraries
-underneath are up to date.
+The back gesture slides a page away again, as the back arrow does — the
+navigation update in 1.6.10 had given it a shrinking animation of its own.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

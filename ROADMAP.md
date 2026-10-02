@@ -461,6 +461,15 @@ the switches that had none. What's new in App update now says when the version c
 core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
 AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
 
+**1.6.11 — done 2 October: the back gesture.** The dependency bump took
+navigation-compose from 2.8 to 2.10, and from 2.9 the predictive back
+gesture no longer runs a NavHost's pop transitions: it has its own
+(`predictivePopEnterTransition`/`predictivePopExitTransition`, defaulting
+to a scale to 70%). The owner saw a swipe back from Proxy move unlike the
+arrow. The NavHost now passes its pop transitions for the gesture too, and
+repeats the per-destination ones (Home under a chat, the container routes)
+since a string-route `composable` cannot set them itself.
+
 **Next, as of 30 September** — none of it started, in the order it seems
 worth doing:
 1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the
