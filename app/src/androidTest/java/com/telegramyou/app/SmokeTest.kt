@@ -1438,17 +1438,29 @@ class SmokeTest {
 
     /** Scrolls the settings down until [selector] is on screen. */
     private fun scrollSettingsTo(selector: BySelector) {
-        repeat(4) {
-            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
-            try {
-                // The page, not whatever scrolls first in the tree: a mini
-                // player left by an earlier test scrolls too, and the first
-                // run of the 1.8 test scrolled that instead of Settings.
-                device.findObjects(By.scrollable(true))
-                    .maxByOrNull { it.visibleBounds.height() }
-                    ?.scroll(Direction.DOWN, 0.6f)
-            } catch (_: StaleObjectException) {
+        val width = device.displayWidth
+        val height = device.displayHeight
+        repeat(6) {
+            if (device.wait(Until.hasObject(selector), SHORT_WAIT)) {
+                // Found low down, it may be under the mini player, where a
+                // tap lands on the player: brought up into the clear first.
+                val low = try {
+                    (device.findObject(selector)?.visibleBounds?.centerY() ?: 0) > height * 0.7
+                } catch (_: StaleObjectException) {
+                    false
+                }
+                if (low) {
+                    device.swipe(width / 2, (height * 0.6).toInt(), width / 2, (height * 0.4).toInt(), 20)
+                    device.waitForIdle(IDLE_TIMEOUT)
+                }
+                return
             }
+            // A finger's swipe up the middle of the screen, which is the
+            // page, rather than UiObject2.scroll on "the" scrollable: with a
+            // mini player up, the tree held another scrollable that took the
+            // scroll, and Settings stayed at its top (the 1.8 runs).
+            device.swipe(width / 2, (height * 0.65).toInt(), width / 2, (height * 0.3).toInt(), 20)
+            device.waitForIdle(IDLE_TIMEOUT)
         }
     }
 
@@ -1976,6 +1988,9 @@ class SmokeTest {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
+        // Music an earlier test on this emulator left playing: its mini
+        // player sits over the bottom of every page this test scrolls.
+        if (device.hasObject(By.desc("Stop music"))) tap(By.desc("Stop music"))
         setMessageExtras()
 
         tap(By.text("Chats"))
