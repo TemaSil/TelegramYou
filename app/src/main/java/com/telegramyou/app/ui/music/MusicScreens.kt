@@ -488,6 +488,29 @@ fun PlayerScreen(
                                     }
                                 )
                             }
+                            // Out of the app, through Android's share sheet:
+                            // the file when it is on the phone, otherwise who
+                            // and what it is (1.7). Everyone has the player,
+                            // so everyone has this — not only the library.
+                            if (track != null) DropdownMenuItem(
+                                text = { Text("Share") },
+                                leadingIcon = { Icon(Symbols.Share, contentDescription = null) },
+                                onClick = {
+                                    menuOpen = false
+                                    val extension = track.path?.substringAfterLast('.', "")?.takeIf { it.length in 1..5 }
+                                    val mime = extension?.let {
+                                        android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.lowercase())
+                                    } ?: "audio/*"
+                                    val label = listOf(track.performer, track.title).filter { it.isNotBlank() }.joinToString(" — ")
+                                    com.telegramyou.app.ui.chat.MediaActions.share(
+                                        context = context,
+                                        path = track.path,
+                                        mime = mime,
+                                        name = label.ifBlank { "track" } + (extension?.let { ".$it" } ?: ""),
+                                        text = label
+                                    )
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Save to Saved Messages") },
                                 leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },

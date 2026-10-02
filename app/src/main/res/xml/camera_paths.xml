@@ -10,6 +10,8 @@
     door into TDLib's whole download directory.
     opened/ holds the one file last opened from a chat in another app, a
     copy for the same reason (MediaActions.openFile).
+    shared/ holds the one file last shared from the app, a track from the
+    player (MediaActions.share), a copy again.
 
     One directory, inside the app's own cache: the camera app needs a writable
     Uri and nothing else should be reachable through the provider. A path that
@@ -21,4 +23,5 @@
     <cache-path name="updates" path="updates/" />
     <cache-path name="clipboard" path="clipboard/" />
     <cache-path name="opened" path="opened/" />
+    <cache-path name="shared" path="shared/" />
 </paths>

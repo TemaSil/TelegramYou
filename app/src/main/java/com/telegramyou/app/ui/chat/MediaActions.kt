@@ -97,6 +97,42 @@ object MediaActions {
         }
     }
 
+    /**
+     * Hands a file to another app through Android's share sheet — a track
+     * from the player, say (1.7). A copy in shared/, one at a time, as for
+     * [openFile]. Without a file on this phone, [text] is shared instead,
+     * and false only when nothing on the phone takes either.
+     */
+    fun share(context: Context, path: String?, mime: String, name: String, text: String): Boolean {
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+        val copy = path?.let { source ->
+            val directory = File(context.cacheDir, "shared").apply { mkdirs() }
+            directory.listFiles()?.forEach { it.delete() }
+            val target = File(directory, name.replace(Regex("[\\\\/:*?\"<>|]"), "_"))
+            runCatching {
+                open(context, source)?.use { input -> target.outputStream().use { input.copyTo(it) } } ?: error("nothing to read")
+            }.getOrNull()?.let { target }
+        }
+        if (copy != null) {
+            send.setType(mime)
+                .putExtra(
+                    android.content.Intent.EXTRA_STREAM,
+                    FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", copy)
+                )
+                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } else {
+            send.setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text)
+        }
+        return try {
+            context.startActivity(
+                android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            false
+        }
+    }
+
     /** A file path, or a Uri — the demo's media is packaged as resources. */
     private fun open(context: Context, path: String): InputStream? =
         if (path.contains("://")) context.contentResolver.openInputStream(Uri.parse(path))

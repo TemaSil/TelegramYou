@@ -61,12 +61,21 @@ class VideoNoteRecorder(private val context: Context) {
 
     val isRecording: Boolean get() = recording != null
 
+    /** Whether there is a second camera to turn to while recording. */
+    var canFlip by mutableStateOf(false)
+        private set
+
+    private var owner: LifecycleOwner? = null
+    private var group: UseCaseGroup? = null
+    private var selector: CameraSelector? = null
+
     /**
      * Opens the camera and starts recording, or answers false if either could
      * not be had — no camera, or one another app holds. The caller has
      * checked both permissions.
      */
     @SuppressLint("MissingPermission")
+    @OptIn(androidx.camera.video.ExperimentalPersistentRecording::class)
     suspend fun start(owner: LifecycleOwner): Boolean {
         if (recording != null) return false
         return try {
@@ -96,6 +105,11 @@ class VideoNoteRecorder(private val context: Context) {
             cameras.unbindAll()
             cameras.bindToLifecycle(owner, selector, group)
             provider = cameras
+            this.owner = owner
+            this.group = group
+            this.selector = selector
+            canFlip = cameras.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) &&
+                cameras.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)
 
             val directory = File(context.cacheDir, "video-notes").apply { mkdirs() }
             val file = File(directory, "round-${System.currentTimeMillis()}.mp4")
@@ -106,6 +120,10 @@ class VideoNoteRecorder(private val context: Context) {
                     FileOutputOptions.Builder(file).setDurationLimitMillis(MAX_SECONDS * 1000L).build()
                 )
                 .withAudioEnabled()
+                // Persistent, so the recording carries on when the camera
+                // is turned round mid-way (flip): rebinding to the other
+                // camera would otherwise end it.
+                .asPersistentRecording()
                 .start(ContextCompat.getMainExecutor(context)) { event ->
                     // Finished, one way or another. Some errors still leave
                     // a playable file — the time limit, the camera going
@@ -144,6 +162,34 @@ class VideoNoteRecorder(private val context: Context) {
         return Recorded(file.absolutePath, seconds.coerceAtMost(MAX_SECONDS), sideOf(file))
     }
 
+    /**
+     * The other camera, without stopping: the recording is persistent, so
+     * the use cases are only rebound. Answers false where there is no other
+     * camera, or the rebinding failed — the recording goes on either way.
+     */
+    fun flip(): Boolean {
+        val cameras = provider ?: return false
+        val bound = owner ?: return false
+        val useCases = group ?: return false
+        val other = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) {
+            CameraSelector.DEFAULT_BACK_CAMERA
+        } else {
+            CameraSelector.DEFAULT_FRONT_CAMERA
+        }
+        if (!cameras.hasCamera(other)) return false
+        return try {
+            cameras.unbindAll()
+            cameras.bindToLifecycle(bound, other, useCases)
+            selector = other
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "flip: ${e.message}")
+            // Back to the camera it was on, so the recording has one.
+            runCatching { cameras.bindToLifecycle(bound, selector ?: other, useCases) }
+            false
+        }
+    }
+
     /** Throws the recording away. */
     fun cancel() {
         val file = target
@@ -161,6 +207,10 @@ class VideoNoteRecorder(private val context: Context) {
         focus = null
         runCatching { provider?.unbindAll() }
         provider = null
+        owner = null
+        group = null
+        selector = null
+        canFlip = false
     }
 
     /** The side of the square actually written, which Telegram is told. */

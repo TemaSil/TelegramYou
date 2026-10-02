@@ -476,6 +476,7 @@ fun ChatScreen(
     // recording, rather than leaving one running nobody is holding.
     val videoNotes = remember(context) { VideoNoteRecorder(context) }
     var videoNoteSince by remember { mutableStateOf<Long?>(null) }
+    var videoNoteLocked by remember { mutableStateOf(false) }
     val videoNoteStart = remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val cameraAndMicrophone = rememberLauncherForActivityResult(
@@ -485,11 +486,22 @@ fun ChatScreen(
         // the hold that asked is over by the time the dialog is answered.
     }
     DisposableEffect(videoNotes) { onDispose { videoNotes.cancel() } }
+    val cancelVideoNote: () -> Unit = {
+        if (videoNoteSince != null) {
+            videoNoteSince = null
+            videoNoteLocked = false
+            scope.launch {
+                videoNoteStart.value?.join()
+                videoNotes.cancel()
+            }
+        }
+    }
     // Lifted, or the minute is up: what was recorded goes, as a voice
     // message does when the microphone is let go.
     val stopVideoNote: () -> Unit = {
         if (videoNoteSince != null) {
             videoNoteSince = null
+            videoNoteLocked = false
             scope.launch {
                 videoNoteStart.value?.join()
                 videoNotes.stop()?.let { note ->
@@ -1384,15 +1396,8 @@ fun ChatScreen(
                             }
                         },
                         onVideoNoteStop = stopVideoNote,
-                        onVideoNoteCancel = {
-                            if (videoNoteSince != null) {
-                                videoNoteSince = null
-                                scope.launch {
-                                    videoNoteStart.value?.join()
-                                    videoNotes.cancel()
-                                }
-                            }
-                        },
+                        onVideoNoteCancel = cancelVideoNote,
+                        onVideoNoteLock = { if (videoNoteSince != null) videoNoteLocked = true },
                         onSend = onSend,
                         // Held, send offers to schedule — only for text: an
                         // attachment or an edit goes now or not at all.
@@ -1512,7 +1517,17 @@ fun ChatScreen(
 
     // Over everything, the bars included, while a video message records:
     // laid after the Scaffold, so it is drawn on top of it.
-    VideoNoteCapture(recorder = videoNotes, since = videoNoteSince, onLimit = stopVideoNote)
+    VideoNoteCapture(
+        recorder = videoNotes,
+        since = videoNoteSince,
+        onLimit = stopVideoNote,
+        locked = videoNoteLocked,
+        onSend = stopVideoNote,
+        onDelete = cancelVideoNote
+    )
+    // Back, while a locked recording is up, throws it away rather than
+    // leaving the chat with the camera still running.
+    BackHandler(enabled = videoNoteLocked) { cancelVideoNote() }
 }
 
 @Composable

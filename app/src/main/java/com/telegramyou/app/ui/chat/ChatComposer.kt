@@ -240,6 +240,11 @@ internal fun ComposerBar(
     onVideoNoteStart: () -> Unit = {},
     onVideoNoteStop: () -> Unit = {},
     onVideoNoteCancel: () -> Unit = {},
+    /**
+     * Slid up while held: the recording goes on with the finger off the
+     * screen, and is sent or thrown away from the circle's own buttons.
+     */
+    onVideoNoteLock: () -> Unit = {},
     onSend: () -> Unit,
     /** Held send button's "Schedule message"; null where it is not offered. */
     onSchedule: (() -> Unit)? = null,
@@ -451,15 +456,44 @@ internal fun ComposerBar(
                         // photo — never sees it.
                         .pointerInput(Unit) {
                             awaitEachGesture {
-                                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                                 val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
                                     waitForUpOrCancellation(PointerEventPass.Initial)
                                 }
                                 if (released == null) {
                                     onVideoNoteStart()
-                                    val lifted = waitForUpOrCancellation(PointerEventPass.Initial)
-                                    lifted?.consume()
-                                    if (lifted != null) onVideoNoteStop() else onVideoNoteCancel()
+                                    // Followed by hand rather than with
+                                    // waitForUpOrCancellation, which gives up
+                                    // the moment the finger leaves the button
+                                    // — and both gestures here leave it: up
+                                    // past LOCK_SLIDE locks, aside past
+                                    // CANCEL_SLIDE throws the recording away.
+                                    val start = down
+                                    var locked = false
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        val change = event.changes.firstOrNull { it.id == start.id }
+                                        if (change == null || !change.pressed) {
+                                            change?.consume()
+                                            if (!locked) onVideoNoteStop()
+                                            break
+                                        }
+                                        change.consume()
+                                        if (locked) continue
+                                        val moved = change.position - start.position
+                                        if (moved.y < -LOCK_SLIDE.toPx()) {
+                                            locked = true
+                                            onVideoNoteLock()
+                                        } else if (kotlin.math.abs(moved.x) > CANCEL_SLIDE.toPx()) {
+                                            onVideoNoteCancel()
+                                            // The rest of the touch is spent.
+                                            do {
+                                                val rest = awaitPointerEvent(PointerEventPass.Initial)
+                                                rest.changes.forEach { it.consume() }
+                                            } while (rest.changes.any { it.pressed })
+                                            break
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -652,6 +686,12 @@ internal fun ComposerBar(
         }
     }
 }
+
+/** How far up a held camera button is slid to lock its recording. */
+private val LOCK_SLIDE = 72.dp
+
+/** How far aside it is slid to throw the recording away. */
+private val CANCEL_SLIDE = 96.dp
 
 /** The composer capsule's margin above and below. */
 internal val COMPOSER_MARGIN = 8.dp

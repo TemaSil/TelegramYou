@@ -1639,7 +1639,47 @@ class SmokeTest {
         assertTrue("no recording circle while the camera was held", circleUp)
         waitFor(By.descStartsWith("Video message, 0:0"), "the video message in the chat")
         screenshot("86b-video-note-sent")
+
+        // Slid up while held, it locks: the finger lifts and the recording
+        // goes on, with Delete and Send on the circle — and Switch camera,
+        // where there is a second camera, which the emulator has not.
+        val sent = device.findObjects(By.descStartsWith("Video message, 0:0")).size
+        holdAndSlide(at.x, at.y, dy = -VIDEO_NOTE_LOCK_SLIDE_PX)
+        waitFor(By.desc("Send video message"), "the locked recording's Send")
+        SystemClock.sleep(2_000)
+        screenshot("86c-video-note-locked")
+        tap(By.desc("Send video message"))
+        val second = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (SystemClock.uptimeMillis() < second &&
+            device.findObjects(By.descStartsWith("Video message, 0:0")).size <= sent
+        ) {
+            SystemClock.sleep(300)
+        }
+        assertTrue(
+            "the locked recording was not sent",
+            device.findObjects(By.descStartsWith("Video message, 0:0")).size > sent
+        )
         device.pressBack()
+    }
+
+    /** Down at [x], [y], held past a long press, slid by [dy], and lifted. */
+    private fun holdAndSlide(x: Int, y: Int, dy: Int) {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downAt = SystemClock.uptimeMillis()
+        fun touch(action: Int, at: Long, atY: Int) = android.view.MotionEvent.obtain(
+            downAt, at, action, x.toFloat(), atY.toFloat(), 0
+        ).apply { source = android.view.InputDevice.SOURCE_TOUCHSCREEN }
+        automation.injectInputEvent(touch(android.view.MotionEvent.ACTION_DOWN, downAt, y), true)
+        SystemClock.sleep(1_500)
+        val steps = 15
+        for (step in 1..steps) {
+            automation.injectInputEvent(
+                touch(android.view.MotionEvent.ACTION_MOVE, SystemClock.uptimeMillis(), y + dy * step / steps),
+                true
+            )
+            SystemClock.sleep(20)
+        }
+        automation.injectInputEvent(touch(android.view.MotionEvent.ACTION_UP, SystemClock.uptimeMillis(), y + dy), true)
     }
 
     /**
@@ -2132,6 +2172,20 @@ class SmokeTest {
         tap(By.desc("Repeat all"))
         waitFor(By.desc("Repeat one"), "the track on repeat")
         screenshot("78-player")
+
+        // Share hands the track to Android's share sheet (1.7): the app
+        // leaves the foreground for it, and Back returns to the player.
+        tap(By.desc("More"))
+        tap(By.text("Share"))
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        val sheetBy = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (SystemClock.uptimeMillis() < sheetBy && device.currentPackageName == app) {
+            SystemClock.sleep(200)
+        }
+        screenshot("78c-player-share")
+        assertTrue("Share opened nothing", device.currentPackageName != app)
+        device.pressBack()
+        waitFor(By.text("Queue"), "the player after sharing")
 
         tap(By.text("Queue"))
         waitFor(By.textContains("12 tracks"), "the channel's whole music in the queue")
@@ -3139,6 +3193,8 @@ class SmokeTest {
         const val NOTIFYING_CHAT = "Material Design"
         /** Long enough past Telegram's one-second shortest video message, with the camera's opening in it. */
         const val VIDEO_NOTE_HOLD_MS = 4_500L
+        /** Well past the composer's 72 dp to lock, on a Pixel 6's 2.625 density. */
+        const val VIDEO_NOTE_LOCK_SLIDE_PX = 320
         /** Its id in the demo backend, where it is the first chat seeded. */
         const val NOTIFYING_CHAT_ID = 1L
 

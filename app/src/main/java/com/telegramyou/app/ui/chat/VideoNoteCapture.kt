@@ -16,6 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +58,11 @@ internal fun VideoNoteCapture(
     /** When the hold began, or null while nothing is being recorded. */
     since: Long?,
     /** The minute is up: send what there is, as lifting the finger would. */
-    onLimit: () -> Unit
+    onLimit: () -> Unit,
+    /** Slid up to lock: the finger is off, and these buttons finish it. */
+    locked: Boolean = false,
+    onSend: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     AnimatedVisibility(
         visible = since != null,
@@ -75,6 +86,14 @@ internal fun VideoNoteCapture(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f))
+                // The conversation under the scrim takes no touches while a
+                // recording is up: a stray tap there would act on a chat the
+                // person cannot see properly.
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false).consume()
+                    }
+                }
                 .semantics { contentDescription = "Recording a video message" }
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -118,12 +137,35 @@ internal fun VideoNoteCapture(
                         color = MaterialTheme.colorScheme.inverseOnSurface
                     )
                 }
-                Text(
-                    "Lift to send · slide away to cancel",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.inverseOnSurface,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                if (!locked) {
+                    Text(
+                        "Lift to send · slide up to lock · aside to cancel",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                } else {
+                    // Locked, the finger is off the screen and these finish
+                    // it: thrown away, the other camera, or sent — Send the
+                    // filled one, as in the composer.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        modifier = Modifier.padding(top = 24.dp)
+                    ) {
+                        FilledTonalIconButton(onClick = onDelete, modifier = Modifier.size(56.dp)) {
+                            Icon(Symbols.Delete, contentDescription = "Delete video message")
+                        }
+                        if (recorder.canFlip) {
+                            FilledTonalIconButton(onClick = { recorder.flip() }, modifier = Modifier.size(56.dp)) {
+                                Icon(Symbols.SwitchCamera, contentDescription = "Switch camera")
+                            }
+                        }
+                        FilledIconButton(onClick = onSend, modifier = Modifier.size(72.dp)) {
+                            Icon(Symbols.SendFilled, contentDescription = "Send video message")
+                        }
+                    }
+                }
             }
         }
     }
