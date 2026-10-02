@@ -16,8 +16,12 @@ data class WhatsNew(val title: String, val items: List<String>)
 const val WHATS_NEW_START = "<!-- whats-new -->"
 const val WHATS_NEW_END = "<!-- /whats-new -->"
 
-/** How many lines one update may have; more is a wall nobody reads. */
-const val WHATS_NEW_MAX_ITEMS = 4
+/**
+ * How many lines one update may have; more is a wall nobody reads. Four is
+ * the usual, and a bigger release may take up to this many — the owner's
+ * call, 2 October 2026.
+ */
+const val WHATS_NEW_MAX_ITEMS = 6
 
 /**
  * The file's format: `# Title` on the first line that has one, then a

@@ -418,9 +418,11 @@ The owner's rules, both given after a first version got them wrong:
   person would notice; do not append. What was done before is history for
   the people building this, and it lives in git — nobody installing an update
   reads it.
-- **Short.** A title and at most four lines, one short sentence each —
-  `WhatsNewTest` fails the build on more. Walls of text go unread. The voice
-  stays upbeat and casual, English until the languages arrive.
+- **Short.** A title and about four lines, one short sentence each. Four
+  is the usual, not a wall: a release with more in it may run to six — the
+  owner's word, 2 October 2026, "по ситуации". `WhatsNewTest` fails the
+  build past six. Walls of text go unread. The voice stays upbeat and
+  casual, English until the languages arrive.
 
 ## Who checks what
 
