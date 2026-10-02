@@ -1614,6 +1614,58 @@ class SmokeTest {
     }
 
     /**
+     * A round video message (1.7): the camera button held, the circle up
+     * with the front camera in it while the finger stays down, and the
+     * message in the chat once it lifts. The emulator's front camera is its
+     * emulated one — see the AVD in the UI workflow.
+     */
+    @Test
+    fun aVideoMessageIsRecordedByHoldingTheCamera() {
+        signIn()
+        waitFor(By.text("Design Circle"), "the chat list")
+        awaitNoHeadsUp()
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        device.executeShellCommand("pm grant $app android.permission.CAMERA")
+        device.executeShellCommand("pm grant $app android.permission.RECORD_AUDIO")
+        tap(By.text("Design Circle"))
+        val camera = By.desc("Camera, hold for a video message")
+        waitFor(camera, "the composer's camera button")
+        val at = device.findObject(camera).visibleCenter
+        var circleUp = false
+        holdAt(at.x, at.y, VIDEO_NOTE_HOLD_MS) {
+            circleUp = device.hasObject(By.desc("Recording a video message"))
+            screenshot("86-video-note-recording")
+        }
+        assertTrue("no recording circle while the camera was held", circleUp)
+        waitFor(By.descStartsWith("Video message, 0:0"), "the video message in the chat")
+        screenshot("86b-video-note-sent")
+        device.pressBack()
+    }
+
+    /**
+     * A finger held down at [x], [y] for [millis], as UiDevice cannot: its
+     * long click lifts by itself, and a swipe in place cannot be looked at
+     * while it lasts. [during] runs once, halfway through the hold.
+     */
+    private fun holdAt(x: Int, y: Int, millis: Long, during: () -> Unit) {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downAt = SystemClock.uptimeMillis()
+        fun touch(action: Int, at: Long) = android.view.MotionEvent.obtain(
+            downAt, at, action, x.toFloat(), y.toFloat(), 0
+        ).apply { source = android.view.InputDevice.SOURCE_TOUCHSCREEN }
+        automation.injectInputEvent(touch(android.view.MotionEvent.ACTION_DOWN, downAt), true)
+        var looked = false
+        while (SystemClock.uptimeMillis() < downAt + millis) {
+            if (!looked && SystemClock.uptimeMillis() > downAt + millis / 2) {
+                looked = true
+                during()
+            }
+            SystemClock.sleep(50)
+        }
+        automation.injectInputEvent(touch(android.view.MotionEvent.ACTION_UP, SystemClock.uptimeMillis()), true)
+    }
+
+    /**
      * A poll answered with one tap, and a bot's two kinds of buttons: one
      * under its message that asks the bot and shows its answer, and a key of
      * its keyboard under the composer that sends a message it replies to.
@@ -3085,6 +3137,8 @@ class SmokeTest {
          * it finds, which is the seeded "Material Design".
          */
         const val NOTIFYING_CHAT = "Material Design"
+        /** Long enough past Telegram's one-second shortest video message, with the camera's opening in it. */
+        const val VIDEO_NOTE_HOLD_MS = 4_500L
         /** Its id in the demo backend, where it is the first chat seeded. */
         const val NOTIFYING_CHAT_ID = 1L
 

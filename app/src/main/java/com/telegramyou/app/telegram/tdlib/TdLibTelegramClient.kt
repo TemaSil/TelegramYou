@@ -2395,6 +2395,28 @@ class TdLibTelegramClient(
                 caption = caption,
                 replyToId = replyToId
             )
+            // A video message takes no caption: Telegram has nowhere to show
+            // one under a circle.
+            is AttachmentDraft.VideoNote -> requireEngine().send(
+                JSONObject()
+                    .put("@type", "sendMessage")
+                    .put("chat_id", chatId)
+                    .inOpenTopic(chatId)
+                    .withReplyTo(replyToId)
+                    .put(
+                        "input_message_content",
+                        JSONObject()
+                            .put("@type", "inputMessageVideoNote")
+                            .put(
+                                "video_note",
+                                JSONObject()
+                                    .put("@type", "inputVideoNote")
+                                    .put("video_note", localFile(draft.path))
+                                    .put("duration", draft.durationSeconds)
+                                    .put("length", draft.length)
+                            )
+                    )
+            )
         }
     }
 

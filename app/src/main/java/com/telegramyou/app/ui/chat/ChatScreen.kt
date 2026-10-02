@@ -86,6 +86,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -449,6 +450,55 @@ fun ChatScreen(
     // new one per press would race the previous one's release.
     val recorder = remember(context) { VoiceRecorder(context) }
     var recordingSince by remember { mutableStateOf<Long?>(null) }
+
+    // A photo through the camera app. Since 1.7 the app declares the camera
+    // for round video messages, and Android then refuses ACTION_IMAGE_CAPTURE
+    // to an app that declares it without holding it — so a photo asks first.
+    val takePhoto: () -> Unit = {
+        val uri = cameraUri(context, newCameraFile(context))
+        cameraTarget = uri
+        cameraLauncher.launch(uri)
+    }
+    val cameraForPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) takePhoto() }
+    val onTakePhoto: () -> Unit = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            takePhoto()
+        } else {
+            cameraForPhoto.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    // The camera button held: a round video message (1.7). One recorder for
+    // the screen, as for voice. Opening the camera takes a moment, so a
+    // finger lifted before it has opened waits for it and then ends the
+    // recording, rather than leaving one running nobody is holding.
+    val videoNotes = remember(context) { VideoNoteRecorder(context) }
+    var videoNoteSince by remember { mutableStateOf<Long?>(null) }
+    val videoNoteStart = remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val cameraAndMicrophone = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        // Nothing starts on the grant, for the reason the microphone's gives:
+        // the hold that asked is over by the time the dialog is answered.
+    }
+    DisposableEffect(videoNotes) { onDispose { videoNotes.cancel() } }
+    // Lifted, or the minute is up: what was recorded goes, as a voice
+    // message does when the microphone is let go.
+    val stopVideoNote: () -> Unit = {
+        if (videoNoteSince != null) {
+            videoNoteSince = null
+            scope.launch {
+                videoNoteStart.value?.join()
+                videoNotes.stop()?.let { note ->
+                    onAttachmentPicked(AttachmentDraft.VideoNote(note.path, note.durationSeconds, note.length))
+                    onSend()
+                }
+            }
+        }
+    }
 
     // The bot's keyboard, when this chat has one: whether it is up, and how
     // tall it drew. Held here rather than beside the composer, because the
@@ -1255,11 +1305,7 @@ fun ChatScreen(
                             onDismiss = { onAttachmentSheetOpenChange(false) },
                             onPickPhoto = { photoPicker.launch("image/*") },
                             onPickFile = { filePicker.launch(arrayOf("*/*")) },
-                            onTakePhoto = {
-                                val uri = cameraUri(context, newCameraFile(context))
-                                cameraTarget = uri
-                                cameraLauncher.launch(uri)
-                            },
+                            onTakePhoto = onTakePhoto,
                             onPickRecent = { uri ->
                                 onAttachmentPicked(AttachmentDraft.Photos(listOf(uri)))
                                 onAttachmentSheetOpenChange(false)
@@ -1317,14 +1363,35 @@ fun ChatScreen(
                             composerFocus.requestFocus()
                             keyboardController?.show()
                         },
-                        onCamera = {
-                            // The same launch the sheet's camera entry makes. Kept
-                            // as one expression rather than shared with it: this
-                            // is three lines, and a helper that exists to avoid
-                            // repeating three lines is the harder thing to read.
-                            val uri = cameraUri(context, newCameraFile(context))
-                            cameraTarget = uri
-                            cameraLauncher.launch(uri)
+                        // The same launch the sheet's camera entry makes,
+                        // shared now that it has a permission to ask first.
+                        onCamera = onTakePhoto,
+                        onVideoNoteStart = {
+                            val missing = listOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+                                .filter {
+                                    ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                                }
+                            if (missing.isNotEmpty()) {
+                                cameraAndMicrophone.launch(missing.toTypedArray())
+                            } else if (videoNoteSince == null) {
+                                videoNoteSince = System.currentTimeMillis()
+                                videoNoteStart.value = scope.launch {
+                                    if (!videoNotes.start(lifecycleOwner)) {
+                                        videoNoteSince = null
+                                        snackbarHostState.showSnackbar("The camera could not be opened")
+                                    }
+                                }
+                            }
+                        },
+                        onVideoNoteStop = stopVideoNote,
+                        onVideoNoteCancel = {
+                            if (videoNoteSince != null) {
+                                videoNoteSince = null
+                                scope.launch {
+                                    videoNoteStart.value?.join()
+                                    videoNotes.cancel()
+                                }
+                            }
                         },
                         onSend = onSend,
                         // Held, send offers to schedule — only for text: an
@@ -1442,6 +1509,10 @@ fun ChatScreen(
 
         }
     }
+
+    // Over everything, the bars included, while a video message records:
+    // laid after the Scaffold, so it is drawn on top of it.
+    VideoNoteCapture(recorder = videoNotes, since = videoNoteSince, onLimit = stopVideoNote)
 }
 
 @Composable

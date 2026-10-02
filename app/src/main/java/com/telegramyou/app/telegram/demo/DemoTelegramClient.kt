@@ -1423,6 +1423,21 @@ class DemoTelegramClient(
                     waveform = draft.waveform
                 )
             }
+            is AttachmentDraft.VideoNote -> {
+                appendOutgoing(
+                    chatId = chatId,
+                    text = "Video message",
+                    type = MessageContentType.VideoNote,
+                    replyToId = replyToId,
+                    // The file the camera just wrote: it plays back in its
+                    // circle offline, as the voice recorder's does in its bar.
+                    video = VideoContent(
+                        durationSeconds = draft.durationSeconds,
+                        aspect = 1f,
+                        path = draft.path
+                    )
+                )
+            }
             is AttachmentDraft.Photos -> {
                 draft.uris.forEachIndexed { index, uri ->
                     appendOutgoing(

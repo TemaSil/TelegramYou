@@ -171,6 +171,7 @@ internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
         // because a `when` over a sealed type is where a new case should
         // announce itself rather than fall into an else.
         is AttachmentDraft.Voice -> "Voice message ${formatDuration(draft.durationSeconds.toLong())}"
+        is AttachmentDraft.VideoNote -> "Video message ${formatDuration(draft.durationSeconds.toLong())}"
     }
     // An InputChip, which is the Material component for "one item you have
     // added and can take back". It was a Row painted to look like a chip,
@@ -230,6 +231,15 @@ internal fun ComposerBar(
     onKeyboard: () -> Unit = {},
     /** The camera, straight from the composer rather than through the sheet. */
     onCamera: () -> Unit,
+    /**
+     * The camera button held rather than tapped: a round video message,
+     * recorded while the finger stays down and sent when it lifts, as the
+     * microphone does a voice message (1.7). Leaving — a scroll, a slide off
+     * the button — throws it away.
+     */
+    onVideoNoteStart: () -> Unit = {},
+    onVideoNoteStop: () -> Unit = {},
+    onVideoNoteCancel: () -> Unit = {},
     onSend: () -> Unit,
     /** Held send button's "Schedule message"; null where it is not offered. */
     onSchedule: (() -> Unit)? = null,
@@ -432,9 +442,29 @@ internal fun ComposerBar(
                 IconButton(
                     onClick = onCamera,
                     enabled = recordingSince == null,
-                    modifier = Modifier.padding(bottom = ComposerButtonLift)
+                    modifier = Modifier
+                        .padding(bottom = ComposerButtonLift)
+                        // Tapped, a photo; held past a long press, a round
+                        // video. Read on the Initial pass, as the
+                        // microphone's hold is, and the release after a hold
+                        // swallowed there so the button's own click — the
+                        // photo — never sees it.
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                    waitForUpOrCancellation(PointerEventPass.Initial)
+                                }
+                                if (released == null) {
+                                    onVideoNoteStart()
+                                    val lifted = waitForUpOrCancellation(PointerEventPass.Initial)
+                                    lifted?.consume()
+                                    if (lifted != null) onVideoNoteStop() else onVideoNoteCancel()
+                                }
+                            }
+                        }
                 ) {
-                    Icon(Symbols.PhotoCamera, contentDescription = "Camera")
+                    Icon(Symbols.PhotoCamera, contentDescription = "Camera, hold for a video message")
                 }
 
                 if (recordingSince != null) {

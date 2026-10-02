@@ -618,4 +618,15 @@ sealed interface AttachmentDraft {
          */
         val waveform: List<Int> = emptyList()
     ) : AttachmentDraft
+
+    /**
+     * A round video message recorded in the composer: a square video in the
+     * app's cache, [length] pixels a side — Telegram draws it as a circle
+     * and wants the side, as it wants a voice message's length.
+     */
+    data class VideoNote(
+        val path: String,
+        val durationSeconds: Int,
+        val length: Int
+    ) : AttachmentDraft
 }

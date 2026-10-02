@@ -22,6 +22,14 @@
     <!-- Held to record a voice message; requested at the moment the mic
          button is first pressed, not at startup. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!--
+        Round video messages (1.7) are recorded by the app itself, through
+        CameraX, so it needs the camera of its own. Not required: a phone
+        without one still installs, and only the hold on the camera button
+        does nothing there. A photo still goes through the camera app.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Sending where you are, from the paperclip; asked for at that moment,
          never at startup. Coarse alone is honoured too — the circle round
@@ -175,10 +183,11 @@
             itself world-readable. grantUriPermissions is what makes the grant
             temporary: it lasts for the one intent and no longer.
 
-            No <uses-permission android:name="android.permission.CAMERA" />
-            anywhere, deliberately. ACTION_IMAGE_CAPTURE delegates to whatever
-            camera app is installed, and declaring the permission would oblige
-            this app to request it at runtime for a camera it never opens.
+            A photo is taken by whatever camera app is installed, through
+            ACTION_IMAGE_CAPTURE, not by this app. Declaring CAMERA — needed
+            since 1.7 for round video messages — obliges this app to hold the
+            permission before it may launch that intent too, so the photo
+            button asks for it first as well.
         -->
         <provider
             android:name="androidx.core.content.FileProvider"
