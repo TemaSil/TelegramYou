@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram
 
+import com.telegramyou.app.telegram.model.ChatPreview
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -127,7 +128,7 @@ class TelegramForegroundService : Service() {
                     isOutgoing = message.isOutgoing,
                     isChatMuted = chat?.isMuted == true,
                     showPreview = chat?.notifications?.showPreview ?: true,
-                    sound = chat?.notifications?.sound ?: true
+                    sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, chat, message.senderId)
                 )
                 val decision = decideNotification(
                     notifiable,
@@ -140,6 +141,20 @@ class TelegramForegroundService : Service() {
                 if (decision is NotificationDecision.Notify) post(decision.message)
             }
         }
+    }
+
+    /**
+     * Settings → For geeks → Silence people not in contacts (1.8, after
+     * Nekogram): a private message from someone this account has not saved
+     * still reaches the shade, without a sound. Bots are left as they are —
+     * nobody adds a bot to contacts, and one that was started was asked for.
+     */
+    private suspend fun silencedStranger(app: TelegramYouApp, chat: ChatPreview?, senderId: Long?): Boolean {
+        if (!app.geeks.settings.value.silenceNonContacts) return false
+        if (chat == null || chat.isGroup || chat.isChannel) return false
+        val sender = senderId ?: return false
+        val person = runCatching { app.telegramRepository.person(sender) }.getOrNull() ?: return false
+        return !person.isContact && !person.isBot
     }
 
     /**

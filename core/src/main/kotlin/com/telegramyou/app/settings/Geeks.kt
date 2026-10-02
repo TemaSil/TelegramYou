@@ -28,8 +28,24 @@ data class GeekSettings(
     /** TDLib's `prefer_ipv6`: reach Telegram over IPv6 where both are offered. */
     val preferIpv6: Boolean = false,
     /** The music library, an experiment: every chat's music as albums, artists and playlists. */
-    val musicLibrary: Boolean = false
+    val musicLibrary: Boolean = false,
+    /**
+     * More in a message's menu (1.8, after Nekogram): Repeat it here, Save
+     * it to Saved Messages, Delete its downloaded file from the phone.
+     */
+    val messageExtras: Boolean = false,
+    /** The archive opened by pulling the chat list down past its top. */
+    val openArchiveOnPull: Boolean = false,
+    /** Messages from people one has blocked left out of groups. */
+    val hideBlockedInGroups: Boolean = false,
+    /** A voice or video message asked about before it goes, held or locked. */
+    val confirmRecordings: Boolean = false,
+    /** No sound or vibration for messages from people not in contacts. */
+    val silenceNonContacts: Boolean = false
 )
+
+/** What [GeekSettings.messageExtras] puts in a message's menu. */
+enum class MessageExtra { Repeat, SaveToSavedMessages, DeleteFile }
 
 /** What a double tap on a message does. */
 enum class DoubleTapAction(val label: String) {

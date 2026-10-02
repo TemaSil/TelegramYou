@@ -243,6 +243,13 @@ interface TelegramMessages {
      */
     suspend fun removeDownload(fileId: Int, deleteFile: Boolean) {}
 
+    /**
+     * The phone's copy of a file, deleted — For geeks → Delete downloaded
+     * file (1.8). The message keeps it on Telegram; it is fetched again when
+     * next opened.
+     */
+    suspend fun deleteDownloadedFile(fileId: Int) {}
+
     /** Every finished download out of the list, and with [deleteFiles] off the phone. */
     suspend fun clearFinishedDownloads(deleteFiles: Boolean) {}
 

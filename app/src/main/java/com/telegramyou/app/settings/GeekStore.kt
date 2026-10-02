@@ -34,6 +34,11 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_SEARCH_NO_KEYBOARD, now.searchWithoutKeyboard)
             .putBoolean(KEY_IPV6, now.preferIpv6)
             .putBoolean(KEY_MUSIC_LIBRARY, now.musicLibrary)
+            .putBoolean(KEY_MESSAGE_EXTRAS, now.messageExtras)
+            .putBoolean(KEY_ARCHIVE_ON_PULL, now.openArchiveOnPull)
+            .putBoolean(KEY_HIDE_BLOCKED, now.hideBlockedInGroups)
+            .putBoolean(KEY_CONFIRM_RECORDINGS, now.confirmRecordings)
+            .putBoolean(KEY_SILENCE_NON_CONTACTS, now.silenceNonContacts)
             .apply()
     }
 
@@ -49,7 +54,12 @@ class GeekStore(context: Context) {
             hideAllChatsTab = preferences.getBoolean(KEY_HIDE_ALL, false),
             searchWithoutKeyboard = preferences.getBoolean(KEY_SEARCH_NO_KEYBOARD, false),
             preferIpv6 = preferences.getBoolean(KEY_IPV6, false),
-            musicLibrary = preferences.getBoolean(KEY_MUSIC_LIBRARY, false)
+            musicLibrary = preferences.getBoolean(KEY_MUSIC_LIBRARY, false),
+            messageExtras = preferences.getBoolean(KEY_MESSAGE_EXTRAS, false),
+            openArchiveOnPull = preferences.getBoolean(KEY_ARCHIVE_ON_PULL, false),
+            hideBlockedInGroups = preferences.getBoolean(KEY_HIDE_BLOCKED, false),
+            confirmRecordings = preferences.getBoolean(KEY_CONFIRM_RECORDINGS, false),
+            silenceNonContacts = preferences.getBoolean(KEY_SILENCE_NON_CONTACTS, false)
         )
     }
 
@@ -65,6 +75,11 @@ class GeekStore(context: Context) {
         const val KEY_SEARCH_NO_KEYBOARD = "search_without_keyboard"
         const val KEY_IPV6 = "prefer_ipv6"
         const val KEY_MUSIC_LIBRARY = "music_library"
+        const val KEY_MESSAGE_EXTRAS = "message_extras"
+        const val KEY_ARCHIVE_ON_PULL = "archive_on_pull"
+        const val KEY_HIDE_BLOCKED = "hide_blocked_in_groups"
+        const val KEY_CONFIRM_RECORDINGS = "confirm_recordings"
+        const val KEY_SILENCE_NON_CONTACTS = "silence_non_contacts"
     }
 }
 

@@ -204,6 +204,21 @@ fun GeeksScreen(
                     summary = "Forwarded messages arrive as yours, without \"Forwarded from\"",
                     checked = settings.forwardWithoutQuote
                 ) { on -> onChange { it.copy(forwardWithoutQuote = on) } }
+                switch(
+                    title = "More in a message's menu",
+                    summary = "Repeat it, save it to Saved Messages, delete its downloaded file",
+                    checked = settings.messageExtras
+                ) { on -> onChange { it.copy(messageExtras = on) } }
+                switch(
+                    title = "Hide blocked people in groups",
+                    summary = "Their messages are left out of groups you share",
+                    checked = settings.hideBlockedInGroups
+                ) { on -> onChange { it.copy(hideBlockedInGroups = on) } }
+                switch(
+                    title = "Ask before sending a recording",
+                    summary = "A voice or video message waits for Send or Delete when you let go",
+                    checked = settings.confirmRecordings
+                ) { on -> onChange { it.copy(confirmRecordings = on) } }
             }
 
             SettingsGroup("Chat list and search") {
@@ -222,6 +237,19 @@ fun GeeksScreen(
                     summary = "Show recent chats and people first; tap the field to type",
                     checked = settings.searchWithoutKeyboard
                 ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
+                switch(
+                    title = "Pull down for the archive",
+                    summary = "Pull the chat list down past its top to open the archive",
+                    checked = settings.openArchiveOnPull
+                ) { on -> onChange { it.copy(openArchiveOnPull = on) } }
+            }
+
+            SettingsGroup("Notifications") {
+                switch(
+                    title = "Silence people not in contacts",
+                    summary = "Their messages arrive without sound or vibration",
+                    checked = settings.silenceNonContacts
+                ) { on -> onChange { it.copy(silenceNonContacts = on) } }
             }
 
             SettingsGroup("Experiments") {

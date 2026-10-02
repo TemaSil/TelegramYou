@@ -893,6 +893,11 @@ class TdLibTelegramClient(
         downloadWaiters[fileId]?.complete(DownloadOutcome.Stopped)
     }
 
+    override suspend fun deleteDownloadedFile(fileId: Int) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "deleteFile").put("file_id", fileId))
+    }
+
     override suspend fun clearFinishedDownloads(deleteFiles: Boolean) {
         awaitReady()
         runCatching {

@@ -630,3 +630,17 @@ sealed interface AttachmentDraft {
         val length: Int
     ) : AttachmentDraft
 }
+
+/**
+ * The file a message carries, by TDLib's id, when it is on this phone —
+ * for For geeks → Delete downloaded file (1.8). Null when the message has
+ * none, or it has not been downloaded: there is nothing to free then.
+ */
+fun ChatMessage.downloadedFileId(): Int? = when {
+    documentPath != null -> documentFileId
+    audio?.path != null -> audio?.fileId
+    video?.path != null -> video?.fileId
+    voicePath != null -> voiceFileId
+    photoPath != null && !photoPath.contains("://") -> photoFileId
+    else -> null
+}

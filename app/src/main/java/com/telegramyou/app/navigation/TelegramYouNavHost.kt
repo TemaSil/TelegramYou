@@ -1119,6 +1119,9 @@ fun TelegramYouNavHost(
             // conversations there is no open chat, and claiming the old one
             // would silence a message that belongs in the shade.
             val openChat = state.detail?.chat?.id
+            LaunchedEffect(geekSettings.hideBlockedInGroups, state.detail?.chat?.isGroup) {
+                chatViewModel.onHideBlocked(geekSettings.hideBlockedInGroups)
+            }
             val context = LocalContext.current
             DisposableEffect(openChat) {
                 AppVisibility.openChatId = openChat
@@ -1191,6 +1194,7 @@ fun TelegramYouNavHost(
                 onSelectionToggled = chatViewModel::onSelectionToggled,
                 onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
                 onForwardOne = chatViewModel::onForwardOne,
+                onMessageExtra = chatViewModel::onMessageExtra,
                 onContentOpened = { chatViewModel.onContentOpened(it.id) },
                 onSelectionCleared = chatViewModel::onSelectionCleared,
                 onSelectionDeleteRequested = chatViewModel::onSelectionDeleteRequested,

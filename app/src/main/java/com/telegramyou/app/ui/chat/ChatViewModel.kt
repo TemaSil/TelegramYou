@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.settings.MessageExtra
+import com.telegramyou.app.telegram.model.downloadedFileId
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.notifications.ChatNotificationSettings
@@ -101,6 +103,11 @@ data class ChatUiState(
      * until it meets the latest ones again and is folded back in.
      */
     val detachedWindow: List<ChatMessage>? = null,
+    /**
+     * People this account has blocked whose messages a group leaves out —
+     * Settings → For geeks → Hide blocked people in groups; empty otherwise.
+     */
+    val hiddenSenders: Set<Long> = emptySet(),
     val isLoadingNewer: Boolean = false,
     /**
      * A message the list should bring on screen, once it is there — set by a
@@ -230,7 +237,9 @@ data class ChatUiState(
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
 
     val messages: List<ChatMessage>
-        get() = olderMessages + (detachedWindow ?: detail?.messages.orEmpty())
+        get() = (olderMessages + (detachedWindow ?: detail?.messages.orEmpty())).let { all ->
+            if (hiddenSenders.isEmpty()) all else all.filter { it.senderId !in hiddenSenders }
+        }
 
     /** Whether what is on screen is away from the latest messages. */
     val isDetached: Boolean get() = detachedWindow != null
@@ -1106,6 +1115,52 @@ class ChatViewModel(
             var link: String? = null
             val done = attempt("Could not make an invite link") { link = repository.renewInviteLink(chatId) }
             if (done && link != null) _uiState.update { it.copy(inviteLink = link) }
+        }
+    }
+
+    /**
+     * For geeks → Hide blocked people in groups (1.8, after Nekogram): their
+     * messages left out of a group's history, as if they were not there.
+     * Asked again on every change of the setting, so someone blocked since
+     * the chat opened goes when it is next switched on.
+     */
+    fun onHideBlocked(on: Boolean) {
+        val isGroup = _uiState.value.detail?.chat?.isGroup == true
+        if (!on || !isGroup) {
+            _uiState.update { it.copy(hiddenSenders = emptySet()) }
+            return
+        }
+        viewModelScope.launch {
+            val blocked = runCatching { repository.blockedPeople() }.getOrNull() ?: return@launch
+            _uiState.update { it.copy(hiddenSenders = blocked.mapTo(HashSet()) { person -> person.id }) }
+        }
+    }
+
+    /**
+     * For geeks → More in a message's menu (1.8, after Nekogram): the
+     * message again in this chat, as a copy; into Saved Messages, as a
+     * forward that says where it came from; or its file off the phone.
+     */
+    fun onMessageExtra(message: ChatMessage, extra: MessageExtra) {
+        viewModelScope.launch {
+            when (extra) {
+                MessageExtra.Repeat -> attempt("Could not repeat it") {
+                    repository.forwardMessages(chatId, listOf(message.id), chatId, true)
+                }
+                MessageExtra.SaveToSavedMessages -> {
+                    val me = repository.observeAuth().value.me ?: return@launch
+                    val done = attempt("Could not save it") {
+                        val saved = repository.openPrivateChat(me.id)
+                        repository.forwardMessages(chatId, listOf(message.id), saved, false)
+                    }
+                    if (done) _uiState.update { it.copy(notice = "Saved to Saved Messages") }
+                }
+                MessageExtra.DeleteFile -> {
+                    val fileId = message.downloadedFileId() ?: return@launch
+                    val done = attempt("Could not delete the file") { repository.deleteDownloadedFile(fileId) }
+                    if (done) _uiState.update { it.copy(notice = "Deleted from this phone") }
+                }
+            }
         }
     }
 

@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import com.telegramyou.app.telegram.model.ReactionOption
 import com.telegramyou.app.ui.icons.Symbols
+import com.telegramyou.app.settings.MessageExtra
+import com.telegramyou.app.telegram.model.downloadedFileId
 import androidx.compose.foundation.border
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -162,7 +164,9 @@ internal fun MessageBubble(
     /** Forward this message, from its menu. */
     onForward: () -> Unit = {},
     /** A round video message was started: its sender sees it watched. */
-    onContentOpened: () -> Unit = {}
+    onContentOpened: () -> Unit = {},
+    /** Settings → For geeks → More in a message's menu; see MessageExtra. */
+    onExtra: (MessageExtra) -> Unit = {}
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -870,6 +874,36 @@ internal fun MessageBubble(
                             }
                         }
                     )
+                }
+                // Settings → For geeks → More in a message's menu: what
+                // Nekogram's menu carries and a stock one does not.
+                if (geeks.messageExtras) {
+                    DropdownMenuItem(
+                        text = { Text("Repeat") },
+                        leadingIcon = { Icon(Symbols.Repeat, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onExtra(MessageExtra.Repeat)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Save to Saved Messages") },
+                        leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onExtra(MessageExtra.SaveToSavedMessages)
+                        }
+                    )
+                    if (message.downloadedFileId() != null) {
+                        DropdownMenuItem(
+                            text = { Text("Delete from this phone") },
+                            leadingIcon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
+                            onClick = {
+                                menuOpen = false
+                                onExtra(MessageExtra.DeleteFile)
+                            }
+                        )
+                    }
                 }
                 if (geeks.messageDetails) {
                     DropdownMenuItem(

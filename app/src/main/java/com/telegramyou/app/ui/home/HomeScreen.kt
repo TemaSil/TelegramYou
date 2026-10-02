@@ -594,9 +594,13 @@ fun HomeScreen(
                     // Under the header rather than in it: the header folds
                     // away as the chats scroll, and the music should not.
                     musicBar()
+                    // Settings → For geeks → Pull down for the archive, as
+                    // Nekogram does it: the pull that otherwise refreshes
+                    // opens the archive instead, while there is one.
+                    val pullOpensArchive = geeks.openArchiveOnPull && state.archiveSummary != null
                     PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
-                        onRefresh = onRefresh,
+                        isRefreshing = state.isRefreshing && !pullOpensArchive,
+                        onRefresh = if (pullOpensArchive) onOpenArchive else onRefresh,
                         modifier = Modifier.fillMaxSize()
                     ) {
                         val page: @Composable (List<ChatPreview>, Int?, Boolean, Boolean) -> Unit =

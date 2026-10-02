@@ -178,6 +178,8 @@ fun ChatScreen(
     onForwardOne: (ChatMessage) -> Unit = {},
     /** A voice or video message was played; its sender is told. */
     onContentOpened: (ChatMessage) -> Unit = {},
+    /** Settings → For geeks → More in a message's menu. */
+    onMessageExtra: (ChatMessage, com.telegramyou.app.settings.MessageExtra) -> Unit = { _, _ -> },
     onSelectionCleared: () -> Unit,
     onSelectionDeleteRequested: () -> Unit,
     onSelectionDeleteDismissed: () -> Unit,
@@ -256,6 +258,8 @@ fun ChatScreen(
     onMention: (String) -> Unit = {},
     onPinToggled: (ChatMessage) -> Unit = {}
 ) {
+    // Settings → For geeks, which changes how a recording leaves.
+    val geeks = com.telegramyou.app.settings.LocalGeekSettings.current
     val listState = rememberLazyListState()
     val uriHandler = LocalUriHandler.current
 
@@ -515,7 +519,7 @@ fun ChatScreen(
                 videoNoteStart.value?.join()
                 videoNotes.stop()?.let { note ->
                     onAttachmentPicked(AttachmentDraft.VideoNote(note.path, note.durationSeconds, note.length))
-                    onSend()
+                    if (!geeks.confirmRecordings) onSend()
                 }
             }
         }
@@ -1085,6 +1089,7 @@ fun ChatScreen(
                                 onMenuOpened = { onMessageMenuOpened(message) },
                                 onForward = { onForwardOne(message) },
                                 onContentOpened = { onContentOpened(message) },
+                                onExtra = { extra -> onMessageExtra(message, extra) },
                                 // A track is the music player's, which outlives
                                 // this screen; a voice note is the chat's own.
                                 voiceState = when {
@@ -1437,7 +1442,10 @@ fun ChatScreen(
                                         waveform = recording.waveform
                                     )
                                 )
-                                onSend()
+                                // For geeks → Ask before sending a recording:
+                                // left in the composer, to be sent or taken
+                                // back, rather than gone with the finger.
+                                if (!geeks.confirmRecordings) onSend()
                             }
                         },
                         onRecordCancel = {
