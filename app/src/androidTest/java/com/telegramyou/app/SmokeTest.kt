@@ -2021,8 +2021,14 @@ class SmokeTest {
 
         // Off again: the tests share one install, and the longer menu would
         // be in every other test's way.
-        device.pressBack()
-        waitFor(By.text("Material Design"), "the chat list after the chat")
+        // Back until the tabs are there: the first press may only close
+        // the keyboard, and "Material Design" is the chat's own title too,
+        // so it cannot tell the list from the chat.
+        repeat(3) {
+            if (device.hasObject(By.text("Settings"))) return@repeat
+            device.pressBack()
+            device.wait(Until.hasObject(By.text("Settings")), SHORT_WAIT)
+        }
         setMessageExtras()
     }
 
