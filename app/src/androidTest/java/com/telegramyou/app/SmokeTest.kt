@@ -1633,13 +1633,13 @@ class SmokeTest {
             screenshot("86-video-note-recording")
         }
         assertTrue("no recording circle while the camera was held", circleUp)
-        waitFor(By.descStartsWith("Video message, 0:0"), "the video message in the chat")
+        waitFor(VIDEO_NOTE_BUBBLE, "the video message in the chat")
         screenshot("86b-video-note-sent")
 
         // Slid up while held, it locks: the finger lifts and the recording
         // goes on, with Delete, Switch camera and Send on the circle. The
         // emulator has both cameras, so the switch is there to turn it.
-        val sent = device.findObjects(By.descStartsWith("Video message, 0:0")).size
+        val sent = device.findObjects(VIDEO_NOTE_BUBBLE).size
         holdAndSlide(at.x, at.y, dy = -VIDEO_NOTE_LOCK_SLIDE_PX)
         waitFor(By.desc("Send video message"), "the locked recording's Send")
         SystemClock.sleep(2_000)
@@ -1650,13 +1650,13 @@ class SmokeTest {
         tap(By.desc("Send video message"))
         val second = SystemClock.uptimeMillis() + STEP_TIMEOUT
         while (SystemClock.uptimeMillis() < second &&
-            device.findObjects(By.descStartsWith("Video message, 0:0")).size <= sent
+            device.findObjects(VIDEO_NOTE_BUBBLE).size <= sent
         ) {
             SystemClock.sleep(300)
         }
         assertTrue(
             "the locked recording was not sent",
-            device.findObjects(By.descStartsWith("Video message, 0:0")).size > sent
+            device.findObjects(VIDEO_NOTE_BUBBLE).size > sent
         )
         device.pressBack()
     }
@@ -3195,6 +3195,8 @@ class SmokeTest {
         const val NOTIFYING_CHAT = "Material Design"
         /** Long enough past Telegram's one-second shortest video message, with the camera's opening in it. */
         const val VIDEO_NOTE_HOLD_MS = 6_000L
+        /** A sent video message's bubble, by its length — any length: a locked one runs past ten seconds. */
+        val VIDEO_NOTE_BUBBLE: BySelector = By.desc(Pattern.compile("Video message, \\d+:\\d{2}"))
         /** Well past the composer's 72 dp to lock, on a Pixel 6's 2.625 density. */
         const val VIDEO_NOTE_LOCK_SLIDE_PX = 320
         /** Its id in the demo backend, where it is the first chat seeded. */
