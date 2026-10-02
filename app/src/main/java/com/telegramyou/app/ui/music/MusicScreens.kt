@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.music
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.MutableFloatState
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -335,9 +337,28 @@ fun PlayerSheet(
 ) {
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    // Closed by the sheet's own animation, then taken off screen.
-    val close: () -> Unit = {
-        scope.launch { sheet.hide() }.invokeOnCompletion { if (!sheet.isVisible) onDismiss() }
+    // How far the player has been pulled down, and the screen it is pulled
+    // across. Held here, beside the scrim it dims, rather than in the
+    // player.
+    val pulled = remember { mutableFloatStateOf(0f) }
+    var height by remember { mutableIntStateOf(0) }
+    val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    // Closed by sliding on down from wherever it is — with the finger's own
+    // speed when a pull let go of it — and only then taken off screen. It
+    // was handed to the sheet's hide(), which set off from a standstill
+    // over a distance the pull had already half covered: the player sped
+    // out past the edge while the dimming lingered, and the owner saw it
+    // end abruptly (1.7).
+    val slideAway: (Float) -> Unit = { velocity ->
+        scope.launch {
+            animate(
+                initialValue = pulled.floatValue,
+                targetValue = height.toFloat().coerceAtLeast(pulled.floatValue),
+                initialVelocity = velocity,
+                animationSpec = spatial
+            ) { value, _ -> pulled.floatValue = value }
+            onDismiss()
+        }
     }
     TrackTheme(state.track, state.coverSeed) {
         ModalBottomSheet(
@@ -350,19 +371,39 @@ fun PlayerSheet(
             // own content.
             sheetGesturesEnabled = false,
             containerColor = Color.Transparent,
+            // The dimming too, drawn below, so it fades with the pull.
+            scrimColor = Color.Transparent,
             dragHandle = null,
             contentWindowInsets = { WindowInsets(0, 0, 0, 0) }
         ) {
-            PlayerScreen(
-                state,
-                actions,
-                onBack = close,
-                onOpenChat = { chatId ->
-                    close()
-                    onOpenChat(chatId)
-                },
-                coverMoves = coverMoves
-            )
+            Box(Modifier.fillMaxSize().onSizeChanged { height = it.height }) {
+                val scrim = BottomSheetDefaults.ScrimColor
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            // Held still on screen while the sheet slides in
+                            // or out under it, and lighter the further the
+                            // player is down.
+                            val offset = runCatching { sheet.requireOffset() }.getOrDefault(0f)
+                            translationY = -offset
+                            alpha = (1f - (offset + pulled.floatValue) / size.height.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                        }
+                        .background(scrim)
+                )
+                PlayerScreen(
+                    state,
+                    actions,
+                    onBack = { slideAway(0f) },
+                    onOpenChat = { chatId ->
+                        slideAway(0f)
+                        onOpenChat(chatId)
+                    },
+                    coverMoves = coverMoves,
+                    pullState = pulled,
+                    onPulledAway = slideAway
+                )
+            }
         }
     }
 }
@@ -381,7 +422,11 @@ fun PlayerScreen(
     onBack: () -> Unit,
     onOpenChat: (Long) -> Unit = actions.onOpenChat,
     /** The cover's edges moving on the beat; Appearance → Motion. */
-    coverMoves: Boolean = true
+    coverMoves: Boolean = true,
+    /** How far it is pulled down; PlayerSheet holds it, for the scrim. */
+    pullState: MutableFloatState = remember { mutableFloatStateOf(0f) },
+    /** Let go far enough down, or flicked: slides away at this speed. */
+    onPulledAway: (Float) -> Unit = { onBack() }
 ) {
     val track = state.track
     var queueOpen by rememberSaveable { mutableStateOf(false) }
@@ -414,7 +459,7 @@ fun PlayerScreen(
     // sheet's drag, fed through nested scroll from content that scrolls
     // nothing, did not move for a pull on the emulator, twice; this one is
     // the pull 1.6.6 shipped and tested.
-    var pulled by remember { mutableFloatStateOf(0f) }
+    var pulled by pullState
     val closeAfter = with(LocalDensity.current) { CLOSE_AFTER_DP.dp.toPx() }
     val pull = rememberDraggableState { delta -> pulled = (pulled + delta).coerceAtLeast(0f) }
     TrackTheme(track, state.coverSeed) {
@@ -430,7 +475,7 @@ fun PlayerScreen(
                     orientation = Orientation.Vertical,
                     onDragStopped = { velocity ->
                         if (pulled > closeAfter || velocity > CLOSE_FLING) {
-                            onBack()
+                            onPulledAway(velocity)
                         } else {
                             animate(pulled, 0f) { value, _ -> pulled = value }
                         }
@@ -449,7 +494,11 @@ fun PlayerScreen(
             ) {
                 BottomSheetDefaults.DragHandle()
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    IconButton(onClick = onBack) { Icon(Symbols.KeyboardArrowDown, contentDescription = "Close player") }
+                    // No arrow down: the handle and a pull close it, and
+                    // so does Back (the owner's ask, 1.7). The space it
+                    // took is kept, so the title stays centred against the
+                    // menu on the other side.
+                    Spacer(Modifier.size(48.dp))
                     Text(
                         state.queue.sourceTitle.ifBlank { "Music" },
                         style = MaterialTheme.typography.titleSmall,

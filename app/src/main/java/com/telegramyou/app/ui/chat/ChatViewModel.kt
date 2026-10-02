@@ -165,6 +165,8 @@ data class ChatUiState(
     val forwardSheetOpen: Boolean = false,
     /** Somewhere to forward to; every chat but this one. */
     val forwardTargets: List<ChatPreview> = emptyList(),
+    /** The account's contacts, for the forward sheet's search (1.7). */
+    val forwardContacts: List<TelegramUser> = emptyList(),
     /**
      * The chat's invite link, for the info screen. Null for a private chat
      * and for a group this account may not invite to — see `chatInviteLink`.
@@ -1547,8 +1549,15 @@ class ChatViewModel(
     fun onSelectionCleared() =
         _uiState.update { it.copy(selection = it.selection.cleared()) }
 
-    fun onForwardRequested() =
+    fun onForwardRequested() {
         _uiState.update { it.copy(forwardSheetOpen = true) }
+        // The contacts too, so the sheet's search reaches people there is no
+        // chat with yet — Telegram's forward search does.
+        viewModelScope.launch {
+            val contacts = runCatching { repository.contacts() }.getOrDefault(emptyList())
+            _uiState.update { it.copy(forwardContacts = contacts) }
+        }
+    }
 
     fun onForwardDismissed() =
         _uiState.update { it.copy(forwardSheetOpen = false) }
@@ -1559,16 +1568,35 @@ class ChatViewModel(
      * The conversation is not reloaded: the messages went somewhere else, and
      * nothing about this one changed.
      */
-    fun onForwardTo(target: ChatPreview, withoutQuote: Boolean = false) {
+    fun onForwardTo(target: ChatPreview, withoutQuote: Boolean = false, onForwarded: (Long) -> Unit = {}) =
+        forwardTo(withoutQuote, onForwarded) { target.id }
+
+    /**
+     * To a contact found by the sheet's search: their private chat, made if
+     * there is none yet, and the messages into it.
+     */
+    fun onForwardToContact(user: TelegramUser, withoutQuote: Boolean = false, onForwarded: (Long) -> Unit = {}) =
+        forwardTo(withoutQuote, onForwarded) { repository.openPrivateChat(user.id) }
+
+    /**
+     * Then [onForwarded] with where they went, which opens that chat — as
+     * the official client does, so what was forwarded is seen arriving
+     * (1.7). Only on success: a failed forward stays here with its error.
+     */
+    private fun forwardTo(withoutQuote: Boolean, onForwarded: (Long) -> Unit, target: suspend () -> Long) {
         val ids = _uiState.value.selection.ids.toList()
         if (ids.isEmpty()) return
         _uiState.update {
             it.copy(forwardSheetOpen = false, selection = it.selection.cleared())
         }
         viewModelScope.launch {
+            var sentTo: Long? = null
             attempt("Could not forward") {
-                repository.forwardMessages(chatId, ids, target.id, withoutQuote)
+                val to = target()
+                repository.forwardMessages(chatId, ids, to, withoutQuote)
+                sentTo = to
             }
+            sentTo?.let(onForwarded)
         }
     }
 

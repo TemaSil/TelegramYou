@@ -1201,8 +1201,17 @@ fun TelegramYouNavHost(
                 onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange,
                 onForwardRequested = chatViewModel::onForwardRequested,
                 onForwardDismissed = chatViewModel::onForwardDismissed,
+                // Then off to where they went, as the official client goes
+                // (1.7): the forward is seen arriving, and Back returns here.
                 onForwardTo = { target ->
-                    chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote)
+                    chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
+                        navController.navigateTo(chatRoute(to))
+                    }
+                },
+                onForwardToContact = { person ->
+                    chatViewModel.onForwardToContact(person, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
+                        navController.navigateTo(chatRoute(to))
+                    }
                 },
                 // A track goes to the music player, with this chat's music
                 // as its queue; a voice note plays in the chat.

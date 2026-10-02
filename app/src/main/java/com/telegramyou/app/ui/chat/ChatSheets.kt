@@ -1,5 +1,10 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.fadeOut
@@ -88,27 +93,68 @@ internal fun ForwardSheet(
     targets: List<ChatPreview>,
     count: Int,
     onDismiss: () -> Unit,
-    onPick: (ChatPreview) -> Unit
+    onPick: (ChatPreview) -> Unit,
+    /** The account's contacts, for people the search finds with no chat yet. */
+    contacts: List<TelegramUser> = emptyList(),
+    onPickContact: (TelegramUser) -> Unit = {}
 ) {
+    // Expanded straight away: the search field takes the keyboard, and a
+    // half-open sheet under it would leave the results off the screen.
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState()
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
+        var query by rememberSaveable { mutableStateOf("") }
+        val wanted = query.trim()
+        val chats = remember(targets, wanted) {
+            if (wanted.isEmpty()) targets else targets.filter { it.title.contains(wanted, ignoreCase = true) }
+        }
+        // Contacts only while searching, and only those without a chat in
+        // the list already: the list is where people are, the search reaches
+        // the rest — as Telegram's own forward search does (1.7).
+        val people = remember(contacts, targets, wanted) {
+            if (wanted.isEmpty()) {
+                emptyList()
+            } else {
+                val listed = targets.map { it.title }.toSet()
+                contacts.filter { contact ->
+                    contact.displayName !in listed && (
+                        contact.displayName.contains(wanted, ignoreCase = true) ||
+                            contact.username?.contains(wanted, ignoreCase = true) == true
+                        )
+                }
+            }
+        }
         Text(
             if (count == 1) "Forward to…" else "Forward $count messages to…",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
-        if (targets.isEmpty()) {
+        // The same pill as search's own field elsewhere in the app.
+        SearchBarDefaults.InputField(
+            query = query,
+            onQueryChange = { query = it },
+            onSearch = {},
+            expanded = false,
+            onExpandedChange = {},
+            placeholder = { Text("Search chats and contacts") },
+            leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(SearchBarDefaults.inputFieldShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        )
+        if (chats.isEmpty() && people.isEmpty()) {
             Text(
-                "No other chats to forward to.",
+                if (wanted.isEmpty()) "No other chats to forward to." else "Nothing called that",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
             )
         } else {
             LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(targets, key = { it.id }) { target ->
+                items(chats, key = { "c${it.id}" }) { target ->
                     ListItem(
                         headlineContent = { Text(target.title, maxLines = 1) },
                         leadingContent = {
@@ -127,6 +173,33 @@ internal fun ForwardSheet(
                         ),
                         modifier = Modifier.clickable { onPick(target) }
                     )
+                }
+                if (people.isNotEmpty()) {
+                    item(key = "contacts-header") {
+                        Text(
+                            "Contacts",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
+                        )
+                    }
+                    items(people, key = { "u${it.id}" }) { person ->
+                        ListItem(
+                            headlineContent = { Text(person.displayName, maxLines = 1) },
+                            supportingContent = person.username?.let { { Text("@$it", maxLines = 1) } },
+                            leadingContent = {
+                                AvatarBubble(
+                                    title = person.displayName,
+                                    seed = person.avatarColor,
+                                    size = 40.dp,
+                                    shape = personShape(person.avatarColor),
+                                    photoPath = person.photoPath
+                                )
+                            },
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                            modifier = Modifier.clickable { onPickContact(person) }
+                        )
+                    }
                 }
             }
         }

@@ -109,10 +109,12 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.6.11 · 2 October 2026
+## Latest: 1.7 · 2 October 2026
 
-The back gesture slides a page away again, as the back arrow does — the
-navigation update in 1.6.10 had given it a shrinking animation of its own.
+Round video messages: hold the camera button to record one in a circle,
+slide up to lock it and switch camera, lift to send. Forwarding searches
+contacts and opens the chat it went to, the player shares a track and
+closes smoothly, and the back gesture slides a page away again.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

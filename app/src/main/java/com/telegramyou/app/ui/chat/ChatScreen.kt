@@ -188,6 +188,8 @@ fun ChatScreen(
     onForwardRequested: () -> Unit,
     onForwardDismissed: () -> Unit,
     onForwardTo: (ChatPreview) -> Unit,
+    /** A contact found by the forward sheet's search, with no chat yet. */
+    onForwardToContact: (TelegramUser) -> Unit = {},
     onVoiceToggled: (ChatMessage) -> Unit,
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
@@ -1296,7 +1298,9 @@ fun ChatScreen(
                             targets = state.forwardTargets,
                             count = state.selection.count,
                             onDismiss = onForwardDismissed,
-                            onPick = onForwardTo
+                            onPick = onForwardTo,
+                            contacts = state.forwardContacts,
+                            onPickContact = onForwardToContact
                         )
                     }
 

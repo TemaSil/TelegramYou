@@ -9,9 +9,15 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
-## 1.6.11
+## 1.7
 
-- **Fixed: the back gesture moved differently from the back arrow.** Since the navigation library's update in 1.6.10, a swipe back shrank the page instead of sliding it away, as the arrow still did. The gesture follows the same transitions again — and a chat or a story still shrinks back into its row.
+- **Round video messages, recorded.** Hold the camera button in the composer and the front camera comes up in a circle over the chat; lift to send, slide aside to throw it away. A ring fills towards Telegram's one-minute limit, where it sends by itself. A tap still takes a photo.
+- **Locked recording.** Slide up while holding and the recording goes on with the finger off the screen, with Delete, Switch camera and Send under the circle. The camera turns round without ending the recording.
+- **Forwarding opens the chat it went to**, as the official client does, so what was forwarded is seen arriving. And the forward sheet has a search, over the chats and over contacts there is no chat with yet.
+- **The player closes smoothly** — a pull lets go into a slide that carries the finger's speed to the bottom, with the dimming fading alongside, instead of the sheet setting off again from a standstill. And its arrow down is gone: the handle, a pull and Back close it.
+- **Share from the player** — the track's file through Android's share sheet when it is on the phone, otherwise its performer and title. Everyone's player has it, not only the library's.
+- **Fixed: the back gesture moved differently from the back arrow.** Since the navigation library's update in 1.6.10, a swipe back shrank the page instead of sliding it away. The gesture follows the same transitions again — and a chat or a story still shrinks back into its row.
+- A photo from the composer now asks for the camera first: the app records video messages itself, and Android then wants the permission for the camera app as well.
 
 ## 1.6.10
 

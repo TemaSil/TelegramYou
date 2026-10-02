@@ -461,7 +461,20 @@ the switches that had none. What's new in App update now says when the version c
 core 1.19, lifecycle 2.11, navigation 2.10, datastore 1.2, coroutines 1.11,
 AGP 9.4.1, Gradle 9.8 and the CI actions on Node 24.
 
-**1.6.11 — done 2 October: the back gesture.** The dependency bump took
+**1.7 — done 2 October: round video messages.** The camera button,
+held past a long press, records one: CameraX's Preview drawn by
+`CameraXViewfinder` clipped to a circle, and a `VideoCapture` recording
+SD under a square `ViewPort`, so the file is the square Telegram wants —
+`inputMessageVideoNote` with the side read back from it. Lift sends,
+aside throws away, up locks; locked, the circle carries Delete, Switch
+camera and Send, and the recording is persistent so the camera turns
+without ending it. The app now declares CAMERA, which makes Android refuse
+`ACTION_IMAGE_CAPTURE` without it, so the photo button asks too. The UI
+test's emulator has an emulated front camera. The player's menu gained
+Share and lost its arrow down, and closes by carrying the pull's own
+speed to the edge instead of handing over to the sheet's `hide()`, with a
+scrim of its own that fades with the pull. Forwarding opens the chat it
+went to and searches contacts. Also in it, the back gesture. The dependency bump took
 navigation-compose from 2.8 to 2.10, and from 2.9 the predictive back
 gesture no longer runs a NavHost's pop transitions: it has its own
 (`predictivePopEnterTransition`/`predictivePopExitTransition`, defaulting
@@ -470,24 +483,22 @@ arrow. The NavHost now passes its pop transitions for the gesture too, and
 repeats the per-destination ones (Home under a chat, the container routes)
 since a string-route `composable` cannot set them itself.
 
-**Next, as of 30 September** — none of it started, in the order it seems
+**Next, as of 2 October** — none of it started, in the order it seems
 worth doing:
-1. **Round video messages, recorded** (CameraX, pinned since 1.6.2): the
-   one everyday Telegram thing this client still only plays.
-2. **Android Auto and a watch** — the player as a `MediaLibraryService`
+1. **Android Auto and a watch** — the player as a `MediaLibraryService`
    with a browse tree (the library's albums, artists and playlists), so a
    car and a watch can pick music, not only control it. Left out of 1.6.4
    because nothing here can test it; an emulator image with Auto's desktop
    head unit is the way in.
-3. **The player and the library, finished** — Share and Reply to the
-   sender from the player, which everyone has; for the library, album
+2. **The player and the library, finished** — Reply to the sender from
+   the player, which everyone has (Share came in 1.7); for the library, album
    names and covers from the files' own tags once downloaded
    (`MediaMetadataRetriever`) and "most forwarded and reacted". The
    library itself stays under For geeks — the owner's word, 1 October:
    music is not the main part of this client, and it comes out only if
    people ask for it (so far one has).
-4. **Global notification settings** — sounds and previews per kind of chat.
-5. **Translation**, then **inline bots and Mini Apps**; languages last, on
+3. **Global notification settings** — sounds and previews per kind of chat.
+4. **Translation**, then **inline bots and Mini Apps**; languages last, on
    purpose.
 
 **1.6.4 — the owner's idea: a music library, as an experiment.** Off by

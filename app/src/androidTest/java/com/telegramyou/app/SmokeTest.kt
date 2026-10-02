@@ -1586,14 +1586,10 @@ class SmokeTest {
             // Messages, further down, was not, and its name was the title
             // behind the sheet.
             tap(By.text("Material Design"))
-            // Off to the chat it went to, where the copy is the newest line.
-            if (device.executeShellCommand("dumpsys input_method").contains("mInputShown=true")) {
-                device.pressBack()
-            }
-            device.pressBack()
-            waitFor(By.text("Material Design"), "the chat list after forwarding")
-            tap(By.text("Material Design"))
+            // The app goes on to the chat it went to (1.7), where the copy is
+            // the newest line.
             waitFor(line, "the forwarded copy in Material Design")
+            waitFor(By.textContains("ButtonGroup"), "Material Design, opened by the forward")
             screenshot("33d-geeks-forward-copy")
             assertFalse(
                 "a copy was marked as forwarded",
@@ -2161,7 +2157,7 @@ class SmokeTest {
         // Whatever is playing by now: a twelve-second track can have ended
         // and handed over to the next while the shade was open.
         tap(By.descStartsWith("Now playing"))
-        waitFor(By.desc("Close player"), "the full player")
+        waitFor(By.text("Sleep timer"), "the full player")
         waitFor(By.desc("Pause"), "the track playing")
         // Each track round and round from here, before one is picked from
         // the queue: the demo's are twelve seconds long, and the one picked
@@ -2615,7 +2611,10 @@ class SmokeTest {
         scrollDownTo(By.text("Less motion"))
         tap(By.text("Less motion"))
         // The player's cover, which Less motion holds still: its switch says so.
-        scrollDownTo(By.text("Cover moves with the music"))
+        // To the summary itself, not the switch's title: the title can be
+        // the last line on screen with its summary still below the edge,
+        // and out of a lazy list's tree.
+        scrollDownTo(By.text("Held still by Less motion"))
         waitFor(By.text("Held still by Less motion"), "the cover switch answering Less motion")
 
         // Back lands on the Settings tab, and back again would leave the
