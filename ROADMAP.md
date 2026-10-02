@@ -49,7 +49,108 @@ are misleading — `ChatActivity` alone is tens of thousands of lines. Most of
 the work in a client sits in very few places, which is why the order below
 starts where it does.
 
-## Where it stands, 26 September 2026
+## Where it stands, 2 October 2026 — version 1.8
+
+Read this part first. What follows it is the log of how each release came
+to be, with the reasons; the release notes themselves are in
+`CHANGELOG.md`.
+
+**What a person coming from the official app now finds.** Everything on
+the "still missing, and basic" list of 26 September is in: formatted text,
+forwards, albums, pins, drafts, profiles with blocking, clearing and
+deleting chats, contacts, folders to edit, posting a story, app lock. On
+top of that, from the releases since:
+
+- **Messages:** voice and **round video messages, both recorded** (1.7 —
+  held, locked, the camera turned), polls, scheduled messages, location
+  and contacts, bot buttons and keyboards, reactions including Premium
+  custom emoji, an emoji, GIF and sticker panel in the keyboard's place,
+  selection with forward (searching contacts, opening where it went) and
+  delete, and **translation** of a message into the phone's language (1.8).
+- **Chats and groups:** folders as swipeable pages, archive, forum topics,
+  admins and permissions, invite links primary and additional, join
+  requests, member search, creating groups and channels.
+- **Media:** photos and an album viewer that open out of their bubble
+  and close back into it (1.8), video with speed and picture-in-picture, shared media by kind, a download manager, files
+  opened in other apps.
+- **Music:** a player in the shade and on the lock screen, a queue with
+  Up next, offline downloads, sleep timer, a mini player floating over the
+  page, sharing a track; and, under For geeks, a library of every chat's
+  music.
+- **Look:** Material 3 Expressive throughout, Appearance with accents,
+  pure black, wallpapers, message corners and sizes, Less motion.
+- **For geeks:** sixteen switches — 1.8 added five after Nekogram's: more
+  in a message's menu (repeat, save to Saved Messages, delete the file
+  from the phone), pull down for the archive, blocked people hidden in
+  groups, recordings checked before sending, silence for strangers — and
+  Diagnostics, the last crash and the player's log.
+
+**Still missing, by what a person would notice:**
+
+1. **A chat translated as it arrives** — a message is translated from
+   its menu since 1.8; a whole chat, automatically, is not.
+2. **Inline bots and Mini Apps** — the buttons are drawn and disabled;
+   an inline-results sheet and a web view are what they need.
+3. **Global notification settings** — sound and previews for private
+   chats, groups and channels as a whole; per chat is done.
+4. **A video message seen before it goes** — locked, Telegram plays it
+   back with Send and Delete; here a locked one is sent or deleted as it
+   is.
+5. **Language** — Russian beside English, last on purpose, once the
+   screens stop moving.
+6. **Calls** — not planned: they need `tgcalls`, a second native stack
+   TDLib does not carry. Payments, Premium and Business stay out too.
+
+**Open, from the owner's use:**
+
+- **Music that skips or stops by itself**, sometimes — not reproduced.
+  1.7 logs every play, pause and skip with the system's reason (For geeks
+  → Diagnostics → Player log) and no longer stops in silence when a track
+  fails to load or play; the next step waits for a log of it happening.
+
+**Next, as of 2 October** — in the order it seems worth doing:
+
+1. **Whatever the player log shows**, as soon as there is one.
+2. **Global notification settings** — small, and in Settings already.
+3. **A chat translated as it arrives** — 1.8's translation, per chat.
+4. **The player and the library, finished** — Reply to the sender from
+   the player, which everyone has; for the library, album names and covers
+   from the files' own tags (`MediaMetadataRetriever`) and "most forwarded
+   and reacted". The library itself stays under For geeks — the owner's
+   word, 1 October: music is not the main part of this client, and it
+   comes out only if people ask for it (so far one has).
+5. **Android Auto and a watch** — the player as a `MediaLibraryService`
+   with a browse tree, so a car and a watch can pick music. Waits on a way
+   to test it: an emulator image with Auto's desktop head unit.
+6. **Inline bots and Mini Apps**, then **language**, last on purpose.
+
+## The log, 26 September to 2 October 2026
+
+What was asked for and how it went, release by release, kept for the
+reasons. The summary is above; the notes are in `CHANGELOG.md`.
+
+**1.8 — 2 October: translation, the Nekogram pack, media out of its
+bubble.**
+- **Translate** in a message's menu: `translateMessageText` into the
+  phone's language, shown in the stock dialog. Telegram may refuse it to
+  an account without Premium; the refusal is said, not hidden.
+- **Five For geeks switches** after Nekogram's settings of the same
+  intent (its `NekoConfig` read as a list, no code taken): Repeat and Save
+  to Saved Messages in the menu (`forwardMessages`, a copy into the same
+  chat or a forward into one's own), Delete from this phone (`deleteFile`),
+  pull down for the archive, blocked people's messages left out of groups,
+  recordings that wait in the composer, and no sound for private messages
+  from people not in contacts.
+- **Photos and videos open out of their bubble** at the owner's asking:
+  bubbles report where their media is on the screen (`MediaOrigins`), and
+  the gallery scales its page until the fitted picture covers the bubble
+  the way the bubble's crop does, clipped to it, then springs to full
+  screen — and back into whichever page is in view. The geometry is in
+  `:core` (`OpenFromBubble`). The dialog's own window fade is off, which
+  also ends a UI flake on 1.7's run where an emulator stall caught it half
+  gone.
+
+### Where it stood, 26 September 2026
 
 A review against what a complete client contains — the inventory above,
 with Nekogram read as a list of behaviour. Checked against the code rather
@@ -486,24 +587,6 @@ to a scale to 70%). The owner saw a swipe back from Proxy move unlike the
 arrow. The NavHost now passes its pop transitions for the gesture too, and
 repeats the per-destination ones (Home under a chat, the container routes)
 since a string-route `composable` cannot set them itself.
-
-**Next, as of 2 October** — none of it started, in the order it seems
-worth doing:
-1. **Android Auto and a watch** — the player as a `MediaLibraryService`
-   with a browse tree (the library's albums, artists and playlists), so a
-   car and a watch can pick music, not only control it. Left out of 1.6.4
-   because nothing here can test it; an emulator image with Auto's desktop
-   head unit is the way in.
-2. **The player and the library, finished** — Reply to the sender from
-   the player, which everyone has (Share came in 1.7); for the library, album
-   names and covers from the files' own tags once downloaded
-   (`MediaMetadataRetriever`) and "most forwarded and reacted". The
-   library itself stays under For geeks — the owner's word, 1 October:
-   music is not the main part of this client, and it comes out only if
-   people ask for it (so far one has).
-3. **Global notification settings** — sounds and previews per kind of chat.
-4. **Translation**, then **inline bots and Mini Apps**; languages last, on
-   purpose.
 
 **1.6.4 — the owner's idea: a music library, as an experiment.** Off by
 default, under For geeks. Every track in every chat
@@ -1702,15 +1785,15 @@ them. Ticks are only worth something if somebody moves them.
       as it moves rather than sending percentages. The bar is drawn over the
       poster in a bubble, in the player while a video is being fetched, and
       in the grid tile in the play button's place
-- [~] Video playback — Media3's engine with Material's controls over a
+- [x] Video playback — Media3's engine with Material's controls over a
       `TextureView`: a filled play and pause, a `Slider` for position and the
       time beside it. Media3's own player view is a View with its own look,
       so only the engine is taken. The arithmetic — progress, seek target and
       the label — is in `:core` with tests, because a duration the player has
       not worked out yet is -1 rather than 0 and dividing by it gives a bar
-      that never reaches the end. Audio files are still not playable; voice
-      notes have their own player
-- [~] Stickers — shown in the conversation without a bubble, WEBP through
+      that never reaches the end. Speed and picture-in-picture since 1.6;
+      audio files play in the music player since 1.6.2
+- [x] Stickers — shown in the conversation without a bubble, WEBP through
       Coil and animated TGS through Lottie; sent as TDLib's `inputSticker`.
       Since 28 September the smiley opens a panel in the keyboard's place
       with Emoji (Jetpack's `EmojiPickerView`), GIFs (saved, and searched
@@ -1730,7 +1813,9 @@ them. Ticks are only worth something if somebody moves them.
       220dp circle with no bubble, fetched on sight, played in place with
       sound on a tap and paused on another, back to the start when it ends.
       The shared inline player crops the frame to its shape rather than
-      stretching it, and stops while the app is in the background
+      stretching it, and stops while the app is in the background.
+      **Recorded since 1.7** — the camera button held, CameraX in a circle,
+      locked by a slide up, the camera turned without stopping
 
 ## 5. Notifications
 
@@ -1821,7 +1906,8 @@ a live-updating chat as much as it was groundwork for notifications.
       (General only renames). Each topic keeps its own draft
       (`saveTopicDraft`), shown in the list as the chat list shows one.
       Topic icons are not offered yet
-- [~] Invite links, the primary one — the primary link is shown and copied where the server
+- [x] Invite links — additional links made, edited and revoked since
+      1.6.1, with join requests. The primary one: shown and copied where the server
       offers one. It is read from `basicGroupFullInfo`/`supergroupFullInfo`
       and never created: a screen that minted a link because it wanted
       something to show would be handing out an invitation nobody asked for.
@@ -1864,8 +1950,8 @@ never opens that screen. The settings are in `:core` with tests
 - [x] Prefer IPv6 — TDLib's `prefer_ipv6`. Showing RPC errors is not in:
       failures already reach a snackbar with the server's words
 
-Blocked on a base we do not have: translation and auto-translate, voice
-transcription, markdown parser options. (A tablet layout and QR login were on
+Not built yet: translation and auto-translate — the top of "Still
+missing" — then voice transcription and markdown parser options. (A tablet layout and QR login were on
 this list; both are done — see Home and Login.)
 
 ## Infrastructure
