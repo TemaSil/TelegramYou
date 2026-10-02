@@ -1,5 +1,7 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.ui.chat.LocalMediaOrigins
+import com.telegramyou.app.ui.chat.MediaOrigins
 import com.telegramyou.app.ui.lock.AppLockSettingsScreen
 import com.telegramyou.app.settings.AppLockStore
 import com.telegramyou.app.ui.chat.LocalCustomEmojiLoader
@@ -1160,130 +1162,134 @@ fun TelegramYouNavHost(
                     .containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true, bounds = ChatContainerSpring)
             ) {
             ChatColors(chat = state.detail?.chat, enabled = chatAppearance.chatColorsFromAvatar) {
-            ChatScreen(
-                state = state,
-                onBack = { navController.popBackStack() },
-                onOpenMedia = {
-                    state.detail?.chat?.id?.let {
-                        navController.navigateTo(Route.ChatMedia(it))
+            // Where the chat's photos and videos sit, for the gallery to
+            // open out of and close back into; see MediaOrigins.
+            CompositionLocalProvider(LocalMediaOrigins provides remember { MediaOrigins() }) {
+                ChatScreen(
+                    state = state,
+                    onBack = { navController.popBackStack() },
+                    onOpenMedia = {
+                        state.detail?.chat?.id?.let {
+                            navController.navigateTo(Route.ChatMedia(it))
+                        }
+                    },
+                    onOpenInfo = {
+                        state.detail?.chat?.id?.let {
+                            navController.navigateTo(Route.ChatInfo(it))
+                        }
+                    },
+                    onDraftChange = chatViewModel::onDraftChange,
+                    onAttachmentPicked = chatViewModel::onAttachmentPicked,
+                    onAttachmentCleared = chatViewModel::onAttachmentCleared,
+                    onReplyTo = chatViewModel::onReplyTo,
+                    onEdit = chatViewModel::onEdit,
+                    onComposerBannerCancelled = chatViewModel::onComposerBannerCancelled,
+                    onSend = chatViewModel::onSend,
+                    onLoadOlder = chatViewModel::onLoadOlder,
+                    onJumpToMessage = chatViewModel::onJumpToMessage,
+                    onJumpToLatest = chatViewModel::onJumpToLatest,
+                    onLoadNewer = chatViewModel::onLoadNewer,
+                    onScrollTargetReached = chatViewModel::onScrollTargetReached,
+                    onDeleteRequested = chatViewModel::onDeleteRequested,
+                    onDeleteDismissed = chatViewModel::onDeleteDismissed,
+                    onDeleteConfirmed = chatViewModel::onDeleteConfirmed,
+                    onReactionsRequested = chatViewModel::onReactionsRequested,
+                    onReactionPickerDismissed = chatViewModel::onReactionPickerDismissed,
+                    onReactionToggled = chatViewModel::onReactionToggled,
+                    onSelectionToggled = chatViewModel::onSelectionToggled,
+                    onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
+                    onForwardOne = chatViewModel::onForwardOne,
+                    onMessageExtra = chatViewModel::onMessageExtra,
+                    onTranslate = chatViewModel::onTranslate,
+                    onTranslationDismissed = chatViewModel::onTranslationDismissed,
+                    onContentOpened = { chatViewModel.onContentOpened(it.id) },
+                    onSelectionCleared = chatViewModel::onSelectionCleared,
+                    onSelectionDeleteRequested = chatViewModel::onSelectionDeleteRequested,
+                    onSelectionDeleteDismissed = chatViewModel::onSelectionDeleteDismissed,
+                    onSelectionDeleted = chatViewModel::onSelectionDeleted,
+                    onSearchOpenChange = chatViewModel::onSearchOpenChange,
+                    onSearchQueryChange = chatViewModel::onSearchQueryChange,
+                    onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange,
+                    onForwardRequested = chatViewModel::onForwardRequested,
+                    onForwardDismissed = chatViewModel::onForwardDismissed,
+                    // Then off to where they went, as the official client goes
+                    // (1.7): the forward is seen arriving, and Back returns here.
+                    onForwardTo = { target ->
+                        chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
+                            navController.navigateTo(chatRoute(to))
+                        }
+                    },
+                    onForwardToContact = { person ->
+                        chatViewModel.onForwardToContact(person, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
+                            navController.navigateTo(chatRoute(to))
+                        }
+                    },
+                    // A track goes to the music player, with this chat's music
+                    // as its queue; a voice note plays in the chat.
+                    onVoiceToggled = { message ->
+                        if (message.audio != null) {
+                            playTrack(message, state.detail?.chat?.title.orEmpty(), emptyList(), false)
+                        } else {
+                            chatViewModel.onVoiceToggled(message)
+                        }
+                    },
+                    music = nowPlaying,
+                    onMusicSeek = { music?.seekTo(it) },
+                    musicBar = musicBar,
+                    playerBar = playerBar,
+                    onVoiceSeek = chatViewModel::onVoiceSeek,
+                    onDocumentOpened = chatViewModel::onDocumentOpened,
+                    onFileOpened = chatViewModel::onFileOpened,
+                    onFileRefused = chatViewModel::onFileRefused,
+                    onPhotoVisible = chatViewModel::onPhotoVisible,
+                    onPhotoOpened = chatViewModel::onPhotoOpened,
+                    onPhotoClosed = chatViewModel::onPhotoClosed,
+                    onVideoOpened = chatViewModel::onVideoOpened,
+                    onVideoClosed = chatViewModel::onVideoClosed,
+                    onGalleryPage = chatViewModel::onGalleryPage,
+                    onSaveGif = chatViewModel::onSaveGif,
+                    onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
+                    onContactOpen = { contact -> navController.navigateTo(Route.Person(contact.userId)) },
+                    onContactAdd = chatViewModel::onContactAdd,
+                    onContactPickerOpen = chatViewModel::onContactPickerOpen,
+                    onContactPickerDismiss = chatViewModel::onContactPickerDismiss,
+                    onContactPicked = chatViewModel::onContactPicked,
+                    onErrorShown = chatViewModel::onErrorShown,
+                    onExpressionsOpen = chatViewModel::onExpressionsOpen,
+                    onExpressionsClose = chatViewModel::onExpressionsClose,
+                    onExpressionTab = chatViewModel::onExpressionTab,
+                    onStickerSetSelected = chatViewModel::onStickerSetSelected,
+                    onStickerPicked = chatViewModel::onStickerPicked,
+                    onStickerImage = chatViewModel::onStickerImage,
+                    onSendLocation = chatViewModel::onSendLocation,
+                    onCustomEmojiSetSelected = chatViewModel::onCustomEmojiSetSelected,
+                    onCustomEmojiPicked = chatViewModel::onCustomEmojiPicked,
+                    onGifQueryChange = chatViewModel::onGifQueryChange,
+                    onGifVisible = chatViewModel::onGifVisible,
+                    onGifPicked = chatViewModel::onGifPicked,
+                    onVote = chatViewModel::onVote,
+                    onBotButton = chatViewModel::onBotButton,
+                    onReplyKey = chatViewModel::onReplyKey,
+                    onBotAnswerShown = chatViewModel::onBotAnswerShown,
+                    onPollOpen = chatViewModel::onPollOpen,
+                    onPollChange = chatViewModel::onPollChange,
+                    onPollSend = chatViewModel::onPollSend,
+                    onPollDismiss = chatViewModel::onPollDismiss,
+                    onSchedule = { at -> chatViewModel.onSchedule(at) },
+                    onScheduledOpen = chatViewModel::onScheduledOpen,
+                    onScheduledSendNow = chatViewModel::onScheduledSendNow,
+                    onScheduledDelete = chatViewModel::onScheduledDelete,
+                    onScheduledDismiss = chatViewModel::onScheduledDismiss,
+                    onNoticeShown = chatViewModel::onNoticeShown,
+                    onPinToggled = chatViewModel::onPinToggled,
+                    onMention = { username ->
+                        openScope.launch {
+                            val found = repository.chatByUsername(username)
+                            if (found != null) openChat(found)
+                        }
                     }
-                },
-                onOpenInfo = {
-                    state.detail?.chat?.id?.let {
-                        navController.navigateTo(Route.ChatInfo(it))
-                    }
-                },
-                onDraftChange = chatViewModel::onDraftChange,
-                onAttachmentPicked = chatViewModel::onAttachmentPicked,
-                onAttachmentCleared = chatViewModel::onAttachmentCleared,
-                onReplyTo = chatViewModel::onReplyTo,
-                onEdit = chatViewModel::onEdit,
-                onComposerBannerCancelled = chatViewModel::onComposerBannerCancelled,
-                onSend = chatViewModel::onSend,
-                onLoadOlder = chatViewModel::onLoadOlder,
-                onJumpToMessage = chatViewModel::onJumpToMessage,
-                onJumpToLatest = chatViewModel::onJumpToLatest,
-                onLoadNewer = chatViewModel::onLoadNewer,
-                onScrollTargetReached = chatViewModel::onScrollTargetReached,
-                onDeleteRequested = chatViewModel::onDeleteRequested,
-                onDeleteDismissed = chatViewModel::onDeleteDismissed,
-                onDeleteConfirmed = chatViewModel::onDeleteConfirmed,
-                onReactionsRequested = chatViewModel::onReactionsRequested,
-                onReactionPickerDismissed = chatViewModel::onReactionPickerDismissed,
-                onReactionToggled = chatViewModel::onReactionToggled,
-                onSelectionToggled = chatViewModel::onSelectionToggled,
-                onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
-                onForwardOne = chatViewModel::onForwardOne,
-                onMessageExtra = chatViewModel::onMessageExtra,
-                onTranslate = chatViewModel::onTranslate,
-                onTranslationDismissed = chatViewModel::onTranslationDismissed,
-                onContentOpened = { chatViewModel.onContentOpened(it.id) },
-                onSelectionCleared = chatViewModel::onSelectionCleared,
-                onSelectionDeleteRequested = chatViewModel::onSelectionDeleteRequested,
-                onSelectionDeleteDismissed = chatViewModel::onSelectionDeleteDismissed,
-                onSelectionDeleted = chatViewModel::onSelectionDeleted,
-                onSearchOpenChange = chatViewModel::onSearchOpenChange,
-                onSearchQueryChange = chatViewModel::onSearchQueryChange,
-                onAttachmentSheetOpenChange = chatViewModel::onAttachmentSheetOpenChange,
-                onForwardRequested = chatViewModel::onForwardRequested,
-                onForwardDismissed = chatViewModel::onForwardDismissed,
-                // Then off to where they went, as the official client goes
-                // (1.7): the forward is seen arriving, and Back returns here.
-                onForwardTo = { target ->
-                    chatViewModel.onForwardTo(target, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
-                        navController.navigateTo(chatRoute(to))
-                    }
-                },
-                onForwardToContact = { person ->
-                    chatViewModel.onForwardToContact(person, withoutQuote = geekSettings.forwardWithoutQuote) { to ->
-                        navController.navigateTo(chatRoute(to))
-                    }
-                },
-                // A track goes to the music player, with this chat's music
-                // as its queue; a voice note plays in the chat.
-                onVoiceToggled = { message ->
-                    if (message.audio != null) {
-                        playTrack(message, state.detail?.chat?.title.orEmpty(), emptyList(), false)
-                    } else {
-                        chatViewModel.onVoiceToggled(message)
-                    }
-                },
-                music = nowPlaying,
-                onMusicSeek = { music?.seekTo(it) },
-                musicBar = musicBar,
-                playerBar = playerBar,
-                onVoiceSeek = chatViewModel::onVoiceSeek,
-                onDocumentOpened = chatViewModel::onDocumentOpened,
-                onFileOpened = chatViewModel::onFileOpened,
-                onFileRefused = chatViewModel::onFileRefused,
-                onPhotoVisible = chatViewModel::onPhotoVisible,
-                onPhotoOpened = chatViewModel::onPhotoOpened,
-                onPhotoClosed = chatViewModel::onPhotoClosed,
-                onVideoOpened = chatViewModel::onVideoOpened,
-                onVideoClosed = chatViewModel::onVideoClosed,
-                onGalleryPage = chatViewModel::onGalleryPage,
-                onSaveGif = chatViewModel::onSaveGif,
-                onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
-                onContactOpen = { contact -> navController.navigateTo(Route.Person(contact.userId)) },
-                onContactAdd = chatViewModel::onContactAdd,
-                onContactPickerOpen = chatViewModel::onContactPickerOpen,
-                onContactPickerDismiss = chatViewModel::onContactPickerDismiss,
-                onContactPicked = chatViewModel::onContactPicked,
-                onErrorShown = chatViewModel::onErrorShown,
-                onExpressionsOpen = chatViewModel::onExpressionsOpen,
-                onExpressionsClose = chatViewModel::onExpressionsClose,
-                onExpressionTab = chatViewModel::onExpressionTab,
-                onStickerSetSelected = chatViewModel::onStickerSetSelected,
-                onStickerPicked = chatViewModel::onStickerPicked,
-                onStickerImage = chatViewModel::onStickerImage,
-                onSendLocation = chatViewModel::onSendLocation,
-                onCustomEmojiSetSelected = chatViewModel::onCustomEmojiSetSelected,
-                onCustomEmojiPicked = chatViewModel::onCustomEmojiPicked,
-                onGifQueryChange = chatViewModel::onGifQueryChange,
-                onGifVisible = chatViewModel::onGifVisible,
-                onGifPicked = chatViewModel::onGifPicked,
-                onVote = chatViewModel::onVote,
-                onBotButton = chatViewModel::onBotButton,
-                onReplyKey = chatViewModel::onReplyKey,
-                onBotAnswerShown = chatViewModel::onBotAnswerShown,
-                onPollOpen = chatViewModel::onPollOpen,
-                onPollChange = chatViewModel::onPollChange,
-                onPollSend = chatViewModel::onPollSend,
-                onPollDismiss = chatViewModel::onPollDismiss,
-                onSchedule = { at -> chatViewModel.onSchedule(at) },
-                onScheduledOpen = chatViewModel::onScheduledOpen,
-                onScheduledSendNow = chatViewModel::onScheduledSendNow,
-                onScheduledDelete = chatViewModel::onScheduledDelete,
-                onScheduledDismiss = chatViewModel::onScheduledDismiss,
-                onNoticeShown = chatViewModel::onNoticeShown,
-                onPinToggled = chatViewModel::onPinToggled,
-                onMention = { username ->
-                    openScope.launch {
-                        val found = repository.chatByUsername(username)
-                        if (found != null) openChat(found)
-                    }
-                }
-            )
+                )
+            }
             }
             }
             }

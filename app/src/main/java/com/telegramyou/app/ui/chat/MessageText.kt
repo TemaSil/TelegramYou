@@ -228,6 +228,7 @@ private fun AlbumCell(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = modifier
             .aspectRatio(if (wide) 16f / 9f else 1f)
+            .mediaOrigin(photo.id)
             .combinedClickable(enabled = path != null, onClick = onOpen, onLongClick = onLongClick)
     ) {
         val mini = photo.photoMini

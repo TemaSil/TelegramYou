@@ -536,7 +536,8 @@ internal fun MessageBubble(
                             outgoing = outgoing,
                             onVisible = onPhotoVisible,
                             onOpen = { if (isSelecting) onSelect() else onPhotoOpened() },
-                            onLongClick = onBubbleLongClick
+                            onLongClick = onBubbleLongClick,
+                            originId = message.id
                         )
                     }
                     MessageContentType.Video -> {
@@ -566,7 +567,8 @@ internal fun MessageBubble(
                                     ?: video.thumbFileId?.let { transfers[it] },
                                 onPosterVisible = onPhotoVisible,
                                 onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
-                                onLongClick = onBubbleLongClick
+                                onLongClick = onBubbleLongClick,
+                                originId = message.id
                             )
                         }
                     }
@@ -589,7 +591,8 @@ internal fun MessageBubble(
                                 transfer = gif.fileId?.let { transfers[it] },
                                 onVisible = onPhotoVisible,
                                 onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
-                                onLongClick = onBubbleLongClick
+                                onLongClick = onBubbleLongClick,
+                                originId = message.id
                             )
                         }
                     }

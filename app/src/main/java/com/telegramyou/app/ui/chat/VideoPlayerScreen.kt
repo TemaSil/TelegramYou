@@ -244,6 +244,20 @@ fun VideoPage(
             // some devices behind the dialog entirely. A TextureView is
             // an ordinary view in the same hierarchy, so it composites
             // with everything above it and shows up in a capture.
+            // The poster under the picture until the first frame covers it:
+            // a TextureView with nothing in it yet draws nothing, and the
+            // gallery opening out of the bubble would otherwise grow a black
+            // rectangle where the bubble showed a picture (1.8).
+            video.thumbPath?.let { poster ->
+                AsyncImage(
+                    model = poster,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(video.aspect.coerceIn(0.4f, 2.5f))
+                )
+            }
             AndroidView(
                 factory = { ctx -> TextureView(ctx).also(player::setVideoTextureView) },
                 modifier = Modifier

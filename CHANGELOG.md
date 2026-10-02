@@ -12,6 +12,7 @@ README.md.
 ## 1.8
 
 - **Translate a message** — from its menu, into the phone's language, by Telegram's own translator: the one the official client uses, so the result is the same. The text can be selected or copied whole.
+- **Photos and videos open out of their bubble** and close back into it — the picture grows from where it sits in the chat to full screen on the theme's spring, and shrinks back into whichever photo is in view when it closes, a drag down included. A video shows its poster while it starts, so what grows is the picture, not a black frame. With Less motion on, or with the bubble scrolled away, it fades instead. The viewer no longer leaves the system's own fade to the window either, which on a slow phone could be caught half gone over the chat.
 - **More in a message's menu** (For geeks): **Repeat** sends it again into the same chat, **Save to Saved Messages** forwards it there in one step, and **Delete from this phone** takes a downloaded file off the phone while leaving it on Telegram, to be fetched again when next opened.
 - **Pull down for the archive** (For geeks) — the chat list's pull opens the archive instead of refreshing, while there is an archive.
 - **Hide blocked people in groups** (For geeks) — their messages left out of a group's history, as if they were not there.

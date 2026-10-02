@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.animation.core.animate
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import com.telegramyou.app.media.MiniThumbnail
@@ -125,13 +126,19 @@ fun PhotoViewer(
  * pans only once the photo is zoomed: zoomed out, a sideways drag belongs
  * to the gallery around it, to go to the next.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PhotoPage(
     path: String?,
     caption: String,
     onDismiss: () -> Unit,
-    onZoomChanged: (Boolean) -> Unit = {}
+    onZoomChanged: (Boolean) -> Unit = {},
+    /**
+     * The gallery is shrinking it back into its bubble: a drag that let it
+     * go is undone on the way, so it lands where the bubble is rather than
+     * as far below it as the finger took it.
+     */
+    closing: Boolean = false
 ) {
     // Where the photo is and how big, and how far a drag has taken it towards
     // being let go. Both are remembered per photo rather than hoisted: a
@@ -147,6 +154,12 @@ fun PhotoPage(
     val scrim = 0.92f * (1f - progress)
     val dismissScale = 1f - progress * 0.2f
     LaunchedEffect(zoom.isZoomed) { onZoomChanged(zoom.isZoomed) }
+    val settle = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    LaunchedEffect(closing) {
+        if (closing && dragY != 0f) {
+            animate(dragY, 0f, animationSpec = settle) { value, _ -> dragY = value }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -280,7 +293,9 @@ internal fun PhotoMessage(
     onVisible: () -> Unit,
     onOpen: () -> Unit,
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    /** The message, so the gallery opens out of here and closes back in; see MediaOrigins. */
+    originId: Long? = null
 ) {
     LaunchedEffect(path) {
         if (path == null) onVisible()
@@ -298,6 +313,7 @@ internal fun PhotoMessage(
                 // Clamped: a panorama would otherwise be a sliver and a very
                 // tall photo would fill the screen on its own.
                 .aspectRatio(aspect.coerceIn(0.6f, 1.9f))
+                .mediaOrigin(originId)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick),
             contentAlignment = Alignment.Center
@@ -415,7 +431,9 @@ internal fun VideoMessage(
     onPosterVisible: () -> Unit,
     onOpen: () -> Unit,
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    /** The message, so the gallery opens out of here; see MediaOrigins. */
+    originId: Long? = null
 ) {
     LaunchedEffect(video.thumbPath) {
         if (video.thumbPath == null) onPosterVisible()
@@ -434,6 +452,7 @@ internal fun VideoMessage(
                 .mediaEdges(framed, bleedTop)
                 .fillMaxWidth()
                 .aspectRatio(video.aspect.coerceIn(0.6f, 1.9f))
+                .mediaOrigin(originId)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 // One description for the whole thing, on the part that is
@@ -532,7 +551,9 @@ internal fun AnimationMessage(
     onVisible: () -> Unit,
     onOpen: () -> Unit,
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
-    onLongClick: () -> Unit = {}
+    onLongClick: () -> Unit = {},
+    /** The message, so the gallery opens out of here; see MediaOrigins. */
+    originId: Long? = null
 ) {
     LaunchedEffect(gif.path, gif.thumbPath) {
         if (gif.path == null || gif.thumbPath == null) onVisible()
@@ -543,6 +564,7 @@ internal fun AnimationMessage(
                 .mediaEdges(framed, bleedTop)
                 .fillMaxWidth()
                 .aspectRatio(gif.aspect.coerceIn(0.6f, 1.9f))
+                .mediaOrigin(originId)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 .semantics(mergeDescendants = true) {
