@@ -166,7 +166,9 @@ internal fun MessageBubble(
     /** A round video message was started: its sender sees it watched. */
     onContentOpened: () -> Unit = {},
     /** Settings → For geeks → More in a message's menu; see MessageExtra. */
-    onExtra: (MessageExtra) -> Unit = {}
+    onExtra: (MessageExtra) -> Unit = {},
+    /** Its text in the phone's language; see TranslationDialog. */
+    onTranslate: () -> Unit = {}
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -834,6 +836,16 @@ internal fun MessageBubble(
                         menuOpen = false
                     }
                 )
+                if (message.text.isNotBlank()) {
+                    DropdownMenuItem(
+                        text = { Text("Translate") },
+                        leadingIcon = { Icon(Symbols.Translate, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onTranslate()
+                        }
+                    )
+                }
                 // Settings → For geeks → Save and copy media, for a file that
                 // is on this phone already: nothing is fetched to save it.
                 val mediaPath = message.photoPath ?: message.video?.path

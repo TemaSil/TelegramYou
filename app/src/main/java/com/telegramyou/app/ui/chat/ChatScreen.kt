@@ -178,6 +178,9 @@ fun ChatScreen(
     onForwardOne: (ChatMessage) -> Unit = {},
     /** A voice or video message was played; its sender is told. */
     onContentOpened: (ChatMessage) -> Unit = {},
+    /** A message put into the phone's language; see TranslationDialog. */
+    onTranslate: (ChatMessage, String) -> Unit = { _, _ -> },
+    onTranslationDismissed: () -> Unit = {},
     /** Settings → For geeks → More in a message's menu. */
     onMessageExtra: (ChatMessage, com.telegramyou.app.settings.MessageExtra) -> Unit = { _, _ -> },
     onSelectionCleared: () -> Unit,
@@ -1090,6 +1093,7 @@ fun ChatScreen(
                                 onForward = { onForwardOne(message) },
                                 onContentOpened = { onContentOpened(message) },
                                 onExtra = { extra -> onMessageExtra(message, extra) },
+                                onTranslate = { onTranslate(message, translationLanguage()) },
                                 // A track is the music player's, which outlives
                                 // this screen; a voice note is the chat's own.
                                 voiceState = when {
@@ -1486,6 +1490,17 @@ fun ChatScreen(
                     onCustomEmojiSetSelected = onCustomEmojiSetSelected,
                     onCustomEmojiPicked = onCustomEmojiPicked,
                     bottomInset = navBarHeight
+                )
+            }
+
+            state.translation?.let { translation ->
+                TranslationDialog(
+                    translation = translation,
+                    onCopy = { text ->
+                        copyToClipboard(text)
+                        onTranslationDismissed()
+                    },
+                    onDismiss = onTranslationDismissed
                 )
             }
 

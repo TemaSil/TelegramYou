@@ -32,7 +32,7 @@ KeyboardArrowDown KeyboardHide Language LaptopMac LightMode Link Lock Logout
 MarkChatRead Mic MoreVert MusicNote Notifications NotificationsActive
 NotificationsOff OpenInNew Pause Person Phone PhoneAndroid PhoneIphone PhotoCamera
 Palette PersonAdd PhotoLibrary PlayArrow Poll Public PushPin QrCode2 Reply Schedule Science Search
-Send Settings Share Snooze SwitchCamera SportsEsports Storage SystemUpdate TabletMac Unarchive
+Send Settings Share Snooze SwitchCamera Translate SportsEsports Storage SystemUpdate TabletMac Unarchive
 Visibility VisibilityOff VolumeOff VolumeUp VpnKey WorkspacePremium
 """.split()
 

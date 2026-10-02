@@ -109,12 +109,12 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.7 · 2 October 2026
+## Latest: 1.8 · 2 October 2026
 
-Round video messages: hold the camera button to record one in a circle,
-slide up to lock it and switch camera, lift to send. Forwarding searches
-contacts and opens the chat it went to, the player shares a track and
-closes smoothly, and the back gesture slides a page away again.
+Translate a message from its menu, into the phone's language. For geeks
+gains a longer message menu — repeat, save to Saved Messages, delete a
+downloaded file — and pull down for the archive, blocked people hidden in
+groups, recordings checked before sending, and silence for strangers.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

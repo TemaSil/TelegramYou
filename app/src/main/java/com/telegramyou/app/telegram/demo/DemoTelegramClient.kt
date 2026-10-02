@@ -1462,6 +1462,14 @@ class DemoTelegramClient(
         }
     }
 
+    // No translator offline: the demo answers with the text itself, marked,
+    // so the screen that shows a translation can be driven and seen.
+    override suspend fun translateMessage(chatId: Long, messageId: Long, toLanguage: String): String? {
+        delay(300)
+        val text = chatMessages[chatId].orEmpty().firstOrNull { it.id == messageId }?.text
+        return text?.takeIf { it.isNotBlank() }?.let { "[$toLanguage] $it" }
+    }
+
     override suspend fun forwardMessages(
         fromChatId: Long,
         messageIds: List<Long>,

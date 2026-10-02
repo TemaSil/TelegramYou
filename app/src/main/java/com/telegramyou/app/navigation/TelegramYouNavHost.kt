@@ -1195,6 +1195,8 @@ fun TelegramYouNavHost(
                 onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
                 onForwardOne = chatViewModel::onForwardOne,
                 onMessageExtra = chatViewModel::onMessageExtra,
+                onTranslate = chatViewModel::onTranslate,
+                onTranslationDismissed = chatViewModel::onTranslationDismissed,
                 onContentOpened = { chatViewModel.onContentOpened(it.id) },
                 onSelectionCleared = chatViewModel::onSelectionCleared,
                 onSelectionDeleteRequested = chatViewModel::onSelectionDeleteRequested,

@@ -1962,6 +1962,76 @@ class SmokeTest {
     }
 
     /**
+     * 1.8: a message translated from its menu, and — with For geeks → More
+     * in a message's menu on — repeated into the chat. The demo's
+     * translator marks the text with the language it was put into.
+     */
+    @Test
+    fun aMessageIsTranslatedAndRepeated() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        setMessageExtras()
+
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list again")
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        type("Translate me please")
+        tap(By.desc("Send"))
+        val sent = By.text("Translate me please")
+        waitFor(sent, "the message to translate")
+        openMenuOf(sent, By.text("Translate"))
+        tap(By.text("Translate"))
+        waitFor(By.text(Pattern.compile("\\[\\w+] Translate me please")), "the translation")
+        screenshot("87-translation")
+        tap(By.text("Close"))
+
+        openMenuOf(sent, By.text("Repeat"))
+        screenshot("88-message-extras")
+        tap(By.text("Repeat"))
+        val deadline = System.currentTimeMillis() + 15_000L
+        while (device.findObjects(sent).size < 2 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(250)
+        }
+        if (device.findObjects(sent).size < 2) {
+            screenshot("failed-waiting-for-the-repeat")
+            error("the message was not repeated")
+        }
+
+        // Off again: the tests share one install, and the longer menu would
+        // be in every other test's way.
+        device.pressBack()
+        waitFor(By.text("Material Design"), "the chat list after the chat")
+        setMessageExtras()
+    }
+
+    /** Settings → For geeks → More in a message's menu, flipped. */
+    private fun setMessageExtras() {
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("For geeks"))
+        tap(By.text("For geeks"))
+        scrollDownTo(By.text("More in a message's menu"))
+        tap(By.text("More in a message's menu"))
+        device.pressBack()
+        waitFor(By.text("For geeks"), "the settings again")
+    }
+
+    /** Long-presses [message] until its menu shows [item]. */
+    private fun openMenuOf(message: BySelector, item: BySelector) {
+        repeat(3) {
+            if (device.hasObject(item)) return
+            try {
+                device.findObjects(message).lastOrNull()?.longClick()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(item), SHORT_WAIT)
+        }
+        waitFor(item, "the message's menu")
+    }
+
+    /**
      * The music library, switched on under For geeks and reached from My
      * music: its front page, an album — four tracks posted together — and
      * that album played from its first track as posted.

@@ -250,6 +250,13 @@ interface TelegramMessages {
      */
     suspend fun deleteDownloadedFile(fileId: Int) {}
 
+    /**
+     * A message's text or caption in [toLanguage] — an ISO 639 code, the
+     * phone's own language as a rule — by Telegram's translator (1.8). Null
+     * where the backend has nothing to give.
+     */
+    suspend fun translateMessage(chatId: Long, messageId: Long, toLanguage: String): String? = null
+
     /** Every finished download out of the list, and with [deleteFiles] off the phone. */
     suspend fun clearFinishedDownloads(deleteFiles: Boolean) {}
 

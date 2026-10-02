@@ -9,6 +9,17 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 1.8
+
+- **Translate a message** — from its menu, into the phone's language, by Telegram's own translator: the one the official client uses, so the result is the same. The text can be selected or copied whole.
+- **More in a message's menu** (For geeks): **Repeat** sends it again into the same chat, **Save to Saved Messages** forwards it there in one step, and **Delete from this phone** takes a downloaded file off the phone while leaving it on Telegram, to be fetched again when next opened.
+- **Pull down for the archive** (For geeks) — the chat list's pull opens the archive instead of refreshing, while there is an archive.
+- **Hide blocked people in groups** (For geeks) — their messages left out of a group's history, as if they were not there.
+- **Ask before sending a recording** (For geeks) — a voice or video message waits in the composer when the finger lifts, to be sent or taken back, instead of leaving at once.
+- **Silence people not in contacts** (For geeks) — a private message from someone not saved still reaches the shade, without a sound. Bots are left as they are.
+
+The For geeks additions follow Nekogram's settings of the same intent, read as a list of what people asked for; none of its code is in this app.
+
 ## 1.7
 
 - **Round video messages, recorded.** Hold the camera button in the composer and the front camera comes up in a circle over the chat; lift to send, slide aside to throw it away. A ring fills towards Telegram's one-minute limit, where it sends by itself. A tap still takes a photo.

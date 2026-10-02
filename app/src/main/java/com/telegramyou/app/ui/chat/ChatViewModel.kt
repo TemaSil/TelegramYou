@@ -74,6 +74,17 @@ data class ChatSearchState(
  * shows one banner, and choosing either cancels the other. [pendingDelete]
  * being non-null is what puts the confirmation dialog on screen.
  */
+/**
+ * One message's text in another language, as the translation dialog shows
+ * it: [text] is null while Telegram is still working on it.
+ */
+data class Translation(
+    val messageId: Long,
+    /** The language it is put into, as an ISO 639 code. */
+    val language: String,
+    val text: String? = null
+)
+
 data class ChatUiState(
     val detail: ChatDetail? = null,
     /** The forum topic this screen is on, by name; null in any other chat. */
@@ -231,7 +242,9 @@ data class ChatUiState(
      */
     val scheduled: List<ChatMessage>? = null,
     /** Something done that is worth a line in a snackbar, until shown. */
-    val notice: String? = null
+    val notice: String? = null,
+    /** A message being translated, or shown translated; see onTranslate. */
+    val translation: Translation? = null
 ) {
     /** Polls go to groups and channels, as in every Telegram client. */
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
@@ -1116,6 +1129,36 @@ class ChatViewModel(
             val done = attempt("Could not make an invite link") { link = repository.renewInviteLink(chatId) }
             if (done && link != null) _uiState.update { it.copy(inviteLink = link) }
         }
+    }
+
+    /**
+     * A message's text in the phone's own language (1.8), by Telegram's
+     * translator — the one the official client uses, so the result is the
+     * same. The dialog opens at once and fills when the answer comes.
+     */
+    fun onTranslate(message: ChatMessage, language: String) {
+        if (message.text.isBlank()) return
+        _uiState.update { it.copy(translation = Translation(message.id, language)) }
+        viewModelScope.launch {
+            var translated: String? = null
+            val done = attempt("Could not translate it") {
+                translated = repository.translateMessage(message.chatId, message.id, language)
+            }
+            _uiState.update { state ->
+                val open = state.translation?.takeIf { it.messageId == message.id } ?: return@update state
+                val text = translated
+                when {
+                    done && text != null -> state.copy(translation = open.copy(text = text))
+                    // A failure has said so through the notice already.
+                    done -> state.copy(translation = null, notice = "Nothing to translate")
+                    else -> state.copy(translation = null)
+                }
+            }
+        }
+    }
+
+    fun onTranslationDismissed() {
+        _uiState.update { it.copy(translation = null) }
     }
 
     /**

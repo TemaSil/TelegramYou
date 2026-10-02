@@ -893,6 +893,18 @@ class TdLibTelegramClient(
         downloadWaiters[fileId]?.complete(DownloadOutcome.Stopped)
     }
 
+    override suspend fun translateMessage(chatId: Long, messageId: Long, toLanguage: String): String? {
+        awaitReady()
+        val translated = requireEngine().send(
+            JSONObject()
+                .put("@type", "translateMessageText")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put("to_language_code", toLanguage)
+        )
+        return translated.optString("text").takeIf { it.isNotBlank() }
+    }
+
     override suspend fun deleteDownloadedFile(fileId: Int) {
         awaitReady()
         requireEngine().send(JSONObject().put("@type", "deleteFile").put("file_id", fileId))
