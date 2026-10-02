@@ -488,6 +488,13 @@ fun ChatScreen(
         // the hold that asked is over by the time the dialog is answered.
     }
     DisposableEffect(videoNotes) { onDispose { videoNotes.cancel() } }
+    // CameraX started while the chat opens, where the camera is allowed, so
+    // the first hold records at once.
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            warmUpCamera(context)
+        }
+    }
     val cancelVideoNote: () -> Unit = {
         if (videoNoteSince != null) {
             videoNoteSince = null

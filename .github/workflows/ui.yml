@@ -86,8 +86,10 @@ jobs:
       # to three minutes of every run; restored from this cache with its
       # snapshot, it starts in seconds. The key names everything that would
       # make a different device — change any of them and it is rebuilt.
-      # v2 (1.7): an emulated front camera, for round video messages, where
-      # the device had none.
+      # v3 (1.7): emulated cameras, front and back, for round video messages,
+      # where the device had none. Both: with the front alone CameraX spends
+      # six seconds retrying its start-up check for a back camera, and a
+      # test's hold was over before anything recorded.
       - name: Restore the emulator
         uses: actions/cache@v6
         id: avd-cache
@@ -95,7 +97,7 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-34-default-x86_64-pixel_6-v2
+          key: avd-34-default-x86_64-pixel_6-v3
 
       - name: Create the emulator and its snapshot
         if: steps.avd-cache.outputs.cache-hit != 'true'
@@ -108,7 +110,7 @@ jobs:
           force-avd-creation: false
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-            -camera-back none -camera-front emulated
+            -camera-back emulated -camera-front emulated
           disable-animations: false
           script: echo "Emulator snapshot made for the cache."
 
@@ -127,7 +129,7 @@ jobs:
           # where the next one starts.
           emulator-options: >-
             -no-window -gpu swiftshader_indirect -no-snapshot-save -noaudio -no-boot-anim
-            -camera-back none -camera-front emulated
+            -camera-back emulated -camera-front emulated
           disable-animations: true
           script: |
             adb logcat -c

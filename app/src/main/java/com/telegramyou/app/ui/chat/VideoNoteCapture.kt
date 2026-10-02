@@ -70,8 +70,13 @@ internal fun VideoNoteCapture(
         exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
     ) {
         var elapsed by remember { mutableLongStateOf(0L) }
-        LaunchedEffect(since) {
-            val start = since ?: return@LaunchedEffect
+        // From when the camera began recording, not from the finger: it
+        // takes a moment to open, and the clock should not run before it.
+        val recordingFrom = recorder.recordingSince
+        LaunchedEffect(since, recordingFrom) {
+            elapsed = 0L
+            if (since == null) return@LaunchedEffect
+            val start = recordingFrom ?: return@LaunchedEffect
             while (true) {
                 withFrameMillis { }
                 elapsed = System.currentTimeMillis() - start

@@ -1637,13 +1637,16 @@ class SmokeTest {
         screenshot("86b-video-note-sent")
 
         // Slid up while held, it locks: the finger lifts and the recording
-        // goes on, with Delete and Send on the circle — and Switch camera,
-        // where there is a second camera, which the emulator has not.
+        // goes on, with Delete, Switch camera and Send on the circle. The
+        // emulator has both cameras, so the switch is there to turn it.
         val sent = device.findObjects(By.descStartsWith("Video message, 0:0")).size
         holdAndSlide(at.x, at.y, dy = -VIDEO_NOTE_LOCK_SLIDE_PX)
         waitFor(By.desc("Send video message"), "the locked recording's Send")
         SystemClock.sleep(2_000)
         screenshot("86c-video-note-locked")
+        tap(By.desc("Switch camera"))
+        SystemClock.sleep(1_500)
+        screenshot("86d-video-note-switched")
         tap(By.desc("Send video message"))
         val second = SystemClock.uptimeMillis() + STEP_TIMEOUT
         while (SystemClock.uptimeMillis() < second &&
@@ -3191,7 +3194,7 @@ class SmokeTest {
          */
         const val NOTIFYING_CHAT = "Material Design"
         /** Long enough past Telegram's one-second shortest video message, with the camera's opening in it. */
-        const val VIDEO_NOTE_HOLD_MS = 4_500L
+        const val VIDEO_NOTE_HOLD_MS = 6_000L
         /** Well past the composer's 72 dp to lock, on a Pixel 6's 2.625 density. */
         const val VIDEO_NOTE_LOCK_SLIDE_PX = 320
         /** Its id in the demo backend, where it is the first chat seeded. */

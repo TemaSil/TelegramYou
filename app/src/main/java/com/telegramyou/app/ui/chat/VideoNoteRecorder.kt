@@ -61,6 +61,14 @@ class VideoNoteRecorder(private val context: Context) {
 
     val isRecording: Boolean get() = recording != null
 
+    /**
+     * When the camera actually began recording — a moment after the hold,
+     * while it opens — or null. The capture screen's clock and its minute
+     * run from this, not from the finger.
+     */
+    var recordingSince by mutableStateOf<Long?>(null)
+        private set
+
     /** Whether there is a second camera to turn to while recording. */
     var canFlip by mutableStateOf(false)
         private set
@@ -136,6 +144,7 @@ class VideoNoteRecorder(private val context: Context) {
             finished = done
             target = file
             startedAt = System.currentTimeMillis()
+            recordingSince = startedAt
             true
         } catch (e: Exception) {
             Log.w(TAG, "start: ${e.message}")
@@ -200,6 +209,7 @@ class VideoNoteRecorder(private val context: Context) {
 
     private fun close() {
         recording = null
+        recordingSince = null
         target = null
         finished = null
         surfaceRequest = null
@@ -238,6 +248,16 @@ class VideoNoteRecorder(private val context: Context) {
         private const val FINALIZE_TIMEOUT_MS = 5_000L
         private const val TAG = "VideoNoteRecorder"
     }
+}
+
+/**
+ * Has CameraX start up ahead of the first hold — it checks the device's
+ * cameras first, which takes a moment on a phone and seconds on some — so
+ * the recording begins with the finger rather than after it. Cheap and
+ * idempotent: the provider is the process's one.
+ */
+fun warmUpCamera(context: Context) {
+    runCatching { ProcessCameraProvider.getInstance(context) }
 }
 
 /** CameraX's process-wide camera provider, once it is ready. */
