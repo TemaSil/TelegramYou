@@ -1441,7 +1441,12 @@ class SmokeTest {
         repeat(4) {
             if (device.wait(Until.hasObject(selector), SHORT_WAIT)) return
             try {
-                device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.6f)
+                // The page, not whatever scrolls first in the tree: a mini
+                // player left by an earlier test scrolls too, and the first
+                // run of the 1.8 test scrolled that instead of Settings.
+                device.findObjects(By.scrollable(true))
+                    .maxByOrNull { it.visibleBounds.height() }
+                    ?.scroll(Direction.DOWN, 0.6f)
             } catch (_: StaleObjectException) {
             }
         }
