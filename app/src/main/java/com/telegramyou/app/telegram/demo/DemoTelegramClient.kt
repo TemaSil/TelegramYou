@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
 import com.telegramyou.app.telegram.model.TextSpan
 import com.telegramyou.app.telegram.model.ForumTopic
@@ -115,7 +116,13 @@ class DemoTelegramClient(
      * number and 12345 first would be a login screen for nothing. The demo
      * build starts signed out, because the UI test drives the login.
      */
-    private val signedIn: Boolean = false
+    private val signedIn: Boolean = false,
+    /**
+     * For the demo's streaming (1.9): the app's resources and cache, which
+     * a file is copied into a little at a time, as TDLib writes one that
+     * is being downloaded. Without it the demo fetches whole, as before.
+     */
+    private val context: android.content.Context? = null
 ) : TelegramClient {
     private val messageId = AtomicLong(1_000)
 
@@ -1784,6 +1791,61 @@ class DemoTelegramClient(
      * progress indicator nobody can check, and the demo build is the only
      * one CI can make.
      */
+    override val canStream: Boolean get() = context != null
+
+    /** Files the demo is "downloading" for a player, by id; see streamFile. */
+    private val streams = java.util.concurrent.ConcurrentHashMap<Int, DemoStream>()
+
+    private class DemoStream(val file: java.io.File, val total: Long) {
+        @Volatile var copied = 0L
+
+        fun from(offset: Long) = FileStream(
+            path = file.absolutePath,
+            size = total,
+            readyFromOffset = (copied - offset).coerceAtLeast(0),
+            isComplete = copied >= total
+        )
+    }
+
+    /**
+     * The demo's video or track written into the cache a slice at a time, as
+     * TDLib writes a file it is downloading, so the player plays it as it
+     * arrives — what the UI test needs to drive the streaming path with no
+     * account. Front to back regardless of [offset]: whatever is asked for
+     * arrives within two seconds.
+     */
+    override suspend fun streamFile(fileId: Int, offset: Long): FileStream? {
+        streams[fileId]?.let { return it.from(offset) }
+        val ctx = context ?: return null
+        val bytes = withContext(Dispatchers.IO) {
+            when (fileId) {
+                DEMO_VIDEO_FILE_ID -> ctx.resources.openRawResource(R.raw.demo_video).use { it.readBytes() }
+                DEMO_AUDIO_FILE_ID -> demoAudioFile().readBytes()
+                else -> null
+            }
+        } ?: return null
+        val target = java.io.File(ctx.cacheDir, "demo-stream-$fileId").apply { delete() }
+        val stream = DemoStream(target, bytes.size.toLong())
+        streams.putIfAbsent(fileId, stream)?.let { return it.from(offset) }
+        scope.launch(Dispatchers.IO) {
+            val step = (bytes.size / DEMO_TRANSFER_STEPS).coerceAtLeast(1)
+            java.io.FileOutputStream(target).use { out ->
+                var at = 0
+                while (at < bytes.size) {
+                    val count = minOf(step, bytes.size - at)
+                    out.write(bytes, at, count)
+                    out.flush()
+                    at += count
+                    stream.copied = at.toLong()
+                    delay(DEMO_TRANSFER_STEP_MS)
+                }
+            }
+        }
+        return stream.from(offset)
+    }
+
+    override suspend fun streamedFrom(fileId: Int, offset: Long): FileStream? = streams[fileId]?.from(offset)
+
     override suspend fun downloadFile(fileId: Int): String? {
         if (fileId == DEMO_AUDIO_FILE_ID) return withContext(Dispatchers.IO) { demoAudioFile().absolutePath }
         if (fileId == DEMO_NOTES_FILE_ID) return withContext(Dispatchers.IO) { demoNotesFile().absolutePath }

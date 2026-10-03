@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
 import com.telegramyou.app.telegram.model.TextSpan
 import android.media.MediaMetadataRetriever
@@ -2876,6 +2877,83 @@ class TdLibTelegramClient(
      * makes the call return when the bytes are there rather than immediately
      * with a file that is still arriving, which is what a play button needs.
      */
+    override val canStream: Boolean get() = true
+
+    /**
+     * TDLib downloads from any offset and writes each part where it belongs
+     * in the file, so what is there from an offset can be read straight off
+     * the phone while the rest comes in — the official client streams a
+     * video or a track the same way (1.9). Priority 32, above everything
+     * else: this is being watched or listened to now.
+     */
+    override suspend fun streamFile(fileId: Int, offset: Long): FileStream? {
+        awaitReady()
+        return try {
+            val file = requireEngine().send(
+                JSONObject()
+                    .put("@type", "downloadFile")
+                    .put("file_id", fileId)
+                    .put("priority", 32)
+                    .put("offset", offset)
+                    .put("limit", 0)
+                    .put("synchronous", false)
+            )
+            fileStream(file, fileId, offset)
+        } catch (e: TdLibException) {
+            Log.w(TAG, "streamFile($fileId, $offset): ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun streamedFrom(fileId: Int, offset: Long): FileStream? {
+        awaitReady()
+        return try {
+            val file = requireEngine().send(JSONObject().put("@type", "getFile").put("file_id", fileId))
+            val stream = fileStream(file, fileId, offset)
+            val local = file.optJSONObject("local")
+            // Stopped short — the connection dropped, or something else
+            // asked for the file from elsewhere: asked for again from here.
+            if (!stream.isComplete && stream.readyFromOffset == 0L && local?.optBoolean("is_downloading_active") != true) {
+                streamFile(fileId, offset) ?: stream
+            } else {
+                stream
+            }
+        } catch (e: TdLibException) {
+            Log.w(TAG, "streamedFrom($fileId, $offset): ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun stopStreaming(fileId: Int) {
+        try {
+            requireEngine().send(
+                JSONObject().put("@type", "cancelDownloadFile").put("file_id", fileId).put("only_if_pending", false)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "stopStreaming($fileId): ${e.message}")
+        }
+    }
+
+    /** [file] as a FileStream from [offset]: TDLib counts what is ready from there itself. */
+    private suspend fun fileStream(file: JSONObject, fileId: Int, offset: Long): FileStream {
+        val local = file.optJSONObject("local")
+        val size = file.optLong("size").takeIf { it > 0 } ?: file.optLong("expected_size")
+        val complete = local?.optBoolean("is_downloading_completed") == true
+        val ready = if (complete) {
+            (size - offset).coerceAtLeast(0)
+        } else {
+            requireEngine().send(
+                JSONObject().put("@type", "getFileDownloadedPrefixSize").put("file_id", fileId).put("offset", offset)
+            ).optLong("size")
+        }
+        return FileStream(
+            path = local?.optString("path")?.takeIf { it.isNotBlank() },
+            size = size,
+            readyFromOffset = ready,
+            isComplete = complete
+        )
+    }
+
     override suspend fun downloadFile(fileId: Int): String? {
         awaitReady()
         return try {

@@ -12,6 +12,10 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.extractor.DefaultExtractorsFactory
+import androidx.media3.extractor.mp3.Mp3Extractor
+import com.telegramyou.app.media.TelegramFileDataSource
 import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.MusicQueue
@@ -163,7 +167,19 @@ class MusicPlayer(
                 enableAudioOutputPlaybackParams: Boolean
             ): AudioSink? = super.buildAudioSink(context, enableFloatOutput, enableAudioOutputPlaybackParams)
                 ?.let { PulseSink(it, pulse) }
-        }
+        },
+        // Telegram's files played as they arrive (TelegramFileDataSource),
+        // and an MP3 seeked by an index of its frames rather than by a guess
+        // from its bitrate. The guess, on a long file whose header is wrong,
+        // landed past the end: "position out of range", twice, and the track
+        // was skipped — the owner's log of 3 October, on a radio mix
+        // resumed where it was left.
+        DefaultMediaSourceFactory(
+            TelegramFileDataSource.Factory(context, repository),
+            DefaultExtractorsFactory()
+                .setMp3ExtractorFlags(Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING)
+                .setConstantBitrateSeekingEnabled(true)
+        )
     )
         // Music, and it pauses for a call and ducks for a navigation prompt.
         .setAudioAttributes(
@@ -185,6 +201,11 @@ class MusicPlayer(
                 }
 
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                    // The pause and play around each new track are the
+                    // player's own, and filled the log with "asked for" on
+                    // every skip; they are left out, the track's start is
+                    // logged instead.
+                    if (changingTrack) return
                     PlayerLog.add((if (playWhenReady) "play" else "pause") + ", " + playWhenReadyReason(reason))
                 }
 
@@ -203,7 +224,15 @@ class MusicPlayer(
                     val retry = track != null && retriedFor != track.messageId
                     if (retry) {
                         retriedFor = track.messageId
-                        carryOnFrom = created.currentPosition
+                        // Past the end of the file is where a seek put it, so
+                        // the second try starts from the top, and the place it
+                        // was resumed from is forgotten.
+                        carryOnFrom = if (error.errorCode == androidx.media3.common.PlaybackException.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE) {
+                            forgetPosition()
+                            0L
+                        } else {
+                            created.currentPosition
+                        }
                         startCurrent()
                     } else {
                         _state.update { it.copy(notice = "Could not play ${track?.title ?: "the track"}") }
@@ -639,14 +668,26 @@ class MusicPlayer(
         starting?.cancel()
         _state.update { it.copy(isLoading = true, positionMs = 0, durationMs = track.durationSeconds * 1000L, coverSeed = null) }
         fetchCover(track)
-        exo?.pause()
-        PlayerLog.add("start ${track.title}" + if (track.path?.let { exists(it) } == true) " (on the phone)" else " (fetching)")
+        quietly { exo?.pause() }
+        val onPhone = track.path?.let { exists(it) } == true
+        // Not on the phone: played as it downloads (1.9) where the backend
+        // can, rather than fetched whole first — the log showed tracks
+        // skipped past while they were still "fetching".
+        val streamed = !onPhone && track.fileId != null && repository.canStream
+        PlayerLog.add("start ${track.title}" + when {
+            onPhone -> " (on the phone)"
+            streamed -> " (streaming)"
+            else -> " (fetching)"
+        })
         starting = scope.launch {
             // Once more after a moment if the fetch fails: a download that
             // failed used to leave the player silent with nothing said, which
             // read as music stopping by itself.
-            var path = track.path?.takeIf { exists(it) }
-                ?: track.fileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+            var path = when {
+                onPhone -> track.path
+                streamed -> TelegramFileDataSource.uriOf(track.fileId!!).toString()
+                else -> track.fileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+            }
             if (path == null && track.fileId != null) {
                 PlayerLog.add("fetch failed, trying again — ${track.title}")
                 delay(FETCH_RETRY_MS)
@@ -657,8 +698,14 @@ class MusicPlayer(
                 _state.update { it.copy(isLoading = false, notice = "Could not load ${track.title}") }
                 return@launch
             }
-            // Kept on the track, so coming back to it does not fetch again.
-            _state.update { state -> state.copy(queue = state.queue.withPath(track.messageId, path), isLoading = false) }
+            // Kept on the track, so coming back to it does not fetch again —
+            // a file, not a stream's address, which is good only while it plays.
+            _state.update { state ->
+                state.copy(
+                    queue = if (streamed) state.queue else state.queue.withPath(track.messageId, path),
+                    isLoading = false
+                )
+            }
             val player = player()
             player.setMediaItem(
                 MediaItem.Builder()
@@ -677,7 +724,7 @@ class MusicPlayer(
             player.prepare()
             // A long track carries on where it was left; see resumeFrom.
             (carried ?: resumeFrom(track.durationSeconds, positions.getLong(positionKey(track), 0)))?.let(player::seekTo)
-            player.play()
+            quietly { player.play() }
             // The session, and with it the notification, from the first track.
             // Started, not started in the foreground: Media3 moves the service
             // to the foreground itself once something plays, and a service
@@ -701,6 +748,18 @@ class MusicPlayer(
 
     private var prefetching: Job? = null
 
+    /** Set while the player itself pauses and plays around a new track; see onPlayWhenReadyChanged. */
+    private var changingTrack = false
+
+    private inline fun quietly(action: () -> Unit) {
+        changingTrack = true
+        try {
+            action()
+        } finally {
+            changingTrack = false
+        }
+    }
+
     /** The track a failed playback was retried for, so it is retried once. */
     private var retriedFor: Long? = null
 
@@ -711,6 +770,9 @@ class MusicPlayer(
      */
     private fun prefetchNext() {
         val playing = _state.value.track ?: return
+        // While this one streams it has the connection to itself: a fetch of
+        // the next, asked for later at the same priority, would go first.
+        if (playing.path?.let { exists(it) } != true && repository.canStream) return
         val next = _state.value.queue.advanced(auto = true)?.playing ?: return
         val fileId = next.fileId ?: return
         if (next.messageId == playing.messageId || next.path?.let { exists(it) } == true) return

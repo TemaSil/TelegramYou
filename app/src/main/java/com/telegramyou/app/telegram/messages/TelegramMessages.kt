@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.messages
 
+import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.ReactionOption
@@ -256,6 +257,22 @@ interface TelegramMessages {
      * where the backend has nothing to give.
      */
     suspend fun translateMessage(chatId: Long, messageId: Long, toLanguage: String): String? = null
+
+    /** Whether [streamFile] works here: a video or a track plays as it downloads. */
+    val canStream: Boolean get() = false
+
+    /**
+     * [fileId] fetched from [offset] on, to be played as it arrives — the
+     * first call for a file, and again for a seek past what is there (1.9).
+     * Null where the backend cannot stream; see FileStream.
+     */
+    suspend fun streamFile(fileId: Int, offset: Long): FileStream? = null
+
+    /** How much of [fileId] is ready from [offset] on, while it streams. */
+    suspend fun streamedFrom(fileId: Int, offset: Long): FileStream? = null
+
+    /** The streaming of [fileId] stopped, unless it is whole; what arrived stays. */
+    suspend fun stopStreaming(fileId: Int) {}
 
     /** Every finished download out of the list, and with [deleteFiles] off the phone. */
     suspend fun clearFinishedDownloads(deleteFiles: Boolean) {}

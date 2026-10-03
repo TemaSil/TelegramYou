@@ -130,3 +130,19 @@ sealed interface DownloadOutcome {
     data object Stopped : DownloadOutcome
     data object Failed : DownloadOutcome
 }
+
+/**
+ * A file as it streams (1.9): played while it downloads, as the official
+ * client plays a video or a track, instead of fetched whole first.
+ *
+ * [path] is where its bytes are being written, null until the first of
+ * them; [size] the whole file, 0 while unknown; [readyFromOffset] how many
+ * bytes are on the phone without a gap from the offset that was asked
+ * about. What has arrived stays: the next time, it plays from the phone.
+ */
+data class FileStream(
+    val path: String?,
+    val size: Long,
+    val readyFromOffset: Long,
+    val isComplete: Boolean
+)

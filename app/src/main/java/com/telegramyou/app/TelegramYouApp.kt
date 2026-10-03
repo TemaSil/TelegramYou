@@ -94,9 +94,9 @@ class TelegramYouApp : Application() {
         isSwitchedToDemo = BuildConfig.DEMO_ALLOWED && !BuildConfig.USE_DEMO_CLIENT &&
             getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_DEMO, false)
         val client = if (BuildConfig.DEMO_ALLOWED && BuildConfig.USE_DEMO_CLIENT) {
-            DemoTelegramClient()
+            DemoTelegramClient(context = this)
         } else if (BuildConfig.DEMO_ALLOWED && isSwitchedToDemo) {
-            DemoTelegramClient(signedIn = true)
+            DemoTelegramClient(signedIn = true, context = this)
         } else {
             TdLibTelegramClient(
                 context = this,
