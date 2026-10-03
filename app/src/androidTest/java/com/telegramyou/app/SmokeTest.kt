@@ -1462,8 +1462,8 @@ class SmokeTest {
                     false
                 }
                 if (low) {
-                    device.swipe(width / 2, (height * 0.6).toInt(), width / 2, (height * 0.4).toInt(), 20)
-                    device.waitForIdle(IDLE_TIMEOUT)
+                    device.swipe(width / 2, (height * 0.6).toInt(), width / 2, (height * 0.4).toInt(), SETTLED_SWIPE_STEPS)
+                    SystemClock.sleep(SETTLE_MS)
                 }
                 return
             }
@@ -1471,8 +1471,11 @@ class SmokeTest {
             // page, rather than UiObject2.scroll on "the" scrollable: with a
             // mini player up, the tree held another scrollable that took the
             // scroll, and Settings stayed at its top (the 1.8 runs).
-            device.swipe(width / 2, (height * 0.65).toInt(), width / 2, (height * 0.3).toInt(), 20)
-            device.waitForIdle(IDLE_TIMEOUT)
+            // Slowly, and then still: a quick swipe flings the list on, and
+            // a tap while it is still moving only stops it — the 1.9 run on
+            // main tapped For geeks and stayed in Settings.
+            device.swipe(width / 2, (height * 0.65).toInt(), width / 2, (height * 0.3).toInt(), SETTLED_SWIPE_STEPS)
+            SystemClock.sleep(SETTLE_MS)
         }
     }
 
@@ -3310,6 +3313,12 @@ class SmokeTest {
         const val ANSWER_WAIT = 5_000L
 
         const val IDLE_TIMEOUT = 5_000L
+
+        /** A swipe slow enough not to fling, about half a second; see scrollSettingsTo. */
+        const val SETTLED_SWIPE_STEPS = 100
+
+        /** Long enough for a list to come to rest after a swipe. */
+        const val SETTLE_MS = 600L
 
         /**
          * Short, because a missing permission dialog is a valid outcome —
