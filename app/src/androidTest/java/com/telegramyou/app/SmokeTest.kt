@@ -422,14 +422,26 @@ class SmokeTest {
         tap(By.desc("Playback speed 0.5×"))
         waitFor(By.desc("Playback speed 1×"), "the speed back to normal")
 
-        // And the other video, whose file has not arrived: opening it starts
-        // a download, and what the player shows while that runs is the bar
-        // this test is really here for.
+        // And the other video, whose file has not arrived: since 1.9 it
+        // plays as it downloads rather than after — the demo writes it into
+        // the cache a slice at a time, as TDLib does — so the player runs,
+        // and its clock moves, before the file is whole.
         device.pressBack()
         waitFor(By.descContains("Composer, one take"), "the second video")
         tap(By.descContains("Composer, one take"))
-        waitFor(By.textStartsWith("Downloading"), "the download's own progress")
-        screenshot("15-downloading")
+        waitFor(By.desc("Pause"), "the streamed video, playing")
+        var streamed: String? = null
+        val streamDeadline = System.currentTimeMillis() + PLAYBACK_TIMEOUT
+        while (System.currentTimeMillis() < streamDeadline) {
+            streamed = device.findObject(clock)?.text
+            if (streamed != null && !streamed.startsWith("0:00")) break
+            SystemClock.sleep(300)
+        }
+        screenshot("15-streaming")
+        assertTrue(
+            "the streamed video did not advance: $streamed",
+            streamed != null && !streamed.startsWith("0:00")
+        )
     }
 
     /**
@@ -2030,6 +2042,28 @@ class SmokeTest {
             device.wait(Until.hasObject(By.text("Settings")), SHORT_WAIT)
         }
         setMessageExtras()
+    }
+
+    /**
+     * 1.9: a text longer than Telegram takes in one message is sent as
+     * several, cut between words, rather than refused as "too long".
+     */
+    @Test
+    fun aLongMessageIsSentInParts() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        val long = "Part one " + "and then some more words ".repeat(190) + "the very end"
+        type(long)
+        tap(By.desc("Send"))
+        val tail = By.textEndsWith("the very end")
+        waitFor(tail, "the last part of the long message")
+        val last = device.findObject(tail).text
+        screenshot("89-long-message")
+        assertTrue("the last part is the whole text: ${last.length}", last.length < long.length)
+        assertTrue("the last part is over the limit: ${last.length}", last.length <= 4096)
     }
 
     /** Settings → For geeks → More in a message's menu, flipped. */

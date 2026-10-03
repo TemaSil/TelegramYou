@@ -1,6 +1,18 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.LoadingIndicator
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import com.telegramyou.app.TelegramYouApp
+import com.telegramyou.app.media.TelegramFileDataSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import coil3.compose.AsyncImage
 import com.telegramyou.app.ui.icons.Symbols
 import android.view.TextureView
@@ -98,16 +110,25 @@ fun VideoPlayerScreen(
  * MediaGallery. [active] is whether it is the page in view — the player
  * exists only then, and a page beside it shows the video's poster.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun VideoPage(
     video: VideoContent,
     title: String,
     transfer: FileTransfer? = null,
     active: Boolean,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    /** Off in the gallery, which draws its own Close over every page. */
+    showClose: Boolean = true
 ) {
-    val path = video.path
     val context = LocalContext.current
+    val files = (context.applicationContext as TelegramYouApp).telegramRepository
+    // On the phone, played from there; otherwise played as it downloads
+    // (1.9), as the official client does, rather than after — a video used
+    // to wait for its last byte before its first frame.
+    val streamedId = video.fileId?.takeIf { video.path == null && files.canStream }
+    val path = video.path ?: streamedId?.let { TelegramFileDataSource.uriOf(it).toString() }
 
     var isPlaying by remember { mutableStateOf(true) }
     var position by remember { mutableLongStateOf(0L) }
@@ -120,6 +141,8 @@ fun VideoPage(
     // One speed for every video, kept while the app runs: a person who
     // watches at 1.5× wants the next one at 1.5× too.
     var speed by remember { mutableFloatStateOf(lastPlaybackSpeed) }
+    // Waiting for bytes: while it streams, the player says so.
+    var buffering by remember { mutableStateOf(false) }
 
     // One player for the life of this dialog, released with it. A player left
     // running holds a codec, and codecs are a fixed and small number.
@@ -127,7 +150,9 @@ fun VideoPage(
     // player each would hold codecs for videos nobody is watching.
     val player = remember(path, active) {
         path?.takeIf { active }?.let { source ->
-            ExoPlayer.Builder(context).build().apply {
+            ExoPlayer.Builder(context)
+                .setMediaSourceFactory(DefaultMediaSourceFactory(TelegramFileDataSource.Factory(context, files)))
+                .build().apply {
                 setMediaItem(MediaItem.fromUri(source))
                 prepare()
                 playWhenReady = true
@@ -165,11 +190,18 @@ fun VideoPage(
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
             }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                buffering = playbackState == Player.STATE_BUFFERING
+            }
         }
         player?.addListener(listener)
         onDispose {
             player?.removeListener(listener)
             player?.release()
+            // Closed before the end of it: the rest is not fetched for
+            // nobody. What came stays, and plays from the phone next time.
+            streamedId?.let { id -> streamScope.launch { files.stopStreaming(id) } }
         }
     }
 
@@ -264,33 +296,39 @@ fun VideoPage(
                     .fillMaxWidth()
                     .aspectRatio(video.aspect.coerceIn(0.4f, 2.5f))
             )
+            if (buffering) LoadingIndicator()
         }
 
         // In the PiP window only the picture: there is no room for controls.
         if (!inPip) {
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-            ) {
-                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
+            if (showClose) {
+                FilledTonalIconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .statusBarsPadding()
+                        .padding(12.dp)
+                ) {
+                    Icon(Symbols.Close, contentDescription = "Close")
+                }
             }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(8.dp)
+                    .statusBarsPadding()
+                    .padding(12.dp)
             ) {
-                // The speed, a tap a step: 1×, 1.5×, 2×, 0.5×. A text button —
-                // what it says is the state, and there are only four of them.
-                TextButton(
+                // The speed, a tap a step: 1×, 1.5×, 2×, 0.5×. What it says
+                // is the state, and there are only four of them — a tonal
+                // button, as the close beside it.
+                FilledTonalButton(
                     onClick = {
                         speed = nextPlaybackSpeed(speed)
                         lastPlaybackSpeed = speed
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
                     modifier = Modifier.semantics {
                         contentDescription = "Playback speed ${playbackSpeedLabel(speed)}"
                     }
@@ -299,8 +337,8 @@ fun VideoPage(
                 }
                 // Into the small window now, rather than on leaving.
                 if (player != null) {
-                    IconButton(onClick = { PictureInPicture.enter(context, pipAspect) }) {
-                        Icon(Symbols.PictureInPictureAlt, contentDescription = "Picture in picture", tint = Color.White)
+                    FilledTonalIconButton(onClick = { PictureInPicture.enter(context, pipAspect) }) {
+                        Icon(Symbols.PictureInPictureAlt, contentDescription = "Picture in picture")
                     }
                 }
             }
@@ -309,6 +347,7 @@ fun VideoPage(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    .navigationBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -370,6 +409,9 @@ fun VideoPage(
         }
     }
 }
+
+/** Where a stream is stopped from, after the page that played it has gone. */
+private val streamScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /** The speed the last video was left at, for the next one; see VideoPage. */
 private var lastPlaybackSpeed = 1f

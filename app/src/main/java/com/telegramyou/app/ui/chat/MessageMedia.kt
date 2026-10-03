@@ -138,7 +138,9 @@ fun PhotoPage(
      * go is undone on the way, so it lands where the bubble is rather than
      * as far below it as the finger took it.
      */
-    closing: Boolean = false
+    closing: Boolean = false,
+    /** Off in the gallery, which draws its own Close over every page. */
+    showClose: Boolean = true
 ) {
     // Where the photo is and how big, and how far a drag has taken it towards
     // being let go. Both are remembered per photo rather than hoisted: a
@@ -253,15 +255,17 @@ fun PhotoPage(
                     .alpha(if (zoom.isZoomed) 0f else 1f - progress)
             )
         }
-        IconButton(
-            onClick = onDismiss,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .statusBarsPadding()
-                .padding(8.dp)
-                .alpha(1f - progress)
-        ) {
-            Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
+        if (showClose) {
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .statusBarsPadding()
+                    .padding(8.dp)
+                    .alpha(1f - progress)
+            ) {
+                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
+            }
         }
     }
 }

@@ -1,6 +1,18 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import com.telegramyou.app.TelegramYouApp
+import com.telegramyou.app.ui.icons.Symbols
+import com.telegramyou.app.ui.theme.appColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.rememberCoroutineScope
@@ -88,16 +100,44 @@ fun MediaGallery(
     // Back is the dialog's to report; it closes the way a tap on Close does.
     Dialog(
         onDismissRequest = { close() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        // Out to the edges, under the status and navigation bars: inside
+        // them the bars showed the chat through, which the owner saw as a
+        // transparent navigation bar over the viewer (1.9).
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
+        // The viewer is dark whatever the app is, in the wallpaper's colours
+        // all the same: its buttons are tonal ones of the dark scheme.
+        val appearance by (LocalContext.current.applicationContext as TelegramYouApp)
+            .appearance.settings.collectAsState()
+        MaterialExpressiveTheme(
+            colorScheme = appColorScheme(
+                darkTheme = true,
+                dynamicColor = appearance.dynamicColor,
+                accent = appearance.accent,
+                pureBlack = appearance.pureBlack
+            ),
+            motionScheme = MaterialTheme.motionScheme,
+            shapes = MaterialTheme.shapes,
+            typography = MaterialTheme.typography
+        ) {
         // The window's own fade and dim are off: the gallery draws both
         // itself, in step with the photo it grows out of. Left on, the
         // window faded over the top of that, and on a slow phone it could
         // be caught half gone, over a chat that was already back.
-        val window = (LocalView.current.parent as? DialogWindowProvider)?.window
+        val view = LocalView.current
+        val window = (view.parent as? DialogWindowProvider)?.window
         SideEffect {
             window?.setWindowAnimations(0)
             window?.setDimAmount(0f)
+            window?.let { w ->
+                // Light icons on the dark viewer, and no scrim of the
+                // system's own behind the navigation bar.
+                WindowCompat.getInsetsController(w, view).apply {
+                    isAppearanceLightStatusBars = false
+                    isAppearanceLightNavigationBars = false
+                }
+                if (android.os.Build.VERSION.SDK_INT >= 29) w.isNavigationBarContrastEnforced = false
+            }
         }
         val pager = rememberPagerState(
             initialPage = items.indexOfFirst { it.id == startId }.coerceAtLeast(0)
@@ -171,7 +211,8 @@ fun MediaGallery(
                             title = message.text,
                             transfer = video.fileId?.let { transfers[it] },
                             active = page == pager.currentPage,
-                            onClose = close
+                            onClose = close,
+                            showClose = false
                         )
                     } else {
                         PhotoPage(
@@ -179,23 +220,45 @@ fun MediaGallery(
                             caption = message.text,
                             onDismiss = close,
                             onZoomChanged = { if (page == pager.currentPage) zoomed = it },
-                            closing = closing
+                            closing = closing,
+                            showClose = false
                         )
                     }
                 }
             }
-            if (items.size > 1) {
-                Text(
-                    "${pager.currentPage + 1} of ${items.size}",
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .statusBarsPadding()
-                        .padding(top = 20.dp)
-                        .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
-                )
+            // The viewer's own chrome, over every page and still while they
+            // swipe: Close as a tonal button, and where this is among the
+            // chat's photos as a pill — Expressive's containers rather than
+            // white glyphs straight on the picture.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(12.dp)
+                    .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
+            ) {
+                FilledTonalIconButton(
+                    onClick = close,
+                    modifier = Modifier.align(Alignment.CenterStart)
+                ) {
+                    Icon(Symbols.Close, contentDescription = "Close")
+                }
+                if (items.size > 1) {
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.align(Alignment.Center)
+                    ) {
+                        Text(
+                            "${pager.currentPage + 1} of ${items.size}",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
             }
+        }
         }
     }
 }
