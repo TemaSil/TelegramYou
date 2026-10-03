@@ -49,7 +49,7 @@ are misleading — `ChatActivity` alone is tens of thousands of lines. Most of
 the work in a client sits in very few places, which is why the order below
 starts where it does.
 
-## Where it stands, 2 October 2026 — version 1.8
+## Where it stands, 3 October 2026 — version 1.9
 
 Read this part first. What follows it is the log of how each release came
 to be, with the reasons; the release notes themselves are in
@@ -71,7 +71,8 @@ top of that, from the releases since:
   admins and permissions, invite links primary and additional, join
   requests, member search, creating groups and channels.
 - **Media:** photos and an album viewer that open out of their bubble
-  and close back into it (1.8), video with speed and picture-in-picture, shared media by kind, a download manager, files
+  and close back into it (1.8), video that plays while it downloads (1.9)
+  with speed and picture-in-picture, shared media by kind, a download manager, files
   opened in other apps.
 - **Music:** a player in the shade and on the lock screen, a queue with
   Up next, offline downloads, sleep timer, a mini player floating over the
@@ -103,10 +104,11 @@ top of that, from the releases since:
 
 **Open, from the owner's use:**
 
-- **Music that skips or stops by itself**, sometimes — not reproduced.
-  1.7 logs every play, pause and skip with the system's reason (For geeks
-  → Diagnostics → Player log) and no longer stops in silence when a track
-  fails to load or play; the next step waits for a log of it happening.
+- **Music that skipped by itself** — found in the owner's log on 3
+  October and fixed in 1.9: an MP3 resumed mid-way was seeked past its
+  end by a bitrate guess. "Held silent by the system" in the same log is
+  audio focus lent to another sound for a while, which is as it should
+  be; worth a look only if it happens with nothing else playing.
 
 **Next, as of 2 October** — in the order it seems worth doing:
 
@@ -128,6 +130,23 @@ top of that, from the releases since:
 
 What was asked for and how it went, release by release, kept for the
 reasons. The summary is above; the notes are in `CHANGELOG.md`.
+
+**1.9 — 3 October: playing as it downloads.** From the owner's list
+after a day with 1.8:
+- **Streaming**, video and music: `TelegramFileDataSource` gives Media3
+  a Telegram file as `tgfile://<id>`, asks TDLib to download from the
+  offset being read (`downloadFile` with an offset, not synchronous) and
+  reads what `getFileDownloadedPrefixSize` says is there straight off the
+  phone. What arrived stays; closing a video stops the rest. The demo
+  writes its files into the cache a slice at a time so the UI test plays
+  through the same path.
+- **The skips**, from the player log: an MP3 resumed at minute fifty was
+  seeked past its end and failed twice. MP3s now seek by an index of
+  their frames, and that error retries from the top.
+- **Long messages** in parts (`splitLongText` in `:core`), formatting
+  carried across each cut, instead of "Message is too long".
+- **The viewer** edge to edge, under both bars, with a tonal Close and a
+  count pill in the dark scheme of the wallpaper's colours.
 
 **1.8 — 2 October: translation, the Nekogram pack, media out of its
 bubble.**
