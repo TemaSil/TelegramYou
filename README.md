@@ -109,13 +109,13 @@ Signing in takes a phone number (the country guessed from the SIM), a QR
 code from another phone, Telegram's login email and two-step passwords. On
 a wide screen the navigation becomes a rail.
 
-## Latest: 1.8 · 2 October 2026
+## Latest: 1.9 · 3 October 2026
 
-Translate a message from its menu, into the phone's language; photos and
-videos open out of their bubble and close back into it. For geeks
-gains a longer message menu — repeat, save to Saved Messages, delete a
-downloaded file — and pull down for the archive, blocked people hidden in
-groups, recordings checked before sending, and silence for strangers.
+Videos and music play while they download, as in the official app, and
+keep what arrived. A long track resumed mid-way is no longer skipped,
+long messages go in parts instead of being refused, and the photo and
+video viewer covers the navigation bar, with Material's own Close and
+count.
 
 Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
 [all releases](https://github.com/TemaSil/TelegramYou/releases) ·

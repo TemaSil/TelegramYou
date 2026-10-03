@@ -9,6 +9,15 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 1.9
+
+- **Videos play while they download**, as in the official app, instead of after the whole file has arrived — from wherever you seek to, with a loading indicator while it waits. What has arrived stays on the phone, so the second time it plays from there; closing a video stops the rest of its download.
+- **Music streams the same way** — a track that is not on the phone starts at once rather than after "fetching".
+- **Fixed: a long track resumed in the middle could be skipped.** Found in the player log you sent: a radio mix, resumed where it was left, failed twice with "position out of range" and was skipped. MP3s are now seeked by an index of their frames instead of a guess from the bitrate, and a track that fails that way starts again from the top. The player log also stops listing its own pause and play around each track as if they were taps.
+- **Long messages are sent in parts**, as the official app does, instead of "Message is too long" — cut at a paragraph, a line, a sentence or a space, with the formatting kept on both sides of a cut.
+- **The viewer covers the navigation bar**, which used to show the chat through it.
+- **Close and the photo count in the viewer, in Material's style**: a tonal button and a pill in the wallpaper's colours; the video's speed and picture-in-picture buttons match.
+
 ## 1.8
 
 - **Translate a message** — from its menu, into the phone's language, by Telegram's own translator: the one the official client uses, so the result is the same. The text can be selected or copied whole.
