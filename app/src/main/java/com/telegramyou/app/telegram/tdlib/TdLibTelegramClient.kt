@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.splitLongText
+import com.telegramyou.app.telegram.model.TextSpan
 import android.media.MediaMetadataRetriever
 import com.telegramyou.app.telegram.model.STORY_VIDEO_MAX_SECONDS
 import com.telegramyou.app.telegram.model.StoryAudience
@@ -2266,8 +2268,56 @@ class TdLibTelegramClient(
         sendFormatted(chatId, parsed, replyToId, sendAt)
     }
 
-    /** A text already made into TDLib's formattedText, sent now or at [sendAt]. */
+    /**
+     * A text already made into TDLib's formattedText, sent now or at
+     * [sendAt] — as several messages when it is longer than Telegram takes
+     * in one, cut where a reader would and with its formatting carried
+     * across (splitLongText). Only the first answers [replyToId]. Telegram
+     * used to refuse such a text outright with "Message is too long"; the
+     * official client cuts it, and so does this (1.8.1).
+     */
     private suspend fun sendFormatted(chatId: Long, text: JSONObject, replyToId: Long?, sendAt: Long?) {
+        val raw = text.optJSONArray("entities") ?: JSONArray()
+        val spans = (0 until raw.length()).map { i ->
+            val entity = raw.getJSONObject(i)
+            TextSpan(entity.optInt("offset"), entity.optInt("length"), entity.optJSONObject("type") ?: JSONObject())
+        }
+        splitLongText(text.optString("text"), spans, messageTextLimit()).forEachIndexed { index, part ->
+            val entities = JSONArray()
+            part.entities.forEach { span ->
+                entities.put(
+                    JSONObject()
+                        .put("@type", "textEntity")
+                        .put("offset", span.offset)
+                        .put("length", span.length)
+                        .put("type", span.type)
+                )
+            }
+            sendFormattedPart(
+                chatId,
+                JSONObject().put("@type", "formattedText").put("text", part.text).put("entities", entities),
+                if (index == 0) replyToId else null,
+                sendAt
+            )
+        }
+    }
+
+    /** Telegram's limit on a message's text, asked once; 4096 until it answers. */
+    private var textLimit: Int? = null
+
+    private suspend fun messageTextLimit(): Int = textLimit ?: try {
+        val option = requireEngine().send(
+            JSONObject().put("@type", "getOption").put("name", "message_text_length_max")
+        )
+        (option.optString("value").toIntOrNull() ?: option.optInt("value"))
+            .takeIf { it > 0 }
+            ?.also { textLimit = it }
+            ?: DEFAULT_TEXT_LIMIT
+    } catch (e: TdLibException) {
+        DEFAULT_TEXT_LIMIT
+    }
+
+    private suspend fun sendFormattedPart(chatId: Long, text: JSONObject, replyToId: Long?, sendAt: Long?) {
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
@@ -4802,6 +4852,8 @@ class TdLibTelegramClient(
 
     companion object {
         private const val TAG = "TdLibTelegramClient"
+        /** Telegram's limit on a message's text, until the server says otherwise. */
+        private const val DEFAULT_TEXT_LIMIT = 4096
         /** Above the app's own fetches, below nothing: somebody asked for this one. */
         private const val DOWNLOAD_PRIORITY = 30
         /** One page is the whole list for anyone but a hoarder; see fileDownloads. */

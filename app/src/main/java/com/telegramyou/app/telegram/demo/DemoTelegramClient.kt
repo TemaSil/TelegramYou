@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.splitLongText
+import com.telegramyou.app.telegram.model.TextSpan
 import com.telegramyou.app.telegram.model.ForumTopic
 import com.telegramyou.app.telegram.model.SharedMediaKind
 import com.telegramyou.app.telegram.model.DownloadEntry
@@ -1362,13 +1364,18 @@ class DemoTelegramClient(
             return
         }
         val (plain, entities) = parseMarkdown(text)
-        appendOutgoing(
-            chatId = chatId,
-            text = plain,
-            type = MessageContentType.Text,
-            replyToId = replyToId,
-            entities = entities
-        )
+        // Cut as the live backend cuts a text over Telegram's limit, so the
+        // UI test sees the parts arrive (1.8.1).
+        val spans = entities.map { TextSpan(it.offset, it.length, it.type) }
+        splitLongText(plain, spans, DEMO_TEXT_LIMIT).forEachIndexed { index, part ->
+            appendOutgoing(
+                chatId = chatId,
+                text = part.text,
+                type = MessageContentType.Text,
+                replyToId = if (index == 0) replyToId else null,
+                entities = part.entities.map { TextEntity(it.offset, it.length, it.type) }
+            )
+        }
         if (chatId == BOT_CHAT_ID) scope.launch {
             delay(500)
             val answer = when (text.trim()) {
@@ -3008,6 +3015,9 @@ private const val DEMO_ADDED_BASE = 3000L
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L
+
+/** Telegram's limit on a message's text, which the demo cuts at as the live backend does. */
+private const val DEMO_TEXT_LIMIT = 4096
 
 /** The demo's music channel; see musicChannel. */
 private const val MUSIC_CHANNEL_ID = 13L
