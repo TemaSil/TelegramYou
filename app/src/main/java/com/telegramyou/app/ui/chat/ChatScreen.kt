@@ -296,7 +296,13 @@ fun ChatScreen(
     // bubble flew to its new place at once — date chips and messages drawn
     // across each other, caught that way in the search screenshot. After a
     // jump the list waits to settle exactly as it does after opening.
-    val animateItems = itemsAnimate && state.scrollTarget == null
+    //
+    // And not at all while the history on screen is a jumped-to stretch
+    // (isDetached): its pages keep arriving above and below it after the
+    // settle, and the bubbles were still caught drawn across each other in
+    // the dark-theme screenshots of 6 October, a second and a half after
+    // the jump. Back at the latest messages, the animations come back.
+    val animateItems = itemsAnimate && state.scrollTarget == null && !state.isDetached
     LaunchedEffect(state.scrollTarget) {
         if (state.scrollTarget != null) {
             itemsAnimate = false
