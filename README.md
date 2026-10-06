@@ -4,8 +4,7 @@
 
 **Telegram that looks and behaves like Android.**
 
-Material 3 Expressive, colour from your wallpaper, the platform's own motion —
-a Telegram client built from stock Android parts instead of drawn by hand.
+Material 3 Expressive, colours from your wallpaper, Android's own motion.
 
 [![Latest release](https://img.shields.io/github/v/release/TemaSil/TelegramYou?label=release&style=for-the-badge)](https://github.com/TemaSil/TelegramYou/releases/latest)
 ![Android 8+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
@@ -28,98 +27,42 @@ sign in with your own Telegram account · updates itself from Settings → About
 
 ## Why
 
-The official Android client draws its entire interface by hand — hundreds of
-custom views, no Material components — and now imitates another platform's
-glass. Whatever it looks like, it is never Android.
+The official Android app draws everything by hand and now copies iOS glass.
+It never looks like Android.
 
-TelegramYou is the other bet. **You** is Material You: the palette comes from
-your wallpaper, so the app looks like *your* phone. The components are the
-ones every other Android app uses, with their metrics, state layers and
-accessibility. Custom drawing is kept for the few things Material has no
-answer to — the voice waveform, delivery ticks, the typing indicator and the
-chat wallpaper.
+This one does. **You** is Material You: colours from your wallpaper, stock
+Material 3 Expressive components, Android's own motion. Custom drawing only
+where Material has nothing: voice waveform, ticks, typing dots, chat
+wallpaper.
 
-## What it does
+## What's inside
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 💬 Conversations
-Replies, edits, forwarding and multi-select with Material checkboxes.
-Reactions — including Telegram's animated and Premium ones. Pinned
-messages, an unread divider, search that jumps to any message however old,
-and swipe to reply. Animated emoji, Premium custom emoji in the text,
-formatting, link previews, polls and quizzes, bot buttons and keyboards,
-scheduled messages.
-
-</td>
-<td width="50%" valign="top">
-
-### 😀 Emoji, GIFs, stickers
-One panel in the keyboard's place — Android's own emoji picker, GIF search
-and your saved GIFs, sticker sets with animated and video stickers — and it
-pulls up to three quarters of the screen by its handle. A lone emoji is
-sent big.
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 🖼 Media
-Photos and videos out to the bubble's edges that sharpen from a blurred
-preview as they load, a full-screen viewer you swipe through, GIFs and round
-video messages that play in place, voice messages with a waveform, music,
-files, contacts and places as cards.
-
-</td>
-<td valign="top">
-
-### 🎨 Yours
-Dynamic colour or one of eight accents, light, dark and pure black, chat
-colours taken from the other person's photo, nine wallpapers, three tones
-for your messages, bubble corners and message text size, shaped avatars,
-two-line previews and a calmer motion setting.
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 🗂 Chat list
-Folders as tabs you swipe between — created, edited and reordered in the
-app — stories above them, an archive, and a search section of its own:
-people you write to, recent searches, chats, messages, channels, bots and
-posts across Telegram.
-
-</td>
-<td valign="top">
-
-### 🔒 Private
-App lock with a PIN or your fingerprint, hidden from recent apps. Privacy
-rules, blocked people, every signed-in device endable, data and storage
-cleared by kind, proxies, per-chat notifications and replies from the shade.
-
-</td>
-</tr>
-</table>
-
-Signing in takes a phone number (the country guessed from the SIM), a QR
-code from another phone, Telegram's login email and two-step passwords. On
-a wide screen the navigation becomes a rail.
+- **Chats** — replies, edits, forwards, reactions (Premium too), pins,
+  search in a chat, polls, bots, scheduled messages, long messages split
+  in parts, translation.
+- **Emoji, GIFs, stickers** — one panel instead of the keyboard, animated
+  and video stickers, custom emoji.
+- **Media** — photos and videos that play while they download, a viewer
+  that opens from the bubble, round video messages, voice, music with a
+  player and a queue, files.
+- **Chat list** — folders as tabs, stories, archive, search across
+  Telegram.
+- **Look** — wallpaper colours or eight accents, light, dark, pure black,
+  chat backgrounds, bubble and text sizes, less motion.
+- **Privacy** — app lock with PIN or fingerprint, privacy rules, blocked
+  people, devices, storage, proxies.
+- **Sign in** — phone, QR code, login email, two-step password. Tablets
+  get a navigation rail.
 
 ## Latest: 1.9 · 3 October 2026
 
-Videos and music play while they download, as in the official app, and
-keep what arrived. A long track resumed mid-way is no longer skipped,
-long messages go in parts instead of being refused, and the photo and
-video viewer covers the navigation bar, with Material's own Close and
-count.
+Videos and music play while they download. A long track resumed mid-way
+isn't skipped anymore. Long messages go in parts. The viewer covers the
+navigation bar and got Material's Close and counter.
 
-Every version, what changed and why: **[CHANGELOG.md](CHANGELOG.md)** ·
-[all releases](https://github.com/TemaSil/TelegramYou/releases) ·
-what comes next: [ROADMAP.md](ROADMAP.md)
+All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
+[releases](https://github.com/TemaSil/TelegramYou/releases) ·
+next: [ROADMAP.md](ROADMAP.md)
 
 ## Screenshots
 
@@ -143,38 +86,34 @@ what comes next: [ROADMAP.md](ROADMAP.md)
 |:---:|:---:|:---:|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="240" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/42-profile.jpg" width="240" alt="Profile"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="240" alt="Settings"> |
 
-None of these is drawn for this page. The **UI** workflow drives the app on
-an emulator after every push to `main` and photographs what it sees, so they
-change the moment a screen does. The same screens from **every** build are in
-the [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme).
+Real screens, not mockups: the UI tests take them on an emulator after every
+push to `main`. Every build's set is in the
+[**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme).
 
 ## Installing
 
 1. Download [**TelegramYou.apk**](https://github.com/TemaSil/TelegramYou/releases/latest/download/TelegramYou.apk)
-   and open it; Android asks once whether to allow installing from this source.
-2. Sign in with your Telegram account — it is the live client, talking to
-   Telegram through the official [TDLib](https://core.telegram.org/tdlib).
-3. Later versions arrive by themselves: **Settings → About → Check for
-   updates**, and a dot on the Settings tab says when there is one.
+   and open it. Android asks once to allow installs from this source.
+2. Sign in with your Telegram account. It's a real client on the official
+   [TDLib](https://core.telegram.org/tdlib).
+3. Updates: **Settings → About → Check for updates**. A dot on Settings
+   means there's one.
 
-For testing there is also
-[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk),
-rebuilt from `main` on every green push, with an offline demo inside. It
-installs beside the release as a separate app.
+There's also
+[TelegramYou-debug.apk](https://github.com/TemaSil/TelegramYou/releases/download/latest/TelegramYou-debug.apk)
+for testing: built from `main` on every green push, with an offline demo.
+It installs as a separate app.
 
-> A download link says **Page not found**? The browser cached a 404 from
-> before the release existed — reload ignoring the cache (Ctrl+Shift+R, or
-> ⌘+Shift+R on a Mac) or use a private window.
+> Download link says **Page not found**? The browser cached an old 404 —
+> hard-reload (Ctrl+Shift+R, ⌘+Shift+R on a Mac) or use a private window.
 
 ---
 
 ## For developers
 
-The stack is deliberately the newest: Kotlin 2.4, Jetpack Compose,
-`material3` 1.5 alpha (the only way to reach Material 3 Expressive), Android
-Gradle plugin 9. `ROADMAP.md` maps what a complete client contains onto the
-Material component each part should use; `ARCHITECTURE.md` describes the
-layers; `CLAUDE.md` holds the working rules.
+Kotlin 2.4, Jetpack Compose, `material3` 1.5 alpha (Expressive is only
+there), AGP 9. Plans are in `ROADMAP.md`, layers in `ARCHITECTURE.md`, rules
+in `CLAUDE.md`.
 
 <details>
 <summary><b>Building</b></summary>
@@ -183,12 +122,10 @@ layers; `CLAUDE.md` holds the working rules.
 gradlew.bat :app:assembleDebug
 ```
 
-Without credentials that builds the **demo** client: the whole interface,
-offline, login code `12345`, no account and no keys. It is enough for most
-work on the interface. The APK lands at
-`app\build\outputs\apk\debug\TelegramYou-<version>-debug.apk`.
+Without keys this builds the **demo**: the whole app offline, login code
+`12345`. Enough for most UI work.
 
-The pure-Kotlin module needs neither the SDK nor Google's Maven:
+The plain Kotlin module builds without the Android SDK:
 
 ```
 gradlew :core:check --configure-on-demand
@@ -204,7 +141,7 @@ gradlew :core:check --configure-on-demand
 <details>
 <summary><b>Going live</b></summary>
 
-1. Create an application at [my.telegram.org](https://my.telegram.org) →
+1. Make an app at [my.telegram.org](https://my.telegram.org) →
    **API development tools**.
 2. Copy `local.properties.example` to `local.properties` and fill in:
 
@@ -213,34 +150,29 @@ gradlew :core:check --configure-on-demand
    TELEGRAM_API_HASH=your_api_hash_here
    ```
 
-3. With a phone connected, `gradlew.bat :app:installDebug`. The first live
-   build downloads TDLib's libraries by itself.
+3. Phone connected: `gradlew.bat :app:installDebug`. The first live build
+   fetches TDLib by itself.
 
-> `local.properties` is git-ignored and must stay that way. An `api_hash`
-> **cannot be reissued** — commit one and it is public for good. On CI the
-> keys live only in the repository's `TELEGRAM_API_ID` and
-> `TELEGRAM_API_HASH` secrets; a fork without them builds the demo.
+> `local.properties` is git-ignored — keep it that way. An `api_hash`
+> **can't be reissued**: commit it once and it's public forever. On CI the
+> keys are only in the `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` secrets; a
+> fork without them builds the demo.
 
 </details>
 
 <details>
 <summary><b>Native TDLib</b></summary>
 
-`app/src/main/jniLibs/` is empty in a fresh clone — the `.so` files are tens
-of megabytes each. One command fetches them from this repository's pinned
-`tdlib-java-<sha>` release, checks the sha256 and unpacks every ABI:
+`app/src/main/jniLibs/` is empty in a fresh clone — the `.so` files are too
+big for git. This fetches them from the pinned `tdlib-java-<sha>` release:
 
 ```bat
 gradlew.bat :app:fetchTdlib
 ```
 
-A live build runs it by itself when the libraries are missing; the demo never
-downloads anything. The release is made by Actions → **Build TDLib**, which
-compiles OpenSSL and TDLib for every Android ABI in a bit over an hour.
-
-It builds TDLib's **JSONJava** interface — `libtdjsonjava.so`, which
-`org.drinkless.tdlib.JsonClient` loads. A plain JSON build's `libtdjson.so`
-cannot be substituted.
+A live build runs it by itself; the demo needs nothing. The libraries come
+from Actions → **Build TDLib** (about an hour). It has to be the
+**JSONJava** build, `libtdjsonjava.so` — a plain `libtdjson.so` won't load.
 
 </details>
 

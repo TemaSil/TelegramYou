@@ -74,6 +74,9 @@ class SmokeTest {
         // else. Nothing is lost: the reply test opens the shade itself, and
         // what it looks for is in there either way.
         device.executeShellCommand("settings put global heads_up_notifications_enabled 0")
+        // Dark, on the owner's word: the screenshots on the front page are
+        // taken from these runs, and the app follows the system's theme.
+        device.executeShellCommand("cmd uimode night yes")
         device.pressHome()
         launchApp()
     }
@@ -3291,9 +3294,43 @@ class SmokeTest {
      * APK that is still there afterwards, and AGP collects what it holds into
      * build/outputs.
      */
+    /**
+     * The screen once it has stopped moving. Taken straight away, the front
+     * page's pictures caught transitions half-way — the tabs of the page
+     * before showing through Settings, a tablet layout half drawn, a sheet
+     * on its way up. Two frames a moment apart that agree are taken as
+     * still; something that never stops (a video, a typing indicator over a
+     * large area) is taken as it is after a few seconds.
+     */
     private fun screenshot(name: String) {
-        val shot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        shot.writeToTestStorage(name)
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        device.waitForIdle(IDLE_TIMEOUT)
+        var shot = automation.takeScreenshot()
+        val deadline = SystemClock.uptimeMillis() + SCREENSHOT_SETTLE_MS
+        while (shot != null && SystemClock.uptimeMillis() < deadline) {
+            SystemClock.sleep(SCREENSHOT_FRAME_GAP_MS)
+            val next = automation.takeScreenshot() ?: break
+            val still = looksTheSame(shot, next)
+            shot.recycle()
+            shot = next
+            if (still) break
+        }
+        shot?.writeToTestStorage(name)
+    }
+
+    /** Whether two frames differ in no more than a sliver: a clock, a cursor, a typing dot. */
+    private fun looksTheSame(a: android.graphics.Bitmap, b: android.graphics.Bitmap): Boolean {
+        if (a.width != b.width || a.height != b.height) return false
+        val w = a.width / 8
+        val h = a.height / 8
+        val small = android.graphics.Bitmap.createScaledBitmap(a, w, h, false)
+        val other = android.graphics.Bitmap.createScaledBitmap(b, w, h, false)
+        val first = IntArray(w * h).also { small.getPixels(it, 0, w, 0, 0, w, h) }
+        val second = IntArray(w * h).also { other.getPixels(it, 0, w, 0, 0, w, h) }
+        small.recycle()
+        other.recycle()
+        val differing = first.indices.count { first[it] != second[it] }
+        return differing <= first.size / 200
     }
 
     private companion object {
@@ -3313,6 +3350,12 @@ class SmokeTest {
         const val ANSWER_WAIT = 5_000L
 
         const val IDLE_TIMEOUT = 5_000L
+
+        /** The longest a screenshot waits for the screen to stop moving. */
+        const val SCREENSHOT_SETTLE_MS = 3_000L
+
+        /** Between the two frames compared for stillness. */
+        const val SCREENSHOT_FRAME_GAP_MS = 300L
 
         /** A swipe slow enough not to fling, about half a second; see scrollSettingsTo. */
         const val SETTLED_SWIPE_STEPS = 100
