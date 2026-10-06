@@ -182,7 +182,7 @@ class SmokeTest {
         // screenshot of the wrong screen. It has to be a recent one: the
         // conversation opens at the bottom, and the group's oldest message —
         // the first thing anchored on here — was scrolled off the top.
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
 
         // The demo chat speaks on a timer, and its heads-up notification
         // lands across the top of the screen — over the very header this
@@ -205,7 +205,7 @@ class SmokeTest {
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         tap(By.desc("Search in chat"))
         val field = By.clazz("android.widget.EditText").focused(true)
         waitFor(field, "the search field")
@@ -221,6 +221,9 @@ class SmokeTest {
             "the latest messages should have given way to the history around the hit",
             device.hasObject(By.textContains("Reviewing tonight"))
         )
+        // The jump to the hit and its highlight run on a little after the
+        // message is there, with the date chips over the list meanwhile.
+        SystemClock.sleep(1_500)
         screenshot("28-old-search-hit")
         tap(By.desc("Jump to latest"))
         waitFor(By.textContains("Reviewing tonight"), "the latest messages again")
@@ -311,6 +314,9 @@ class SmokeTest {
                     fail("the navigation had no Chats destination")
                     return
                 }
+            // The window takes a moment to be drawn again at the new size;
+            // before that the capture is the old layout in a corner.
+            SystemClock.sleep(2_000)
             screenshot("13-rail")
             assertTrue(
                 "the destinations should be down the side, not across the bottom",
@@ -512,7 +518,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
 
         // The header, which is the title inside the app bar rather than the
         // row in the list behind it — and only once nothing is over it. A
@@ -854,7 +860,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
 
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
 
         tap(By.desc("Attach"))
         allowPhotos()
@@ -1809,7 +1815,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
 
         tap(By.desc("Attach"))
         // The sheet asks for the photos it shows recent ones from; which test
@@ -1920,7 +1926,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         type("Half a thought")
         // Back until the list: the first press only puts the keyboard away.
         repeat(3) {
@@ -2445,7 +2451,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         awaitNoHeadsUp()
         tapTopmost(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
@@ -2491,7 +2497,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         awaitNoHeadsUp()
         tapTopmost(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
@@ -2609,7 +2615,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         awaitNoHeadsUp()
         tapTopmost(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
@@ -3134,7 +3140,7 @@ class SmokeTest {
         waitFor(By.text(GROUP_CHAT), "the chat list")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
-        waitFor(By.textContains("Figma dump"), "the group")
+        waitFor(GROUP_OPEN, "the group")
         awaitNoHeadsUp()
         tap(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
@@ -3350,6 +3356,13 @@ class SmokeTest {
         const val ANSWER_WAIT = 5_000L
 
         const val IDLE_TIMEOUT = 5_000L
+
+        /**
+         * The group open: its header, not a message in it. A message can be
+         * pushed off screen by whatever earlier tests on the same emulator
+         * sent there — two round videos did, and two tests failed.
+         */
+        val GROUP_OPEN: BySelector = By.text("42 members")
 
         /** The longest a screenshot waits for the screen to stop moving. */
         const val SCREENSHOT_SETTLE_MS = 3_000L
