@@ -19,6 +19,17 @@ object AutoTranslate {
     private val _chats = MutableStateFlow<Set<Long>>(emptySet())
     val chats: StateFlow<Set<Long>> = _chats.asStateFlow()
 
+    /**
+     * Whether For geeks → Translate chats is on. The chats keep their own
+     * setting while it is off, and come back translated when it is on.
+     */
+    private val _allowed = MutableStateFlow(false)
+    val allowed: StateFlow<Boolean> = _allowed.asStateFlow()
+
+    fun allow(on: Boolean) {
+        _allowed.value = on
+    }
+
     fun install(context: Context) {
         val prefs = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
         preferences = prefs

@@ -20,6 +20,10 @@ class GeekStore(context: Context) {
     private val _settings = MutableStateFlow(read())
     val settings: StateFlow<GeekSettings> = _settings.asStateFlow()
 
+    init {
+        AutoTranslate.allow(_settings.value.autoTranslate)
+    }
+
     fun update(change: (GeekSettings) -> GeekSettings) {
         _settings.update(change)
         val now = _settings.value
@@ -39,7 +43,9 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_HIDE_BLOCKED, now.hideBlockedInGroups)
             .putBoolean(KEY_CONFIRM_RECORDINGS, now.confirmRecordings)
             .putBoolean(KEY_SILENCE_NON_CONTACTS, now.silenceNonContacts)
+            .putBoolean(KEY_AUTO_TRANSLATE, now.autoTranslate)
             .apply()
+        AutoTranslate.allow(now.autoTranslate)
     }
 
     private fun read(): GeekSettings {
@@ -59,13 +65,15 @@ class GeekStore(context: Context) {
             openArchiveOnPull = preferences.getBoolean(KEY_ARCHIVE_ON_PULL, false),
             hideBlockedInGroups = preferences.getBoolean(KEY_HIDE_BLOCKED, false),
             confirmRecordings = preferences.getBoolean(KEY_CONFIRM_RECORDINGS, false),
-            silenceNonContacts = preferences.getBoolean(KEY_SILENCE_NON_CONTACTS, false)
+            silenceNonContacts = preferences.getBoolean(KEY_SILENCE_NON_CONTACTS, false),
+            autoTranslate = preferences.getBoolean(KEY_AUTO_TRANSLATE, false)
         )
     }
 
     private companion object {
         const val NAME = "geeks"
         const val KEY_DOUBLE_TAP = "double_tap"
+        const val KEY_AUTO_TRANSLATE = "auto_translate"
         const val KEY_SECONDS = "show_seconds"
         const val KEY_DETAILS = "message_details"
         const val KEY_SAVE_MEDIA = "save_media"

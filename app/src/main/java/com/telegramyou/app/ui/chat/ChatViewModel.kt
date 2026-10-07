@@ -1207,7 +1207,8 @@ class ChatViewModel(
     private fun translateAsTheyCome() {
         viewModelScope.launch {
             combine(
-                AutoTranslate.chats.map { chatId in it }.distinctUntilChanged(),
+                combine(AutoTranslate.chats, AutoTranslate.allowed) { chats, allowed -> allowed && chatId in chats }
+                    .distinctUntilChanged(),
                 _uiState.map { state ->
                     state.messages.filter { !it.isOutgoing && it.text.isNotBlank() }.map { it.id }
                 }.distinctUntilChanged()

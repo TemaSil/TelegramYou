@@ -41,7 +41,13 @@ data class GeekSettings(
     /** A voice or video message asked about before it goes, held or locked. */
     val confirmRecordings: Boolean = false,
     /** No sound or vibration for messages from people not in contacts. */
-    val silenceNonContacts: Boolean = false
+    val silenceNonContacts: Boolean = false,
+    /**
+     * Translate chats (2.0): a chat's info offers Translate messages, which
+     * shows what comes into it in the phone's language. Off, no chat is
+     * translated, whatever each was set to.
+     */
+    val autoTranslate: Boolean = false
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */

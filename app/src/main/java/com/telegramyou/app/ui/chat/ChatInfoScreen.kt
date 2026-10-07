@@ -259,6 +259,8 @@ fun ChatInfoScreen(
             )
         }
     ) { padding ->
+        // For geeks → Translate chats offers the switch below; see AutoTranslate.
+        val translateOffered = com.telegramyou.app.settings.LocalGeekSettings.current.autoTranslate
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -363,7 +365,7 @@ fun ChatInfoScreen(
                         onChange = onNotificationsChange
                     )
                 }
-                item(key = "translation") {
+                if (translateOffered) item(key = "translation") {
                     // Into the phone's language, by Telegram's translator —
                     // the one the menu's Translate already uses.
                     ListItem(

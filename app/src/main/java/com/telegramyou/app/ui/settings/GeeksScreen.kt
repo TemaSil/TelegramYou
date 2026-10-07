@@ -210,6 +210,11 @@ fun GeeksScreen(
                     checked = settings.messageExtras
                 ) { on -> onChange { it.copy(messageExtras = on) } }
                 switch(
+                    title = "Translate chats",
+                    summary = "A chat's info can show what comes in, in your phone's language",
+                    checked = settings.autoTranslate
+                ) { on -> onChange { it.copy(autoTranslate = on) } }
+                switch(
                     title = "Hide blocked people in groups",
                     summary = "Their messages are left out of groups you share",
                     checked = settings.hideBlockedInGroups

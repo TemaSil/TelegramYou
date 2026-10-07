@@ -2066,6 +2066,9 @@ class SmokeTest {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
+        setTranslateChats()
+        tap(By.text("Chats"))
+        waitFor(By.text("Material Design"), "the chat list again")
         tap(By.text("Material Design"))
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         tap(By.text("Material Design"))
@@ -2074,10 +2077,28 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.text(Pattern.compile("\\[\\w+] .+")), "an incoming message translated")
         screenshot("92-chat-translated")
+        // Off again, chat and switch both, for the tests after this one.
         tap(By.text("Material Design"))
         scrollDownTo(By.text("Translate messages"))
         tap(By.text("Translate messages"))
+        repeat(3) {
+            if (device.hasObject(By.text("Settings"))) return@repeat
+            device.pressBack()
+            device.wait(Until.hasObject(By.text("Settings")), SHORT_WAIT)
+        }
+        setTranslateChats()
+    }
+
+    /** Settings → For geeks → Translate chats, flipped. */
+    private fun setTranslateChats() {
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("For geeks"))
+        tap(By.text("For geeks"))
+        scrollDownTo(By.text("Translate chats"))
+        tap(By.text("Translate chats"))
         device.pressBack()
+        waitFor(By.text("For geeks"), "the settings again")
     }
 
     /**
