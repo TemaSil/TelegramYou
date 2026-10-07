@@ -19,6 +19,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.semantics.semantics
@@ -344,7 +345,10 @@ internal fun ComposerBar(
     )
     val sendable = value.isNotBlank() || hasAttachment
 
-    val field: @Composable (Modifier, Color) -> Unit = { modifier, fill ->
+    // The field's own shape comes in with its fill: the capsule's field is
+    // drawn in it, where clipping a padded field cut its round ends flat
+    // (2.0, fixed in 2.0.1); the plain one sits in a column that draws it.
+    val field: @Composable (Modifier, Color, Shape) -> Unit = { modifier, fill, shape ->
         if (recordingSince != null) {
             RecordingRow(
                 since = recordingSince,
@@ -358,7 +362,7 @@ internal fun ComposerBar(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = modifier
-                    .padding(vertical = 2.dp)
+                    .padding(vertical = if (capsule) 0.dp else 2.dp)
                     .focusRequester(focusRequester),
                 placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 // Where Telegram keeps it, and every messenger since:
@@ -397,7 +401,7 @@ internal fun ComposerBar(
                         }
                     }
                 },
-                shape = RoundedCornerShape(0.dp),
+                shape = shape,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = fill,
                     unfocusedContainerColor = fill,
@@ -515,7 +519,7 @@ internal fun ComposerBar(
                     ) {
                         Icon(Symbols.AddCircle, contentDescription = "Attach")
                     }
-                    field(Modifier.weight(1f), fill)
+                    field(Modifier.weight(1f), fill, RoundedCornerShape(0.dp))
                 }
             }
             Spacer(Modifier.width(PLAIN_GAP))
@@ -533,7 +537,7 @@ private fun CapsuleComposer(
     recording: Boolean,
     onAttach: () -> Unit,
     camera: @Composable () -> Unit,
-    field: @Composable (Modifier, Color) -> Unit,
+    field: @Composable (Modifier, Color, Shape) -> Unit,
     button: @Composable () -> Unit
 ) {
     // Round on one line, and the same curve however tall the text makes it:
@@ -591,10 +595,9 @@ private fun CapsuleComposer(
             }
             camera()
             field(
-                Modifier
-                    .weight(1f)
-                    .clip(fieldShape),
-                MaterialTheme.colorScheme.surfaceContainerLowest
+                Modifier.weight(1f),
+                MaterialTheme.colorScheme.surfaceContainerLowest,
+                fieldShape
             )
             button()
         }

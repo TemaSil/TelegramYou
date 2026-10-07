@@ -13,7 +13,7 @@ README.md.
 
 - **The navigation bar under the composer is filled** with the chat's background, as the composer's own fade ends, rather than showing the messages that scroll beneath it. The capsule composer in For geeks keeps it clear.
 - **A group's or channel's own picture in its header**, as Telegram shows it, rather than its members' faces. The faces are still there, as a beta under For geeks → Members in a group's header.
-- **The capsule composer's round button back in its place** — 2.0 had it low and against the capsule's edge, and quieter than it was.
+- **The capsule composer as it was before 2.0** — the round button back in its place (2.0 had it low, against the capsule's edge, and quieter), and the field's round ends whole again rather than cut flat.
 
 ## 2.0
 
