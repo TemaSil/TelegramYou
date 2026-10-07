@@ -163,4 +163,30 @@ class NotificationPolicyTest {
     fun `a blank sender counts as no sender`() {
         assertEquals("hello", summaryLine(message(senderName = "   ")))
     }
+
+    @Test
+    fun `old channel posts caught up on opening the channel do not notify`() {
+        val now = 10_000_000L
+        val old = message(timestampMillis = now - 3 * 60 * 60 * 1000L).copy(isGroupOrChannel = true)
+        assertEquals(
+            NotificationDecision.Suppress(SuppressionReason.CaughtUp),
+            decideNotification(old, NotificationContext(nowMillis = now))
+        )
+    }
+
+    @Test
+    fun `a group message that is just in still notifies`() {
+        val now = 10_000_000L
+        val fresh = message(timestampMillis = now - 5_000L).copy(isGroupOrChannel = true)
+        assertTrue(decideNotification(fresh, NotificationContext(nowMillis = now)) is NotificationDecision.Notify)
+    }
+
+    @Test
+    fun `a private message that arrives late still notifies`() {
+        // A person's chat is always pushed; one held up while the phone was
+        // offline is still news when it lands.
+        val now = 10_000_000L
+        val late = message(timestampMillis = now - 30 * 60 * 1000L)
+        assertTrue(decideNotification(late, NotificationContext(nowMillis = now)) is NotificationDecision.Notify)
+    }
 }

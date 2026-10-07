@@ -128,7 +128,10 @@ class TelegramForegroundService : Service() {
                     isOutgoing = message.isOutgoing,
                     isChatMuted = chat?.isMuted == true,
                     showPreview = chat?.notifications?.showPreview ?: true,
-                    sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, chat, message.senderId)
+                    sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, chat, message.senderId),
+                    // A chat not in the list is one being looked at without
+                    // having joined — a channel, as a rule — so it counts.
+                    isGroupOrChannel = chat == null || chat.isGroup || chat.isChannel
                 )
                 val decision = decideNotification(
                     notifiable,

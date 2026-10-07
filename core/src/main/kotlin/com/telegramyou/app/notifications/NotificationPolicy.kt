@@ -29,7 +29,12 @@ data class NotifiableMessage(
     /** Off, and the shade says a message came but not what it says. */
     val showPreview: Boolean = true,
     /** Off, and it arrives without a sound. */
-    val sound: Boolean = true
+    val sound: Boolean = true,
+    /**
+     * A group or a channel rather than one person. Their old messages come
+     * in bulk when the chat is opened — see [SuppressionReason.CaughtUp].
+     */
+    val isGroupOrChannel: Boolean = false
 )
 
 /** What the app knows about itself at the moment the message lands. */
@@ -39,7 +44,9 @@ data class NotificationContext(
     /** False once the activity has stopped. */
     val isAppInForeground: Boolean = false,
     /** Message ids already shown, so a reconnect does not notify twice. */
-    val alreadyNotified: Set<Long> = emptySet()
+    val alreadyNotified: Set<Long> = emptySet(),
+    /** Now, in epoch milliseconds; a parameter so tests do not depend on the clock. */
+    val nowMillis: Long = System.currentTimeMillis()
 )
 
 /** Why a message was not notified. Named, because "false" debugs badly. */
@@ -47,7 +54,15 @@ enum class SuppressionReason {
     OwnMessage,
     ChatMuted,
     ChatIsOpen,
-    AlreadyNotified
+    AlreadyNotified,
+    /**
+     * An old message in a group or a channel, delivered only now. Telegram
+     * does not push every message of a large channel or group; opening it
+     * makes TDLib catch up, and everything it missed arrives as "new" at
+     * once. Notified, that was a flood of notifications for posts hours
+     * old the moment a channel was opened (reported on 7 October).
+     */
+    CaughtUp
 }
 
 sealed interface NotificationDecision {
@@ -79,8 +94,18 @@ fun decideNotification(
         NotificationDecision.Suppress(SuppressionReason.ChatIsOpen)
     message.messageId in context.alreadyNotified ->
         NotificationDecision.Suppress(SuppressionReason.AlreadyNotified)
+    message.isGroupOrChannel && context.nowMillis - message.timestampMillis > CAUGHT_UP_AFTER_MILLIS ->
+        NotificationDecision.Suppress(SuppressionReason.CaughtUp)
     else -> NotificationDecision.Notify(message)
 }
+
+/**
+ * How old a group's or a channel's message can be and still be news. A
+ * person's messages have no such limit: a private chat is always pushed,
+ * and one that arrives late after the phone was offline is still worth the
+ * notification.
+ */
+const val CAUGHT_UP_AFTER_MILLIS = 2 * 60 * 1000L
 
 /**
  * One notification per chat, holding that chat's recent messages — the shape

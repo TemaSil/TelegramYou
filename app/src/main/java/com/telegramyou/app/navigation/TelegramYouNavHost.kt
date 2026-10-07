@@ -1120,7 +1120,10 @@ fun TelegramYouNavHost(
             // leaving rather than on the next chat's arrival: between two
             // conversations there is no open chat, and claiming the old one
             // would silence a message that belongs in the shade.
-            val openChat = state.detail?.chat?.id
+            // From the route, not from the loaded chat: opening a channel
+            // makes TDLib catch up on it at once, and until the chat had
+            // loaded its catch-up was not counted as the chat being read.
+            val openChat = openedChatId.takeIf { it != 0L } ?: state.detail?.chat?.id
             LaunchedEffect(geekSettings.hideBlockedInGroups, state.detail?.chat?.isGroup) {
                 chatViewModel.onHideBlocked(geekSettings.hideBlockedInGroups)
             }
