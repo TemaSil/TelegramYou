@@ -154,6 +154,11 @@ fun MediaGallery(
             if (viewport != null) progress.animateTo(1f, spatial)
         }
 
+        // The controls, up or tapped away on a video (2.0); back with each
+        // new page, so a photo swiped to is never left without its Close.
+        var chrome by remember { mutableStateOf(true) }
+        LaunchedEffect(pager.currentPage) { chrome = true }
+
         val current = items.getOrNull(pager.currentPage)
         // Where the page in view goes back to: taken when the close begins,
         // since the bubble may have moved while the gallery was open.
@@ -212,7 +217,9 @@ fun MediaGallery(
                             transfer = video.fileId?.let { transfers[it] },
                             active = page == pager.currentPage,
                             onClose = close,
-                            showClose = false
+                            showClose = false,
+                            chrome = chrome,
+                            onToggleChrome = { chrome = !chrome }
                         )
                     } else {
                         PhotoPage(
@@ -230,6 +237,11 @@ fun MediaGallery(
             // swipe: Close as a tonal button, and where this is among the
             // chat's photos as a pill — Expressive's containers rather than
             // white glyphs straight on the picture.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = chrome,
+                enter = androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                exit = androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
+            ) {
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -257,6 +269,7 @@ fun MediaGallery(
                         )
                     }
                 }
+            }
             }
         }
         }

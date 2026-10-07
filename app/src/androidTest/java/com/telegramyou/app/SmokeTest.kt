@@ -431,6 +431,17 @@ class SmokeTest {
         tap(By.desc("Playback speed 0.5×"))
         waitFor(By.desc("Playback speed 1×"), "the speed back to normal")
 
+        // One tap on the picture and every control goes, so the video has
+        // the screen (2.0); another, and they are back.
+        device.click(device.displayWidth / 2, device.displayHeight / 2)
+        assertTrue(
+            "the controls stayed up after a tap on the picture",
+            device.wait(Until.gone(By.desc("Pause")), STEP_TIMEOUT)
+        )
+        screenshot("14b-video-immersive")
+        device.click(device.displayWidth / 2, device.displayHeight / 2)
+        waitFor(By.desc("Pause"), "the controls back after a second tap")
+
         // And the other video, whose file has not arrived: since 1.9 it
         // plays as it downloads rather than after — the demo writes it into
         // the cache a slice at a time, as TDLib does — so the player runs,

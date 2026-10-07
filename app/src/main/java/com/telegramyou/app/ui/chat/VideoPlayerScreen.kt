@@ -1,6 +1,22 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.FilledTonalButton
@@ -42,6 +58,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -120,8 +137,23 @@ fun VideoPage(
     active: Boolean,
     onClose: () -> Unit,
     /** Off in the gallery, which draws its own Close over every page. */
-    showClose: Boolean = true
+    showClose: Boolean = true,
+    /**
+     * Whether the controls are up, and how a tap on the picture flips it
+     * (2.0): the gallery holds it, so its own Close and counter go with
+     * them. Null on its own, where the page holds it itself.
+     */
+    chrome: Boolean? = null,
+    onToggleChrome: (() -> Unit)? = null
 ) {
+    var ownChrome by remember { mutableStateOf(true) }
+    val chromeShown = chrome ?: ownChrome
+    val toggleChrome by rememberUpdatedState(onToggleChrome ?: { ownChrome = !ownChrome })
+    // The caption, two lines until it is tapped open — as the official
+    // client does it; open, it scrolls, and the picture dims under it.
+    var captionOpen by remember(title) { mutableStateOf(false) }
+    var captionLong by remember(title) { mutableStateOf(false) }
+    ImmersiveWhile(active && !chromeShown)
     val context = LocalContext.current
     val files = (context.applicationContext as TelegramYouApp).telegramRepository
     // On the phone, played from there; otherwise played as it downloads
@@ -219,7 +251,15 @@ fun VideoPage(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            // One tap on the picture: every control away, and the system's
+            // bars with them, so the video has the whole screen; another,
+            // and they are back. An open caption closes first.
+            .pointerInput(active) {
+                detectTapGestures(onTap = {
+                    if (captionOpen) captionOpen = false else toggleChrome()
+                })
+            },
         contentAlignment = Alignment.Center
     ) {
         if (player == null && !active) {
@@ -299,8 +339,24 @@ fun VideoPage(
             if (buffering) LoadingIndicator()
         }
 
+        // Read over a dimmed picture while the caption is open.
+        AnimatedVisibility(
+            visible = captionOpen && chromeShown && !inPip,
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+            modifier = Modifier.matchParentSize()
+        ) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = CAPTION_SCRIM)))
+        }
+
         // In the PiP window only the picture: there is no room for controls.
-        if (!inPip) {
+        AnimatedVisibility(
+            visible = !inPip && chromeShown,
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+            exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
+            modifier = Modifier.matchParentSize()
+        ) {
+          Box(Modifier.fillMaxSize()) {
             if (showClose) {
                 FilledTonalIconButton(
                     onClick = onClose,
@@ -355,7 +411,19 @@ fun VideoPage(
                     Text(
                         title,
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = if (captionOpen) Int.MAX_VALUE else CAPTION_LINES,
+                        overflow = TextOverflow.Ellipsis,
+                        onTextLayout = { layout -> if (!captionOpen) captionLong = layout.hasVisualOverflow },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = CAPTION_MAX)
+                            .verticalScroll(rememberScrollState())
+                            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
+                            .clickable(
+                                enabled = captionLong || captionOpen,
+                                onClickLabel = if (captionOpen) "Show less" else "Show more"
+                            ) { captionOpen = !captionOpen }
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -406,9 +474,41 @@ fun VideoPage(
                     }
                 }
             }
+          }
         }
     }
 }
+
+/**
+ * The system's bars hidden while [hidden], swiped back in for a moment on
+ * the edge as every video player does it, and shown again when it is not
+ * or when the page goes. The page is in a dialog — a window of its own —
+ * so it is that window's bars that are hidden.
+ */
+@Composable
+private fun ImmersiveWhile(hidden: Boolean) {
+    val view = LocalView.current
+    DisposableEffect(view, hidden) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        if (hidden) {
+            controller?.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller?.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller?.show(WindowInsetsCompat.Type.systemBars())
+        }
+        onDispose { controller?.show(WindowInsetsCompat.Type.systemBars()) }
+    }
+}
+
+/** A caption's lines before it is tapped open. */
+private const val CAPTION_LINES = 2
+
+/** How far an open caption reaches up the screen before it scrolls instead. */
+private val CAPTION_MAX = 320.dp
+
+/** The picture under an open caption, dimmed so it can be read. */
+private const val CAPTION_SCRIM = 0.55f
 
 /** Where a stream is stopped from, after the page that played it has gone. */
 private val streamScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
