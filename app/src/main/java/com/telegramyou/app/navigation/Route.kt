@@ -269,23 +269,32 @@ sealed interface Route {
     }
 
     /**
-     * A conversation — or, with [topicId], one topic of a forum. The topic
-     * is an optional query argument so every existing `chat/{id}` still
-     * means the whole chat.
+     * A conversation — or, with [topicId], one topic of a forum, or with
+     * [threadId], the comments under a channel post in its discussion group
+     * (2.0). Both are optional query arguments, so every existing
+     * `chat/{id}` still means the whole chat.
      */
-    data class Chat(val chatId: Long, val topicId: Int = 0) : Route {
-        override val path = if (topicId == 0) "chat/$chatId" else "chat/$chatId?$ARG_TOPIC_ID=$topicId"
+    data class Chat(val chatId: Long, val topicId: Int = 0, val threadId: Long = 0) : Route {
+        override val path = when {
+            threadId != 0L -> "chat/$chatId?$ARG_THREAD_ID=$threadId"
+            topicId != 0 -> "chat/$chatId?$ARG_TOPIC_ID=$topicId"
+            else -> "chat/$chatId"
+        }
 
         companion object {
             const val ARG_CHAT_ID = "chatId"
             const val ARG_TOPIC_ID = "topicId"
-            const val PATTERN = "chat/{$ARG_CHAT_ID}?$ARG_TOPIC_ID={$ARG_TOPIC_ID}"
+            const val ARG_THREAD_ID = "threadId"
+            const val PATTERN = "chat/{$ARG_CHAT_ID}?$ARG_TOPIC_ID={$ARG_TOPIC_ID}&$ARG_THREAD_ID={$ARG_THREAD_ID}"
             val arguments: List<NamedNavArgument> =
                 listOf(navArgument(ARG_CHAT_ID) { type = NavType.LongType })
-            /** The conversation's own, with the topic that is optional there. */
+            /** The conversation's own, with the topic and the thread that are optional there. */
             val chatArguments: List<NamedNavArgument> = arguments + navArgument(ARG_TOPIC_ID) {
                 type = NavType.IntType
                 defaultValue = 0
+            } + navArgument(ARG_THREAD_ID) {
+                type = NavType.LongType
+                defaultValue = 0L
             }
         }
     }

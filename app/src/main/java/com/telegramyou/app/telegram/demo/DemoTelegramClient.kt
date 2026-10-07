@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
 import com.telegramyou.app.telegram.model.TextSpan
@@ -831,9 +832,12 @@ class DemoTelegramClient(
 
     override suspend fun openChat(chatId: Long): ChatDetail {
         delay(180)
-        // A public chat found by search is readable before it is joined.
+        // A public chat found by search is readable before it is joined, and
+        // a channel's discussion group is reached from its posts' comments.
         val chat = _chats.value.firstOrNull { it.id == chatId }
-            ?: publicChats.first { it.id == chatId }
+            ?: publicChats.firstOrNull { it.id == chatId }
+            ?: discussionChat.takeIf { it.id == chatId }
+            ?: error("No demo chat $chatId")
         chatMessages.getOrPut(chatId) { mutableListOf() }
         val messages = messagesIn(chatId)
         return ChatDetail(
@@ -867,9 +871,32 @@ class DemoTelegramClient(
         if (openTopics[chatId] == topicId) openTopics.remove(chatId)
     }
 
-    /** A chat's messages, or the open topic's when its screen is on one. */
+    /** The comment thread each discussion group's screen is on; see setOpenThread. */
+    private val openThreads = mutableMapOf<Long, Long>()
+
+    override fun setOpenThread(chatId: Long, threadId: Long?) {
+        if (threadId == null) openThreads.remove(chatId) else openThreads[chatId] = threadId
+    }
+
+    override fun closeOpenThread(chatId: Long, threadId: Long) {
+        if (openThreads[chatId] == threadId) openThreads.remove(chatId)
+    }
+
+    /** The news channel's chat, where its posts' comments are written. */
+    private val discussionChat = ChatPreview(
+        DISCUSSION_CHAT_ID, "TelegramYou News Chat", "", "", isGroup = true, avatarColor = 171
+    )
+
+    override suspend fun commentThread(chatId: Long, messageId: Long): CommentThread? {
+        delay(120)
+        val post = chatMessages[chatId].orEmpty().firstOrNull { it.id == messageId }
+        return if (post?.commentCount != null) CommentThread(DISCUSSION_CHAT_ID, messageId) else null
+    }
+
+    /** A chat's messages, or the open topic's or thread's when its screen is on one. */
     private fun messagesIn(chatId: Long): List<ChatMessage> {
         val all = chatMessages[chatId].orEmpty()
+        openThreads[chatId]?.let { thread -> return all.filter { it.threadId == thread } }
         val topic = openTopics[chatId] ?: return all
         return all.filter { it.topicId == topic }
     }
@@ -2260,10 +2287,13 @@ class DemoTelegramClient(
             video = video,
             contact = contact,
             location = location,
-            topicId = openTopics[chatId] ?: 0
+            topicId = openTopics[chatId] ?: 0,
+            threadId = openThreads[chatId] ?: 0
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
+        // A comment counts on its post, as Telegram's would.
+        if (msg.threadId != 0L) countComment(msg.threadId)
         // The conversation on screen draws our own message from this, the
         // same way it draws one arriving — it no longer fetches itself again
         // after a send.
@@ -2415,6 +2445,14 @@ class DemoTelegramClient(
         delay(300)
         _chats.value.firstOrNull { it.title == DEMO_JOIN_TITLE }?.let { return it.id }
         return addDemoChat(DEMO_JOIN_TITLE, isGroup = true, firstLine = "You joined the group")
+    }
+
+    /** The news channel's post [postId] has one more comment. */
+    private fun countComment(postId: Long) {
+        val post = chatMessages[4L]?.firstOrNull { it.id == postId } ?: return
+        val count = (post.commentCount ?: 0) + 1
+        chatMessages[4L]?.replaceAll { if (it.id == postId) it.copy(commentCount = count) else it }
+        _messageUpdates.tryEmit(MessageUpdate.ReactionsChanged(4L, postId, post.reactions, commentCount = count))
     }
 
     /** A chat that did not exist a moment ago, at the top of the list. */
@@ -2801,6 +2839,22 @@ class DemoTelegramClient(
         // Saved Messages keeps a song, so the music bubble has something to
         // show and play offline: a few seconds of chime the demo writes
         // itself on first play (demoAudioFile), rather than a file shipped.
+        // The news channel's posts carry comments (2.0), which live in a
+        // discussion group of their own that is not in the chat list —
+        // the way Telegram links a channel to its chat.
+        chatMessages[4] = mutableListOf(
+            demoMessage(950, 4, DEMO_COMMENTED_POST, false, yesterday, isRead = true).copy(commentCount = 3),
+            demoMessage(951, 4, "Which screen should be redesigned next?", false, today - 40 * 60, isRead = true)
+                .copy(commentCount = 0)
+        )
+        chatMessages[DISCUSSION_CHAT_ID] = mutableListOf(
+            demoMessage(960, DISCUSSION_CHAT_ID, "Finally, comments!", false, yesterday + 600, "Lina Park")
+                .copy(threadId = 950),
+            demoMessage(961, DISCUSSION_CHAT_ID, "Inline bots next, please", false, yesterday + 900, "Artem")
+                .copy(threadId = 950),
+            demoMessage(962, DISCUSSION_CHAT_ID, "It looks great in the dark theme", false, yesterday + 1200, "Maya")
+                .copy(threadId = 950)
+        )
         chatMessages[6] = mutableListOf(
             demoMessage(95, 6, "Color tokens & springs", true, yesterday, isRead = true),
             demoMessage(96, 6, "", true, today - 50 * 60, isRead = true).copy(
@@ -3077,6 +3131,12 @@ private const val DEMO_ADDED_BASE = 3000L
 
 /** The demo bot's chat; see seedChats. */
 private const val BOT_CHAT_ID = 11L
+
+/** The news channel's discussion group, where comments on its posts live. */
+private const val DISCUSSION_CHAT_ID = 40L
+
+/** The news channel's post with comments already under it. */
+private const val DEMO_COMMENTED_POST = "TelegramYou 2.0 is on its way: comments under posts, and more"
 
 /** Telegram's limit on a message's text, which the demo cuts at as the live backend does. */
 private const val DEMO_TEXT_LIMIT = 4096

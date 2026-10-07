@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
 import com.telegramyou.app.telegram.model.TextSpan
@@ -1637,12 +1638,49 @@ class TdLibTelegramClient(
         openTopics.remove(chatId, topicId)
     }
 
+    /** The comment thread each discussion group's screen is on; see setOpenThread. */
+    private val openThreads = ConcurrentHashMap<Long, Long>()
+
+    override fun setOpenThread(chatId: Long, threadId: Long?) {
+        if (threadId == null) openThreads.remove(chatId) else openThreads[chatId] = threadId
+    }
+
+    override fun closeOpenThread(chatId: Long, threadId: Long) {
+        openThreads.remove(chatId, threadId)
+    }
+
+    override suspend fun commentThread(chatId: Long, messageId: Long): CommentThread? {
+        awaitReady()
+        return try {
+            val info = requireEngine().send(
+                JSONObject().put("@type", "getMessageThread").put("chat_id", chatId).put("message_id", messageId)
+            )
+            CommentThread(chatId = info.optLong("chat_id"), threadId = info.optLong("message_thread_id"))
+                .takeIf { it.chatId != 0L && it.threadId != 0L }
+        } catch (e: TdLibException) {
+            Log.w(TAG, "commentThread($chatId, $messageId): ${e.message}")
+            null
+        }
+    }
+
     /**
      * A history request or a send, pointed at the topic [chatId]'s screen is
      * on, if it is on one: history becomes that topic's history, and a send
      * or a draft carries the topic. Anything else passes through unchanged.
      */
     private fun JSONObject.inOpenTopic(chatId: Long): JSONObject = apply {
+        // A comment thread, open on a channel post's discussion group, is
+        // the same idea as a forum topic: history becomes the thread's, and
+        // what is sent goes into it (2.0).
+        openThreads[chatId]?.let { thread ->
+            if (optString("@type") == "getChatHistory") {
+                put("@type", "getMessageThreadHistory")
+                put("message_id", thread)
+            } else {
+                put("topic_id", commentTopic(thread))
+            }
+            return@apply
+        }
         val topic = openTopics[chatId] ?: return@apply
         if (optString("@type") == "getChatHistory") {
             put("@type", "getForumTopicHistory")
@@ -3927,7 +3965,9 @@ class TdLibTelegramClient(
                     MessageUpdate.ReactionsChanged(
                         chatId = update.optLong("chat_id"),
                         messageId = update.optLong("message_id"),
-                        reactions = parseReactions(update.optJSONObject("interaction_info"))
+                        reactions = parseReactions(update.optJSONObject("interaction_info")),
+                        commentCount = update.optJSONObject("interaction_info")
+                            ?.optJSONObject("reply_info")?.optInt("reply_count")
                     )
                 )
             }
@@ -4758,7 +4798,9 @@ class TdLibTelegramClient(
             forwardedFrom = forwardOrigin(message.optJSONObject("forward_info")),
             albumId = message.optInt64("media_album_id").takeIf { it != 0L },
             isPinned = message.optBoolean("is_pinned"),
-            topicId = topicIdOf(message)
+            topicId = topicIdOf(message),
+            commentCount = commentCountOf(message),
+            threadId = threadIdOf(message)
         )
     }
 

@@ -524,8 +524,19 @@ data class ChatMessage(
     /** Pinned in its chat. */
     val isPinned: Boolean = false,
     /** The forum topic it was written in; 0 outside a forum. */
-    val topicId: Int = 0
+    val topicId: Int = 0,
+    /**
+     * A channel post's comments (2.0): how many there are, or null for a
+     * message with no comments section — not a channel post, or a channel
+     * without a discussion group.
+     */
+    val commentCount: Int? = null,
+    /** The comment thread it was written in, in a discussion group; 0 otherwise. */
+    val threadId: Long = 0
 )
+
+/** Where a channel post's comments live: its discussion group, and the thread in it. */
+data class CommentThread(val chatId: Long, val threadId: Long)
 
 /**
  * One emoji on a message, with how many people chose it.

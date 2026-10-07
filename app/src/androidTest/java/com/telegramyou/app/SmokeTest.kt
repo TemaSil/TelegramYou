@@ -2057,6 +2057,31 @@ class SmokeTest {
     }
 
     /**
+     * 2.0: a channel post's comments — the count under the post, the thread
+     * opened from it with the comments already there, one written, and the
+     * count gone up when back on the channel.
+     */
+    @Test
+    fun aChannelPostsCommentsOpenAndTakeOne() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("TelegramYou News"))
+        tap(By.text("TelegramYou News"))
+        waitFor(By.text("3 comments"), "the comments under the post")
+        tap(By.text("3 comments"))
+        waitFor(By.text("Finally, comments!"), "the comments in their thread")
+        waitFor(By.text("Comments"), "the thread's header")
+        screenshot("90-comments")
+        type("Count me in")
+        tap(By.desc("Send"))
+        waitFor(By.text("Count me in"), "the comment just written")
+        device.pressBack()
+        if (!device.wait(Until.hasObject(By.text("4 comments")), SHORT_WAIT)) device.pressBack()
+        waitFor(By.text("4 comments"), "the post counting the new comment")
+    }
+
+    /**
      * 1.9: a text longer than Telegram takes in one message is sent as
      * several, cut between words, rather than refused as "too long".
      */

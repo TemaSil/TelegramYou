@@ -69,7 +69,12 @@ sealed interface MessageUpdate {
     data class ReactionsChanged(
         override val chatId: Long,
         val messageId: Long,
-        val reactions: List<MessageReaction>
+        val reactions: List<MessageReaction>,
+        /**
+         * The post's comment count, which Telegram sends in the same update
+         * as its reactions; null where it has no comments section.
+         */
+        val commentCount: Int? = null
     ) : MessageUpdate
 
     /**

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material3.LocalContentColor
 import com.telegramyou.app.telegram.model.ContactContent
 import androidx.compose.ui.semantics.semantics
 import com.telegramyou.app.telegram.model.customEmojiIdOf
@@ -168,7 +170,9 @@ internal fun MessageBubble(
     /** Settings → For geeks → More in a message's menu; see MessageExtra. */
     onExtra: (MessageExtra) -> Unit = {},
     /** Its text in the phone's language; see TranslationDialog. */
-    onTranslate: () -> Unit = {}
+    onTranslate: () -> Unit = {},
+    /** A channel post's comments opened (2.0); see commentCount. */
+    onOpenComments: () -> Unit = {}
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
@@ -726,6 +730,24 @@ internal fun MessageBubble(
                 if (!frameless) {
                     Spacer(Modifier.height(4.dp))
                     footer(false, Modifier.align(Alignment.End))
+                }
+                // A channel post's comments, along the bottom of the post as
+                // Telegram puts them: a stock text button, the whole width,
+                // over a hairline that says it is the post's and not a reply.
+                message.commentCount?.let { count ->
+                    HorizontalDivider(
+                        modifier = Modifier.padding(top = 6.dp),
+                        color = LocalContentColor.current.copy(alpha = 0.12f)
+                    )
+                    TextButton(
+                        onClick = onOpenComments,
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Symbols.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(commentsLabel(count), modifier = Modifier.weight(1f))
+                    }
                 }
             }
             }

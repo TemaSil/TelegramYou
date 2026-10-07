@@ -1202,6 +1202,11 @@ fun TelegramYouNavHost(
                     onSelectionToggled = chatViewModel::onSelectionToggled,
                     onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
                     onForwardOne = chatViewModel::onForwardOne,
+                    onOpenComments = { message ->
+                        chatViewModel.onOpenComments(message) { thread ->
+                            navController.navigateTo(Route.Chat(thread.chatId, threadId = thread.threadId))
+                        }
+                    },
                     onMessageExtra = chatViewModel::onMessageExtra,
                     onTranslate = chatViewModel::onTranslate,
                     onTranslationDismissed = chatViewModel::onTranslationDismissed,

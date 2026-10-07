@@ -182,6 +182,27 @@ internal fun topicIdOf(message: JSONObject): Int {
     return if (topic.optString("@type") == "messageTopicForum") topic.optInt("forum_topic_id") else 0
 }
 
+/** The comment thread [message] was written in, in a discussion group; 0 otherwise. */
+internal fun threadIdOf(message: JSONObject): Long {
+    val topic = message.optJSONObject("topic_id") ?: return 0
+    return if (topic.optString("@type") == "messageTopicThread") topic.optLong("message_thread_id") else 0
+}
+
+/** A comment thread as a send addresses it. */
+internal fun commentTopic(threadId: Long): JSONObject = JSONObject()
+    .put("@type", "messageTopicThread")
+    .put("message_thread_id", threadId)
+
+/**
+ * A channel post's comment count, or null without a comments section:
+ * TDLib gives reply_info only to posts of a channel with a discussion group.
+ */
+internal fun commentCountOf(message: JSONObject): Int? {
+    if (!message.optBoolean("is_channel_post")) return null
+    val replies = message.optJSONObject("interaction_info")?.optJSONObject("reply_info") ?: return null
+    return replies.optInt("reply_count")
+}
+
 /** A forum topic as a send addresses it. */
 internal fun forumTopic(topicId: Int): JSONObject = JSONObject()
     .put("@type", "messageTopicForum")

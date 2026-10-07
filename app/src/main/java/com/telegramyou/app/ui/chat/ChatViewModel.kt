@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.settings.MessageExtra
 import com.telegramyou.app.telegram.model.downloadedFileId
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -290,6 +291,13 @@ class ChatViewModel(
      */
     private val topicId: Int = savedStateHandle[Route.Chat.ARG_TOPIC_ID] ?: 0
 
+    /**
+     * The comment thread this screen is on, in a channel's discussion group,
+     * or 0 (2.0). The same arrangement as [topicId]: said to the repository
+     * first, so the history and the sends are the thread's.
+     */
+    private val threadId: Long = savedStateHandle[Route.Chat.ARG_THREAD_ID] ?: 0L
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -297,7 +305,13 @@ class ChatViewModel(
         // Held open for as long as this state holder lives; released in
         // onCleared. See TelegramChats.retainChat for why it is counted.
         repository.retainChat(chatId)
-        if (topicId != 0) {
+        if (threadId != 0L) {
+            repository.setOpenThread(chatId, threadId)
+            // Comments keep no draft of their own here: the group's draft is
+            // the group's, and a thread's is not worth a request per pause.
+            draftRestored = false
+            _uiState.update { it.copy(topicName = "Comments") }
+        } else if (topicId != 0) {
             repository.setOpenTopic(chatId, topicId)
             viewModelScope.launch {
                 val topic = runCatching { repository.forumTopics(chatId) }.getOrNull()
@@ -1157,6 +1171,21 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * A channel post's comments (2.0): where they live is asked for — the
+     * discussion group and the thread in it — and [open] goes there.
+     */
+    fun onOpenComments(message: ChatMessage, open: (CommentThread) -> Unit) {
+        viewModelScope.launch {
+            val thread = runCatching { repository.commentThread(message.chatId, message.id) }.getOrNull()
+            if (thread == null) {
+                _uiState.update { it.copy(notice = "Comments could not be opened") }
+            } else {
+                open(thread)
+            }
+        }
+    }
+
     fun onTranslationDismissed() {
         _uiState.update { it.copy(translation = null) }
     }
@@ -1355,6 +1384,13 @@ class ChatViewModel(
      * edit, a deletion — is about a message already here, or about nothing.
      */
     private fun inThisTopic(update: MessageUpdate): Boolean {
+        if (threadId != 0L) {
+            return when (update) {
+                is MessageUpdate.Added -> update.message.threadId == threadId
+                is MessageUpdate.Replaced -> update.message.threadId == threadId
+                else -> true
+            }
+        }
         if (topicId == 0) return true
         return when (update) {
             is MessageUpdate.Added -> update.message.topicId == topicId
@@ -1375,6 +1411,7 @@ class ChatViewModel(
         }
         repository.releaseChat(chatId)
         if (topicId != 0) repository.closeOpenTopic(chatId, topicId)
+        if (threadId != 0L) repository.closeOpenThread(chatId, threadId)
         // Voice messages are not stopped: they are the app's, and go on
         // after the chat is closed, with the bar to stop them.
     }
@@ -2035,9 +2072,9 @@ class ChatViewModel(
             // update, whose block may run more than once.
             // Never in a topic: the draft is the chat's, and it would
             // follow the person into every topic they opened.
-            val restoring = !draftRestored && topicId == 0
+            val restoring = !draftRestored && topicId == 0 && threadId == 0L
             if (restoring) keptDraft = detail.chat.draft
-            if (topicId == 0) draftRestored = true
+            if (topicId == 0 && threadId == 0L) draftRestored = true
             _uiState.update {
                 val reloaded = it.copy(
                     draft = if (restoring && it.draft.isEmpty()) detail.chat.draft else it.draft,

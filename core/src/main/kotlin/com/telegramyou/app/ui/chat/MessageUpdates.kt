@@ -44,7 +44,12 @@ fun List<ChatMessage>.applying(
     }
 
     is MessageUpdate.ReactionsChanged -> mapMessage(update.messageId) {
-        it.copy(reactions = update.reactions)
+        it.copy(
+            reactions = update.reactions,
+            // Only a post that has a comments section takes a new count: a
+            // group's messages carry reply counts too, and are not posts.
+            commentCount = it.commentCount?.let { old -> update.commentCount ?: old }
+        )
     }
 
     is MessageUpdate.PollChanged -> mapMessage(update.messageId) {

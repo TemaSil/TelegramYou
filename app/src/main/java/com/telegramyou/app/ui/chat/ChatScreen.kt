@@ -178,6 +178,8 @@ fun ChatScreen(
     onForwardOne: (ChatMessage) -> Unit = {},
     /** A voice or video message was played; its sender is told. */
     onContentOpened: (ChatMessage) -> Unit = {},
+    /** A channel post's comments opened (2.0). */
+    onOpenComments: (ChatMessage) -> Unit = {},
     /** A message put into the phone's language; see TranslationDialog. */
     onTranslate: (ChatMessage, String) -> Unit = { _, _ -> },
     onTranslationDismissed: () -> Unit = {},
@@ -1100,6 +1102,7 @@ fun ChatScreen(
                                 onContentOpened = { onContentOpened(message) },
                                 onExtra = { extra -> onMessageExtra(message, extra) },
                                 onTranslate = { onTranslate(message, translationLanguage()) },
+                                onOpenComments = { onOpenComments(message) },
                                 // A track is the music player's, which outlives
                                 // this screen; a voice note is the chat's own.
                                 voiceState = when {

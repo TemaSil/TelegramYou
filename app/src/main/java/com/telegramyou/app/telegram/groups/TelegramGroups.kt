@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.groups
 
+import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.ForumTopic
 import com.telegramyou.app.telegram.model.GroupMember
@@ -110,4 +111,19 @@ interface TelegramGroups {
      * before the old one is torn down, and must not be undone by it.
      */
     fun closeOpenTopic(chatId: Long, topicId: Int) {}
+
+    /**
+     * Where a channel post's comments live (2.0): its discussion group and
+     * the thread in it, or null for a post without them.
+     */
+    suspend fun commentThread(chatId: Long, messageId: Long): CommentThread? = null
+
+    /**
+     * Which comment thread of discussion group [chatId] the conversation
+     * screen is showing — the same contract as [setOpenTopic], for comments.
+     */
+    fun setOpenThread(chatId: Long, threadId: Long?) {}
+
+    /** The screen on [threadId] has gone, if that is still the open one. */
+    fun closeOpenThread(chatId: Long, threadId: Long) {}
 }
