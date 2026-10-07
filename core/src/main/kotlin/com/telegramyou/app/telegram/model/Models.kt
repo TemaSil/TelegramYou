@@ -532,7 +532,9 @@ data class ChatMessage(
      */
     val commentCount: Int? = null,
     /** The comment thread it was written in, in a discussion group; 0 otherwise. */
-    val threadId: Long = 0
+    val threadId: Long = 0,
+    /** How many times it has been forwarded, where Telegram says (channel posts mostly); 0 otherwise. */
+    val forwardCount: Int = 0
 )
 
 /** Where a channel post's comments live: its discussion group, and the thread in it. */

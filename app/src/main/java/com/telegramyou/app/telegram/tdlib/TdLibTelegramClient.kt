@@ -4797,6 +4797,7 @@ class TdLibTelegramClient(
                 else -> null
             },
             reactions = parseReactions(message.optJSONObject("interaction_info")),
+            forwardCount = message.optJSONObject("interaction_info")?.optInt("forward_count") ?: 0,
             linkPreview = linkPreview(content),
             // Only a voice note carries these, and only once TDLib has the
             // bytes: the id arrives with the message, the path with the file.

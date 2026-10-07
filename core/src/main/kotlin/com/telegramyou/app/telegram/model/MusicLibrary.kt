@@ -31,7 +31,12 @@ data class MusicLibrary(
      * person keeps what they mean to keep, so the front page leads with it —
      * the owner's call for 1.6.6. Null when Saved Messages has none.
      */
-    val saved: LibraryCollection? = null
+    val saved: LibraryCollection? = null,
+    /**
+     * The tracks forwarded and reacted to most (2.0), the most first: what
+     * the chats passed around, as near as Telegram lets a client tell.
+     */
+    val mostShared: List<LibraryTrack> = emptyList()
 ) {
     val isEmpty: Boolean get() = tracks.isEmpty()
 
@@ -74,6 +79,20 @@ data class LibraryCollection(
     val cover: Track? get() = tracks.firstOrNull { it.track.coverPath != null || it.track.coverFileId != null }?.track
 }
 
+/**
+ * What a track's own file says about it (2.0), read from the file once it is
+ * on the phone: the album it belongs to, whose album it is, its place on it,
+ * and the cover embedded in it, written out to a file of its own. Telegram
+ * sends a title and a performer and nothing else, so an album by name and a
+ * cover for a track posted without one can only come from here.
+ */
+data class FileTags(
+    val album: String = "",
+    val albumArtist: String = "",
+    val trackNumber: Int = 0,
+    val coverPath: String? = null
+)
+
 /** What the library needs to know of a chat. */
 data class LibraryChat(val title: String, val isChannel: Boolean = false, val isSaved: Boolean = false)
 
@@ -81,11 +100,23 @@ data class LibraryChat(val title: String, val isChannel: Boolean = false, val is
  * The library from [messages] — every music message found, in any order —
  * and what is known of their [chats].
  */
-fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): MusicLibrary {
+fun buildLibrary(
+    messages: List<ChatMessage>,
+    chats: Map<Long, LibraryChat>,
+    /** Each downloaded track's [FileTags], by chat and message id. */
+    tags: Map<Pair<Long, Long>, FileTags> = emptyMap()
+): MusicLibrary {
     val all = messages
         .distinctBy { it.chatId to it.id }
         .mapNotNull { message ->
-            val track = message.asTrack() ?: return@mapNotNull null
+            val found = message.asTrack() ?: return@mapNotNull null
+            // A cover inside the file stands in where Telegram sent none.
+            val embedded = tags[message.chatId to message.id]?.coverPath
+            val track = if (embedded != null && found.coverPath == null && found.coverFileId == null) {
+                found.copy(coverPath = embedded)
+            } else {
+                found
+            }
             val chat = chats[message.chatId]
             LibraryTrack(message, track, chat?.title.orEmpty(), chat?.isChannel == true)
         }
@@ -110,8 +141,42 @@ fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): Mu
         }
         .sortedWith(compareByDescending<LibraryCollection> { it.tracks.size }.thenBy { it.title.lowercase() })
 
-    val albums = all
+    // Albums by name first, from the files' tags, wherever their tracks
+    // came from: the same record sent a track at a time into three chats is
+    // one album. Whose it is: the album artist, or the performer when the
+    // file does not say.
+    fun tagOf(item: LibraryTrack) = tags[item.message.chatId to item.message.id]?.takeIf { it.album.isNotBlank() }
+    fun ownerOf(item: LibraryTrack, tag: FileTags) = tag.albumArtist.trim().ifBlank { item.track.performer.trim() }
+    val named = unique
+        .filter { tagOf(it) != null }
+        .groupBy { item ->
+            val tag = tagOf(item)!!
+            ownerOf(item, tag).lowercase() to tag.album.trim().lowercase()
+        }
+        .filterValues { it.size >= 2 }
+        .map { (key, tracks) ->
+            val ordered = tracks.sortedWith(
+                compareBy<LibraryTrack> { tagOf(it)!!.trackNumber.takeIf { n -> n > 0 } ?: Int.MAX_VALUE }
+                    .thenBy { it.message.date }
+                    .thenBy { it.message.id }
+            )
+            val first = ordered.first()
+            val tag = tagOf(first)!!
+            val owner = ownerOf(first, tag)
+            LibraryCollection(
+                key = "tag:${key.first}:${key.second}",
+                kind = CollectionKind.Album,
+                title = tag.album.trim(),
+                subtitle = listOf("Album", countLabel(ordered.size), owner.takeIf { it.isNotBlank() })
+                    .filterNotNull().joinToString(" · "),
+                tracks = ordered
+            )
+        }
+    val inNamed = named.flatMap { album -> album.tracks.map { it.message.chatId to it.message.id } }.toSet()
+
+    val posted = all
         .filter { it.track.albumId != null }
+        .filter { (it.message.chatId to it.message.id) !in inNamed }
         .groupBy { it.message.chatId to it.track.albumId }
         .filterValues { it.size >= 2 }
         .map { (key, tracks) ->
@@ -128,7 +193,8 @@ fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): Mu
                 tracks = ordered
             )
         }
-        .sortedByDescending { album -> album.tracks.maxOf { it.message.date } }
+
+    val albums = (named + posted).sortedByDescending { album -> album.tracks.maxOf { it.message.date } }
 
     // Two tracks make a chat a playlist — except Saved Messages, which is
     // one from its first: it leads the front page, and a playlist tab
@@ -173,9 +239,17 @@ fun buildLibrary(messages: List<ChatMessage>, chats: Map<Long, LibraryChat>): Mu
         albums = albums,
         playlists = playlists,
         latest = unique.take(LATEST),
-        fromPeople = unique.filter { !it.fromChannel && !it.message.isOutgoing }.take(LATEST)
+        fromPeople = unique.filter { !it.fromChannel && !it.message.isOutgoing }.take(LATEST),
+        mostShared = all
+            .filter { sharedScore(it.message) > 0 }
+            .sortedWith(compareByDescending<LibraryTrack> { sharedScore(it.message) }.thenByDescending { it.message.date })
+            .distinctBy { Triple(it.track.title.lowercase(), it.track.performer.lowercase(), it.track.durationSeconds) }
+            .take(LATEST)
     )
 }
+
+/** Forwards and reactions together: each is somebody passing the track on, or answering it. */
+private fun sharedScore(message: ChatMessage): Int = message.forwardCount + message.reactions.sumOf { it.count }
 
 private fun countLabel(count: Int) = if (count == 1) "1 track" else "$count tracks"
 

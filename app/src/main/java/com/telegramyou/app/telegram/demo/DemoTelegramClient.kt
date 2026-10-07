@@ -1166,6 +1166,18 @@ class DemoTelegramClient(
                 // between them — enough for the music library to have albums
                 // and artists to show.
                 albumId = if (index in 4..7) DEMO_MUSIC_ALBUM_ID else null,
+                // Passed on and answered, a few of them: the library's Most
+                // shared.
+                forwardCount = when (index) {
+                    4 -> 48
+                    11 -> 12
+                    else -> 0
+                },
+                reactions = when (index) {
+                    4 -> listOf(MessageReaction("🔥", 31))
+                    10 -> listOf(MessageReaction("❤", 9))
+                    else -> emptyList()
+                },
                 audio = AudioContent(
                     title = name,
                     performer = when (index) {

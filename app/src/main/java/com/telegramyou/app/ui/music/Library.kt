@@ -74,6 +74,7 @@ import com.telegramyou.app.telegram.model.LibraryCollection
 import com.telegramyou.app.telegram.model.LibraryTrack
 import com.telegramyou.app.telegram.model.MusicLibrary
 import com.telegramyou.app.telegram.model.buildLibrary
+import com.telegramyou.app.telegram.model.asTrack
 import com.telegramyou.app.ui.chat.formatDuration
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.components.LargeTitle
@@ -99,7 +100,12 @@ data class LibraryUiState(
  * global search My music pages through — all of it this time, up to a
  * limit — and laid out by `buildLibrary` in :core.
  */
-class MusicLibraryViewModel(private val repository: TelegramRepository) : ViewModel() {
+class MusicLibraryViewModel(
+    private val repository: TelegramRepository,
+    /** Where covers found inside files are kept; null to leave them there. */
+    coverDir: java.io.File? = null
+) : ViewModel() {
+    private val tagReader = com.telegramyou.app.music.FileTagReader(coverDir)
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
@@ -121,6 +127,20 @@ class MusicLibraryViewModel(private val repository: TelegramRepository) : ViewMo
             }
             val library = withContext(Dispatchers.Default) { buildLibrary(found, chats) }
             _uiState.update { it.copy(library = library, isLoading = false) }
+            // Then what the files on the phone say of themselves — albums by
+            // name and covers inside them (2.0) — and the library again with
+            // it. After, not before: reading a thousand files' tags is not
+            // what the first look should wait for.
+            val tags = withContext(Dispatchers.IO) {
+                found.mapNotNull { message ->
+                    val path = message.asTrack()?.path ?: return@mapNotNull null
+                    tagReader.read(path)?.let { (message.chatId to message.id) to it }
+                }.toMap()
+            }
+            if (tags.isNotEmpty()) {
+                val tagged = withContext(Dispatchers.Default) { buildLibrary(found, chats, tags) }
+                _uiState.update { it.copy(library = tagged) }
+            }
         }
     }
 
@@ -400,6 +420,17 @@ private fun ForYou(
                         }
                     }
                 }
+            }
+        }
+        // What the chats passed around most: forwards and reactions (2.0).
+        // Only when there is something — an empty heading here would say
+        // nothing anyone could act on.
+        if (library.mostShared.isNotEmpty()) {
+            item(key = "shared-header") { Header("Most shared") }
+            items(library.mostShared, key = { "m${it.message.chatId}:${it.message.id}" }) { item ->
+                TrackRow(item, onPlay = {
+                    actions.onPlay("Most shared", library.mostShared.map { it.message }, item.message, false)
+                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
             }
         }
         item(key = "people-header") { Header("From your chats") }

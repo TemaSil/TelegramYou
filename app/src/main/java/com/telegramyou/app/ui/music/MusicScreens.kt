@@ -142,6 +142,8 @@ class MusicActions(
     val onRemoveUpNext: (Int) -> Unit = {},
     /** A reaction onto the playing track's own message, where its sender sees it. */
     val onReact: (String) -> Unit = {},
+    /** A text reply onto the playing track's own message, sent from the player. */
+    val onReply: (String) -> Unit = {},
     /** The chat the playing track is in. */
     val onOpenChat: (Long) -> Unit = {},
     /** Saved Messages' music as the queue; see MusicPlayer.playSaved. */
@@ -414,6 +416,34 @@ fun PlayerSheet(
  * changes shape as it plays, next — with the order, repeat and speed under
  * them. The track's own colours throughout. The queue is a sheet over it.
  */
+/**
+ * The player's Reply: a line of text sent as a reply to the track's message.
+ * A dialog rather than the chat, so the music and the player stay where they
+ * are — the way a notification's quick reply leaves the screen alone.
+ */
+@Composable
+private fun ReplyDialog(to: String, onSend: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by rememberSaveable { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Symbols.Reply, contentDescription = null) },
+        title = { Text("Reply to $to") },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                placeholder = { Text("Message") },
+                maxLines = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onSend(text) }, enabled = text.isNotBlank()) { Text("Send") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PlayerScreen(
@@ -432,6 +462,7 @@ fun PlayerScreen(
     var queueOpen by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     var sleepOpen by remember { mutableStateOf(false) }
+    var replyOpen by remember { mutableStateOf(false) }
     val host = remember { SnackbarHostState() }
     val context = LocalContext.current
     val equaliser = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
@@ -529,6 +560,14 @@ fun PlayerScreen(
                                 }
                                 HorizontalDivider()
                                 DropdownMenuItem(
+                                    text = { Text("Reply") },
+                                    leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
+                                    onClick = {
+                                        menuOpen = false
+                                        replyOpen = true
+                                    }
+                                )
+                                DropdownMenuItem(
                                     text = { Text("Open chat") },
                                     leadingIcon = { Icon(Symbols.Chat, contentDescription = null) },
                                     onClick = {
@@ -596,6 +635,16 @@ fun PlayerScreen(
                             }
                         }
                     }
+                }
+                if (replyOpen && track != null) {
+                    ReplyDialog(
+                        to = track.senderName.ifBlank { track.title },
+                        onSend = { text ->
+                            replyOpen = false
+                            actions.onReply(text)
+                        },
+                        onDismiss = { replyOpen = false }
+                    )
                 }
                 if (track == null) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {

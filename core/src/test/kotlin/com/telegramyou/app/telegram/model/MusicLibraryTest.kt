@@ -95,4 +95,36 @@ class MusicLibraryTest {
         val key = library.albums.single().key
         assertEquals("Shape Shifters", library.collection(key)?.title)
     }
+
+    @Test
+    fun `an album by its tags is one album wherever its tracks were sent, in track order`() {
+        val tags = mapOf(
+            (2L to 20L) to FileTags(album = "Springs", albumArtist = "Various", trackNumber = 2),
+            (6L to 31L) to FileTags(album = "Springs", albumArtist = "Various", trackNumber = 1, coverPath = "/covers/31.jpg"),
+            (1L to 10L) to FileTags(album = "Alone", trackNumber = 1)
+        )
+        val tagged = buildLibrary(messages, chats, tags)
+        val springs = tagged.albums.first { it.title == "Springs" }
+        assertEquals(listOf("Morning Light", "Spring Back"), springs.tracks.map { it.track.title })
+        assertEquals("Album · 2 tracks · Various", springs.subtitle)
+        assertEquals("/covers/31.jpg", springs.cover?.coverPath)
+        // One tagged track is not an album; the album posted together stays one.
+        assertEquals(listOf("Springs", "Shape Shifters"), tagged.albums.map { it.title })
+    }
+
+    @Test
+    fun `most shared is forwards and reactions, the most first`() {
+        val shared = buildLibrary(
+            messages.map {
+                when (it.id) {
+                    11L -> it.copy(forwardCount = 5)
+                    20L -> it.copy(reactions = listOf(MessageReaction("🔥", 9)))
+                    else -> it
+                }
+            },
+            chats
+        )
+        assertEquals(listOf("Spring Back", "Wavy Line"), shared.mostShared.map { it.track.title })
+        assertTrue(library.mostShared.isEmpty())
+    }
 }

@@ -181,6 +181,7 @@ fun TelegramYouNavHost(
             onSave = { music?.saveToLibrary() },
             onRemoveUpNext = { music?.removeUpNext(it) },
             onReact = { music?.react(it) },
+            onReply = { music?.reply(it) },
             onPlaySaved = { music?.playSaved(it) },
             onDownloadAll = { music?.let { m -> m.downloadChat(m.state.value.queue.chatId) } },
             onNoticeShown = { music?.onNoticeShown() },

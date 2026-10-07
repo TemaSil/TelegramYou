@@ -496,6 +496,21 @@ class MusicPlayer(
             _state.update { it.copy(notice = if (done) "Reacted $emoji to ${track.title}" else "Could not react to it") }
         }
     }
+
+    /**
+     * A reply to the playing track's own message, sent from the player (2.0):
+     * its sender gets it as a reply to the track, without the chat being
+     * opened — what the reactions above do for an emoji.
+     */
+    fun reply(text: String) {
+        val track = _state.value.track ?: return
+        val body = text.trim()
+        if (body.isEmpty() || track.chatId <= 0) return
+        scope.launch {
+            val done = runCatching { repository.sendText(track.chatId, body, replyToId = track.messageId) }.isSuccess
+            _state.update { it.copy(notice = if (done) "Replied to ${track.title}" else "Could not send the reply") }
+        }
+    }
     private var myMusicQuery: String = ""
 
     // ── the seven extras (ROADMAP, 1.6.3) ──

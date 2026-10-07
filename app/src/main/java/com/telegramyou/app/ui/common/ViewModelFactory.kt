@@ -54,7 +54,13 @@ fun telegramViewModelFactory(
         initializer { GroupViewModel(repository, createSavedStateHandle()) }
         initializer { SharedMediaViewModel(repository, createSavedStateHandle()) }
         initializer { MyMusicViewModel(repository) }
-        initializer { com.telegramyou.app.ui.music.MusicLibraryViewModel(repository) }
+        initializer {
+            com.telegramyou.app.ui.music.MusicLibraryViewModel(
+                repository,
+                this[androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]
+                    ?.cacheDir?.let { java.io.File(it, "tag-covers") }
+            )
+        }
         initializer { com.telegramyou.app.ui.downloads.DownloadsViewModel(repository) }
         initializer { StoryViewModel(repository, createSavedStateHandle()) }
         initializer { NewStoryViewModel(repository) }
