@@ -8,6 +8,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.SideEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Column
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInVertically
@@ -239,6 +247,13 @@ internal fun AttachmentSheet(
         // All the way up at once: half open, the rows past File sit under the fold.
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
+        // Everything but the button at the bottom, which stays in reach
+        // however tall the sheet is: the rows scroll above it if they must.
+        Column(
+            Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+        ) {
         // The pictures somebody is most likely to send are the ones they just
         // took, and reaching them through a row called "Photo or video" is a
         // screen and a scroll away from the sheet that was supposed to be the
@@ -248,18 +263,6 @@ internal fun AttachmentSheet(
             selected = selected,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        // Picked from the strip, they are already above the composer; this
-        // only puts the sheet away to show them there.
-        if (selected.isNotEmpty()) {
-            androidx.compose.material3.Button(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Text(if (selected.size == 1) "Attach 1 photo" else "Attach ${selected.size} photos")
-            }
-        }
         // Transparent containers, all three. A ListItem paints itself
         // `surface` by default, and a ModalBottomSheet is
         // `surfaceContainerLow` — so the rows sat as three pale slabs on a
@@ -309,6 +312,32 @@ internal fun AttachmentSheet(
                 colors = sheetRow,
                 modifier = Modifier.clickable(onClick = onPoll)
             )
+        }
+        }
+        // Picked from the strip, they are already in the composer; this only
+        // puts the sheet away to show them there. At the bottom of the sheet,
+        // where the thumb ends up and where a sheet's action sits (2.0.1) —
+        // it used to sit under the strip, and pushed the rows down as it came.
+        AnimatedVisibility(
+            visible = selected.isNotEmpty(),
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
+        ) {
+            // The count as it was last shown, so the label does not read
+            // "Attach 0 photos" while the button leaves.
+            var lastShown by remember { mutableIntStateOf(selected.size) }
+            SideEffect { if (selected.isNotEmpty()) lastShown = selected.size }
+            val shown = if (selected.isNotEmpty()) selected.size else lastShown
+            androidx.compose.material3.Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp)
+            ) {
+                Text(if (shown == 1) "Attach 1 photo" else "Attach $shown photos")
+            }
         }
         Spacer(Modifier.height(24.dp))
     }

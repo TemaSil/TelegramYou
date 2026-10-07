@@ -14,6 +14,10 @@ README.md.
 - **The navigation bar under the composer is filled** with the chat's background, as the composer's own fade ends, rather than showing the messages that scroll beneath it. The capsule composer in For geeks keeps it clear.
 - **A group's or channel's own picture in its header**, as Telegram shows it, rather than its members' faces. The faces are still there, as a beta under For geeks → Members in a group's header.
 - **The capsule composer as it was before 2.0** — the round button back in its place (2.0 had it low, against the capsule's edge, and quieter), and the field's round ends whole again rather than cut flat.
+- **Photos above the composer move smoothly** — dragged, the others slide aside and it eases into its place when let go; taken out, it fades while the rest close up.
+- **Every photo on the phone in the attachment sheet's strip**, read a page at a time as it is swiped, where it used to stop at the newest 24.
+- **Attach N photos at the bottom of the sheet**, where the thumb is, rather than under the strip.
+- **The Sparkles background's preview** no longer draws over its own name in Appearance.
 
 ## 2.0
 

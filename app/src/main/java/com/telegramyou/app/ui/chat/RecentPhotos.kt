@@ -40,7 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.telegramyou.app.ui.media.PhotoAccess
-import com.telegramyou.app.ui.media.RECENT_PHOTO_COUNT
+import com.telegramyou.app.ui.media.RECENT_PHOTO_PAGE
+import com.telegramyou.app.ui.media.needsMorePhotos
 import com.telegramyou.app.ui.media.photoAccessOf
 import com.telegramyou.app.ui.media.photoPermissions
 import com.telegramyou.app.ui.media.shouldOfferMorePhotos
@@ -80,14 +81,16 @@ private fun photoAccess(context: Context): PhotoAccess = photoAccessOf(
 )
 
 /**
- * The newest pictures on the device, newest first, as content Uris.
+ * The pictures on the device, newest first, as content Uris: [limit] of
+ * them from the [from]th on, a page of the strip at a time (2.0.1).
  *
  * Under Android 14's partial access the same query returns only what the user
  * selected, which is exactly the right behaviour and needs no branch here.
  */
 private suspend fun recentPhotos(
     context: Context,
-    limit: Int = RECENT_PHOTO_COUNT
+    from: Int = 0,
+    limit: Int = RECENT_PHOTO_PAGE
 ): List<String> = withContext(Dispatchers.IO) {
     val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
     try {
@@ -96,13 +99,14 @@ private suspend fun recentPhotos(
             arrayOf(MediaStore.Images.Media._ID),
             null,
             null,
-            // No LIMIT in the sort order: MediaStore stopped honouring SQL
-            // appended to it, and the cursor is walked lazily anyway, so
-            // stopping after `limit` rows reads no more than `limit` rows.
+            // No LIMIT or OFFSET in the sort order: MediaStore stopped
+            // honouring SQL appended to it. The cursor is windowed, so moving
+            // to a page and stopping after it reads about that page's rows.
             "${MediaStore.Images.Media.DATE_ADDED} DESC"
         )?.use { cursor ->
             val id = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val found = ArrayList<String>(limit)
+            if (from > 0 && !cursor.moveToPosition(from - 1)) return@use found
             while (found.size < limit && cursor.moveToNext()) {
                 found += ContentUris.withAppendedId(collection, cursor.getLong(id)).toString()
             }
@@ -124,9 +128,9 @@ private suspend fun recentPhotos(
  * picture to show, which is what keeps the sheet working when the permission
  * is refused.
  *
- * Tapping a picture attaches it and closes the sheet: it is one tap for the
- * thing that was already on screen, and the gallery row below is still there
- * for choosing several.
+ * Tapping a picture ticks it into the album, and a tap on a ticked one takes
+ * it out again. The strip reads the library a page at a time as it is
+ * swiped, so every picture on the phone can be reached from it (2.0.1).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -139,6 +143,23 @@ internal fun RecentPhotoCarousel(
     val context = LocalContext.current
     var access by remember { mutableStateOf(photoAccess(context)) }
     var photos by remember { mutableStateOf(emptyList<String>()) }
+    // Read to the end of the library: a page came back short.
+    var exhausted by remember { mutableStateOf(false) }
+    var reading by remember { mutableStateOf(false) }
+    // The next page, as the strip nears the end of those read. Guarded by
+    // `reading`, which is only touched on the main thread, so two items
+    // coming on screen together read it once.
+    suspend fun readMore() {
+        if (reading || exhausted) return
+        reading = true
+        try {
+            val page = recentPhotos(context, from = photos.size)
+            photos = photos + page.filterNot { it in photos }
+            if (page.size < RECENT_PHOTO_PAGE) exhausted = true
+        } finally {
+            reading = false
+        }
+    }
 
     val request = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -157,7 +178,9 @@ internal fun RecentPhotoCarousel(
     }
 
     LaunchedEffect(access) {
-        photos = if (access == PhotoAccess.None) emptyList() else recentPhotos(context)
+        exhausted = false
+        photos = emptyList()
+        if (access != PhotoAccess.None) readMore() else exhausted = true
     }
 
     if (photos.isEmpty()) return
@@ -175,6 +198,9 @@ internal fun RecentPhotoCarousel(
         ) { index ->
             val uri = photos[index]
             val picked = uri in selected
+            if (needsMorePhotos(index, photos.size, exhausted)) {
+                LaunchedEffect(photos.size) { readMore() }
+            }
             Box(
                 modifier = Modifier
                     .height(CarouselHeight)

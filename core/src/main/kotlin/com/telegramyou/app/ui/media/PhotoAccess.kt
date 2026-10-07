@@ -75,11 +75,23 @@ fun photoAccessOf(sdk: Int, granted: Map<String, Boolean>): PhotoAccess = when {
 fun shouldOfferMorePhotos(access: PhotoAccess): Boolean = access == PhotoAccess.Partial
 
 /**
- * How many recent pictures the carousel is worth reading.
+ * How many recent pictures the carousel reads at a time.
  *
- * The carousel is the top of a sheet, not a gallery: three or four are on
- * screen and a flick reaches the rest. Reading the whole library to show that
- * costs a cursor over thousands of rows for pictures nobody scrolls to — the
- * gallery row underneath is what opens the library.
+ * It used to read 24 and stop, on the argument that the carousel is the top
+ * of a sheet rather than a gallery. On a phone that read as the strip
+ * running out of pictures, and the owner asked for all of them (2.0.1): so
+ * it reads a page, and the next one as the strip nears its end — never the
+ * whole library at once.
  */
-const val RECENT_PHOTO_COUNT = 24
+const val RECENT_PHOTO_PAGE = 60
+
+/** How near the end of what is read a picture shown starts the next page. */
+const val RECENT_PHOTO_PREFETCH = 12
+
+/**
+ * Whether showing the picture at [shown] should read the next page: when it
+ * is within [RECENT_PHOTO_PREFETCH] of the [loaded] ones' end, unless the
+ * library has already been read to its end ([exhausted]).
+ */
+fun needsMorePhotos(shown: Int, loaded: Int, exhausted: Boolean): Boolean =
+    !exhausted && loaded > 0 && shown >= loaded - RECENT_PHOTO_PREFETCH

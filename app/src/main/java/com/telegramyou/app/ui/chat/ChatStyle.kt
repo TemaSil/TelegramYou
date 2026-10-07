@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -60,11 +61,14 @@ fun Modifier.chatWallpaper(wallpaper: ChatWallpaper): Modifier {
     val ink = colors.primary.copy(alpha = PATTERN_INK)
     return when (wallpaper) {
         ChatWallpaper.Plain -> background(colors.surface)
-        ChatWallpaper.Dots -> background(quiet).drawBehind { dots(ink) }
-        ChatWallpaper.Sparkles -> background(quiet).drawBehind { sparkles(ink) }
+        // Each pattern clipped to the background it is drawn on: a sparkle
+        // in the last row reaches past the bottom edge, and in Appearance's
+        // small previews it was drawn over the name under them (2.0.1).
+        ChatWallpaper.Dots -> background(quiet).drawBehind { clipRect { dots(ink) } }
+        ChatWallpaper.Sparkles -> background(quiet).drawBehind { clipRect { sparkles(ink) } }
         // Lines cover more of the page than dots do, so they are drawn
         // lighter to sit as quietly.
-        ChatWallpaper.Grid -> background(quiet).drawBehind { grid(ink.copy(alpha = GRID_INK)) }
+        ChatWallpaper.Grid -> background(quiet).drawBehind { clipRect { grid(ink.copy(alpha = GRID_INK)) } }
     }
 }
 

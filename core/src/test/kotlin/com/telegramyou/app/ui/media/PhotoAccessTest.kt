@@ -93,4 +93,19 @@ class PhotoAccessTest {
         assertFalse(shouldOfferMorePhotos(PhotoAccess.Full))
         assertFalse(shouldOfferMorePhotos(PhotoAccess.None))
     }
+
+    @Test
+    fun `the next page is read as the strip nears the end of the last`() {
+        val loaded = RECENT_PHOTO_PAGE
+        assertFalse(needsMorePhotos(shown = 0, loaded = loaded, exhausted = false))
+        assertFalse(needsMorePhotos(shown = loaded - RECENT_PHOTO_PREFETCH - 1, loaded = loaded, exhausted = false))
+        assertTrue(needsMorePhotos(shown = loaded - RECENT_PHOTO_PREFETCH, loaded = loaded, exhausted = false))
+        assertTrue(needsMorePhotos(shown = loaded - 1, loaded = loaded, exhausted = false))
+    }
+
+    @Test
+    fun `a library read to its end, or not read yet, asks for nothing`() {
+        assertFalse(needsMorePhotos(shown = 59, loaded = 60, exhausted = true))
+        assertFalse(needsMorePhotos(shown = 0, loaded = 0, exhausted = false))
+    }
 }

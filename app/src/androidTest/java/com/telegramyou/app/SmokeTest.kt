@@ -910,6 +910,14 @@ class SmokeTest {
         screenshot("09b-attachment-tray")
         tap(By.desc("Remove attachment"))
         waitFor(By.desc("Attachments, 1"), "one taken out of the tray")
+        // The one taken out fades as the other closes up (2.0.1), its cross
+        // with it: wait for that to finish, so the tap lands on the one left.
+        val crossesSettled = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (device.findObjects(By.desc("Remove attachment")).size != 1 &&
+            SystemClock.uptimeMillis() < crossesSettled
+        ) {
+            SystemClock.sleep(100)
+        }
         tap(By.desc("Remove attachment"))
         assertTrue(
             "the tray stayed after its last photo went",
