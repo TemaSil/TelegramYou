@@ -9,6 +9,40 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.0
+
+The biggest release yet: the composer redone, the features the official app has that this one still lacked, and the bugs found on real phones.
+
+**Writing**
+- **A new composer**, as Android's own Messages has it: the field — plus at its start, the smiley and the camera at its end — and a round button beside it, on the chat's background, which fades in under them so messages go out of sight beneath. The old capsule is under For geeks → Composer in a capsule.
+- **Voice messages as the official app records them**: hold the button and it swells and breathes with your voice; slide aside to throw it away, slide up to the lock to go on with your finger off the screen, then Send or Cancel.
+- **Several photos at once**, up to ten — from Android's photo picker, or ticked in the attachment sheet's strip of recent ones. They sit large inside the field, each with a cross to take it out; hold one to drag it to its place in the album, and type the caption under them.
+- **Quote part of a message** — Quote in its menu, select the words, and the reply shows those.
+- **Inline bots** — type "@bot something" and its answers come up over the field; tap one to send it.
+- **A round video watched before it goes** — locked, Stop plays it back in the circle, with Delete and Send.
+
+**Reading**
+- **Comments under channel posts** — a button under each post with how many, opening the discussion in the chat screen.
+- **Replies always show what they answer** — a reply to an old message used to say only "Reply / Message"; the original is now fetched, or marked deleted.
+- **Go to a date** — tap a day's date, or the one that floats at the top while scrolling, and pick a day.
+- **Dates say the year** when it is not this one.
+- **In groups, names and pictures where they belong** — two people writing in turn were run together, so neither's name or picture showed right.
+- **When it was read** — your message's menu says "Read at 14:03", or in a small group who has seen it.
+- **Copy link** to a message in a group or channel, and **Report** a message with Telegram's own reasons.
+- **Mini Apps** open inside the app, in its colours, with their main button as a Material button.
+- **A chat translated as it comes** (For geeks): a chat's info can show its incoming messages in your phone's language.
+
+**Media and music**
+- **A tap on a video hides everything** — the controls, the counter and the system bars — and another brings them back. A long caption shows two lines and opens with a tap.
+- **Reply from the player** to whoever sent the track, without opening the chat.
+- **The music library** (For geeks) takes album names and covers from the files themselves, and has Most shared.
+
+**Notifications and fixes**
+- **Notifications by kind of chat** — private chats, groups and channels each on or off, with or without preview and sound.
+- **Fixed: opening a channel flooded the shade** with notifications for its old posts.
+- **Fixed: dialogs with a list — the sleep timer, a new invite link, an admin's rights — had rows of a different colour** from the dialog.
+- The bottom of the chat background is calmer; it ran into neon with a bright wallpaper colour.
+
 ## 1.9
 
 - **Videos play while they download**, as in the official app, instead of after the whole file has arrived — from wherever you seek to, with a loading indicator while it waits. What has arrived stays on the phone, so the second time it plays from there; closing a video stops the rest of its download.

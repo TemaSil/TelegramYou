@@ -1,7 +1,11 @@
-# Videos and music play right away
-- Videos play while they download, and keep what arrived
-- Music not on the phone streams instead of waiting to download
-- Fixed: a long track resumed in the middle could be skipped
-- Long messages are sent in parts instead of refused
-- The photo and video viewer covers the navigation bar
-- Close and the photo count in the viewer, in Material's style
+# TelegramYou 2.0
+- A new composer: the field and a round button, as Android's Messages has it
+- Voice messages as in the official app: hold, slide up to lock, aside to cancel
+- Several photos at once, large in the field, to reorder or take out
+- Comments under channel posts
+- Inline bots and Mini Apps
+- Quote part of a message; replies always show what they answer
+- Go to a date, copy a message's link, report, see when it was read
+- Notifications by kind of chat, and no flood when a channel opens
+- Watch a round video before it goes; a tap hides a video's controls
+- In groups, each person's name and picture where they belong

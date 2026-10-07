@@ -37,9 +37,10 @@ wallpaper.
 
 ## What's inside
 
-- **Chats** — replies, edits, forwards, reactions (Premium too), pins,
-  search in a chat, polls, bots, scheduled messages, long messages split
-  in parts, translation.
+- **Chats** — replies and quotes, edits, forwards, reactions (Premium
+  too), pins, search in a chat and by date, polls, bots, inline bots and
+  Mini Apps, comments under posts, scheduled messages, read times,
+  translation.
 - **Emoji, GIFs, stickers** — one panel instead of the keyboard, animated
   and video stickers, custom emoji.
 - **Media** — photos and videos that play while they download, a viewer
@@ -54,11 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 1.9 · 3 October 2026
+## Latest: 2.0 · 7 October 2026
 
-Videos and music play while they download. A long track resumed mid-way
-isn't skipped anymore. Long messages go in parts. The viewer covers the
-navigation bar and got Material's Close and counter.
+A new composer as Android's Messages has it, voice messages held and
+locked as in the official app, several photos at once. Comments under
+channel posts, inline bots and Mini Apps. Quotes, go to a date, read
+times, message links and Report. Notifications by kind of chat.
 
 All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
 [releases](https://github.com/TemaSil/TelegramYou/releases) ·

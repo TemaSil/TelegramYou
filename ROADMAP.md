@@ -49,7 +49,7 @@ are misleading — `ChatActivity` alone is tens of thousands of lines. Most of
 the work in a client sits in very few places, which is why the order below
 starts where it does.
 
-## Where it stands, 7 October 2026 — 2.0 on its way
+## Where it stands, 7 October 2026 — version 2.0
 
 Read this part first, and then **The plan** under it. The feature map
 further down is the inventory, box by box; how each release came to be,
@@ -71,82 +71,77 @@ For geeks. Stories watched and posted. App lock, sessions, privacy,
 storage, proxies, QR and email sign-in. Appearance with accents, pure
 black, wallpapers and Less motion — Material 3 Expressive throughout.
 
-**What 2.0 adds** — collected on `release/2.0`, not merged until the owner
-says the release is full:
+**What 2.0 added** (7 October; the notes are in `CHANGELOG.md`):
 
-- **Comments under channel posts**, opened in the conversation screen.
-- **Notifications by kind of chat** — private, groups, channels: on or
-  off, preview, sound — and the fix for a channel opened flooding the
-  shade with its old posts.
-- **A chat translated as it comes**, per chat, under For geeks.
-- **Inline bots** — "@bot query" in the composer, answers over the field —
-  and **Mini Apps** inside the client, in its own colours, with the bridge
-  every Telegram client speaks.
-- **A new composer**, as Google Messages has it: the field and a round
-  button on the chat's own background (the capsule kept under For geeks);
+- **A new composer**, as Google Messages has it — the field and a round
+  button on the chat's own background, the capsule kept under For geeks;
   **voice messages as the official client records them** — the button
   swells and breathes with the voice, slide up to lock, aside to cancel;
-  **photos inside the field**, several at once, large, each with its
-  cross, dragged into order, the caption under them.
-- **A round video watched before it is sent**, when locked.
-- **Video**: a tap hides everything, the caption opens and closes.
-- **Groups**: a new sender starts a new run, so the name and the avatar
-  are where they belong; **dates** say the year when it is not this one,
-  and float over the conversation while it scrolls.
-- **Music**: Reply to the track's sender from the player; the library's
-  albums and covers from the files' own tags, and Most shared.
-- A quieter wallpaper at the bottom.
+  **several photos at once**, large inside the field, each with its cross,
+  dragged into order, the caption under them.
+- **Comments under channel posts**, opened in the conversation screen.
+- **Inline bots** — "@bot query" in the composer, answers over the field —
+  and **Mini Apps** inside the client, in its own colours.
+- **Quotes**: part of a message quoted in a reply, and replies whose
+  original was outside the window fetched rather than drawn as "Reply /
+  Message".
+- **Go to a date**, from a day separator or the date that floats while
+  scrolling; dates say the year when it is not this one.
+- **When it was read** — the read time in a private chat, who has seen it
+  in a small group.
+- **Copy link** and **Report** in a message's menu.
+- **Notifications by kind of chat**, and the fix for a channel opened
+  flooding the shade with its old posts.
+- **A round video watched before it is sent**; a tap on a video hides its
+  controls; a long caption opens and closes.
+- **Groups**: a new sender starts a new run, so names and avatars are
+  where they belong.
+- **Music**: Reply from the player; the library's albums and covers from
+  the files' tags, and Most shared.
+- **A chat translated as it comes**, under For geeks.
+- Dialogs whose rows were another colour from the dialog, and a calmer
+  bottom to the chat background.
 
 ## The plan
 
-What is left, in the order it seems worth doing. Each part says why it is
-where it is; the owner reorders.
+What is left after 2.0, in the order it seems worth doing. The owner's
+word on 7 October: close the base first — what the official client has —
+and leave the forks' extras for later.
 
-### 1. To close 2.0
-
-- [ ] **Whatever the owner still brings** — 2.0 is meant to be large
-      enough to earn the number, and the owner's own edits go first.
-- [ ] **Ghost mode and message filters** from AyuGram (see its section
-      below) — the two things from it a person would notice, and both are
-      the account's own business.
-- [ ] **Russian**, if it is to be in 2.0 — asked, not yet answered. Done
-      with Android 13's per-app language, so it is chosen in the system's
-      settings like any other app's.
-- [ ] The release itself: version, What's new, `CHANGELOG.md`, README and
-      screenshots in the dark theme, then `release.yml`.
-
-### 2. What a person coming from the official app still misses
+### 1. What a person coming from the official app still misses
 
 By how soon they would notice, not by how hard it is.
 
-- [ ] **More than one account** — the official app holds three. TDLib runs
-      one instance per database directory, so it is a client per account
-      and a switcher on the Profile tab; everything above the backend
-      already takes "the account" as given.
-- [ ] **Replies that lost their quote** — a reply to a message outside
-      the loaded window draws "Reply / Message" (seen on the owner's phone,
-      7 October): the original should be fetched by id, as a pinned one is.
-      And **quoting part of a message** — select text, Quote.
 - [ ] **Photos edited before they go** — crop and rotate at least, and the
       options the official app has in the same place: send as a file, as a
       spoiler, without sound, when the person is online.
-- [ ] **Stickers looked after** — a pack opened from a sticker, added and
-      removed, the packs reordered, trending ones.
-- [ ] **When it was read** — the read time of one's own message in a
-      private chat, and who has seen it in a small group, both from TDLib.
-- [ ] **A link to a message, and Report** — copy the link to a post or a
-      message in a public chat; report a message or a chat.
-- [ ] **Jump to a date** — the floating date of 2.0, tapped, opens
-      Material's date picker and the conversation goes there.
 - [ ] **Voice to text** — TDLib's `recognizeSpeech`, Premium on Telegram's
       side; the button on a voice message, the text under it.
+- [ ] **Stickers looked after** — a pack opened from a sticker, added and
+      removed, the packs reordered, trending ones.
+- [ ] **Emoji status, profile colour, birthday** on profiles.
+- [ ] **Saved Messages by chat** and its tags; **shared folder links**.
+- [ ] **More than one account** — the official app holds three. TDLib runs
+      one instance per database directory, so it is a client per account
+      and a switcher on the Profile tab; everything above the backend
+      already takes "the account" as given. The largest item here, and the
+      one people would miss most.
 - [ ] **Secret chats** — end-to-end, one device; TDLib carries them, the
       screens are the work.
-- [ ] **Saved Messages by chat** and its tags; **shared folder links**.
-- [ ] **Emoji status, profile colour, birthday** on profiles.
 - [ ] **Channel statistics and boosts**, for admins.
+- [ ] **Report a whole chat**, from its info — 2.0 reports a message.
+- [ ] **"Typing…" sent** — the client shows others typing but has never
+      told them it is; TDLib's `sendChatAction` as the field changes, and
+      "recording a voice message" while one is held.
+- [ ] **Russian** — with Android 13's per-app language, chosen in the
+      system's settings like any other app's. Asked about for 2.0 and not
+      yet answered.
 
-### 3. Better than the official app — the platform's own
+Done in 2.0, from this list as it stood on 7 October: replies that lost
+their quote and quoting part of a message, when it was read, a link to a
+message and Report, jumping to a date.
+
+### 2. Better than the official app — the platform's own
 
 The official client draws Android by hand; this one is Android, and the
 platform has things a hand-drawn client does not reach for. These are the
@@ -166,23 +161,24 @@ places to be ahead rather than level.
       `MessagingStyle` and reply actions; music needs the player as a
       `MediaLibraryService` with a browse tree. Waits on a way to test it:
       an emulator image with Auto's desktop head unit.
-- [ ] **A Quick Settings tile** — ghost mode on and off, once it exists.
 - [ ] **Large screens and input** — two panes on a tablet and an unfolded
       phone (the rail is done), keyboard shortcuts, stylus handwriting into
       the composer.
 
-### 4. Small, from the forks
+### 3. Later — from the forks
 
-- [ ] From AyuGram: edited marks as one likes, plain replies, a profile
-      opened by id, streamer mode, ending a view-once photo at once.
+Left until the base is closed, on the owner's word. What each is and why
+is in the AyuGram and Nekogram sections below.
+
+- [ ] From AyuGram: **ghost mode** (no "typing", no read marks until one
+      acts, no online, stories unseen) and **message filters**; edited
+      marks as one likes, plain replies, a profile opened by id, streamer
+      mode, ending a view-once photo at once; a Quick Settings tile for
+      ghost mode once it exists.
 - [ ] From Nekogram: markdown parser options.
-
-### 5. For the owner to decide
-
-- [ ] AyuGram's **edit and deletion history**, and **delayed sending** to
-      stay offline — see its section for what each costs.
-- [ ] **The music library** out of For geeks — the owner's word on 1
-      October: only if people ask for it.
+- [ ] For the owner to decide first: AyuGram's **edit and deletion
+      history** and **delayed sending** to stay offline; **the music
+      library** out of For geeks (1 October: only if people ask for it).
 
 ### Not planned
 
