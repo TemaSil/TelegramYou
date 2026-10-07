@@ -62,6 +62,7 @@ fun telegramViewModelFactory(
         initializer { ProxyViewModel(repository) }
         initializer { DevicesViewModel(repository) }
         initializer { StorageViewModel(repository) }
+        initializer { com.telegramyou.app.ui.settings.NotificationsViewModel(repository) }
         initializer { PrivacyViewModel(repository) }
         initializer { PersonViewModel(repository, createSavedStateHandle()) }
         initializer { BlockedViewModel(repository) }

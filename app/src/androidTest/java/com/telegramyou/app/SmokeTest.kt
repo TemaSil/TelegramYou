@@ -2057,6 +2057,29 @@ class SmokeTest {
     }
 
     /**
+     * 2.0: Settings → Notifications — the three kinds of chat, and a switch
+     * that greys out the two under it when notifications are turned off.
+     */
+    @Test
+    fun notificationDefaultsAreSetByKindOfChat() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        tap(By.text("Notifications"))
+        waitFor(By.text("Private chats"), "the notification defaults")
+        waitFor(By.text("Groups"), "the groups' defaults")
+        tap(By.text("Messages from one person"))
+        waitFor(By.text("Off for private chats"), "private chats' notifications off")
+        screenshot("91-notification-defaults")
+        tap(By.text("Off for private chats"))
+        waitFor(By.text("Messages from one person"), "private chats' notifications back on")
+        device.pressBack()
+        waitFor(By.text("Appearance"), "the settings again")
+    }
+
+    /**
      * 2.0: a channel post's comments — the count under the post, the thread
      * opened from it with the comments already there, one written, and the
      * count gone up when back on the channel.

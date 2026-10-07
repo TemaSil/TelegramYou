@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.notifications.ScopeNotifications
+import com.telegramyou.app.notifications.NotificationScope
 import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
@@ -584,6 +586,19 @@ class DemoTelegramClient(
             chatId,
             current.copy(mutedUntil = if (muted) ChatNotificationSettings.MUTED_FOREVER else 0L)
         )
+    }
+
+    /** Settings → Notifications in the demo: kept for as long as it runs. */
+    private val scopes = NotificationScope.entries.associateWith { ScopeNotifications() }.toMutableMap()
+
+    override suspend fun scopeNotifications(): Map<NotificationScope, ScopeNotifications> {
+        delay(80)
+        return scopes.toMap()
+    }
+
+    override suspend fun setScopeNotifications(scope: NotificationScope, settings: ScopeNotifications) {
+        delay(80)
+        scopes[scope] = settings
     }
 
     override suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings) {

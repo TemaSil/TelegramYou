@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.chats
 
+import com.telegramyou.app.notifications.ScopeNotifications
+import com.telegramyou.app.notifications.NotificationScope
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
@@ -112,6 +114,16 @@ interface TelegramChats {
      * way TDLib takes it, so one change cannot reset the others.
      */
     suspend fun setChatNotifications(chatId: Long, settings: ChatNotificationSettings)
+
+    /**
+     * Telegram's notification defaults for each kind of chat (2.0) — what
+     * every chat of that kind follows until it has its own.
+     */
+    suspend fun scopeNotifications(): Map<NotificationScope, ScopeNotifications> =
+        NotificationScope.entries.associateWith { ScopeNotifications() }
+
+    /** One kind of chat's defaults changed, on the account and so on every device. */
+    suspend fun setScopeNotifications(scope: NotificationScope, settings: ScopeNotifications) {}
 
     /**
      * Pins a chat to the top of the list, or unpins it.

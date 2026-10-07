@@ -87,6 +87,12 @@ sealed interface Route {
     }
 
     /** The cache on this phone, and clearing it; from Settings. */
+    /** Settings → Notifications: the defaults for each kind of chat (2.0). */
+    data object NotificationSettings : Route {
+        const val PATTERN = "settings/notifications"
+        override val path = PATTERN
+    }
+
     data object Storage : Route {
         const val PATTERN = "settings/storage"
         override val path = PATTERN

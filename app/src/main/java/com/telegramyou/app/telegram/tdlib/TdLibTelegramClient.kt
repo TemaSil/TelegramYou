@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.notifications.ScopeNotifications
+import com.telegramyou.app.notifications.NotificationScope
 import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
@@ -1143,6 +1145,61 @@ class TdLibTelegramClient(
                 .put("chat_id", chatId)
                 .put("notification_settings", settingsObject)
         )
+    }
+
+    private fun scopeKey(scope: NotificationScope): String = when (scope) {
+        NotificationScope.PrivateChats -> "notificationSettingsScopePrivateChats"
+        NotificationScope.Groups -> "notificationSettingsScopeGroupChats"
+        NotificationScope.Channels -> "notificationSettingsScopeChannelChats"
+    }
+
+    override suspend fun scopeNotifications(): Map<NotificationScope, ScopeNotifications> {
+        awaitReady()
+        return NotificationScope.entries.associateWith { scope ->
+            val key = scopeKey(scope)
+            val settings = scopeNotifications[key] ?: runCatching {
+                requireEngine().send(
+                    JSONObject().put("@type", "getScopeNotificationSettings").put("scope", JSONObject().put("@type", key))
+                )
+            }.getOrNull()?.also { scopeNotifications[key] = it } ?: JSONObject()
+            ScopeNotifications(
+                enabled = settings.optLong("mute_for") == 0L,
+                showPreview = settings.optBoolean("show_preview", true),
+                sound = !settings.has("sound_id") || settings.optLong("sound_id") != 0L
+            )
+        }
+    }
+
+    /**
+     * The scope's whole settings object, changed where the person changed
+     * something — the story and pin settings beside them kept as they are.
+     * Sound on is the default sound (-1): there is no picker here.
+     */
+    override suspend fun setScopeNotifications(scope: NotificationScope, settings: ScopeNotifications) {
+        awaitReady()
+        val key = scopeKey(scope)
+        val current = scopeNotifications[key]?.let { JSONObject(it.toString()) } ?: JSONObject()
+            .put("use_default_mute_stories", true)
+            .put("mute_stories", false)
+            .put("story_sound_id", -1L)
+            .put("show_story_poster", true)
+            .put("disable_pinned_message_notifications", false)
+            .put("disable_mention_notifications", false)
+        current
+            .put("@type", "scopeNotificationSettings")
+            .put("mute_for", if (settings.enabled) 0 else MUTE_FOREVER_SECONDS)
+            .put("show_preview", settings.showPreview)
+            .put("sound_id", if (settings.sound) -1L else 0L)
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setScopeNotificationSettings")
+                .put("scope", JSONObject().put("@type", key))
+                .put("notification_settings", current)
+        )
+        // Kept at once, so the chat list's mute icons and the next read
+        // agree before TDLib's own update says the same.
+        scopeNotifications[key] = current
+        publishChats()
     }
 
     /** Every setting following the account's defaults, for a chat not yet seen. */

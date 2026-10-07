@@ -59,6 +59,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
@@ -90,6 +91,7 @@ fun SettingsScreen(
             contentPadding = padding,
             onOpenDevices = onOpenDevices,
             onOpenStorage = onOpenStorage,
+            onOpenNotifications = onOpenNotifications,
             onOpenPrivacy = onOpenPrivacy,
             onOpenGeeks = onOpenGeeks,
             onOpenProxy = onOpenProxy,
@@ -118,6 +120,7 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
+    onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
@@ -188,6 +191,12 @@ fun SettingsContent(
                 summary = "Sort chats into tabs",
                 icon = Symbols.Folder,
                 onClick = onOpenFolders
+            )
+            link(
+                title = "Notifications",
+                summary = "Sound and previews for chats, groups and channels",
+                icon = Symbols.Notifications,
+                onClick = onOpenNotifications
             )
         }
 

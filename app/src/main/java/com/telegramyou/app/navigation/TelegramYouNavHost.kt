@@ -540,6 +540,7 @@ fun TelegramYouNavHost(
                 onOpenFolders = { navController.navigateTo(Route.Folders) },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
                 onOpenUpdates = { navController.navigateTo(Route.Updates) }
@@ -646,6 +647,7 @@ fun TelegramYouNavHost(
                 },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
@@ -829,6 +831,15 @@ fun TelegramYouNavHost(
                 onOpenChat = { navController.navigateTo(chatRoute(it)) },
                 onChatOpened = personViewModel::onChatOpened,
                 onMessageShown = personViewModel::onMessageShown
+            )
+        }
+        composable(Route.NotificationSettings.PATTERN) {
+            val notifications: com.telegramyou.app.ui.settings.NotificationsViewModel = viewModel(factory = viewModelFactory)
+            val settings by notifications.settings.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.settings.NotificationsScreen(
+                settings = settings,
+                onBack = { navController.popBackStack() },
+                onChange = notifications::onChange
             )
         }
         composable(Route.Storage.PATTERN) {
