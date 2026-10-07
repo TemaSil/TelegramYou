@@ -53,7 +53,14 @@ data class GeekSettings(
      * until 2.0, when the owner found it heavy and it became the field and
      * a round button on the chat's own background, as Google Messages has it.
      */
-    val composerCapsule: Boolean = false
+    val composerCapsule: Boolean = false,
+    /**
+     * A group's or channel's header shows its members' faces, overlapping,
+     * each in its own shape — the header every group had from 1.x to 2.0.
+     * Off, it shows the chat's own picture, as Telegram does (2.0.1, on the
+     * owner's word); kept here as a beta, to be worked on.
+     */
+    val groupFaces: Boolean = false
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */

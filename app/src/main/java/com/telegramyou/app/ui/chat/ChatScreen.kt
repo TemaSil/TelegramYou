@@ -820,12 +820,16 @@ fun ChatScreen(
                             )
                         ) {
                             if (chat != null) {
-                                // A group shows who is in it, each member in
-                                // their own shape; anything with one person
-                                // behind it keeps a single avatar — in the
-                                // shape it has in the chat list — because a
-                                // cluster of one is just an avatar drawn oddly.
-                                val members = if (chat.isGroup || chat.isChannel) {
+                                // The chat's own picture, as Telegram has it,
+                                // for groups and channels too (2.0.1). Under
+                                // For geeks → Members in a group's header, a
+                                // group shows who is in it instead, each
+                                // member in their own shape; anything with
+                                // one person behind it keeps a single avatar —
+                                // in the shape it has in the chat list —
+                                // because a cluster of one is just an avatar
+                                // drawn oddly.
+                                val members = if (geeks.groupFaces && (chat.isGroup || chat.isChannel)) {
                                     // The server's list when there is one,
                                     // and whoever has spoken when there is
                                     // not: a channel has no members, and a

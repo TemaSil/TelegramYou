@@ -61,7 +61,8 @@ A new composer as Android's Messages has it, voice messages held and
 locked as in the official app, several photos at once. Comments under
 channel posts, inline bots and Mini Apps. Quotes, go to a date, read
 times, message links and Report. Notifications by kind of chat. 2.0.1
-fills the navigation bar under the composer.
+fills the navigation bar under the composer and gives groups their
+own picture in the header.
 
 All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
 [releases](https://github.com/TemaSil/TelegramYou/releases) ·

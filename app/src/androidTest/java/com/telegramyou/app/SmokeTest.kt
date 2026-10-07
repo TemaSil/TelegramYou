@@ -160,7 +160,9 @@ class SmokeTest {
     }
 
     /**
-     * A group's header, which is the only place the avatar cluster appears.
+     * A group's header: the group's own picture, as Telegram has it, and —
+     * switched on under For geeks (beta since 2.0.1) — the avatar cluster,
+     * which that header is the only place for.
      *
      * A second test rather than more of the first: that one ends on the home
      * screen with the shade open, and getting from there to another
@@ -191,6 +193,19 @@ class SmokeTest {
         // exactly the condition wanted.
         device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
         screenshot("06-group-header")
+
+        // The members' faces, from For geeks, and the capsule composer with
+        // them, for how it sits (2.0.1). Set through the store and put back
+        // however the test ends, since the tests share one install.
+        val geeks = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp).geeks
+        try {
+            geeks.update { it.copy(groupFaces = true, composerCapsule = true) }
+            SystemClock.sleep(SETTLE_MS)
+            device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
+            screenshot("06b-group-faces")
+        } finally {
+            geeks.update { it.copy(groupFaces = false, composerCapsule = false) }
+        }
     }
 
     /**

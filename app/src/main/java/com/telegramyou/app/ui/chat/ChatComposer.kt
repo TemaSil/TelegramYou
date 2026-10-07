@@ -422,7 +422,18 @@ internal fun ComposerBar(
             onRecordStart = onRecordStart,
             onRecordStop = onRecordStop,
             onRecordCancel = onRecordCancel,
-            modifier = Modifier.padding(bottom = if (capsule) ComposerButtonLift else 0.dp)
+            // Bright at rest in the capsule, as it was before 2.0: a quieter
+            // container sat too close to the capsule round it to be seen.
+            quietAtRest = !capsule,
+            // In the capsule, the 48dp an icon button stands in, as the
+            // capsule's other buttons do: four round the 40dp circle, and
+            // the same lift. Without it the circle sat six low of the
+            // field's middle and four from the capsule's edge (2.0.1).
+            modifier = if (capsule) {
+                Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = ComposerButtonLift + 4.dp)
+            } else {
+                Modifier
+            }
         )
     }
 
@@ -585,7 +596,6 @@ private fun CapsuleComposer(
                     .clip(fieldShape),
                 MaterialTheme.colorScheme.surfaceContainerLowest
             )
-            Spacer(Modifier.width(4.dp))
             button()
         }
     }
@@ -776,6 +786,7 @@ private fun VoiceSendButton(
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
     onRecordCancel: () -> Unit,
+    quietAtRest: Boolean,
     modifier: Modifier = Modifier
 ) {
     val colors = MaterialTheme.colorScheme
@@ -855,8 +866,8 @@ private fun VoiceSendButton(
             },
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (showsSend || recording) colors.primary else colors.primaryContainer,
-                contentColor = if (showsSend || recording) colors.onPrimary else colors.onPrimaryContainer
+                containerColor = if (showsSend || recording || !quietAtRest) colors.primary else colors.primaryContainer,
+                contentColor = if (showsSend || recording || !quietAtRest) colors.onPrimary else colors.onPrimaryContainer
             ),
             modifier = Modifier
                 .size(size)

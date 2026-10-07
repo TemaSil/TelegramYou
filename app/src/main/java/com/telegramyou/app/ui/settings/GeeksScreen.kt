@@ -268,6 +268,11 @@ fun GeeksScreen(
                     summary = "Every chat's music as albums, artists and playlists, in the chat list's menu",
                     checked = settings.musicLibrary
                 ) { on -> onChange { it.copy(musicLibrary = on) } }
+                switch(
+                    title = "Members in a group's header (beta)",
+                    summary = "A group or channel shows the faces of the people in it rather than its own picture",
+                    checked = settings.groupFaces
+                ) { on -> onChange { it.copy(groupFaces = on) } }
             }
 
             SettingsGroup("Connection") {
