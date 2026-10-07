@@ -1973,6 +1973,77 @@ Not built yet: translation and auto-translate — the top of "Still
 missing" — then voice transcription and markdown parser options. (A tablet layout and QR login were on
 this list; both are done — see Home and Login.)
 
+## AyuGram, read as an inventory, 7 October 2026
+
+The owner pointed at AyuGram (github.com/AyuGram) as a second fork worth
+mining, after Nekogram. Read from its README and its documentation
+(AyuGramDocs), not its code: the Android client is GPL-2.0 and the
+desktop one GPL-3.0, so as with Nekogram nothing of it can come in here —
+it is a reference for behaviour only.
+
+It is not Nekogram's kind of fork. Its own README calls it "a client with
+ToS-breaking features in mind", and most of what it is known for is that.
+This client ships the owner's own api_id inside a public APK (see
+CLAUDE.md); a feature that breaks Telegram's API terms puts that key at
+risk for every user at once, and a key cannot be reissued. So the list
+splits in three.
+
+**Worth taking — client-side, the account's own behaviour, nobody else's:**
+
+- [ ] **Ghost mode, the honest half** — each its own switch under For
+      geeks: don't send "typing…" and the other chat actions (TDLib's
+      `sendChatAction` simply not called); don't mark messages read
+      (`viewMessages` not called) until something is done in the chat —
+      AyuGram's "read on interact"; don't send online (TDLib's `online`
+      option). All three are things the account chooses about itself, as
+      Telegram's own last-seen setting is. "Don't read stories" belongs
+      with them.
+- [ ] **Message filters** — hide messages in a chat, or everywhere, that
+      match a word or a pattern, chosen by selecting text in a message and
+      "Hide messages like this". Kept on the phone, per chat or for all,
+      each chat able to opt out of the global ones. Not "hide ads": see
+      below.
+- [ ] **Edited marks, shown how one likes** — the "edited" label as a word,
+      an icon or nothing. Small, Appearance rather than For geeks.
+- [ ] **Plain replies** — the quote in a reply and a link preview without
+      their colour bar and emoji background ("Disable colorful replies").
+      Appearance.
+- [ ] **Open a profile by id** — `tg://user?id=…` opening the person, from
+      what TDLib already knows. Without AyuGram's fallback to a third-party
+      lookup bot.
+- [ ] **Streamer mode** — the phone number, the account list and the
+      notification previews hidden while it is on, for screen-sharing.
+- [ ] **Expire a view-once photo or video at once** — a button that ends it
+      rather than waiting out its timer.
+
+**Decide first — legal, but against how Telegram means something to work:**
+
+- [ ] **Edit and deletion history** — the earlier text of an edited
+      message, and messages deleted by the other side, kept in a database
+      on the phone and shown marked. Telegram's deletion is meant to reach
+      every device; keeping what someone deleted is a choice about their
+      messages, not the account's own. The owner's call, and if yes, only
+      for edits first.
+- [ ] **Delayed sending to stay offline** — messages held a few seconds so
+      sending does not flash online. Harmless, but it only makes sense with
+      the whole ghost mode, and it makes "sent" lie for those seconds.
+
+**Not taken, and why:**
+
+- Forwarding and saving from channels that forbid it ("AyuForward",
+  `noforwards` bypassed) — circumvents the channel's own protection.
+- "Peek online" — reads another person's last seen by adding them to and
+  removing them from one's own exceptions, against the privacy setting
+  they chose.
+- Screenshots in secret chats, and secret-chat media kept past its timer.
+- "Local Premium" — Premium's features unlocked on the client, which the
+  server does not back and Telegram's terms forbid.
+- Hiding sponsored messages ("hide ads"): third-party clients on their own
+  keys are required to show them. If this client shows them at all, they
+  stay.
+- Emulator-detection removal, an FPS limiter, its own push workarounds —
+  problems of a fork of the official Java client, which this is not.
+
 ## Infrastructure
 
 - [x] TDLib wired through `JsonClient`, demo backend for offline work
