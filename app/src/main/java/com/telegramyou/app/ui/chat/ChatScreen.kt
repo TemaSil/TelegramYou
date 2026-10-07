@@ -1316,6 +1316,22 @@ fun ChatScreen(
                 )
             }
 
+            // The navigation bar's strip, filled with the colour the plain
+            // composer's fade ends in, so the bar reads as the bottom of the
+            // composer rather than a window onto the messages scrolling
+            // under it (the owner's word, 7 October, 2.0.1). The capsule
+            // composer in For geeks keeps the bar clear: floating over the
+            // conversation is the point of it.
+            if (!geeks.composerCapsule && composerLift > 0.dp) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(composerLift)
+                        .background(chatBackgroundBottom())
+                )
+            }
+
             // The composer and its banners, over the list rather than
             // under it. Bottom-centred in the shared Box; the Column keeps
             // the reply banner and the attachment chip stacked above the

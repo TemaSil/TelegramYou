@@ -55,12 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.0 · 7 October 2026
+## Latest: 2.0.1 · 7 October 2026
 
 A new composer as Android's Messages has it, voice messages held and
 locked as in the official app, several photos at once. Comments under
 channel posts, inline bots and Mini Apps. Quotes, go to a date, read
-times, message links and Report. Notifications by kind of chat.
+times, message links and Report. Notifications by kind of chat. 2.0.1
+fills the navigation bar under the composer.
 
 All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
 [releases](https://github.com/TemaSil/TelegramYou/releases) ·

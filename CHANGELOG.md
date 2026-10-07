@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.0.1
+
+- **The navigation bar under the composer is filled** with the chat's background, as the composer's own fade ends, rather than showing the messages that scroll beneath it. The capsule composer in For geeks keeps it clear.
+
 ## 2.0
 
 The biggest release yet: the composer redone, the features the official app has that this one still lacked, and the bugs found on real phones.
