@@ -85,6 +85,15 @@ fun dayLabel(
     return when {
         sameDay(date, now) -> "Today"
         sameDay(date, now - 24 * 60 * 60) -> "Yesterday"
-        else -> SimpleDateFormat("d MMMM", locale).format(Date(date * 1000L))
+        // The year only where it is not this one: "8 July" alone, a year
+        // back in a long history, read as this summer.
+        sameYear(date, now) -> SimpleDateFormat("d MMMM", locale).format(Date(date * 1000L))
+        else -> SimpleDateFormat("d MMMM yyyy", locale).format(Date(date * 1000L))
     }
+}
+
+private fun sameYear(a: Long, b: Long): Boolean {
+    val first = Calendar.getInstance().apply { timeInMillis = a * 1000L }
+    val second = Calendar.getInstance().apply { timeInMillis = b * 1000L }
+    return first.get(Calendar.YEAR) == second.get(Calendar.YEAR)
 }

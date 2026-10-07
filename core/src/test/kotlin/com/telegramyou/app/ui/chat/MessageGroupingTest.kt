@@ -127,6 +127,12 @@ class MessageGroupingTest {
     }
 
     @Test
+    fun `a day in another year says which`() {
+        val now = at(2026, 9, 14, 15, 0)
+        assertEquals("8 July 2025", dayLabel(at(2025, 7, 8), now, Locale.ENGLISH))
+    }
+
+    @Test
     fun `no date gives no label`() {
         assertEquals("", dayLabel(0, at(2026, 9, 14)))
     }

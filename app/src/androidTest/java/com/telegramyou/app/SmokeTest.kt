@@ -2222,6 +2222,10 @@ class SmokeTest {
         waitFor(By.textStartsWith("Motion scheme — "), "the answer sent")
 
         backTo(By.text("Chats"), "the chat list again")
+        // Music left playing by a test before this one puts the mini player
+        // where the drag that scrolls the list starts, and the list never
+        // moved; stopped first.
+        if (device.hasObject(By.desc("Stop music"))) tap(By.desc("Stop music"))
         scrollChatsTo(By.text("Build Bot"))
         tap(By.text("Build Bot"))
         waitFor(By.text("Open builds"), "the Mini App button")

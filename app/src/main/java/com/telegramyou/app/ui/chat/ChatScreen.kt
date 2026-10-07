@@ -135,6 +135,12 @@ import kotlinx.coroutines.launch
  */
 internal const val RECORDING_TICK_MS = 250L
 
+/** How long the floating date stays once the conversation stops moving. */
+private const val FLOATING_DAY_LINGER_MS = 1_200L
+
+/** The least room the list leaves under its newest message for the composer: one line of it. */
+private val COMPOSER_ROOM_MIN = 76.dp
+
 /**
  * One conversation.
  *
@@ -594,6 +600,10 @@ fun ChatScreen(
     val botKeyboard = state.replyKeyboard
     var botKeyboardShown by remember(botKeyboard) { mutableStateOf(true) }
     var botPanelHeight by remember { mutableIntStateOf(0) }
+    // The composer's own height, measured: with photos inside its field
+    // (2.0) it grows well past the one line the list used to leave room for.
+    var composerHeight by remember { mutableIntStateOf(0) }
+    val composerRoom = with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
     var playerBarHeight by remember { mutableIntStateOf(0) }
     val playerBarPadding = with(LocalDensity.current) { playerBarHeight.toDp() }
     val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
@@ -1006,7 +1016,7 @@ fun ChatScreen(
                         start = 16.dp,
                         end = 16.dp,
                         top = 16.dp,
-                        bottom = 92.dp + botPanelPadding + playerBarPadding + composerLift
+                        bottom = composerRoom + 16.dp + botPanelPadding + playerBarPadding + composerLift
                     ),
                     // Bottom, as a list laid out from the bottom has by
                     // default: a short conversation sits on the composer.
@@ -1257,6 +1267,16 @@ fun ChatScreen(
             }
 
 
+            // The day of whatever is at the top of the screen, while the
+            // list moves and for a moment after (2.0), as Telegram does: in
+            // a long history the separators have scrolled away, and this is
+            // how the reader knows when they are.
+            FloatingDay(
+                listState = listState,
+                messages = state.messages,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
+
             // The composer and its banners, over the list rather than
             // under it. Bottom-centred in the shared Box; the Column keeps
             // the reply banner and the attachment chip stacked above the
@@ -1490,6 +1510,7 @@ fun ChatScreen(
                             }
                         )
                     }
+                    Box(Modifier.onSizeChanged { composerHeight = it.height }) {
                     ComposerBar(
                         placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: "Message",
                         botKeyboardShown = botKeyboard?.let { botKeyboardShown },
@@ -1581,6 +1602,7 @@ fun ChatScreen(
                         capsule = geeks.composerCapsule,
                         inField = trayContent
                     )
+                    }
                 }
             }
             }
@@ -1691,6 +1713,42 @@ fun ChatScreen(
     // being watched before it is sent.
     BackHandler(enabled = videoNoteLocked) { cancelVideoNote() }
     BackHandler(enabled = videoNotePreview != null) { deletePreviewedVideoNote() }
+}
+
+/** See where it is called: the date pill that floats at the top while the conversation scrolls. */
+@Composable
+private fun FloatingDay(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    messages: List<ChatMessage>,
+    modifier: Modifier = Modifier
+) {
+    // The topmost message on screen: the list is laid out from the bottom,
+    // so that is the visible item furthest from item 0. Its key is its id.
+    val topDate by remember(messages) {
+        derivedStateOf {
+            val top = listState.layoutInfo.visibleItemsInfo.maxByOrNull { it.index }
+            val id = top?.key as? Long
+            messages.firstOrNull { it.id == id }?.date ?: 0L
+        }
+    }
+    var shown by remember { mutableStateOf(false) }
+    val moving = listState.isScrollInProgress
+    LaunchedEffect(moving) {
+        if (moving) {
+            shown = true
+        } else {
+            delay(FLOATING_DAY_LINGER_MS)
+            shown = false
+        }
+    }
+    AnimatedVisibility(
+        visible = shown && topDate > 0L,
+        enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+        exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
+        modifier = modifier
+    ) {
+        DaySeparator(topDate)
+    }
 }
 
 @Composable
