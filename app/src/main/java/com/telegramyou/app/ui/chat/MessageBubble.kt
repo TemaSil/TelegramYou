@@ -794,10 +794,11 @@ internal fun MessageBubble(
                     DropdownMenuItem(
                         text = { Text(readText, style = MaterialTheme.typography.labelLarge) },
                         leadingIcon = { Icon(Symbols.DoneAll, contentDescription = null) },
-                        enabled = seenBy.size > 1,
+                        // Enabled, so it is not drawn greyed out; it only
+                        // opens the list where there is a list to open.
                         onClick = {
                             menuOpen = false
-                            viewersOpen = true
+                            if (seenBy.size > 1) viewersOpen = true
                         }
                     )
                     HorizontalDivider()

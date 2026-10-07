@@ -2211,13 +2211,6 @@ class ChatViewModel(
 
     private var jumpJob: Job? = null
 
-    /**
-     * Brings [messageId] on screen — a search hit, the pinned message. Where
-     * it is loaded already that is a scroll. Where it is older than anything
-     * loaded, the page around it is fetched and shown in place of the latest
-     * messages, which is the only way to reach it without paging back through
-     * everything in between.
-     */
     // ── a link, and reporting (2.0) ──────────────────────────────────────
 
     /** The message's link, handed to [copy]; said when there is none. */
@@ -2273,6 +2266,13 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Brings [messageId] on screen — a search hit, the pinned message. Where
+     * it is loaded already that is a scroll. Where it is older than anything
+     * loaded, the page around it is fetched and shown in place of the latest
+     * messages, which is the only way to reach it without paging back through
+     * everything in between.
+     */
     fun onJumpToMessage(messageId: Long) {
         if (_uiState.value.messages.any { it.id == messageId }) {
             _uiState.update { it.copy(scrollTarget = messageId) }
