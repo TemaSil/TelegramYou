@@ -361,9 +361,12 @@ rule of 27 September 2026, so a push builds one APK rather than two.
 
 ## What to build next
 
-`ROADMAP.md` maps what a complete client contains — measured against Nekogram,
+`ROADMAP.md` opens with where the client stands and **The plan** — what
+is left, in order — and then maps what a complete client contains — measured against Nekogram,
 which was read as an inventory, not as a source to borrow from — onto the
-Material 3 components each part should use. Keep it current.
+Material 3 components each part should use. Keep it current. The dated log
+of sessions and releases, with the reasons, moved to `HISTORY.md` on 7
+October 2026.
 
 Two constraints from that reading are worth repeating here. Nekogram is
 **GPL-2.0**, so none of its code can come into this repository. And it uses no
