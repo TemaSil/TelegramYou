@@ -3,6 +3,8 @@ package com.telegramyou.app.ui.chat
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.LocalContentColor
 import com.telegramyou.app.telegram.model.ContactContent
+import com.telegramyou.app.telegram.model.ReadInfo
+import com.telegramyou.app.telegram.model.readLine
 import androidx.compose.ui.semantics.semantics
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import androidx.compose.material3.IconButton
@@ -181,11 +183,18 @@ internal fun MessageBubble(
      */
     onCopyLink: (() -> Unit)? = null,
     /** Reported to Telegram (2.0); null for one's own messages. */
-    onReport: (() -> Unit)? = null
+    onReport: (() -> Unit)? = null,
+    /** Who has read it, once asked; see ReadInfo (2.0). */
+    readInfo: ReadInfo? = null
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
     var quoteOpen by remember { mutableStateOf(false) }
+    var viewersOpen by remember { mutableStateOf(false) }
+    val seen = (readInfo as? ReadInfo.SeenBy)?.viewers.orEmpty()
+    if (viewersOpen && seen.isNotEmpty()) {
+        SeenByDialog(seen, onDismiss = { viewersOpen = false })
+    }
     if (quoteOpen) {
         QuoteDialog(
             text = message.text,
@@ -776,6 +785,23 @@ internal fun MessageBubble(
                 expanded = menuOpen,
                 onDismissRequest = { menuOpen = false }
             ) {
+                // Who has read it, over everything else, as the official
+                // client has it (2.0) — one's own messages only; a group's
+                // list opens from it.
+                val readText = readLine(readInfo) { date -> readTimeLabel(context, date) }
+                if (outgoing && readText != null) {
+                    val seenBy = (readInfo as? ReadInfo.SeenBy)?.viewers.orEmpty()
+                    DropdownMenuItem(
+                        text = { Text(readText, style = MaterialTheme.typography.labelLarge) },
+                        leadingIcon = { Icon(Symbols.DoneAll, contentDescription = null) },
+                        enabled = seenBy.size > 1,
+                        onClick = {
+                            menuOpen = false
+                            viewersOpen = true
+                        }
+                    )
+                    HorizontalDivider()
+                }
                 // The reactions first, as Telegram and Google Messages put
                 // them: the most used in a row, and the arrow to all of them.
                 if (quickReactions.isNotEmpty()) {

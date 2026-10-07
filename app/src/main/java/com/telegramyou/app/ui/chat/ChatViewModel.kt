@@ -56,6 +56,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.coroutineScope
 import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.ReportStep
+import com.telegramyou.app.telegram.model.ReadInfo
 import com.telegramyou.app.telegram.model.InlineQuery
 import com.telegramyou.app.telegram.model.InlineResult
 import com.telegramyou.app.telegram.model.WebAppSession
@@ -266,6 +267,8 @@ data class ChatUiState(
     val inline: InlinePanel? = null,
     /** A bot's Mini App, while it is open (2.0). */
     val webApp: OpenWebApp? = null,
+    /** Who has read the account's own messages, by id, asked when a menu opens (2.0). */
+    val readInfo: Map<Long, ReadInfo> = emptyMap(),
     /** A report under way (2.0): what is reported and the server's last question. */
     val report: ReportFlow? = null,
     /** The part of [replyTo] quoted, and where it starts in it; null for a plain reply (2.0). */
@@ -1954,6 +1957,13 @@ class ChatViewModel(
             }
             if (permissions == null) return@launch
             _uiState.update { state -> state.mapMessage(message.id) { it.withPermissions(permissions) } }
+        }
+        // Who has read it (2.0): asked for one's own messages only, each time
+        // the menu opens, since it changes while the menu is shut.
+        if (message.isOutgoing) viewModelScope.launch {
+            val isGroup = _uiState.value.detail?.chat?.isGroup == true
+            val info = runCatching { repository.readInfo(chatId, message.id, isGroup) }.getOrNull()
+            _uiState.update { it.copy(readInfo = it.readInfo + (message.id to (info ?: ReadInfo.Hidden))) }
         }
     }
 

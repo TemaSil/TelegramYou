@@ -14,6 +14,7 @@ import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
 import com.telegramyou.app.telegram.model.ReportStep
+import com.telegramyou.app.telegram.model.ReadInfo
 import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -98,6 +99,12 @@ interface TelegramMessages {
      * Null where Telegram gives none, as in a private chat.
      */
     suspend fun messageLink(chatId: Long, messageId: Long): String? = null
+
+    /**
+     * Who has read the account's own message [messageId] (2.0): the time in
+     * a private chat, the people in a small group; see ReadInfo.
+     */
+    suspend fun readInfo(chatId: Long, messageId: Long, isGroup: Boolean): ReadInfo? = null
 
     /**
      * One step of reporting [messageIds] in [chatId] (2.0); see ReportStep.

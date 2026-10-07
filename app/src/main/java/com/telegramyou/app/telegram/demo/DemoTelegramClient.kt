@@ -68,6 +68,8 @@ import com.telegramyou.app.telegram.model.InlineResultKind
 import com.telegramyou.app.telegram.model.InlineResults
 import com.telegramyou.app.telegram.model.ReportOption
 import com.telegramyou.app.telegram.model.ReportStep
+import com.telegramyou.app.telegram.model.ReadInfo
+import com.telegramyou.app.telegram.model.Viewer
 import com.telegramyou.app.telegram.model.WebAppSession
 import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -1435,6 +1437,22 @@ class DemoTelegramClient(
             )
             optionId == "b3RoZXI=" && text.isEmpty() -> ReportStep.Explain(optionId, optional = false)
             else -> ReportStep.Done
+        }
+    }
+
+    /** Read a few minutes after it went, in a private chat; seen by three, in a group. */
+    override suspend fun readInfo(chatId: Long, messageId: Long, isGroup: Boolean): ReadInfo? {
+        delay(120)
+        val message = chatMessages[chatId]?.firstOrNull { it.id == messageId } ?: return null
+        if (!message.isRead) return if (isGroup) ReadInfo.SeenBy(emptyList()) else ReadInfo.Unread
+        return if (isGroup) {
+            ReadInfo.SeenBy(
+                listOf("Lina Park", "Ivan", "Noor").mapIndexed { index, name ->
+                    Viewer(userId = 100L + index, name = name, date = message.date + 60L * (3 - index))
+                }
+            )
+        } else {
+            ReadInfo.ReadAt(message.date + 4 * 60)
         }
     }
 

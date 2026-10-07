@@ -57,6 +57,8 @@ import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResults
 import com.telegramyou.app.telegram.model.ReportOption
 import com.telegramyou.app.telegram.model.ReportStep
+import com.telegramyou.app.telegram.model.ReadInfo
+import com.telegramyou.app.telegram.model.Viewer
 import com.telegramyou.app.telegram.model.WebAppSession
 import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.MessageHit
@@ -2453,6 +2455,41 @@ class TdLibTelegramClient(
             ).optString("link").takeIf { it.isNotBlank() }
         } catch (e: TdLibException) {
             null
+        }
+    }
+
+    override suspend fun readInfo(chatId: Long, messageId: Long, isGroup: Boolean): ReadInfo? {
+        awaitReady()
+        return try {
+            if (isGroup) {
+                val list = requireEngine().send(
+                    JSONObject().put("@type", "getMessageViewers").put("chat_id", chatId).put("message_id", messageId)
+                ).optJSONArray("viewers") ?: JSONArray()
+                ReadInfo.SeenBy(
+                    List(list.length()) { list.optJSONObject(it) }.filterNotNull().mapNotNull { viewer ->
+                        val userId = viewer.optLong("user_id").takeIf { it != 0L } ?: return@mapNotNull null
+                        val user = userObject(userId)
+                        Viewer(
+                            userId = userId,
+                            name = user?.let { mapUser(it).displayName } ?: "Someone",
+                            date = viewer.optLong("view_date"),
+                            photoPath = user?.let { photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small")) }
+                        )
+                    }.sortedByDescending { it.date }
+                )
+            } else {
+                val read = requireEngine().send(
+                    JSONObject().put("@type", "getMessageReadDate").put("chat_id", chatId).put("message_id", messageId)
+                )
+                when (read.optString("@type")) {
+                    "messageReadDateRead" -> ReadInfo.ReadAt(read.optLong("read_date"))
+                    "messageReadDateUnread" -> ReadInfo.Unread
+                    else -> ReadInfo.Hidden
+                }
+            }
+        } catch (e: TdLibException) {
+            // A group too big for it, or a message too old: Telegram says no.
+            ReadInfo.Hidden
         }
     }
 

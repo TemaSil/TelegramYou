@@ -1199,6 +1199,7 @@ fun ChatScreen(
                                 } else {
                                     null
                                 },
+                                readInfo = state.readInfo[message.id],
                                 // A track is the music player's, which outlives
                                 // this screen; a voice note is the chat's own.
                                 voiceState = when {
