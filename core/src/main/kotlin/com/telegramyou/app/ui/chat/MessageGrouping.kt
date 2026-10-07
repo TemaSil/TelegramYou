@@ -45,7 +45,8 @@ fun sameDay(a: Long, b: Long): Boolean {
 
 /**
  * True when [message] is the last of its run: [next] comes from the other
- * side, sits more than [RUN_GAP_SECONDS] later, or does not exist.
+ * side or, in a group, from somebody else, sits more than [RUN_GAP_SECONDS]
+ * later, or does not exist.
  *
  * A message without a date ends its run rather than joining one — grouping on
  * an unknown instant would collapse unrelated messages together.
@@ -53,8 +54,20 @@ fun sameDay(a: Long, b: Long): Boolean {
 fun endsRun(message: ChatMessage?, next: ChatMessage?): Boolean {
     if (message == null || next == null) return true
     if (message.isOutgoing != next.isOutgoing) return true
+    // Incoming is not one person in a group: two members talking in turn
+    // made one run, with the second one's name and the first one's avatar
+    // both missing — whose message was whose could not be told.
+    if (!message.isOutgoing && !sameSender(message, next)) return true
     if (message.date <= 0L || next.date <= 0L) return true
     return next.date - message.date > RUN_GAP_SECONDS
+}
+
+/** The same author: by id where both have one, by name where they do not. */
+private fun sameSender(a: ChatMessage, b: ChatMessage): Boolean {
+    val first = a.senderId
+    val second = b.senderId
+    if (first != null && second != null) return first == second
+    return a.senderName == b.senderName
 }
 
 /**

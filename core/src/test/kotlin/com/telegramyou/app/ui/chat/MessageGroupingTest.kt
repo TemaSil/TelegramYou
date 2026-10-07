@@ -48,6 +48,18 @@ class MessageGroupingTest {
     }
 
     @Test
+    fun `in a group, a run ends when somebody else writes`() {
+        val leo = message(1, at(2026, 9, 14, 12, 0)).copy(senderId = 7, senderName = "Leo")
+        val sasha = message(2, at(2026, 9, 14, 12, 1)).copy(senderId = 8, senderName = "Sasha")
+        val leoAgain = message(3, at(2026, 9, 14, 12, 2)).copy(senderId = 7, senderName = "Leo")
+        assertTrue(endsRun(leo, sasha))
+        assertTrue(endsRun(sasha, leoAgain))
+        assertFalse(endsRun(leo, leoAgain.copy(id = 4)))
+        // Without ids, the names decide.
+        assertTrue(endsRun(leo.copy(senderId = null), sasha.copy(senderId = null)))
+    }
+
+    @Test
     fun `a gap longer than five minutes ends the run`() {
         val first = message(1, at(2026, 9, 14, 12, 0))
         val justInside = message(2, at(2026, 9, 14, 12, 5))

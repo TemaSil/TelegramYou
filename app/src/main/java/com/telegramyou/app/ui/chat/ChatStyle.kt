@@ -55,7 +55,7 @@ val LocalChatStyle = staticCompositionLocalOf { ChatStyle() }
 fun Modifier.chatWallpaper(wallpaper: ChatWallpaper): Modifier {
     val colors = MaterialTheme.colorScheme
     val quiet = Brush.verticalGradient(
-        listOf(colors.surfaceContainerLow, colors.surface, colors.primaryContainer.copy(alpha = 0.35f).compositeOver(colors.surface))
+        listOf(colors.surfaceContainerLow, colors.surface, colors.primaryContainer.copy(alpha = WARMTH).compositeOver(colors.surface))
     )
     val ink = colors.primary.copy(alpha = PATTERN_INK)
     return when (wallpaper) {
@@ -184,3 +184,11 @@ fun StyledMessage(outgoing: Boolean, content: @Composable () -> Unit) {
         content = sized
     )
 }
+
+/**
+ * How much of the primary container the base warms to at the bottom. It was
+ * 0.35, and with a saturated wallpaper colour in the dark theme the bottom of
+ * the chat ran into neon — the owner's word, 2.0 — so it was taken down to
+ * where it still warms and no longer glows.
+ */
+private const val WARMTH = 0.2f
