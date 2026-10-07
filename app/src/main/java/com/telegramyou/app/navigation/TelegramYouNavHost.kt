@@ -1046,6 +1046,7 @@ fun TelegramYouNavHost(
             val groupViewModel: GroupViewModel = viewModel(factory = viewModelFactory)
             val group by groupViewModel.uiState.collectAsStateWithLifecycle()
             val isGroup = state.detail?.chat?.isGroup == true
+            val translatedChats by com.telegramyou.app.settings.AutoTranslate.chats.collectAsStateWithLifecycle()
             // Again on every visit, like the link: an admin screen behind
             // this one may have changed who is what.
             LaunchedEffect(isGroup) {
@@ -1077,6 +1078,10 @@ fun TelegramYouNavHost(
                 },
                 onGroupNoticeShown = groupViewModel::onNoticeShown,
                 onGroupErrorShown = groupViewModel::onErrorShown,
+                autoTranslate = state.detail?.chat?.id?.let { it in translatedChats } == true,
+                onAutoTranslateChange = { on ->
+                    state.detail?.chat?.id?.let { com.telegramyou.app.settings.AutoTranslate.set(it, on) }
+                },
                 detail = state.detail,
                 inviteLink = state.inviteLink,
                 confirmingLeave = state.confirmingLeave,

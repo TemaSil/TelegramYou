@@ -2057,6 +2057,30 @@ class SmokeTest {
     }
 
     /**
+     * 2.0: a chat's Translate messages, turned on in its info — and back in
+     * the conversation its incoming messages read translated (the demo's
+     * translator marks them), then off again for the tests after.
+     */
+    @Test
+    fun aChatIsTranslatedAsMessagesCome() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        tap(By.text("Material Design"))
+        scrollDownTo(By.text("Translate messages"))
+        tap(By.text("Translate messages"))
+        device.pressBack()
+        waitFor(By.text(Pattern.compile("\\[\\w+] .+")), "an incoming message translated")
+        screenshot("92-chat-translated")
+        tap(By.text("Material Design"))
+        scrollDownTo(By.text("Translate messages"))
+        tap(By.text("Translate messages"))
+        device.pressBack()
+    }
+
+    /**
      * 2.0: Settings → Notifications — the three kinds of chat, and a switch
      * that greys out the two under it when notifications are turned off.
      */

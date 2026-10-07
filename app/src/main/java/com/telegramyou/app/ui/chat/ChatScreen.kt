@@ -1066,7 +1066,13 @@ fun ChatScreen(
                         // the tone chosen in Appearance; see StyledMessage.
                         StyledMessage(outgoing = message.isOutgoing) {
                             MessageBubble(
-                                message = message,
+                                // Translated, when the chat's Translate
+                                // messages is on: the words swapped, the
+                                // formatting dropped, since its offsets were
+                                // the original's.
+                                message = state.translations[message.id]
+                                    ?.let { message.copy(text = it, entities = emptyList()) }
+                                    ?: message,
                                 // Only the last message of a run carries the tail, so a
                                 // burst from one person reads as one block.
                                 isLastInRun = endsRun(message, next),

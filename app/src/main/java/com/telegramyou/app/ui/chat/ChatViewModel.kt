@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.chat
 
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.combine
+import com.telegramyou.app.settings.AutoTranslate
 import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.settings.MessageExtra
 import com.telegramyou.app.telegram.model.downloadedFileId
@@ -245,7 +248,12 @@ data class ChatUiState(
     /** Something done that is worth a line in a snackbar, until shown. */
     val notice: String? = null,
     /** A message being translated, or shown translated; see onTranslate. */
-    val translation: Translation? = null
+    val translation: Translation? = null,
+    /**
+     * Incoming messages put into the phone's language, by id, while the
+     * chat's Translate messages is on (2.0); see AutoTranslate.
+     */
+    val translations: Map<Long, String> = emptyMap()
 ) {
     /** Polls go to groups and channels, as in every Telegram client. */
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
@@ -338,6 +346,7 @@ class ChatViewModel(
             }
         }
         reload()
+        translateAsTheyCome()
         // The draft, kept as it is typed: a pause of a second and it is on
         // the server, where the chat list and the account's other devices
         // see it. Not while editing a message — the field holds the edit
@@ -1183,6 +1192,53 @@ class ChatViewModel(
             } else {
                 open(thread)
             }
+        }
+    }
+
+    /** Messages already asked to be translated, so each is asked once. */
+    private val autoTranslated = mutableSetOf<Long>()
+
+    /**
+     * The chat's Translate messages (2.0): while it is on, every incoming
+     * text in the window — the newest [AUTO_TRANSLATE_WINDOW] — and each one
+     * that arrives is put into the phone's language, one at a time. Telegram
+     * refusing (it can, without Premium) turns it off and says so.
+     */
+    private fun translateAsTheyCome() {
+        viewModelScope.launch {
+            combine(
+                AutoTranslate.chats.map { chatId in it }.distinctUntilChanged(),
+                _uiState.map { state ->
+                    state.messages.filter { !it.isOutgoing && it.text.isNotBlank() }.map { it.id }
+                }.distinctUntilChanged()
+            ) { on, ids -> on to ids }
+                .conflate()
+                .collect { (on, ids) ->
+                    if (!on) {
+                        autoTranslated.clear()
+                        if (_uiState.value.translations.isNotEmpty()) {
+                            _uiState.update { it.copy(translations = emptyMap()) }
+                        }
+                        return@collect
+                    }
+                    val language = java.util.Locale.getDefault().language.ifBlank { "en" }
+                    for (id in ids.takeLast(AUTO_TRANSLATE_WINDOW)) {
+                        if (!autoTranslated.add(id)) continue
+                        val message = _uiState.value.messages.firstOrNull { it.id == id } ?: continue
+                        val text = try {
+                            repository.translateMessage(message.chatId, id, language)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (_: Exception) {
+                            AutoTranslate.set(chatId, false)
+                            _uiState.update { it.copy(notice = "Telegram would not translate this chat") }
+                            return@collect
+                        }
+                        if (text != null && text != message.text) {
+                            _uiState.update { it.copy(translations = it.translations + (id to text)) }
+                        }
+                    }
+                }
         }
     }
 
@@ -2045,6 +2101,9 @@ class ChatViewModel(
 
         /** Ten position reads a second, which is smooth at a hundred pixels. */
         const val PROGRESS_TICK_MS = 100L
+
+        /** How many of the newest incoming messages a chat's auto-translation covers at once. */
+        const val AUTO_TRANSLATE_WINDOW = 40
 
         /** How long typing pauses before the draft is saved. */
         const val DRAFT_SAVE_MS = 1_000L

@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilledTonalButton
@@ -93,6 +94,9 @@ fun ChatInfoScreen(
     onLeaveDismissed: () -> Unit,
     onLeaveConfirmed: () -> Unit,
     onNotificationsChange: (ChatNotificationSettings) -> Unit = {},
+    /** Incoming messages shown translated (2.0); see AutoTranslate. */
+    autoTranslate: Boolean = false,
+    onAutoTranslateChange: (Boolean) -> Unit = {},
     /** The person behind a private chat; null for everything else. */
     person: PersonProfile? = null,
     onBlockedChange: (Boolean) -> Unit = {},
@@ -357,6 +361,24 @@ fun ChatInfoScreen(
                     NotificationSettingsSection(
                         settings = current.notifications,
                         onChange = onNotificationsChange
+                    )
+                }
+                item(key = "translation") {
+                    // Into the phone's language, by Telegram's translator —
+                    // the one the menu's Translate already uses.
+                    ListItem(
+                        headlineContent = { Text("Translate messages") },
+                        supportingContent = {
+                            Text("Show what comes in here in ${phoneLanguageName()}")
+                        },
+                        leadingContent = { Icon(Symbols.Translate, contentDescription = null) },
+                        trailingContent = { Switch(checked = autoTranslate, onCheckedChange = null) },
+                        // The whole row toggles it, as a settings row does.
+                        modifier = Modifier.toggleable(
+                            value = autoTranslate,
+                            role = androidx.compose.ui.semantics.Role.Switch,
+                            onValueChange = onAutoTranslateChange
+                        )
                     )
                 }
             }
@@ -658,3 +680,7 @@ private fun NotificationSettingsSection(
 
 /** How many members a group has before its list gets a search. */
 private const val MEMBER_SEARCH_FROM = 5
+
+/** The phone's language by name, as "Show what comes in here in Russian" says it. */
+private fun phoneLanguageName(): String =
+    java.util.Locale.getDefault().getDisplayLanguage(java.util.Locale.ENGLISH).ifBlank { "your language" }
