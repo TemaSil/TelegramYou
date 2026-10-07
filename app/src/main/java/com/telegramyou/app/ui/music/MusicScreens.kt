@@ -937,9 +937,13 @@ fun PlayerScreen(
                 text = {
                     Column {
                         SleepTimer.entries.forEach { timer ->
+                            // Transparent: a ListItem paints `surface` by
+                            // default, and the dialog is a lighter container,
+                            // so each row sat as its own darker slab on it.
                             ListItem(
                                 headlineContent = { Text(timer.label) },
                                 leadingContent = { RadioButton(selected = state.sleep == timer, onClick = null) },
+                                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                                 modifier = Modifier.clickable {
                                     sleepOpen = false
                                     actions.onSleep(timer)

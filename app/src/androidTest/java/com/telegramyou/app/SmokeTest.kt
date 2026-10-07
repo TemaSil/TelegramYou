@@ -3189,6 +3189,9 @@ class SmokeTest {
             }
             device.wait(Until.hasObject(By.text("Select")), SHORT_WAIT)
         }
+        // One's own message, read: when, over the menu (2.0).
+        waitFor(By.textStartsWith("Read "), "when it was read, at the top of the menu")
+        screenshot("95-read-at")
         tap(By.text("Select"))
         waitFor(By.desc("Clear selection"), "the selection toolbar")
         // Lina's message sits at the start of its row; the far end of the

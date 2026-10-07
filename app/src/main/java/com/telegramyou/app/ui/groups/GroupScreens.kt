@@ -57,6 +57,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -497,6 +498,8 @@ private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, 
                 ListItem(
                     headlineContent = { Text("Admins approve new members") },
                     trailingContent = { Switch(checked = asksFirst, onCheckedChange = { asksFirst = it }) },
+                    // The dialog's own tone, not a `surface` slab on it.
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.clickable { asksFirst = !asksFirst }
                 )
                 if (!asksFirst) {
@@ -798,6 +801,8 @@ fun AdminRightsSheet(
                 ListItem(
                     headlineContent = { Text(right.label) },
                     trailingContent = { Switch(checked = on, onCheckedChange = { rights = right.set(rights, it) }) },
+                    // The sheet's own tone, not a `surface` slab on it.
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier
                         .clickable { rights = right.set(rights, !on) }
                         .padding(horizontal = 8.dp)
