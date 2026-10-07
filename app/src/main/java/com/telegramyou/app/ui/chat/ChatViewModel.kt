@@ -308,8 +308,8 @@ class ChatViewModel(
         if (threadId != 0L) {
             repository.setOpenThread(chatId, threadId)
             // Comments keep no draft of their own here: the group's draft is
-            // the group's, and a thread's is not worth a request per pause.
-            draftRestored = false
+            // the group's, and a thread's is not worth a request per pause —
+            // draftRestored stays false, which keeps the saving off.
             _uiState.update { it.copy(topicName = "Comments") }
         } else if (topicId != 0) {
             repository.setOpenTopic(chatId, topicId)
