@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
@@ -62,7 +63,9 @@ internal fun VideoNoteCapture(
     /** Slid up to lock: the finger is off, and these buttons finish it. */
     locked: Boolean = false,
     onSend: () -> Unit = {},
-    onDelete: () -> Unit = {}
+    onDelete: () -> Unit = {},
+    /** Locked and stopped: watched in [VideoNotePreview] before it goes. */
+    onStop: () -> Unit = {}
 ) {
     AnimatedVisibility(
         visible = since != null,
@@ -151,11 +154,12 @@ internal fun VideoNoteCapture(
                     )
                 } else {
                     // Locked, the finger is off the screen and these finish
-                    // it: thrown away, the other camera, or sent — Send the
-                    // filled one, as in the composer.
+                    // it: thrown away, the other camera, stopped to watch
+                    // first (2.0), or sent — Send the filled one, as in the
+                    // composer.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         modifier = Modifier.padding(top = 24.dp)
                     ) {
                         FilledTonalIconButton(onClick = onDelete, modifier = Modifier.size(56.dp)) {
@@ -166,9 +170,86 @@ internal fun VideoNoteCapture(
                                 Icon(Symbols.SwitchCamera, contentDescription = "Switch camera")
                             }
                         }
+                        FilledTonalIconButton(onClick = onStop, modifier = Modifier.size(56.dp)) {
+                            Icon(Symbols.Stop, contentDescription = "Stop and watch")
+                        }
                         FilledIconButton(onClick = onSend, modifier = Modifier.size(72.dp)) {
                             Icon(Symbols.SendFilled, contentDescription = "Send video message")
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A locked recording, stopped and played back before it is sent (2.0): the
+ * same scrim and the same circle as [VideoNoteCapture], the recording on a
+ * loop with its sound, and the two ways it can end — thrown away, or sent.
+ *
+ * The note is kept while the overlay fades out, so the circle does not empty
+ * under the fade.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+internal fun VideoNotePreview(
+    note: VideoNoteRecorder.Recorded?,
+    onSend: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var shown by remember { mutableStateOf(note) }
+    if (note != null) shown = note
+    AnimatedVisibility(
+        visible = note != null,
+        enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()),
+        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
+    ) {
+        val current = shown ?: return@AnimatedVisibility
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.6f))
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false).consume()
+                    }
+                }
+                .semantics { contentDescription = "Video message preview" }
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(CIRCLE)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                ) {
+                    InlineVideo(
+                        path = current.path,
+                        playing = note != null,
+                        muted = false,
+                        loop = true,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    formatDuration(current.durationSeconds.toLong()),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.inverseOnSurface
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                    modifier = Modifier.padding(top = 24.dp)
+                ) {
+                    FilledTonalIconButton(onClick = onDelete, modifier = Modifier.size(56.dp)) {
+                        Icon(Symbols.Delete, contentDescription = "Delete video message")
+                    }
+                    FilledIconButton(onClick = onSend, modifier = Modifier.size(72.dp)) {
+                        Icon(Symbols.SendFilled, contentDescription = "Send video message")
                     }
                 }
             }

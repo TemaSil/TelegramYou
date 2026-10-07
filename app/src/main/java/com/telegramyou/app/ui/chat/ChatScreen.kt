@@ -536,6 +536,39 @@ fun ChatScreen(
         }
     }
 
+    // Locked and stopped (2.0): the recording is kept and played back, and
+    // only goes when Send is pressed there — whatever confirmRecordings says,
+    // since watching it was the confirmation.
+    var videoNotePreview by remember { mutableStateOf<VideoNoteRecorder.Recorded?>(null) }
+    val previewVideoNote: () -> Unit = {
+        if (videoNoteSince != null) {
+            videoNoteSince = null
+            videoNoteLocked = false
+            scope.launch {
+                videoNoteStart.value?.join()
+                videoNotePreview = videoNotes.stop()
+            }
+        }
+    }
+    val sendPreviewedVideoNote: () -> Unit = {
+        videoNotePreview?.let { note ->
+            videoNotePreview = null
+            onAttachmentPicked(AttachmentDraft.VideoNote(note.path, note.durationSeconds, note.length))
+            onSend()
+        }
+    }
+    val deletePreviewedVideoNote: () -> Unit = {
+        videoNotePreview?.let { note ->
+            videoNotePreview = null
+            java.io.File(note.path).delete()
+        }
+    }
+    // A preview nobody sent or deleted, left behind with the chat, is not
+    // left on the phone either.
+    DisposableEffect(Unit) {
+        onDispose { videoNotePreview?.let { java.io.File(it.path).delete() } }
+    }
+
     // The bot's keyboard, when this chat has one: whether it is up, and how
     // tall it drew. Held here rather than beside the composer, because the
     // list needs its height — it sits over the conversation like the
@@ -1572,11 +1605,19 @@ fun ChatScreen(
         onLimit = stopVideoNote,
         locked = videoNoteLocked,
         onSend = stopVideoNote,
-        onDelete = cancelVideoNote
+        onDelete = cancelVideoNote,
+        onStop = previewVideoNote
+    )
+    VideoNotePreview(
+        note = videoNotePreview,
+        onSend = sendPreviewedVideoNote,
+        onDelete = deletePreviewedVideoNote
     )
     // Back, while a locked recording is up, throws it away rather than
-    // leaving the chat with the camera still running.
+    // leaving the chat with the camera still running; and the same for one
+    // being watched before it is sent.
     BackHandler(enabled = videoNoteLocked) { cancelVideoNote() }
+    BackHandler(enabled = videoNotePreview != null) { deletePreviewedVideoNote() }
 }
 
 @Composable
