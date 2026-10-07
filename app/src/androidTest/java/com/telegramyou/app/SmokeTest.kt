@@ -884,17 +884,14 @@ class SmokeTest {
         screenshot("09-attachments")
 
         // Two picked from the strip, which stays up between them (2.0), and
-        // then the tray above the composer: one picture each, no crosses
-        // over them until one is held, and then a cross on each that takes
-        // just that one out.
+        // then the tray inside the field: one large picture each, and a
+        // cross on each that takes just that one out.
         tap(By.desc("Recent photo"))
         waitFor(By.desc("Recent photo, picked"), "the first photo ticked")
         tap(By.desc("Recent photo"))
         tap(By.text("Attach 2 photos"))
-        waitFor(By.desc("Attachments, 2"), "two photos above the composer")
-        assertTrue("crosses over the photos before any was held", !device.hasObject(By.desc("Remove attachment")))
-        device.findObject(By.desc("Photo 1")).longClick()
-        waitFor(By.desc("Remove attachment"), "the crosses, after a long press")
+        waitFor(By.desc("Attachments, 2"), "two photos in the composer")
+        waitFor(By.desc("Remove attachment"), "a cross on each photo")
         screenshot("09b-attachment-tray")
         tap(By.desc("Remove attachment"))
         waitFor(By.desc("Attachments, 1"), "one taken out of the tray")

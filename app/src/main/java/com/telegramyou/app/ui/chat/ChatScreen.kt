@@ -1339,8 +1339,28 @@ fun ChatScreen(
                 var attachmentShown by remember { mutableStateOf(state.pendingAttachment) }
                 state.pendingAttachment?.let { attachmentShown = it }
 
+                // Photos and files are inside the plain field (see ComposerBar's
+                // inField); above it only for the capsule, or for a recording
+                // waiting for Send, which keeps its chip.
+                val trayInField = !geeks.composerCapsule &&
+                    (attachmentShown is AttachmentDraft.Photos || attachmentShown is AttachmentDraft.Files)
+                val pendingTray = state.pendingAttachment
+                val trayContent: (@Composable () -> Unit)? =
+                    if (trayInField && (pendingTray is AttachmentDraft.Photos || pendingTray is AttachmentDraft.Files)) {
+                        {
+                            AttachmentTray(
+                                draft = pendingTray as AttachmentDraft,
+                                onRemove = onAttachmentRemoved,
+                                onMove = onAttachmentMoved,
+                                onAddMore = { onAttachmentSheetOpenChange(true) },
+                                inField = true
+                            )
+                        }
+                    } else {
+                        null
+                    }
                 AnimatedVisibility(
-                    visible = state.pendingAttachment != null,
+                    visible = state.pendingAttachment != null && !trayInField,
                     // As the reply banner below: folding, so nothing under it jumps.
                     // Above the banner, so the banner stays joined to the field.
                     enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
@@ -1558,7 +1578,8 @@ fun ChatScreen(
                         hasAttachment = state.pendingAttachment != null,
                         focusRequester = composerFocus,
                         attachedAbove = state.replyTo != null || state.editing != null,
-                        capsule = geeks.composerCapsule
+                        capsule = geeks.composerCapsule,
+                        inField = trayContent
                     )
                 }
             }

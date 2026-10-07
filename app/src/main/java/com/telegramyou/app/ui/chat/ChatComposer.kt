@@ -3,6 +3,7 @@ package com.telegramyou.app.ui.chat
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -311,7 +312,13 @@ internal fun ComposerBar(
      * stand on the conversation's own background, as Google Messages has
      * them — the owner found the capsule heavy.
      */
-    capsule: Boolean = false
+    capsule: Boolean = false,
+    /**
+     * What waits to be sent, drawn inside the plain field above the text
+     * (2.0) — the photos' tray; null when nothing does, or with the capsule,
+     * which keeps it above.
+     */
+    inField: (@Composable () -> Unit)? = null
 ) {
     // A voice message as the official client records one (2.0): held, the
     // button swells and breathes with the voice; slid up past the lock, it
@@ -475,22 +482,29 @@ internal fun ComposerBar(
                 ),
             verticalAlignment = Alignment.Bottom
         ) {
-            Row(
-                verticalAlignment = Alignment.Bottom,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .clip(fieldShape)
                     .background(fill)
-                    .padding(start = 4.dp)
+                    // The field growing up round the pictures, and back,
+                    // rather than jumping to its new height.
+                    .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
             ) {
-                IconButton(
-                    onClick = onAttach,
-                    enabled = recordingSince == null,
-                    modifier = Modifier.padding(bottom = ComposerButtonLift)
+                if (recordingSince == null) inField?.invoke()
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    modifier = Modifier.padding(start = 4.dp)
                 ) {
-                    Icon(Symbols.AddCircle, contentDescription = "Attach")
+                    IconButton(
+                        onClick = onAttach,
+                        enabled = recordingSince == null,
+                        modifier = Modifier.padding(bottom = ComposerButtonLift)
+                    ) {
+                        Icon(Symbols.AddCircle, contentDescription = "Attach")
+                    }
+                    field(Modifier.weight(1f), fill)
                 }
-                field(Modifier.weight(1f), fill)
             }
             Spacer(Modifier.width(PLAIN_GAP))
             button(PLAIN_BUTTON)

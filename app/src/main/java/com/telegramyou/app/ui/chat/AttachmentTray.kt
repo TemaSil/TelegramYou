@@ -50,9 +50,10 @@ import com.telegramyou.app.ui.icons.Symbols
  * What is about to go, just above the composer (2.0): each photo as a small
  * picture, each file as a tile with its name, and a tile at the end for
  * more, up to Telegram's ten. A long press picks one up to drag to its
- * place in the album and brings up a cross on every one to take it out —
- * only then, on the owner's word, so the crosses do not sit over the
- * pictures the rest of the time; a tap puts them away again. The text
+ * place in the album. Inside the field, where the pictures are large, a
+ * cross sits on each to take it out; in the small strip over the capsule
+ * the crosses would cover the pictures, so there they come up only with a
+ * long press and a tap puts them away — both on the owner's word. The text
  * typed meanwhile goes with them as the caption.
  *
  * It replaced a translucent chip that said "3 photo(s)", which showed
@@ -64,8 +65,17 @@ internal fun AttachmentTray(
     onRemove: (Int) -> Unit,
     onMove: (from: Int, to: Int) -> Unit,
     onAddMore: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * Inside the field rather than over it (2.0): the field grows up round
+     * the pictures, larger and portrait, the caption typed under them — as
+     * in the reference the owner sent. Over the capsule composer it stays a
+     * strip above.
+     */
+    inField: Boolean = false
 ) {
+    val tileWidth = if (inField) FIELD_TILE_WIDTH else TILE
+    val tileHeight = if (inField) FIELD_TILE_HEIGHT else TILE
     val items: List<Pair<String, String?>> = when (draft) {
         is AttachmentDraft.Photos -> draft.uris.map { it to null }
         is AttachmentDraft.Files -> draft.uris.zip(draft.names)
@@ -73,7 +83,7 @@ internal fun AttachmentTray(
     }
     val latest by rememberUpdatedState(items.map { it.first })
     val haptics = LocalHapticFeedback.current
-    val step = with(LocalDensity.current) { (TILE + TILE_GAP).toPx() }
+    val step = with(LocalDensity.current) { (tileWidth + TILE_GAP).toPx() }
     // The one being dragged, by its uri, and how far from its place it is.
     var dragging by remember { mutableStateOf<String?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
@@ -86,7 +96,12 @@ internal fun AttachmentTray(
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = PLAIN_GUTTER, vertical = 6.dp)
+            .padding(
+                start = if (inField) 8.dp else PLAIN_GUTTER,
+                end = if (inField) 8.dp else PLAIN_GUTTER,
+                top = if (inField) 8.dp else 6.dp,
+                bottom = if (inField) 2.dp else 6.dp
+            )
             .semantics { contentDescription = "Attachments, ${items.size}" }
     ) {
         items.forEachIndexed { index, (uri, name) ->
@@ -94,7 +109,7 @@ internal fun AttachmentTray(
                 val lifted = dragging == uri
                 Box(
                     modifier = Modifier
-                        .size(TILE)
+                        .size(width = tileWidth, height = tileHeight)
                         .zIndex(if (lifted) 1f else 0f)
                         .graphicsLayer {
                             translationX = if (lifted) dragOffset else 0f
@@ -169,7 +184,7 @@ internal fun AttachmentTray(
                     // The cross: on the picture, in its corner, small enough
                     // to leave the picture readable and big enough to hit —
                     // and only after a long press.
-                    if (editing) Surface(
+                    if (editing || inField) Surface(
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -194,7 +209,7 @@ internal fun AttachmentTray(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier
-                    .size(TILE)
+                    .size(width = tileWidth, height = tileHeight)
                     .clip(MaterialTheme.shapes.large)
                     .clickable(onClick = onAddMore)
                     .semantics { contentDescription = "Add more" }
@@ -210,3 +225,7 @@ internal fun AttachmentTray(
 /** A tile in the tray, and the space between two. */
 private val TILE = 76.dp
 private val TILE_GAP = 8.dp
+
+/** Inside the field the pictures are larger, and taller than wide, as in the reference. */
+private val FIELD_TILE_WIDTH = 96.dp
+private val FIELD_TILE_HEIGHT = 112.dp
