@@ -109,6 +109,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -172,6 +173,8 @@ fun ChatScreen(
     onLoadOlder: () -> Unit,
     /** A search hit or the pinned message; see ChatViewModel.onJumpToMessage. */
     onJumpToMessage: (Long) -> Unit = {},
+    /** A day picked from a date separator, as the local midnight in epoch seconds (2.0). */
+    onJumpToDate: (Long) -> Unit = {},
     onJumpToLatest: () -> Unit = {},
     onLoadNewer: () -> Unit = {},
     onScrollTargetReached: () -> Unit = {},
@@ -190,6 +193,14 @@ fun ChatScreen(
     onContentOpened: (ChatMessage) -> Unit = {},
     /** A channel post's comments opened (2.0). */
     onOpenComments: (ChatMessage) -> Unit = {},
+    /** Answered with part of its text quoted (2.0); see QuoteDialog. */
+    onQuote: (ChatMessage, Int, Int) -> Unit = { _, _, _ -> },
+    /** A message's link, handed back to be copied (2.0). */
+    onCopyLink: (ChatMessage, (String) -> Unit) -> Unit = { _, _ -> },
+    /** Reporting a message, and each answer to the server's questions (2.0); see ReportSheet. */
+    onReport: (ChatMessage) -> Unit = {},
+    onReportAnswer: (optionId: String, text: String) -> Unit = { _, _ -> },
+    onReportDismissed: () -> Unit = {},
     /** One of an inline bot's answers picked, and the bot's next page (2.0). */
     onInlineResultPicked: (com.telegramyou.app.telegram.model.InlineResult) -> Unit = {},
     onInlineMore: () -> Unit = {},
@@ -603,6 +614,8 @@ fun ChatScreen(
     // The composer's own height, measured: with photos inside its field
     // (2.0) it grows well past the one line the list used to leave room for.
     var composerHeight by remember { mutableIntStateOf(0) }
+    // The date picker a day separator opens (2.0).
+    var datePicking by remember { mutableStateOf(false) }
     val composerRoom = with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
     var playerBarHeight by remember { mutableIntStateOf(0) }
     val playerBarPadding = with(LocalDensity.current) { playerBarHeight.toDp() }
@@ -1118,7 +1131,7 @@ fun ChatScreen(
                                 }
                         ) {
                         if (startsNewDay(previous, message)) {
-                            DaySeparator(message.date)
+                            DaySeparator(message.date, onClick = { datePicking = true })
                         }
                         if (index == unreadFrom) {
                             UnreadSeparator()
@@ -1132,9 +1145,13 @@ fun ChatScreen(
                                 // messages is on: the words swapped, the
                                 // formatting dropped, since its offsets were
                                 // the original's.
-                                message = state.translations[message.id]
-                                    ?.let { message.copy(text = it, entities = emptyList()) }
-                                    ?: message,
+                                // And a reply's quote, fetched where the
+                                // original was not in the window (2.0).
+                                message = (
+                                    state.translations[message.id]
+                                        ?.let { message.copy(text = it, entities = emptyList()) }
+                                        ?: message
+                                    ).withFetchedQuote(state.fetchedQuotes),
                                 // Only the last message of a run carries the tail, so a
                                 // burst from one person reads as one block.
                                 isLastInRun = endsRun(message, next),
@@ -1171,6 +1188,17 @@ fun ChatScreen(
                                 onExtra = { extra -> onMessageExtra(message, extra) },
                                 onTranslate = { onTranslate(message, translationLanguage()) },
                                 onOpenComments = { onOpenComments(message) },
+                                onQuote = { start, end -> onQuote(message, start, end) },
+                                onCopyLink = if (detail?.chat?.let { it.isGroup || it.isChannel } == true) {
+                                    { onCopyLink(message) { link -> copyToClipboard(link) } }
+                                } else {
+                                    null
+                                },
+                                onReport = if (!message.isOutgoing) {
+                                    { onReport(message) }
+                                } else {
+                                    null
+                                },
                                 // A track is the music player's, which outlives
                                 // this screen; a voice note is the chat's own.
                                 voiceState = when {
@@ -1274,8 +1302,18 @@ fun ChatScreen(
             FloatingDay(
                 listState = listState,
                 messages = state.messages,
-                modifier = Modifier.align(Alignment.TopCenter)
+                modifier = Modifier.align(Alignment.TopCenter),
+                onPickDate = { datePicking = true }
             )
+            if (datePicking) {
+                JumpToDateDialog(
+                    onPick = { dayStart ->
+                        datePicking = false
+                        onJumpToDate(dayStart)
+                    },
+                    onDismiss = { datePicking = false }
+                )
+            }
 
             // The composer and its banners, over the list rather than
             // under it. Bottom-centred in the shared Box; the Column keeps
@@ -1417,7 +1455,11 @@ fun ChatScreen(
                     // once, and each cancels the other when chosen.
                     bannerShown?.let { message ->
                         ComposerBanner(
-                            message = message,
+                            // A quote shows what is quoted, not the whole (2.0).
+                            message = state.replyQuote
+                                ?.takeIf { !bannerEditing }
+                                ?.let { (quote, _) -> message.copy(text = "“$quote”") }
+                                ?: message,
                             isEditing = bannerEditing,
                             onCancel = onComposerBannerCancelled,
                             plain = !geeks.composerCapsule
@@ -1703,6 +1745,9 @@ fun ChatScreen(
         onStop = previewVideoNote
     )
     state.webApp?.let { app -> MiniAppSheet(app = app, theme = webAppTheme, onClose = onWebAppClosed) }
+    state.report?.let { report ->
+        ReportSheet(step = report.step, onAnswer = onReportAnswer, onDismiss = onReportDismissed)
+    }
     VideoNotePreview(
         note = videoNotePreview,
         onSend = sendPreviewedVideoNote,
@@ -1720,7 +1765,8 @@ fun ChatScreen(
 private fun FloatingDay(
     listState: androidx.compose.foundation.lazy.LazyListState,
     messages: List<ChatMessage>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onPickDate: () -> Unit = {}
 ) {
     // The topmost message on screen: the list is laid out from the bottom,
     // so that is the visible item furthest from item 0. Its key is its id.
@@ -1747,12 +1793,17 @@ private fun FloatingDay(
         exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
         modifier = modifier
     ) {
-        DaySeparator(topDate)
+        DaySeparator(topDate, onClick = onPickDate)
     }
 }
 
+/**
+ * A day separator: "Today", "Yesterday" or the date. Tapped, when
+ * [onClick] is given, it opens the date picker that takes the conversation
+ * to another day (2.0), as the official client's does.
+ */
 @Composable
-internal fun DaySeparator(date: Long) {
+internal fun DaySeparator(date: Long, onClick: (() -> Unit)? = null) {
     val label = remember(date) { dayLabel(date) }
     Row(
         modifier = Modifier
@@ -1760,9 +1811,15 @@ internal fun DaySeparator(date: Long) {
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.Center
     ) {
+        // A clickable modifier rather than a clickable Surface, which would
+        // grow the pill to a 48dp touch target and push the messages apart.
         Surface(
             shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.large)
+                .clickable(enabled = onClick != null) { onClick?.invoke() }
+                .semantics { if (onClick != null) contentDescription = "$label, go to a date" }
         ) {
             Text(
                 text = label,

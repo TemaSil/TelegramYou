@@ -55,6 +55,7 @@ import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.coroutineScope
 import com.telegramyou.app.telegram.model.InlineBot
+import com.telegramyou.app.telegram.model.ReportStep
 import com.telegramyou.app.telegram.model.InlineQuery
 import com.telegramyou.app.telegram.model.InlineResult
 import com.telegramyou.app.telegram.model.WebAppSession
@@ -264,7 +265,16 @@ data class ChatUiState(
     /** An inline bot's answers to what is typed after its name (2.0); null when none is being asked. */
     val inline: InlinePanel? = null,
     /** A bot's Mini App, while it is open (2.0). */
-    val webApp: OpenWebApp? = null
+    val webApp: OpenWebApp? = null,
+    /** A report under way (2.0): what is reported and the server's last question. */
+    val report: ReportFlow? = null,
+    /** The part of [replyTo] quoted, and where it starts in it; null for a plain reply (2.0). */
+    val replyQuote: Pair<String, Int>? = null,
+    /**
+     * Quotes fetched for replies whose original is not in the window, by
+     * the replying message's id (2.0) — what drew "Reply / Message".
+     */
+    val fetchedQuotes: Map<Long, FetchedQuote> = emptyMap()
 ) {
     /** Polls go to groups and channels, as in every Telegram client. */
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
@@ -833,16 +843,28 @@ class ChatViewModel(
 
     /** Answering a message cancels an edit in progress, and vice versa. */
     fun onReplyTo(message: ChatMessage) =
-        _uiState.update { it.copy(replyTo = message, editing = null) }
+        _uiState.update { it.copy(replyTo = message, editing = null, replyQuote = null) }
+
+    /**
+     * Answering with part of a message quoted (2.0): [start] to [end] of its
+     * text, chosen in the Quote dialog. The whole of it is an ordinary reply.
+     */
+    fun onQuote(message: ChatMessage, start: Int, end: Int) {
+        val from = start.coerceIn(0, message.text.length)
+        val to = end.coerceIn(from, message.text.length)
+        val part = message.text.substring(from, to)
+        val quote = if (part.isBlank() || part.length == message.text.length) null else part to from
+        _uiState.update { it.copy(replyTo = message, editing = null, replyQuote = quote) }
+    }
 
     fun onEdit(message: ChatMessage) =
-        _uiState.update { it.copy(editing = message, replyTo = null, draft = message.text) }
+        _uiState.update { it.copy(editing = message, replyTo = null, replyQuote = null, draft = message.text) }
 
     fun onComposerBannerCancelled() = _uiState.update {
         // Cancelling an edit throws the draft away too: it was the old text,
         // put there to be amended, not something the person typed.
-        if (it.editing != null) it.copy(editing = null, replyTo = null, draft = "")
-        else it.copy(replyTo = null)
+        if (it.editing != null) it.copy(editing = null, replyTo = null, replyQuote = null, draft = "")
+        else it.copy(replyTo = null, replyQuote = null)
     }
 
     /**
@@ -862,11 +884,12 @@ class ChatViewModel(
         if (text.isBlank() && attachment == null) return
         val amending = state.editing
         val answering = state.replyTo
+        val quoting = state.replyQuote
         val withEmoji = picked.toList()
         picked.clear()
 
         _uiState.update {
-            it.copy(draft = "", pendingAttachment = null, replyTo = null, editing = null)
+            it.copy(draft = "", pendingAttachment = null, replyTo = null, replyQuote = null, editing = null)
         }
         // A new message goes at the end of the conversation, so that is where
         // the list has to be to show it — not in a stretch of the past.
@@ -880,7 +903,7 @@ class ChatViewModel(
                 }
             } else {
                 attempt("Could not send") {
-                    repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji)
+                    repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji, quote = quoting)
                 }
             }
             if (sent) return@launch
@@ -890,6 +913,7 @@ class ChatViewModel(
                     draft = text,
                     pendingAttachment = attachment,
                     replyTo = answering,
+                    replyQuote = quoting,
                     editing = amending
                 )
             }
@@ -1349,7 +1373,10 @@ class ChatViewModel(
     /** Messages already asked to be translated, so each is asked once. */
     private val autoTranslated = mutableSetOf<Long>()
 
-    // Started here, below every field the two read, and not in the first
+    /** Replies whose original has been asked for, so each is asked once. */
+    private val askedQuotes = mutableSetOf<Long>()
+
+    // Started here, below every field the three read, and not in the first
     // init: viewModelScope runs on Main.immediate, so a launch made while
     // the view model is being built runs at once — before any property
     // declared further down has been given its value. Started from the top
@@ -1357,6 +1384,39 @@ class ChatViewModel(
     init {
         translateAsTheyCome()
         askInlineBots()
+        fetchMissingQuotes()
+    }
+
+    /**
+     * A reply whose original is outside the loaded window had nothing to
+     * show but "Reply / Message" (seen on the owner's phone, 7 October).
+     * Each such reply now has its original fetched by itself — once — and
+     * the quote drawn from it; one that is gone says so.
+     */
+    private fun fetchMissingQuotes() {
+        viewModelScope.launch {
+            _uiState
+                .map { state ->
+                    state.messages.filter { it.replyToId != null && it.replyToSender == null }.map { it.id }
+                }
+                .distinctUntilChanged()
+                .collect { ids ->
+                    ids.filter { askedQuotes.add(it) }.forEach { id ->
+                        launch {
+                            val original = runCatching { repository.repliedMessage(chatId, id) }.getOrNull()
+                            val quote = if (original == null) {
+                                FetchedQuote(sender = null, text = "Deleted message")
+                            } else {
+                                FetchedQuote(
+                                    sender = if (original.isOutgoing) "You" else original.senderName,
+                                    text = original.text.ifBlank { "Attachment" }
+                                )
+                            }
+                            _uiState.update { it.copy(fetchedQuotes = it.fetchedQuotes + (id to quote)) }
+                        }
+                    }
+                }
+        }
     }
 
     /**
@@ -2148,6 +2208,61 @@ class ChatViewModel(
      * messages, which is the only way to reach it without paging back through
      * everything in between.
      */
+    // ── a link, and reporting (2.0) ──────────────────────────────────────
+
+    /** The message's link, handed to [copy]; said when there is none. */
+    fun onCopyLink(message: ChatMessage, copy: (String) -> Unit) {
+        viewModelScope.launch {
+            val link = runCatching { repository.messageLink(message.chatId, message.id) }.getOrNull()
+            if (link == null) {
+                _uiState.update { it.copy(notice = "This chat has no links to its messages") }
+            } else {
+                copy(link)
+                _uiState.update { it.copy(notice = "Link copied") }
+            }
+        }
+    }
+
+    fun onReport(message: ChatMessage) = reportStep(ReportFlow(listOf(message.id), ReportStep.Done), "", "")
+
+    /** A reason chosen, or the words given, answered to the server's last question. */
+    fun onReportAnswer(optionId: String, text: String = "") {
+        val flow = _uiState.value.report ?: return
+        reportStep(flow, optionId, text)
+    }
+
+    fun onReportDismissed() = _uiState.update { it.copy(report = null) }
+
+    private fun reportStep(flow: ReportFlow, optionId: String, text: String) {
+        viewModelScope.launch {
+            val next = runCatching { repository.report(chatId, flow.messageIds, optionId, text) }
+            next.onSuccess { step ->
+                _uiState.update {
+                    if (step is ReportStep.Done) it.copy(report = null, notice = "Reported. Thank you")
+                    else it.copy(report = flow.copy(step = step))
+                }
+            }.onFailure { error ->
+                _uiState.update { it.copy(report = null, notice = error.message ?: "Could not report") }
+            }
+        }
+    }
+
+    /**
+     * The conversation at a day (2.0): chosen from the date picker the
+     * floating date opens, [dayStart] the local midnight of it in epoch
+     * seconds, and the list lands on that day's first message.
+     */
+    fun onJumpToDate(dayStart: Long) {
+        viewModelScope.launch {
+            val id = runCatching { repository.firstMessageFrom(chatId, dayStart) }.getOrNull()
+            if (id == null) {
+                _uiState.update { it.copy(notice = "Nothing was sent that day or after") }
+            } else {
+                onJumpToMessage(id)
+            }
+        }
+    }
+
     fun onJumpToMessage(messageId: Long) {
         if (_uiState.value.messages.any { it.id == messageId }) {
             _uiState.update { it.copy(scrollTarget = messageId) }
@@ -2330,3 +2445,19 @@ data class InlinePanel(
 
 /** A Mini App open over the chat: the page, and the bot's name for its bar. */
 data class OpenWebApp(val session: WebAppSession, val title: String)
+
+/** A report under way: the messages, and the step the server is at; see ReportStep. */
+data class ReportFlow(val messageIds: List<Long>, val step: ReportStep)
+
+/** A reply's original, fetched because it was not in the window; see fetchMissingQuotes. */
+data class FetchedQuote(val sender: String?, val text: String)
+
+/**
+ * [message] with its reply's quote filled from [fetched], where the window
+ * had nothing for it. A fragment the sender quoted is kept over the whole.
+ */
+fun ChatMessage.withFetchedQuote(fetched: Map<Long, FetchedQuote>): ChatMessage {
+    if (replyToId == null || replyToSender != null) return this
+    val quote = fetched[id] ?: return this
+    return copy(replyToSender = quote.sender, replyToText = replyToText ?: quote.text)
+}

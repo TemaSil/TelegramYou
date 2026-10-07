@@ -1210,6 +1210,7 @@ fun TelegramYouNavHost(
                     onSend = chatViewModel::onSend,
                     onLoadOlder = chatViewModel::onLoadOlder,
                     onJumpToMessage = chatViewModel::onJumpToMessage,
+                    onJumpToDate = chatViewModel::onJumpToDate,
                     onJumpToLatest = chatViewModel::onJumpToLatest,
                     onLoadNewer = chatViewModel::onLoadNewer,
                     onScrollTargetReached = chatViewModel::onScrollTargetReached,
@@ -1222,6 +1223,11 @@ fun TelegramYouNavHost(
                     onSelectionToggled = chatViewModel::onSelectionToggled,
                     onMessageMenuOpened = chatViewModel::onMessageActionsNeeded,
                     onForwardOne = chatViewModel::onForwardOne,
+                    onQuote = chatViewModel::onQuote,
+                    onCopyLink = chatViewModel::onCopyLink,
+                    onReport = chatViewModel::onReport,
+                    onReportAnswer = chatViewModel::onReportAnswer,
+                    onReportDismissed = chatViewModel::onReportDismissed,
                     onOpenComments = { message ->
                         chatViewModel.onOpenComments(message) { thread ->
                             navController.navigateTo(Route.Chat(thread.chatId, threadId = thread.threadId))

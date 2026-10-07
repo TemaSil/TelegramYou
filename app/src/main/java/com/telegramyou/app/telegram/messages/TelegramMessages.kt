@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.MessageUpdate
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.PollDraft
+import com.telegramyou.app.telegram.model.ReportStep
 import com.telegramyou.app.ui.media.FileTransfer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +64,48 @@ interface TelegramMessages {
         replyToId: Long? = null,
         sendAt: Long? = null
     ) = sendText(chatId, text, replyToId, sendAt)
+
+    /**
+     * A reply that quotes part of what it answers (2.0): [quote] is the
+     * fragment, at [quotePosition] in the original's text, and the bubble
+     * shows it in place of the whole. A plain reply where a backend has no
+     * quotes.
+     */
+    suspend fun sendQuotedReply(
+        chatId: Long,
+        text: String,
+        replyToId: Long,
+        quote: String,
+        quotePosition: Int
+    ) = sendText(chatId, text, replyToId, null)
+
+    /**
+     * The message [messageId] in [chatId] answers, fetched on its own (2.0):
+     * for a reply whose original is outside the loaded window, which drew
+     * an empty "Reply / Message" quote. Null when it is gone.
+     */
+    suspend fun repliedMessage(chatId: Long, messageId: Long): ChatMessage? = null
+
+    /**
+     * The first message in [chatId] sent at [from] or after, epoch seconds —
+     * where "go to this date" lands (2.0). Null when nothing was sent since.
+     */
+    suspend fun firstMessageFrom(chatId: Long, from: Long): Long? = null
+
+    /**
+     * A link to [messageId] for sharing (2.0) — t.me for a public chat,
+     * t.me/c for a private group or channel, which opens for its members.
+     * Null where Telegram gives none, as in a private chat.
+     */
+    suspend fun messageLink(chatId: Long, messageId: Long): String? = null
+
+    /**
+     * One step of reporting [messageIds] in [chatId] (2.0); see ReportStep.
+     * Asked first with no [optionId], then with each one chosen, and with
+     * [text] once the server asks for words.
+     */
+    suspend fun report(chatId: Long, messageIds: List<Long>, optionId: String = "", text: String = ""): ReportStep =
+        ReportStep.Done
 
     /**
      * Keeps [text] as the chat's draft, or clears it when blank. A no-op

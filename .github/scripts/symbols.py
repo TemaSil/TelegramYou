@@ -23,7 +23,7 @@ RENAMED = {
 
 ICONS = """
 Add AddAPhoto AddCircle AddReaction AlternateEmail Archive ArrowBack AttachFile Block Bookmark
-Campaign Chat Check CheckCircle Close Computer Contacts ContentCopy ContentPaste DarkMode
+Campaign Chat Check CheckCircle Close FormatQuote Computer Contacts ContentCopy ContentPaste DarkMode
 Delete DeleteSweep Description DesktopWindows Devices Done DoneAll Download Edit EmojiEmotions Folder
 ArrowUpward ArrowDownward Backspace Fingerprint Gif LocationOn MyLocation Tag PictureInPictureAlt
 AdminPanelSettings Forum SkipNext SkipPrevious QueueMusic Shuffle Repeat RepeatOne GraphicEq Bedtime Equalizer LibraryMusic

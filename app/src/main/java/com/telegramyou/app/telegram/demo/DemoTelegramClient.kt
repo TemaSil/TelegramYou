@@ -66,6 +66,8 @@ import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResult
 import com.telegramyou.app.telegram.model.InlineResultKind
 import com.telegramyou.app.telegram.model.InlineResults
+import com.telegramyou.app.telegram.model.ReportOption
+import com.telegramyou.app.telegram.model.ReportStep
 import com.telegramyou.app.telegram.model.WebAppSession
 import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.ChatPreview
@@ -1410,6 +1412,45 @@ class DemoTelegramClient(
         _chats.update { chats -> chats.map { if (it.id == chatId) it.copy(draft = draft) else it } }
     }
 
+    override suspend fun sendQuotedReply(chatId: Long, text: String, replyToId: Long, quote: String, quotePosition: Int) {
+        delay(120)
+        appendOutgoing(chatId = chatId, text = text, type = MessageContentType.Text, replyToId = replyToId, quote = quote)
+    }
+
+    /** A link only where the demo has a public channel to make one for. */
+    override suspend fun messageLink(chatId: Long, messageId: Long): String? =
+        chatMessages[chatId]?.firstOrNull { it.id == messageId }?.let { "https://t.me/demo_$chatId/$messageId" }
+
+    /** Telegram's conversation, played offline: a reason, words for "Other", done. */
+    override suspend fun report(chatId: Long, messageIds: List<Long>, optionId: String, text: String): ReportStep {
+        delay(150)
+        return when {
+            optionId.isEmpty() -> ReportStep.Choose(
+                title = "Report",
+                options = listOf(
+                    ReportOption("c3BhbQ==", "Spam"),
+                    ReportOption("dmlvbGVuY2U=", "Violence"),
+                    ReportOption("b3RoZXI=", "Other")
+                )
+            )
+            optionId == "b3RoZXI=" && text.isEmpty() -> ReportStep.Explain(optionId, optional = false)
+            else -> ReportStep.Done
+        }
+    }
+
+    override suspend fun firstMessageFrom(chatId: Long, from: Long): Long? {
+        delay(80)
+        val all = chatMessages[chatId].orEmpty()
+        return all.filter { it.date >= from }.minByOrNull { it.date }?.id ?: all.maxByOrNull { it.date }?.id
+    }
+
+    /** From any chat of the demo's, wherever the window is. */
+    override suspend fun repliedMessage(chatId: Long, messageId: Long): ChatMessage? {
+        delay(60)
+        val replyTo = chatMessages[chatId]?.firstOrNull { it.id == messageId }?.replyToId ?: return null
+        return chatMessages[chatId]?.firstOrNull { it.id == replyTo }
+    }
+
     override suspend fun sendText(chatId: Long, text: String, replyToId: Long?, sendAt: Long?) {
         delay(120)
         if (sendAt != null) {
@@ -2341,7 +2382,9 @@ class DemoTelegramClient(
         entities: List<TextEntity> = emptyList(),
         video: VideoContent? = null,
         contact: ContactContent? = null,
-        location: LocationContent? = null
+        location: LocationContent? = null,
+        /** Part of the answered message quoted, shown in place of the whole (2.0). */
+        quote: String? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -2359,7 +2402,7 @@ class DemoTelegramClient(
             fileSizeLabel = fileSizeLabel,
             mediaEmoji = mediaEmoji,
             replyToId = replyToId,
-            replyToText = quoted?.text,
+            replyToText = quote ?: quoted?.text,
             replyToSender = quoted?.senderName,
             canBeEdited = true,
             canBeDeletedForSelf = true,

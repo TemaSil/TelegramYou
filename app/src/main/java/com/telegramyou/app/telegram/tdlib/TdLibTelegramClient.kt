@@ -55,6 +55,8 @@ import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResults
+import com.telegramyou.app.telegram.model.ReportOption
+import com.telegramyou.app.telegram.model.ReportStep
 import com.telegramyou.app.telegram.model.WebAppSession
 import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.MessageHit
@@ -2376,7 +2378,136 @@ class TdLibTelegramClient(
      * used to refuse such a text outright with "Message is too long"; the
      * official client cuts it, and so does this (1.8.1).
      */
-    private suspend fun sendFormatted(chatId: Long, text: JSONObject, replyToId: Long?, sendAt: Long?) {
+    override suspend fun sendQuotedReply(chatId: Long, text: String, replyToId: Long, quote: String, quotePosition: Int) {
+        awaitReady()
+        sendFormatted(
+            chatId,
+            formatted(text),
+            replyToId,
+            null,
+            quote = JSONObject()
+                .put("@type", "inputTextQuote")
+                .put("text", JSONObject().put("@type", "formattedText").put("text", quote).put("entities", JSONArray()))
+                .put("position", quotePosition)
+        )
+    }
+
+    /**
+     * TDLib answers "the last message no later than" a date, which is the
+     * day before's last; the first of the day is the one after it, asked
+     * for with a negative offset. Where the chat begins on that day there
+     * is nothing before, and the day's own last message is the answer.
+     */
+    override suspend fun firstMessageFrom(chatId: Long, from: Long): Long? {
+        awaitReady()
+        val before = try {
+            requireEngine().send(
+                JSONObject().put("@type", "getChatMessageByDate").put("chat_id", chatId).put("date", from - 1)
+            ).optLong("id").takeIf { it != 0L }
+        } catch (e: TdLibException) {
+            null
+        }
+        if (before != null) {
+            val newer = try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "getChatHistory")
+                        .put("chat_id", chatId)
+                        .put("from_message_id", before)
+                        .put("offset", -FIRST_FROM_PAGE)
+                        .put("limit", FIRST_FROM_PAGE + 1)
+                        .put("only_local", false)
+                ).optJSONArray("messages")
+            } catch (e: TdLibException) {
+                null
+            }
+            val first = newer?.let { list ->
+                List(list.length()) { list.optJSONObject(it) }
+                    .filterNotNull()
+                    .filter { it.optLong("date") >= from }
+                    .minByOrNull { it.optLong("date") }
+                    ?.optLong("id")
+            }
+            if (first != null) return first
+        }
+        return try {
+            requireEngine().send(
+                JSONObject().put("@type", "getChatMessageByDate").put("chat_id", chatId).put("date", from + DAY_SECONDS - 1)
+            ).optLong("id").takeIf { it != 0L }
+        } catch (e: TdLibException) {
+            null
+        }
+    }
+
+    override suspend fun messageLink(chatId: Long, messageId: Long): String? {
+        awaitReady()
+        return try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "getMessageLink")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+                    .put("media_timestamp", 0)
+                    .put("for_album", false)
+                    .put("in_message_thread", false)
+            ).optString("link").takeIf { it.isNotBlank() }
+        } catch (e: TdLibException) {
+            null
+        }
+    }
+
+    override suspend fun report(chatId: Long, messageIds: List<Long>, optionId: String, text: String): ReportStep {
+        awaitReady()
+        val ids = JSONArray().apply { messageIds.forEach { put(it) } }
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "reportChat")
+                .put("chat_id", chatId)
+                .put("option_id", optionId)
+                .put("message_ids", ids)
+                .put("text", text)
+        )
+        return when (answer.optString("@type")) {
+            "reportChatResultOptionRequired" -> {
+                val options = answer.optJSONArray("options") ?: JSONArray()
+                ReportStep.Choose(
+                    title = answer.optString("title"),
+                    options = List(options.length()) { options.optJSONObject(it) }
+                        .filterNotNull()
+                        .map { ReportOption(id = it.optString("id"), text = it.optString("text")) }
+                )
+            }
+            "reportChatResultTextRequired" -> ReportStep.Explain(
+                optionId = answer.optString("option_id"),
+                optional = answer.optBoolean("is_optional")
+            )
+            else -> ReportStep.Done
+        }
+    }
+
+    override suspend fun repliedMessage(chatId: Long, messageId: Long): ChatMessage? {
+        awaitReady()
+        return try {
+            val replied = requireEngine().send(
+                JSONObject()
+                    .put("@type", "getRepliedMessage")
+                    .put("chat_id", chatId)
+                    .put("message_id", messageId)
+            )
+            mapMessage(replied.optLong("chat_id", chatId), replied)
+        } catch (e: TdLibException) {
+            null
+        }
+    }
+
+    private suspend fun sendFormatted(
+        chatId: Long,
+        text: JSONObject,
+        replyToId: Long?,
+        sendAt: Long?,
+        /** An inputTextQuote for the first part's reply, when part of the original is quoted. */
+        quote: JSONObject? = null
+    ) {
         val raw = text.optJSONArray("entities") ?: JSONArray()
         val spans = (0 until raw.length()).map { i ->
             val entity = raw.getJSONObject(i)
@@ -2397,7 +2528,8 @@ class TdLibTelegramClient(
                 chatId,
                 JSONObject().put("@type", "formattedText").put("text", part.text).put("entities", entities),
                 if (index == 0) replyToId else null,
-                sendAt
+                sendAt,
+                if (index == 0) quote else null
             )
         }
     }
@@ -2417,13 +2549,20 @@ class TdLibTelegramClient(
         DEFAULT_TEXT_LIMIT
     }
 
-    private suspend fun sendFormattedPart(chatId: Long, text: JSONObject, replyToId: Long?, sendAt: Long?) {
+    private suspend fun sendFormattedPart(
+        chatId: Long,
+        text: JSONObject,
+        replyToId: Long?,
+        sendAt: Long?,
+        quote: JSONObject? = null
+    ) {
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
                 .put("chat_id", chatId)
                 .inOpenTopic(chatId)
                 .withReplyTo(replyToId)
+                .apply { if (quote != null) optJSONObject("reply_to")?.put("quote", quote) }
                 .apply {
                     if (sendAt != null) {
                         put(
@@ -5268,6 +5407,12 @@ private fun emailResetOf(state: JSONObject?): EmailReset? {
  */
 internal fun JSONObject.optInt64(key: String): Long =
     optString(key).toLongOrNull() ?: optLong(key)
+
+/** How many messages after the day before's last are looked through for a date's first. */
+private const val FIRST_FROM_PAGE = 20
+
+/** A day, in the seconds TDLib's dates are in. */
+private const val DAY_SECONDS = 24 * 60 * 60L
 
 /** A page of this account's own messages, found and deleted together. */
 private const val MY_MESSAGES_PAGE = 100

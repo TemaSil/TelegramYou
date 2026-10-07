@@ -110,10 +110,14 @@ class TelegramRepository(
         /** Epoch seconds to schedule a text for; attachments always go now. */
         sendAt: Long? = null,
         /** Premium custom emoji picked into the text; see placePickedEmoji. */
-        picked: List<PickedEmoji> = emptyList()
+        picked: List<PickedEmoji> = emptyList(),
+        /** Part of the answered message quoted, and where it starts in it (2.0). */
+        quote: Pair<String, Int>? = null
     ) {
         if (attachment != null) {
             client.sendAttachment(chatId, attachment, text, replyToId)
+        } else if (quote != null && replyToId != null && picked.isEmpty() && sendAt == null && text.isNotBlank()) {
+            client.sendQuotedReply(chatId, text, replyToId, quote.first, quote.second)
         } else if (text.isNotBlank()) {
             if (picked.isEmpty()) {
                 client.sendText(chatId, text, replyToId, sendAt)

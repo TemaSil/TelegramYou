@@ -172,10 +172,30 @@ internal fun MessageBubble(
     /** Its text in the phone's language; see TranslationDialog. */
     onTranslate: () -> Unit = {},
     /** A channel post's comments opened (2.0); see commentCount. */
-    onOpenComments: () -> Unit = {}
+    onOpenComments: () -> Unit = {},
+    /** Answered with part of its text quoted, from [start] to [end] (2.0). */
+    onQuote: (start: Int, end: Int) -> Unit = { _, _ -> },
+    /**
+     * Its link copied, where the chat has links — a group or a channel
+     * (2.0); null in a private chat, where Telegram gives none.
+     */
+    onCopyLink: (() -> Unit)? = null,
+    /** Reported to Telegram (2.0); null for one's own messages. */
+    onReport: (() -> Unit)? = null
 ) {
     val outgoing = message.isOutgoing
     var menuOpen by remember { mutableStateOf(false) }
+    var quoteOpen by remember { mutableStateOf(false) }
+    if (quoteOpen) {
+        QuoteDialog(
+            text = message.text,
+            onQuote = { start, end ->
+                quoteOpen = false
+                onQuote(start, end)
+            },
+            onDismiss = { quoteOpen = false }
+        )
+    }
     // The bubble's long-press, handed to a photo, video or GIF inside it as
     // well: those are clickable themselves, so they take the press before
     // the bubble sees it, and a long one used to open the viewer.
@@ -781,6 +801,18 @@ internal fun MessageBubble(
                         menuOpen = false
                     }
                 )
+                // Part of it, rather than all of it (2.0): the words chosen
+                // in a dialog, and the reply shows those over itself.
+                if (message.text.length > QUOTE_WORTH_IT) {
+                    DropdownMenuItem(
+                        text = { Text("Quote") },
+                        leadingIcon = { Icon(Symbols.FormatQuote, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            quoteOpen = true
+                        }
+                    )
+                }
                 // Here as well as on the selection bar: forwarding one message
                 // was a long press, then Select, then the bar — three steps
                 // nobody found, and the report was that forwarding did not
@@ -868,6 +900,26 @@ internal fun MessageBubble(
                         onClick = {
                             menuOpen = false
                             onTranslate()
+                        }
+                    )
+                }
+                if (onCopyLink != null) {
+                    DropdownMenuItem(
+                        text = { Text("Copy link") },
+                        leadingIcon = { Icon(Symbols.Link, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onCopyLink()
+                        }
+                    )
+                }
+                if (onReport != null) {
+                    DropdownMenuItem(
+                        text = { Text("Report") },
+                        leadingIcon = { Icon(Symbols.ErrorOutline, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            onReport()
                         }
                     )
                 }
