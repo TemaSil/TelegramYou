@@ -1,6 +1,27 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.AwaitPointerEventScope
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.WindowInsets
@@ -110,10 +131,12 @@ internal fun cameraUri(context: Context, file: File): Uri =
 internal fun ComposerBanner(
     message: ChatMessage,
     isEditing: Boolean,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    /** Over the plain composer's field rather than over a capsule (2.0): as wide as the field, in its colour. */
+    plain: Boolean = false
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = if (plain) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHighest,
         shape = RoundedCornerShape(
             topStart = BANNER_OUTER_CORNER,
             topEnd = BANNER_OUTER_CORNER,
@@ -122,7 +145,11 @@ internal fun ComposerBanner(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = COMPOSER_JOIN_GAP)
+            .padding(
+                start = if (plain) PLAIN_GUTTER else 16.dp,
+                end = if (plain) PLAIN_GUTTER + PLAIN_BUTTON + PLAIN_GAP else 16.dp,
+                bottom = COMPOSER_JOIN_GAP
+            )
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -252,15 +279,15 @@ internal fun ComposerBar(
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
     onRecordCancel: () -> Unit,
-    onSampleAmplitude: () -> Unit,
+    /** One reading of the microphone, 0 to 1: kept for the waveform, and answered for the button. */
+    onSampleAmplitude: () -> Float,
     /**
      * Whether something is already attached and waiting to go.
      *
      * The right-hand button used to be chosen from the text alone, so a
      * photo picked with nothing typed left a microphone where send should
-     * have been — the attachment was on screen as a chip and there was no
-     * way to send it without also writing something. What decides that
-     * button is whether there is anything to send, and a photo is.
+     * have been. What decides that button is whether there is anything to
+     * send, and a photo is.
      */
     hasAttachment: Boolean,
     /** Held by the screen, so replying can put the caret in the field. */
@@ -274,53 +301,31 @@ internal fun ComposerBar(
     botKeyboardShown: Boolean? = null,
     onBotKeyboardToggle: () -> Unit = {},
     /**
-     * A reply or edit banner sits on top, joined to the capsule: its top
+     * A reply or edit banner sits on top, joined to the field: its top
      * corners go small to meet it. See ComposerBanner.
      */
-    attachedAbove: Boolean = false
+    attachedAbove: Boolean = false,
+    /**
+     * For geeks → Composer in a capsule: the field and every button in one
+     * rounded bar, as it was until 2.0. Off, the field and a round button
+     * stand on the conversation's own background, as Google Messages has
+     * them — the owner found the capsule heavy.
+     */
+    capsule: Boolean = false
 ) {
-    // Floating, not a bar. It used to be a full-width surface welded to the
-    // bottom of the screen with the buttons outside the field; this is one
-    // capsule held clear of the edges, with everything inside it — the shape
-    // Android's own messaging apps have settled on.
-    //
-    // The version before this grouped the two buttons into a ButtonGroup and
-    // left them beside the field, which read as a split button sitting next
-    // to a text box: three things in a row rather than one control. The
-    // capsule is what makes it read as one, so the buttons are plain icon
-    // buttons inside it and the group is gone. ButtonGroup is still the right
-    // component for a segmented choice — see ROADMAP.md — just not for this.
-    // No navigationBarsPadding here, and its absence is the fix. The Scaffold
-    // this sits inside already applies the bottom inset through the padding
-    // it hands its content, so adding it again spaced the capsule off the
-    // navigation bar twice. The call was inherited from the full-width bar
-    // this replaced, where it went unnoticed: that bar was painted to the
-    // bottom of the screen, so a doubled inset only made it look tall. Give
-    // it a shape and lift it off the edges and the gap becomes a hole.
-    // Round on one line, and the same curve however tall the text makes it:
-    // the capsule grows upward out of its round ends rather than changing
-    // shape. The radius is half its height at rest — measured, since the
-    // capsule is nearer 76dp than the 56 of the field inside it, and a fixed
-    // 28.dp was round on paper only.
-    //
-    // It used to switch to 28.dp from the second line, on a spring, and the
-    // owner found the switch a change nobody needed. Keeping the resting
-    // radius costs nothing below: the buttons sit at the bottom, and the
-    // bottom corners are the same at any height as on one line, so nothing
-    // is cut. Fifty percent of the height, the rule before that, is what did
-    // cut them — five-line half-discs.
-    //
-    // The height at rest is the smallest seen while the field is showing;
-    // recording swaps the field for a shorter row and is left out.
-    val density = LocalDensity.current
-    var restingHeight by remember { mutableIntStateOf(0) }
-    val corner = if (restingHeight == 0) {
-        // Before the first measure: anything past half the height draws as a
-        // full round end, since a shape clamps its corners to fit.
-        COMPOSER_PILL_CORNER
-    } else {
-        with(density) { (restingHeight / 2).toDp() }
+    // A voice message as the official client records one (2.0): held, the
+    // button swells and breathes with the voice; slid up past the lock, it
+    // goes on with the finger off the screen and the button becomes Send;
+    // slid aside, it is thrown away. Held here, since the button, the row
+    // in the field's place and the lock above all read it.
+    val voice = remember { VoiceHold() }
+    LaunchedEffect(recordingSince) {
+        if (recordingSince == null) voice.reset()
     }
+    // Locked, Back throws the recording away rather than leaving the chat
+    // with the microphone still on.
+    BackHandler(enabled = recordingSince != null && voice.locked) { onRecordCancel() }
+
     // Closer over the keyboard than over the bottom of the screen; eased
     // between the two rather than switched, since the switch lands the moment
     // the keyboard is gone and read as a last small hop.
@@ -329,6 +334,189 @@ internal fun ComposerBar(
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "composerBottomMargin"
     )
+    val sendable = value.isNotBlank() || hasAttachment
+
+    val field: @Composable (Modifier, Color) -> Unit = { modifier, fill ->
+        if (recordingSince != null) {
+            RecordingRow(
+                since = recordingSince,
+                voice = voice,
+                onSampleAmplitude = onSampleAmplitude,
+                onCancel = onRecordCancel,
+                modifier = modifier
+            )
+        } else {
+            TextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = modifier
+                    .padding(vertical = 2.dp)
+                    .focusRequester(focusRequester),
+                placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                // Where Telegram keeps it, and every messenger since:
+                // inside the field, at its end.
+                trailingIcon = {
+                    Row {
+                        if (botKeyboardShown != null) {
+                            IconButton(onClick = onBotKeyboardToggle) {
+                                Icon(
+                                    if (botKeyboardShown) Symbols.KeyboardHide else Symbols.Keyboard,
+                                    contentDescription = if (botKeyboardShown) "Hide bot keyboard" else "Bot keyboard"
+                                )
+                            }
+                        }
+                        if (expressionsOpen) {
+                            IconButton(onClick = onKeyboard) {
+                                Icon(Symbols.Keyboard, contentDescription = "Keyboard")
+                            }
+                        } else {
+                            IconButton(onClick = onExpressions) {
+                                Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
+                            }
+                        }
+                        // Without a capsule, the camera sits at the end of the
+                        // field, as the picture button does in Messages, and
+                        // steps aside once there is something to send.
+                        if (!capsule && !sendable) {
+                            CameraButton(
+                                enabled = true,
+                                onCamera = onCamera,
+                                onVideoNoteStart = onVideoNoteStart,
+                                onVideoNoteStop = onVideoNoteStop,
+                                onVideoNoteCancel = onVideoNoteCancel,
+                                onVideoNoteLock = onVideoNoteLock
+                            )
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(0.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = fill,
+                    unfocusedContainerColor = fill,
+                    disabledContainerColor = fill,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
+                maxLines = 5
+            )
+        }
+    }
+
+    val button: @Composable (Dp) -> Unit = { size ->
+        VoiceSendButton(
+            size = size,
+            sendable = sendable,
+            recording = recordingSince != null,
+            voice = voice,
+            onSend = onSend,
+            onSchedule = onSchedule,
+            onRecordStart = onRecordStart,
+            onRecordStop = onRecordStop,
+            onRecordCancel = onRecordCancel,
+            modifier = Modifier.padding(bottom = if (capsule) ComposerButtonLift else 0.dp)
+        )
+    }
+
+    if (capsule) {
+        CapsuleComposer(
+            attachedAbove = attachedAbove,
+            bottomMargin = bottomMargin,
+            recording = recordingSince != null,
+            onAttach = onAttach,
+            camera = {
+                CameraButton(
+                    enabled = recordingSince == null,
+                    onCamera = onCamera,
+                    onVideoNoteStart = onVideoNoteStart,
+                    onVideoNoteStop = onVideoNoteStop,
+                    onVideoNoteCancel = onVideoNoteCancel,
+                    onVideoNoteLock = onVideoNoteLock,
+                    modifier = Modifier.padding(bottom = ComposerButtonLift)
+                )
+            },
+            field = field,
+            button = { button(40.dp) }
+        )
+        return
+    }
+
+    // The field and the button on the conversation's own background, with
+    // nothing round them — the shape Google Messages has settled on. What
+    // scrolls under them fades into the background's own bottom colour, so
+    // a bubble passing behind goes out of sight instead of meeting an edge.
+    val ground = chatBackgroundBottom()
+    val topCorner by animateDpAsState(
+        targetValue = if (attachedAbove) COMPOSER_JOIN_CORNER else FIELD_CORNER,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "fieldTop"
+    )
+    val fieldShape = RoundedCornerShape(
+        topStart = topCorner.coerceAtLeast(0.dp),
+        topEnd = topCorner.coerceAtLeast(0.dp),
+        bottomStart = FIELD_CORNER,
+        bottomEnd = FIELD_CORNER
+    )
+    val fill = MaterialTheme.colorScheme.surfaceContainerHigh
+    Box(Modifier.fillMaxWidth()) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(Brush.verticalGradient(0f to Color.Transparent, 0.45f to ground.copy(alpha = 0.92f), 1f to ground))
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = PLAIN_GUTTER,
+                    end = PLAIN_GUTTER,
+                    top = if (attachedAbove) 0.dp else COMPOSER_MARGIN,
+                    bottom = bottomMargin
+                ),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(fieldShape)
+                    .background(fill)
+                    .padding(start = 4.dp)
+            ) {
+                IconButton(
+                    onClick = onAttach,
+                    enabled = recordingSince == null,
+                    modifier = Modifier.padding(bottom = ComposerButtonLift)
+                ) {
+                    Icon(Symbols.AddCircle, contentDescription = "Attach")
+                }
+                field(Modifier.weight(1f), fill)
+            }
+            Spacer(Modifier.width(PLAIN_GAP))
+            button(PLAIN_BUTTON)
+        }
+    }
+}
+
+/** The geek's composer: one capsule with everything inside it, as before 2.0. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CapsuleComposer(
+    attachedAbove: Boolean,
+    bottomMargin: Dp,
+    recording: Boolean,
+    onAttach: () -> Unit,
+    camera: @Composable () -> Unit,
+    field: @Composable (Modifier, Color) -> Unit,
+    button: @Composable () -> Unit
+) {
+    // Round on one line, and the same curve however tall the text makes it:
+    // the capsule grows upward out of its round ends rather than changing
+    // shape. The radius is half its height at rest, measured; recording swaps
+    // the field for a shorter row and is left out of the measure.
+    val density = LocalDensity.current
+    var restingHeight by remember { mutableIntStateOf(0) }
+    val corner = if (restingHeight == 0) COMPOSER_PILL_CORNER else with(density) { (restingHeight / 2).toDp() }
     val topCorner by animateDpAsState(
         targetValue = if (attachedAbove) COMPOSER_JOIN_CORNER else corner,
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
@@ -342,25 +530,11 @@ internal fun ComposerBar(
         bottomStart = corner,
         bottomEnd = corner
     )
-    // Concentric with the capsule: the field sits eight in from its edge, so
-    // its corners are eight less. On one line that clamps to a round end;
-    // taller, it is the capsule's curve followed inwards.
+    // Concentric with the capsule: the field sits eight in from its edge.
     val fieldShape = RoundedCornerShape((corner - COMPOSER_FIELD_INSET).coerceAtLeast(0.dp))
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            // Sixteen, the side gutter Material uses everywhere else in this
-            // app. It was twelve, and the gap was reported as missing
-            // entirely — correctly, but not for the reason it looked like.
-            // The inset was there; the capsule's edge was not visible, so
-            // there was nothing for the inset to hold clear of. See the
-            // colour below. Sixteen once the edge shows is simply the right
-            // number.
-            // Closer over the keyboard — or the emoji panel in its place —
-            // than over the bottom of the screen: the owner found the
-            // capsule sitting too high above the keys, and right where it
-            // was with the keyboard down. Nothing above it when a banner is
-            // joined on.
             .padding(
                 start = 16.dp,
                 end = 16.dp,
@@ -368,320 +542,383 @@ internal fun ComposerBar(
                 bottom = bottomMargin
             )
     ) {
-        // No shadow, and that is the correction rather than an omission. The
-        // first version of this carried shadowElevation = 6.dp, inherited
-        // from the full-width bar it replaced and then nudged by eye. Material
-        // 3 expresses depth as tone — the surfaceContainer ladder — and keeps
-        // shadows for the few things that genuinely hover, like a FAB. The
-        // apps this shape was taken from have no shadow under their composer
-        // either: theirs reads as lifted because it is plainly darker than the
-        // conversation, not because something is cast beneath it.
-        //
-        // tonalElevation is gone with the shadow: Compose only applies it when
-        // the colour is `surface`, so on an explicit container colour it was
-        // doing nothing at all.
-        //
-        // The capsule sits one step below the field inside it, which is why
-        // it is not at the top of the ladder. See the field's colours below.
-        // The darkest container, and the field inside it the lightest —
-        // which is the reverse of what this used to be, on measurement
-        // rather than on taste. Read off a screenshot from the emulator:
-        //
-        //   conversation background         (239, 240, 246)
-        //   capsule, surfaceContainer       (239, 237, 241)   <- 5 apart
-        //   field, surfaceContainerHighest  (227, 226, 230)
-        //
-        // Five units is nothing. The capsule had a border, a 28.dp corner
-        // and a 12.dp inset, and none of the three could be seen, so the
-        // composer read as a full-width band with a pill floating in it.
-        // The cause is the conversation's own gradient: its bottom stop is
-        // primary at 8% alpha, which lands almost exactly on
-        // surfaceContainer — a decorative tint placed under the one control
-        // that has to stand away from the background.
-        //
-        // Moving the capsule to the top of the container ladder puts twelve
-        // units between it and the conversation, and the field then has to
-        // go the other way to stay visible inside it. In dark mode the two
-        // tones swap ends by construction, so the arrangement holds without
-        // a second branch.
-        Surface(
-            shape = capsuleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        // The capsule at the top of the container ladder and the field inside
+        // it at the bottom, so each stands away from what is behind it. A
+        // background rather than a Surface, which would clip: the voice
+        // button swells past the capsule's edge while it records.
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest, capsuleShape)
                 .onSizeChanged {
-                    if (recordingSince == null && (restingHeight == 0 || it.height < restingHeight)) {
-                        restingHeight = it.height
+                    if (!recording && (restingHeight == 0 || it.height < restingHeight)) restingHeight = it.height
+                }
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            IconButton(
+                onClick = onAttach,
+                enabled = !recording,
+                modifier = Modifier.padding(bottom = ComposerButtonLift)
+            ) {
+                Icon(Symbols.AttachFile, contentDescription = "Attach")
+            }
+            camera()
+            field(
+                Modifier
+                    .weight(1f)
+                    .clip(fieldShape),
+                MaterialTheme.colorScheme.surfaceContainerLowest
+            )
+            Spacer(Modifier.width(4.dp))
+            button()
+        }
+    }
+}
+
+/** The camera: tapped, a photo; held past a long press, a round video. */
+@Composable
+private fun CameraButton(
+    enabled: Boolean,
+    onCamera: () -> Unit,
+    onVideoNoteStart: () -> Unit,
+    onVideoNoteStop: () -> Unit,
+    onVideoNoteCancel: () -> Unit,
+    onVideoNoteLock: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onCamera,
+        enabled = enabled,
+        modifier = modifier
+            // Read on the Initial pass, as the microphone's hold is, and the
+            // release after a hold swallowed there so the button's own click
+            // — the photo — never sees it.
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                        waitForUpOrCancellation(PointerEventPass.Initial)
+                    }
+                    if (released == null) {
+                        onVideoNoteStart()
+                        // Followed by hand rather than with
+                        // waitForUpOrCancellation, which gives up the moment
+                        // the finger leaves the button — and both gestures
+                        // here leave it: up past LOCK_SLIDE locks, aside past
+                        // CANCEL_SLIDE throws the recording away.
+                        var locked = false
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull { it.id == down.id }
+                            if (change == null || !change.pressed) {
+                                change?.consume()
+                                if (!locked) onVideoNoteStop()
+                                break
+                            }
+                            change.consume()
+                            if (locked) continue
+                            val moved = change.position - down.position
+                            if (moved.y < -LOCK_SLIDE.toPx()) {
+                                locked = true
+                                onVideoNoteLock()
+                            } else if (kotlin.math.abs(moved.x) > CANCEL_SLIDE.toPx()) {
+                                onVideoNoteCancel()
+                                spendTheRest()
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+    ) {
+        Icon(Symbols.PhotoCamera, contentDescription = "Camera, hold for a video message")
+    }
+}
+
+/** The rest of a touch whose gesture is over, taken so nothing else acts on it. */
+private suspend fun AwaitPointerEventScope.spendTheRest() {
+    do {
+        val rest = awaitPointerEvent(PointerEventPass.Initial)
+        rest.changes.forEach { it.consume() }
+    } while (rest.changes.any { it.pressed })
+}
+
+/** Where a held voice recording is: locked or not, how far the finger has slid, how loud it is now. */
+@Stable
+internal class VoiceHold {
+    var locked by mutableStateOf(false)
+    var slide by mutableStateOf(Offset.Zero)
+    var level by mutableFloatStateOf(0f)
+
+    fun reset() {
+        locked = false
+        slide = Offset.Zero
+        level = 0f
+    }
+}
+
+/**
+ * In the field's place while a voice message records: a red dot that
+ * breathes, the time, and how to get out of it — slide aside to cancel
+ * while held, which follows the finger and fades as it goes, or a Cancel
+ * button once locked.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun RecordingRow(
+    since: Long,
+    voice: VoiceHold,
+    onSampleAmplitude: () -> Float,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var elapsed by remember(since) { mutableLongStateOf(0L) }
+    LaunchedEffect(since) {
+        while (true) {
+            elapsed = (System.currentTimeMillis() - since) / 1000
+            // The same beat takes an amplitude reading, because
+            // getMaxAmplitude answers for the time since the last call — an
+            // irregular tick makes bars that stand for different lengths of
+            // recording.
+            voice.level = onSampleAmplitude()
+            delay(RECORDING_TICK_MS)
+        }
+    }
+    val pulse = rememberInfiniteTransition(label = "recordingDot")
+    val dot by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.25f,
+        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+        label = "recordingDotAlpha"
+    )
+    val cancelReach = with(LocalDensity.current) { CANCEL_SLIDE.toPx() }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .height(56.dp)
+            .padding(start = 8.dp, end = 4.dp)
+            .semantics { contentDescription = "Recording a voice message" }
+    ) {
+        Box(
+            Modifier
+                .size(10.dp)
+                .alpha(dot)
+                .background(MaterialTheme.colorScheme.error, CircleShape)
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            formatDuration(elapsed),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(Modifier.weight(1f))
+        if (voice.locked) {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+        } else {
+            val gone = (-voice.slide.x / cancelReach).coerceIn(0f, 1f)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .graphicsLayer {
+                        translationX = voice.slide.x * 0.5f
+                        alpha = 1f - gone
+                    }
+                    .padding(end = 8.dp)
+            ) {
+                Icon(
+                    Symbols.ChevronLeft,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    "Slide to cancel",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The round button at the end: a microphone to hold, Send once there is
+ * something to send, and — held — the voice message's own control. Held,
+ * it swells out of the composer with a ring round it that breathes with the
+ * voice, a lock rises above it to be slid to, and it follows the finger;
+ * locked, it stays swollen and turns into Send.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun VoiceSendButton(
+    size: Dp,
+    sendable: Boolean,
+    recording: Boolean,
+    voice: VoiceHold,
+    onSend: () -> Unit,
+    onSchedule: (() -> Unit)?,
+    onRecordStart: () -> Unit,
+    onRecordStop: () -> Unit,
+    onRecordCancel: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MaterialTheme.colorScheme
+    val swell by animateFloatAsState(
+        targetValue = if (recording) RECORDING_SWELL else 1f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "voiceSwell"
+    )
+    val breath by animateFloatAsState(
+        targetValue = if (recording) 1f + voice.level * BREATH_REACH else 1f,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "voiceBreath"
+    )
+    val following = recording && !voice.locked
+    val lockReach = with(LocalDensity.current) { LOCK_SLIDE.toPx() }
+    Box(contentAlignment = Alignment.Center, modifier = modifier.size(size)) {
+        // The lock, above, while it is held and not yet locked: slid to, it
+        // rises a little with the finger and its arrow fades as it nears.
+        AnimatedVisibility(
+            visible = following,
+            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { it / 2 },
+            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(y = -LOCK_PILL_HEIGHT - LOCK_PILL_GAP)
+        ) {
+            val near = (-voice.slide.y / lockReach).coerceIn(0f, 1f)
+            Surface(
+                shape = CircleShape,
+                color = colors.surfaceContainerHighest,
+                modifier = Modifier
+                    .size(width = 40.dp, height = LOCK_PILL_HEIGHT)
+                    .graphicsLayer { translationY = voice.slide.y * 0.4f }
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(Symbols.Lock, contentDescription = "Slide up to lock", modifier = Modifier.size(20.dp))
+                    Icon(
+                        Symbols.KeyboardArrowUp,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .alpha(1f - near)
+                    )
+                }
+            }
+        }
+        // The ring that breathes with the voice, behind the button.
+        if (recording) {
+            Box(
+                Modifier
+                    .size(size)
+                    .graphicsLayer {
+                        val scale = swell * breath
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = if (following) voice.slide.x else 0f
+                        translationY = if (following) voice.slide.y else 0f
+                    }
+                    .background(colors.primary.copy(alpha = 0.22f), CircleShape)
+            )
+        }
+        var scheduleMenu by remember { mutableStateOf(false) }
+        val showsSend = sendable || voice.locked
+        FilledIconButton(
+            onClick = {
+                when {
+                    // Locked: this is Send for the recording.
+                    recording && voice.locked -> onRecordStop()
+                    sendable && !recording -> onSend()
+                }
+            },
+            shape = CircleShape,
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = if (showsSend || recording) colors.primary else colors.primaryContainer,
+                contentColor = if (showsSend || recording) colors.onPrimary else colors.onPrimaryContainer
+            ),
+            modifier = Modifier
+                .size(size)
+                .graphicsLayer {
+                    scaleX = swell
+                    scaleY = swell
+                    translationX = if (following) voice.slide.x else 0f
+                    translationY = if (following) voice.slide.y else 0f
+                }
+                .pointerInput(sendable, onSchedule != null) {
+                    // Read on the Initial pass, before the button's own
+                    // clickable sees the press: read after it, the press was
+                    // already taken and holding the microphone did nothing.
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                        if (voice.locked) return@awaitEachGesture
+                        if (sendable) {
+                            // Held rather than tapped: the schedule menu, and
+                            // the release swallowed so a hold does not also send.
+                            if (onSchedule == null) return@awaitEachGesture
+                            val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                waitForUpOrCancellation(PointerEventPass.Initial)
+                            }
+                            if (released == null) {
+                                scheduleMenu = true
+                                waitForUpOrCancellation(PointerEventPass.Initial)?.consume()
+                            }
+                            return@awaitEachGesture
+                        }
+                        onRecordStart()
+                        // Followed by hand, as the camera's hold is: the
+                        // finger leaves the button both ways it can go.
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull { it.id == down.id }
+                            if (change == null || !change.pressed) {
+                                change?.consume()
+                                if (!voice.locked) onRecordStop()
+                                break
+                            }
+                            change.consume()
+                            if (voice.locked) continue
+                            val moved = change.position - down.position
+                            voice.slide = Offset(moved.x.coerceAtMost(0f), moved.y.coerceAtMost(0f))
+                            if (moved.y < -LOCK_SLIDE.toPx()) {
+                                voice.locked = true
+                                voice.slide = Offset.Zero
+                            } else if (moved.x < -CANCEL_SLIDE.toPx()) {
+                                voice.slide = Offset.Zero
+                                onRecordCancel()
+                                spendTheRest()
+                                break
+                            }
+                        }
                     }
                 }
         ) {
-            Row(
-                // Eight rather than four, so the field inside has room to
-                // breathe instead of meeting the capsule's edge. The capsule
-                // grows with it, which is the intent: it is a container, and
-                // a container whose contents touch its sides looks like a
-                // mistake rather than like a frame.
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
-                // Bottom, so a field grown to several lines keeps the buttons
-                // beside its last line rather than floating them in the middle.
-                // Centring instead would fix the single-line case and break
-                // every other one, which is why the buttons are lifted rather
-                // than the row re-aligned — see ComposerButtonLift.
-                verticalAlignment = Alignment.Bottom
-            ) {
-                // Three, not one, and that reverses an earlier decision in
-                // this project: the argument was that a composer growing an
-                // icon per attachment type runs out of room before it runs
-                // out of types. True in general, and beside the point here —
-                // these three are not "types of attachment" but the three
-                // things people actually reach for, which is why the messaging
-                // app this was modelled on puts exactly these three here. The
-                // sheet still exists behind the plus for everything else.
-                IconButton(
-                    onClick = onAttach,
-                    enabled = recordingSince == null,
-                    modifier = Modifier.padding(bottom = ComposerButtonLift)
-                ) {
-                    Icon(Symbols.AttachFile, contentDescription = "Attach")
+            Icon(
+                when {
+                    showsSend -> Symbols.SendFilled
+                    else -> Symbols.Mic
+                },
+                contentDescription = when {
+                    voice.locked -> "Send voice message"
+                    sendable -> "Send"
+                    else -> "Hold to record"
                 }
-                IconButton(
-                    onClick = onCamera,
-                    enabled = recordingSince == null,
-                    modifier = Modifier
-                        .padding(bottom = ComposerButtonLift)
-                        // Tapped, a photo; held past a long press, a round
-                        // video. Read on the Initial pass, as the
-                        // microphone's hold is, and the release after a hold
-                        // swallowed there so the button's own click — the
-                        // photo — never sees it.
-                        .pointerInput(Unit) {
-                            awaitEachGesture {
-                                val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                                val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                    waitForUpOrCancellation(PointerEventPass.Initial)
-                                }
-                                if (released == null) {
-                                    onVideoNoteStart()
-                                    // Followed by hand rather than with
-                                    // waitForUpOrCancellation, which gives up
-                                    // the moment the finger leaves the button
-                                    // — and both gestures here leave it: up
-                                    // past LOCK_SLIDE locks, aside past
-                                    // CANCEL_SLIDE throws the recording away.
-                                    val start = down
-                                    var locked = false
-                                    while (true) {
-                                        val event = awaitPointerEvent(PointerEventPass.Initial)
-                                        val change = event.changes.firstOrNull { it.id == start.id }
-                                        if (change == null || !change.pressed) {
-                                            change?.consume()
-                                            if (!locked) onVideoNoteStop()
-                                            break
-                                        }
-                                        change.consume()
-                                        if (locked) continue
-                                        val moved = change.position - start.position
-                                        if (moved.y < -LOCK_SLIDE.toPx()) {
-                                            locked = true
-                                            onVideoNoteLock()
-                                        } else if (kotlin.math.abs(moved.x) > CANCEL_SLIDE.toPx()) {
-                                            onVideoNoteCancel()
-                                            // The rest of the touch is spent.
-                                            do {
-                                                val rest = awaitPointerEvent(PointerEventPass.Initial)
-                                                rest.changes.forEach { it.consume() }
-                                            } while (rest.changes.any { it.pressed })
-                                            break
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                ) {
-                    Icon(Symbols.PhotoCamera, contentDescription = "Camera, hold for a video message")
-                }
-
-                if (recordingSince != null) {
-                    // The field is replaced rather than covered: nothing can be
-                    // typed one-handed while the other thumb is holding the
-                    // microphone down, and a running clock is the one thing worth
-                    // knowing at that moment.
-                    var elapsed by remember(recordingSince) { mutableLongStateOf(0L) }
-                    LaunchedEffect(recordingSince) {
-                        while (true) {
-                            elapsed = (System.currentTimeMillis() - recordingSince) / 1000
-                            // The same beat takes an amplitude reading, because
-                            // getMaxAmplitude answers for the time since the last
-                            // call — an irregular tick makes bars that stand for
-                            // different lengths of recording.
-                            onSampleAmplitude()
-                            delay(RECORDING_TICK_MS)
-                        }
+            )
+        }
+        if (onSchedule != null) {
+            DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
+                DropdownMenuItem(
+                    text = { Text("Schedule message") },
+                    leadingIcon = { Icon(Symbols.Schedule, contentDescription = null) },
+                    onClick = {
+                        scheduleMenu = false
+                        onSchedule()
                     }
-                    Text(
-                        "Recording  ${formatDuration(elapsed)}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp, vertical = 14.dp)
-                    )
-                } else {
-                    TextField(
-                        value = value,
-                        onValueChange = onValueChange,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 2.dp)
-                            .focusRequester(focusRequester),
-                        placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        // Where Telegram keeps it, and every messenger since:
-                        // inside the field, at its end.
-                        trailingIcon = {
-                            Row {
-                                if (botKeyboardShown != null) {
-                                    IconButton(onClick = onBotKeyboardToggle) {
-                                        Icon(
-                                            if (botKeyboardShown) Symbols.KeyboardHide
-                                            else Symbols.Keyboard,
-                                            contentDescription = if (botKeyboardShown) "Hide bot keyboard"
-                                            else "Bot keyboard"
-                                        )
-                                    }
-                                }
-                                if (expressionsOpen) {
-                                    IconButton(onClick = onKeyboard) {
-                                        Icon(Symbols.Keyboard, contentDescription = "Keyboard")
-                                    }
-                                } else {
-                                    IconButton(onClick = onExpressions) {
-                                        Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
-                                    }
-                                }
-                            }
-                        },
-                        shape = fieldShape,
-                        // The field carries its own fill, at the opposite
-                        // end of the container ladder from the capsule
-                        // around it. An earlier version made every
-                        // container colour transparent on the argument that a
-                        // filled field inside a filled surface draws a second
-                        // shape nobody asked for — which is true about shapes
-                        // and wrong about people. With nothing to fill it, the
-                        // field was invisible: the words "Message" floated in
-                        // a bar whose tappable part could not be told from its
-                        // buttons, and the first person to look at it said so.
-                        //
-                        // A text field has to look like somewhere to type.
-                        // That is what the second shape is for.
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerLowest,
-                            unfocusedContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerLowest,
-                            disabledContainerColor =
-                                MaterialTheme.colorScheme.surfaceContainerLowest,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
-                        ),
-                        maxLines = 5
-                    )
-                }
-
-                if (value.isBlank() && !hasAttachment) {
-                    FilledIconButton(
-                        // onClick stays empty because this is a hold, not a tap:
-                        // the gesture below owns press, release and cancel, and a
-                        // tap that fired as well would send an empty recording.
-                        onClick = {},
-                        shape = CircleShape,
-                        // Primary, like Send in its place: secondaryContainer
-                        // sat too close to the capsule around it to be seen.
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = if (recordingSince != null) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            },
-                            contentColor = if (recordingSince != null) {
-                                MaterialTheme.colorScheme.onError
-                            } else {
-                                MaterialTheme.colorScheme.onPrimary
-                            }
-                        ),
-                        modifier = Modifier
-                            .padding(bottom = ComposerButtonLift)
-                            // The press is read on the Initial pass, before
-                            // the button's own clickable sees it. Read on the
-                            // Main pass, as this was, it came after the
-                            // clickable had already taken the touch — and a
-                            // tap detector waits for a touch nobody has
-                            // taken, so holding the microphone did nothing
-                            // at all. The button keeps its ripple either way.
-                            .pointerInput(Unit) {
-                                awaitEachGesture {
-                                    awaitFirstDown(
-                                        requireUnconsumed = false,
-                                        pass = PointerEventPass.Initial
-                                    )
-                                    onRecordStart()
-                                    // Until the finger lifts, or leaves for
-                                    // somewhere else — a scroll, a slide off
-                                    // the button — which throws it away.
-                                    val lifted = waitForUpOrCancellation(PointerEventPass.Initial)
-                                    if (lifted != null) onRecordStop() else onRecordCancel()
-                                }
-                            }
-                    ) {
-                        Icon(Symbols.Mic, contentDescription = "Hold to record")
-                    }
-                } else {
-                    var scheduleMenu by remember { mutableStateOf(false) }
-                    Box {
-                    FilledIconButton(
-                        onClick = onSend,
-                        shape = CircleShape,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier
-                            .padding(bottom = ComposerButtonLift)
-                            .then(
-                                if (onSchedule == null) Modifier
-                                else Modifier.pointerInput(Unit) {
-                                    // Held rather than tapped: the menu opens,
-                                    // and the release is swallowed on the
-                                    // Initial pass so the button's own click
-                                    // never sees it — a hold must not also send.
-                                    awaitEachGesture {
-                                        awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                                        val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                            waitForUpOrCancellation(PointerEventPass.Initial)
-                                        }
-                                        if (released == null) {
-                                            scheduleMenu = true
-                                            waitForUpOrCancellation(PointerEventPass.Initial)?.consume()
-                                        }
-                                    }
-                                }
-                            )
-                    ) {
-                        Icon(Symbols.SendFilled, contentDescription = "Send")
-                    }
-                    DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Schedule message") },
-                            leadingIcon = { Icon(Symbols.Schedule, contentDescription = null) },
-                            onClick = {
-                                scheduleMenu = false
-                                onSchedule?.invoke()
-                            }
-                        )
-                    }
-                    }
-                }
+                )
             }
         }
     }
@@ -711,3 +948,21 @@ internal val COMPOSER_PILL_CORNER = 64.dp
 
 /** How far the field sits in from the capsule's edge, for concentric corners. */
 internal val COMPOSER_FIELD_INSET = 8.dp
+
+/** The plain composer's field: round ends on one line, and that curve kept as it grows. */
+internal val FIELD_CORNER = 28.dp
+
+/** The plain composer's distance from the screen's sides, and between the field and its button. */
+internal val PLAIN_GUTTER = 12.dp
+internal val PLAIN_GAP = 8.dp
+
+/** The round button, as tall as the field beside it. */
+internal val PLAIN_BUTTON = 56.dp
+
+/** How much larger the button grows while a voice message records, and how far further it breathes. */
+private const val RECORDING_SWELL = 1.6f
+private const val BREATH_REACH = 0.6f
+
+/** The lock over a held voice button: its height, and its distance above the swollen button. */
+private val LOCK_PILL_HEIGHT = 72.dp
+private val LOCK_PILL_GAP = 32.dp

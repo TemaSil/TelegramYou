@@ -7,7 +7,15 @@ import android.os.Build
 import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -124,7 +132,9 @@ private suspend fun recentPhotos(
 @Composable
 internal fun RecentPhotoCarousel(
     onPick: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** Those picked already, ticked; a tap on one takes it out again. */
+    selected: Set<String> = emptySet()
 ) {
     val context = LocalContext.current
     var access by remember { mutableStateOf(photoAccess(context)) }
@@ -164,17 +174,39 @@ internal fun RecentPhotoCarousel(
                 .height(CarouselHeight)
         ) { index ->
             val uri = photos[index]
-            AsyncImage(
-                model = uri,
-                contentDescription = "Recent photo",
-                contentScale = ContentScale.Crop,
+            val picked = uri in selected
+            Box(
                 modifier = Modifier
                     .height(CarouselHeight)
                     // Clipped before the click so the ripple follows the
                     // carousel's mask as it compresses at the edges.
                     .maskClip(MaterialTheme.shapes.extraLarge)
                     .clickable { onPick(uri) }
-            )
+            ) {
+                AsyncImage(
+                    model = uri,
+                    contentDescription = if (picked) "Recent photo, picked" else "Recent photo",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                if (picked) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp)
+                            .size(28.dp)
+                            .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    ) {
+                        Icon(
+                            Symbols.Check,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
         }
 
         if (shouldOfferMorePhotos(access)) {

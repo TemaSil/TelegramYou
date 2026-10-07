@@ -225,6 +225,8 @@ internal fun AttachmentSheet(
     onPickFile: () -> Unit,
     onTakePhoto: () -> Unit,
     onPickRecent: (String) -> Unit,
+    /** The recent photos already picked, ticked in the strip (2.0). */
+    selected: Set<String> = emptySet(),
     /** A poll, where the chat takes them — groups and channels. */
     onPoll: (() -> Unit)? = null,
     /** Somebody's card, from this account's contacts. */
@@ -243,8 +245,21 @@ internal fun AttachmentSheet(
         // shortcut. Draws nothing without the permission for it.
         RecentPhotoCarousel(
             onPick = onPickRecent,
+            selected = selected,
             modifier = Modifier.padding(bottom = 8.dp)
         )
+        // Picked from the strip, they are already above the composer; this
+        // only puts the sheet away to show them there.
+        if (selected.isNotEmpty()) {
+            androidx.compose.material3.Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
+                Text(if (selected.size == 1) "Attach 1 photo" else "Attach ${selected.size} photos")
+            }
+        }
         // Transparent containers, all three. A ListItem paints itself
         // `surface` by default, and a ModalBottomSheet is
         // `surfaceContainerLow` — so the rows sat as three pale slabs on a

@@ -68,6 +68,21 @@ fun Modifier.chatWallpaper(wallpaper: ChatWallpaper): Modifier {
     }
 }
 
+/**
+ * The colour the conversation's background reaches at the bottom, where the
+ * composer stands on it (2.0): the composer fades into exactly this, so the
+ * messages going under it disappear rather than meet an edge.
+ */
+@Composable
+fun chatBackgroundBottom(): Color {
+    val colors = MaterialTheme.colorScheme
+    return if (LocalChatStyle.current.wallpaper == ChatWallpaper.Plain) {
+        colors.surface
+    } else {
+        colors.primaryContainer.copy(alpha = WARMTH).compositeOver(colors.surface)
+    }
+}
+
 private fun DrawScope.dots(ink: Color) {
     val step = 20.dp.toPx()
     val radius = 2.dp.toPx()

@@ -814,9 +814,22 @@ class ChatViewModel(
         // Closing here rather than where the picker is launched: the sheet has
         // to stay up while the system picker is in front of it, or coming back
         // from a cancelled pick lands on the composer with nothing explained.
-        _uiState.update { it.copy(pendingAttachment = draft, attachmentSheetOpen = false) }
+        // Photos join the ones already waiting (2.0), up to an album's ten.
+        _uiState.update { it.copy(pendingAttachment = it.pendingAttachment.plus(draft), attachmentSheetOpen = false) }
 
     fun onAttachmentCleared() = _uiState.update { it.copy(pendingAttachment = null) }
+
+    /** A photo in the attachment sheet's recent strip, in or out; the sheet stays up for more. */
+    fun onRecentPhotoToggled(uri: String) =
+        _uiState.update { it.copy(pendingAttachment = it.pendingAttachment.toggled(uri)) }
+
+    /** One photo or file taken out of the tray above the composer. */
+    fun onAttachmentRemoved(index: Int) =
+        _uiState.update { it.copy(pendingAttachment = it.pendingAttachment?.without(index)) }
+
+    /** One dragged to another place in the tray, which is its place in the album. */
+    fun onAttachmentMoved(from: Int, to: Int) =
+        _uiState.update { it.copy(pendingAttachment = it.pendingAttachment?.moved(from, to)) }
 
     /** Answering a message cancels an edit in progress, and vice versa. */
     fun onReplyTo(message: ChatMessage) =

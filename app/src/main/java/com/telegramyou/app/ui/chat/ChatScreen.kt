@@ -155,6 +155,10 @@ fun ChatScreen(
     onDraftChange: (String) -> Unit,
     onAttachmentPicked: (AttachmentDraft) -> Unit,
     onAttachmentCleared: () -> Unit,
+    /** The tray above the composer (2.0): a photo taken out, one moved, one from the recent strip in or out. */
+    onAttachmentRemoved: (Int) -> Unit = {},
+    onAttachmentMoved: (Int, Int) -> Unit = { _, _ -> },
+    onRecentPhotoToggled: (String) -> Unit = {},
     onReplyTo: (ChatMessage) -> Unit,
     onEdit: (ChatMessage) -> Unit,
     onComposerBannerCancelled: () -> Unit,
@@ -671,8 +675,10 @@ fun ChatScreen(
         )
     }
 
+    // Android's own photo picker, several at a time up to an album's ten
+    // (2.0); what is picked joins whatever is already waiting.
     val photoPicker = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetMultipleContents()
+        ActivityResultContracts.PickMultipleVisualMedia(ALBUM_LIMIT)
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
         onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
@@ -1334,6 +1340,29 @@ fun ChatScreen(
                 state.pendingAttachment?.let { attachmentShown = it }
 
                 AnimatedVisibility(
+                    visible = state.pendingAttachment != null,
+                    // As the reply banner below: folding, so nothing under it jumps.
+                    // Above the banner, so the banner stays joined to the field.
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
+                ) {
+                    when (val shown = attachmentShown) {
+                        // Photos and files as pictures and tiles, each one its
+                        // own to take out or move (2.0); a recording waiting
+                        // for Send keeps its chip.
+                        is AttachmentDraft.Photos, is AttachmentDraft.Files -> AttachmentTray(
+                            draft = shown as AttachmentDraft,
+                            onRemove = onAttachmentRemoved,
+                            onMove = onAttachmentMoved,
+                            onAddMore = { onAttachmentSheetOpenChange(true) }
+                        )
+                        else -> AttachmentChip(draft = shown, onClear = onAttachmentCleared)
+                    }
+                }
+
+                AnimatedVisibility(
                     visible = state.replyTo != null || state.editing != null,
                     // Folding as well as fading, both ways: with only a fade
                     // the banner's height went at once when a reply was sent
@@ -1350,24 +1379,12 @@ fun ChatScreen(
                         ComposerBanner(
                             message = message,
                             isEditing = bannerEditing,
-                            onCancel = onComposerBannerCancelled
+                            onCancel = onComposerBannerCancelled,
+                            plain = !geeks.composerCapsule
                         )
                     }
                 }
 
-                AnimatedVisibility(
-                    visible = state.pendingAttachment != null,
-                    // As the reply banner above: folding, so nothing under it jumps.
-                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
-                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
-                        shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
-                ) {
-                    AttachmentChip(
-                        draft = attachmentShown,
-                        onClear = onAttachmentCleared
-                    )
-                }
 
                 if (state.selection.isActive) {
                     // The toolbar takes the composer's place rather than floating
@@ -1399,13 +1416,18 @@ fun ChatScreen(
                     if (state.attachmentSheetOpen) {
                         AttachmentSheet(
                             onDismiss = { onAttachmentSheetOpenChange(false) },
-                            onPickPhoto = { photoPicker.launch("image/*") },
+                            onPickPhoto = {
+                                photoPicker.launch(
+                                    androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
                             onPickFile = { filePicker.launch(arrayOf("*/*")) },
                             onTakePhoto = onTakePhoto,
-                            onPickRecent = { uri ->
-                                onAttachmentPicked(AttachmentDraft.Photos(listOf(uri)))
-                                onAttachmentSheetOpenChange(false)
-                            },
+                            // Several at once (2.0): each tap in the strip puts a
+                            // photo in or takes it out, and the sheet stays up
+                            // until they are all picked.
+                            onPickRecent = onRecentPhotoToggled,
+                            selected = (state.pendingAttachment as? AttachmentDraft.Photos)?.uris.orEmpty().toSet(),
                             onPoll = if (state.canSendPolls) onPollOpen else null,
                             onContact = onContactPickerOpen,
                             onLocation = {
@@ -1535,7 +1557,8 @@ fun ChatScreen(
                         onSampleAmplitude = recorder::sample,
                         hasAttachment = state.pendingAttachment != null,
                         focusRequester = composerFocus,
-                        attachedAbove = state.replyTo != null || state.editing != null
+                        attachedAbove = state.replyTo != null || state.editing != null,
+                        capsule = geeks.composerCapsule
                     )
                 }
             }

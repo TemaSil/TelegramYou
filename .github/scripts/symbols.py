@@ -22,13 +22,13 @@ RENAMED = {
 }
 
 ICONS = """
-Add AddAPhoto AddReaction AlternateEmail Archive ArrowBack AttachFile Block Bookmark
+Add AddAPhoto AddCircle AddReaction AlternateEmail Archive ArrowBack AttachFile Block Bookmark
 Campaign Chat Check CheckCircle Close Computer Contacts ContentCopy ContentPaste DarkMode
 Delete DeleteSweep Description DesktopWindows Devices Done DoneAll Download Edit EmojiEmotions Folder
 ArrowUpward ArrowDownward Backspace Fingerprint Gif LocationOn MyLocation Tag PictureInPictureAlt
 AdminPanelSettings Forum SkipNext SkipPrevious QueueMusic Shuffle Repeat RepeatOne GraphicEq Bedtime Equalizer LibraryMusic
 ErrorOutline Forward Group History Image Info InstallMobile Keyboard
-KeyboardArrowDown KeyboardHide Language LaptopMac LightMode Link Lock Logout
+KeyboardArrowDown KeyboardArrowUp ChevronLeft KeyboardHide Language LaptopMac LightMode Link Lock Logout
 MarkChatRead Mic MoreVert MusicNote Notifications NotificationsActive
 NotificationsOff OpenInNew Pause Person Phone PhoneAndroid PhoneIphone PhotoCamera
 Palette PersonAdd PhotoLibrary PlayArrow Poll Public PushPin QrCode2 Reply Schedule Science Search

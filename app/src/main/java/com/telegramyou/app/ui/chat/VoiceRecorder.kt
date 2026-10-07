@@ -90,16 +90,19 @@ class VoiceRecorder(private val context: Context) {
      * a quiet voice visible at all — amplitude is linear and hearing is not,
      * so a linear bar chart of speech is mostly empty space.
      */
-    fun sample() {
-        val active = recorder ?: return
+    fun sample(): Float {
+        val active = recorder ?: return 0f
         val raw = try {
             active.maxAmplitude
         } catch (e: IllegalStateException) {
             Log.w(TAG, "sample: ${e.message}")
-            return
+            return 0f
         }
         val normalised = kotlin.math.sqrt(raw.coerceIn(0, 32_767) / 32_767.0)
         amplitudes += (normalised * 31).toInt().coerceIn(0, 31)
+        // Also answered, 0 to 1, for the composer's button to swell with
+        // the voice as the official client's does (2.0).
+        return normalised.toFloat()
     }
 
     /**

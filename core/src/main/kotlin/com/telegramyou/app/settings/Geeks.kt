@@ -47,7 +47,13 @@ data class GeekSettings(
      * shows what comes into it in the phone's language. Off, no chat is
      * translated, whatever each was set to.
      */
-    val autoTranslate: Boolean = false
+    val autoTranslate: Boolean = false,
+    /**
+     * The composer in one capsule, field and buttons together — how it was
+     * until 2.0, when the owner found it heavy and it became the field and
+     * a round button on the chat's own background, as Google Messages has it.
+     */
+    val composerCapsule: Boolean = false
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */
