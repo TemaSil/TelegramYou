@@ -53,6 +53,10 @@ import com.telegramyou.app.ui.format.isOnline
 import com.telegramyou.app.ui.format.memberCountLabel
 import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.InlineBot
+import com.telegramyou.app.telegram.model.InlineResults
+import com.telegramyou.app.telegram.model.WebAppSession
+import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.AudioContent
@@ -3504,6 +3508,124 @@ class TdLibTelegramClient(
                 .put("animation", JSONObject().put("@type", "inputFileId").put("id", fileId))
         )
     }
+
+    // ── inline bots and Mini Apps (2.0) ──────────────────────────────────
+
+    /** Bots found by name, and names found to be no inline bot: each asked once. */
+    private val inlineBots = ConcurrentHashMap<String, java.util.Optional<InlineBot>>()
+
+    override suspend fun inlineBot(username: String): InlineBot? {
+        awaitReady()
+        val key = username.lowercase()
+        inlineBots[key]?.let { return it.orElse(null) }
+        val found = try {
+            val chat = requireEngine().send(JSONObject().put("@type", "searchPublicChat").put("username", username))
+            val userId = chat.optJSONObject("type")
+                ?.takeIf { it.optString("@type") == "chatTypePrivate" }
+                ?.optLong("user_id")
+                ?.takeIf { it != 0L }
+            val type = userId?.let { userObject(it) }?.optJSONObject("type")
+            if (userId != null && type?.optString("@type") == "userTypeBot" && type.optBoolean("is_inline")) {
+                InlineBot(
+                    userId = userId,
+                    username = username,
+                    placeholder = type.optString("inline_query_placeholder")
+                )
+            } else {
+                null
+            }
+        } catch (e: TdLibException) {
+            null
+        }
+        inlineBots[key] = java.util.Optional.ofNullable(found)
+        return found
+    }
+
+    override suspend fun inlineResults(botId: Long, chatId: Long, query: String, offset: String): InlineResults? {
+        awaitReady()
+        val answer = requireEngine().send(
+            JSONObject()
+                .put("@type", "getInlineQueryResults")
+                .put("bot_user_id", botId)
+                .put("chat_id", chatId)
+                .put("query", query)
+                .put("offset", offset)
+        )
+        val results = answer.optJSONArray("results") ?: JSONArray()
+        return InlineResults(
+            queryId = answer.optInt64("inline_query_id"),
+            results = List(results.length()) { results.optJSONObject(it) }.mapNotNull { inlineResultOf(it) },
+            nextOffset = answer.optString("next_offset")
+        )
+    }
+
+    override suspend fun sendInlineResult(chatId: Long, queryId: Long, resultId: String, replyToId: Long?) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendInlineQueryResultMessage")
+                .put("chat_id", chatId)
+                .inOpenTopic(chatId)
+                .withReplyTo(replyToId)
+                .put("query_id", queryId.toString())
+                .put("result_id", resultId)
+                .put("hide_via_bot", false)
+        )
+    }
+
+    override suspend fun openWebApp(chatId: Long, botId: Long, url: String, theme: WebAppTheme): WebAppSession? {
+        awaitReady()
+        return try {
+            val info = requireEngine().send(
+                JSONObject()
+                    .put("@type", "openWebApp")
+                    .put("chat_id", chatId)
+                    .put("bot_user_id", botId)
+                    .put("url", url)
+                    .inOpenTopic(chatId)
+                    .put(
+                        "parameters",
+                        JSONObject()
+                            .put("@type", "webAppOpenParameters")
+                            .put("theme", themeParametersOf(theme))
+                            .put("application_name", "TelegramYou")
+                            .put("mode", JSONObject().put("@type", "webAppOpenModeFullSize"))
+                    )
+            )
+            WebAppSession(launchId = info.optInt64("launch_id"), url = info.optString("url"))
+                .takeIf { it.url.isNotBlank() }
+        } catch (e: TdLibException) {
+            Log.w(TAG, "openWebApp: ${e.message}")
+            null
+        }
+    }
+
+    override suspend fun closeWebApp(launchId: Long) {
+        if (launchId == 0L) return
+        runCatching {
+            requireEngine().send(
+                JSONObject().put("@type", "closeWebApp").put("web_app_launch_id", launchId.toString())
+            )
+        }
+    }
+
+    private fun themeParametersOf(theme: WebAppTheme): JSONObject = JSONObject()
+        .put("@type", "themeParameters")
+        .put("background_color", theme.background)
+        .put("secondary_background_color", theme.secondaryBackground)
+        .put("header_background_color", theme.headerBackground)
+        .put("bottom_bar_background_color", theme.bottomBarBackground)
+        .put("section_background_color", theme.sectionBackground)
+        .put("section_separator_color", theme.sectionSeparator)
+        .put("text_color", theme.text)
+        .put("accent_text_color", theme.accentText)
+        .put("section_header_text_color", theme.sectionHeaderText)
+        .put("subtitle_text_color", theme.subtitleText)
+        .put("destructive_text_color", theme.destructiveText)
+        .put("hint_color", theme.hint)
+        .put("link_color", theme.link)
+        .put("button_color", theme.button)
+        .put("button_text_color", theme.buttonText)
 
     /** The @gif bot's user id, found once; the bot's handle does not change. */
     @Volatile

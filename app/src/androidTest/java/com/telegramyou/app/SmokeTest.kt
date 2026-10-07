@@ -2171,6 +2171,44 @@ class SmokeTest {
         assertTrue("the last part is over the limit: ${last.length}", last.length <= 4096)
     }
 
+    /**
+     * An inline bot and a Mini App (2.0). "@expressive mo" in the composer
+     * brings the bot's answers over it, and the one tapped is sent. The
+     * Build Bot's Mini App button opens its page, which sets up its main
+     * button through the bridge — the button appearing is the proof the
+     * page reached the client — and pressing it has the page close itself
+     * through the bridge the other way.
+     */
+    @Test
+    fun anInlineBotAnswersAndAMiniAppOpens() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Material Design"))
+        waitFor(By.text("Welcome to TelegramYou"), "the conversation")
+        type("@expressive mo")
+        waitFor(By.text("Motion scheme"), "the inline bot's answer")
+        screenshot("93-inline-bot")
+        tap(By.text("Motion scheme"))
+        waitFor(By.textStartsWith("Motion scheme — "), "the answer sent")
+
+        backTo(By.text("Chats"), "the chat list again")
+        scrollChatsTo(By.text("Build Bot"))
+        tap(By.text("Build Bot"))
+        waitFor(By.text("Open builds"), "the Mini App button")
+        tap(By.text("Open builds"))
+        waitFor(By.text("Done"), "the Mini App's main button, set up by the page")
+        // The page paints a moment after it has spoken.
+        SystemClock.sleep(1_000)
+        screenshot("94-mini-app")
+        tap(By.text("Done"))
+        assertTrue(
+            "the Mini App closed itself",
+            device.wait(Until.gone(By.text("Done")), STEP_TIMEOUT)
+        )
+        waitFor(By.text("Open builds"), "the bot's chat again")
+    }
+
     /** Settings → For geeks → More in a message's menu, flipped. */
     private fun setMessageExtras() {
         tap(By.text("Settings"))

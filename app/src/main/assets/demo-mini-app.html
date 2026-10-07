@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  The demo's Mini App (2.0): a page in the APK, so it opens with no network,
+  that talks to the client over the same bridge a real Mini App uses —
+  postEvent out through TelegramWebviewProxy, receiveEvent in. It asks for
+  the theme, draws itself in it, and sets up the main button, which closes
+  it when pressed: the round trip the smoke test drives.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Builds</title>
+<style>
+  :root { --bg: #1c1b1f; --text: #e6e1e5; --hint: #938f99; --section: #2b2930; --accent: #d0bcff; }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+         font-family: sans-serif; }
+  h1 { font-size: 28px; font-weight: 400; margin: 8px 0 4px; }
+  p { color: var(--hint); margin: 0 0 16px; }
+  .build { background: var(--section); border-radius: 16px; padding: 16px; margin-bottom: 8px; }
+  .build b { color: var(--accent); font-weight: 500; }
+</style>
+</head>
+<body>
+<h1>Builds from the bot</h1>
+<p>A Mini App, drawn in the client's colours.</p>
+<div class="build"><b>1.0.366</b><br>Comments under channel posts</div>
+<div class="build"><b>1.0.365</b><br>Notification settings by kind of chat</div>
+<div class="build"><b>1.0.364</b><br>Watch a video message before it is sent</div>
+<script>
+  function post(type, data) {
+    if (window.TelegramWebviewProxy) window.TelegramWebviewProxy.postEvent(type, JSON.stringify(data || {}));
+  }
+  window.Telegram = { WebView: { receiveEvent: function (type, data) {
+    if (type === 'theme_changed' && data && data.theme_params) {
+      var t = data.theme_params, s = document.documentElement.style;
+      if (t.bg_color) s.setProperty('--bg', t.bg_color);
+      if (t.text_color) s.setProperty('--text', t.text_color);
+      if (t.hint_color) s.setProperty('--hint', t.hint_color);
+      if (t.section_bg_color) s.setProperty('--section', t.section_bg_color);
+      if (t.accent_text_color) s.setProperty('--accent', t.accent_text_color);
+    }
+    if (type === 'main_button_pressed') post('web_app_close');
+  } } };
+  post('web_app_ready');
+  post('web_app_request_theme');
+  post('web_app_setup_main_button', { is_visible: true, is_active: true, text: 'Done' });
+</script>
+</body>
+</html>

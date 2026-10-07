@@ -382,10 +382,11 @@ internal fun inlineKeyboardOf(markup: JSONObject?): List<List<InlineButton>> {
         val type = button.optJSONObject("type")
         val action = when (type?.optString("@type")) {
             "inlineKeyboardButtonTypeUrl" -> ButtonAction.OpenUrl(type.optString("url"))
-            // Opened as the link it is: logging in through it and Mini
-            // Apps both need a web view this client does not have.
-            "inlineKeyboardButtonTypeLoginUrl", "inlineKeyboardButtonTypeWebApp" ->
-                ButtonAction.OpenUrl(type.optString("url"))
+            // Opened as the link it is: logging in through it needs a
+            // web view of Telegram's own, which this client does not have.
+            "inlineKeyboardButtonTypeLoginUrl" -> ButtonAction.OpenUrl(type.optString("url"))
+            // A Mini App, opened in the client (2.0).
+            "inlineKeyboardButtonTypeWebApp" -> ButtonAction.WebApp(type.optString("url"))
             "inlineKeyboardButtonTypeCallback" -> ButtonAction.Callback(type.optString("data"))
             "inlineKeyboardButtonTypeCopyText" -> ButtonAction.CopyText(type.optString("text"))
             else -> ButtonAction.Unsupported
@@ -589,3 +590,123 @@ internal fun animatedEmojiSticker(content: JSONObject?): JSONObject? =
     content?.takeIf { it.optString("@type") == "messageAnimatedEmoji" }
         ?.optJSONObject("animated_emoji")
         ?.optJSONObject("sticker")
+
+/**
+ * One of an inline bot's results (2.0): what it is, its words, and a
+ * picture for it where there is one Android can draw — a JPEG, WebP or PNG
+ * thumbnail; an MP4 or animated one is left out and the row goes without.
+ */
+internal fun inlineResultOf(result: JSONObject?): com.telegramyou.app.telegram.model.InlineResult? {
+    if (result == null) return null
+    val id = result.optString("id").takeIf { it.isNotBlank() } ?: return null
+    fun still(thumbnail: JSONObject?): JSONObject? = thumbnail?.takeIf {
+        it.optJSONObject("format")?.optString("@type") in STILL_THUMBNAILS
+    }?.optJSONObject("file")
+    fun smallest(photo: JSONObject?): JSONObject? {
+        val sizes = photo?.optJSONArray("sizes") ?: return null
+        return List(sizes.length()) { sizes.optJSONObject(it) }
+            .filterNotNull()
+            .sortedBy { it.optInt("width") }
+            .firstOrNull { it.optInt("width") >= 160 }
+            ?.optJSONObject("photo")
+            ?: sizes.optJSONObject(sizes.length() - 1)?.optJSONObject("photo")
+    }
+    val kind: com.telegramyou.app.telegram.model.InlineResultKind
+    val title: String
+    val description: String
+    val thumb: JSONObject?
+    when (result.optString("@type")) {
+        "inlineQueryResultArticle" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Article
+            title = result.optString("title")
+            description = result.optString("description")
+            thumb = still(result.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultPhoto" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Photo
+            title = result.optString("title")
+            description = result.optString("description")
+            thumb = smallest(result.optJSONObject("photo"))
+        }
+        "inlineQueryResultAnimation" -> {
+            val animation = result.optJSONObject("animation")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Gif
+            title = result.optString("title")
+            description = ""
+            thumb = still(animation?.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultVideo" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Video
+            title = result.optString("title")
+            description = result.optString("description")
+            thumb = still(result.optJSONObject("video")?.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultSticker" -> {
+            val sticker = result.optJSONObject("sticker")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Sticker
+            title = sticker?.optString("emoji").orEmpty()
+            description = ""
+            thumb = still(sticker?.optJSONObject("thumbnail"))
+                ?: sticker?.takeIf { it.optJSONObject("format")?.optString("@type") == "stickerFormatWebp" }
+                    ?.optJSONObject("sticker")
+        }
+        "inlineQueryResultAudio" -> {
+            val audio = result.optJSONObject("audio")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Audio
+            title = audio?.optString("title")?.ifBlank { null } ?: audio?.optString("file_name").orEmpty()
+            description = audio?.optString("performer").orEmpty()
+            thumb = still(audio?.optJSONObject("album_cover_thumbnail"))
+        }
+        "inlineQueryResultVoiceNote" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Voice
+            title = result.optString("title").ifBlank { "Voice message" }
+            description = ""
+            thumb = null
+        }
+        "inlineQueryResultDocument" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Document
+            title = result.optString("title")
+            description = result.optString("description")
+            thumb = still(result.optJSONObject("document")?.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultLocation" -> {
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Place
+            title = result.optString("title")
+            description = ""
+            thumb = still(result.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultVenue" -> {
+            val venue = result.optJSONObject("venue")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Place
+            title = venue?.optString("title").orEmpty()
+            description = venue?.optString("address").orEmpty()
+            thumb = still(result.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultContact" -> {
+            val contact = result.optJSONObject("contact")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Contact
+            title = listOfNotNull(contact?.optString("first_name"), contact?.optString("last_name"))
+                .filter { it.isNotBlank() }.joinToString(" ")
+            description = contact?.optString("phone_number").orEmpty()
+            thumb = still(result.optJSONObject("thumbnail"))
+        }
+        "inlineQueryResultGame" -> {
+            val game = result.optJSONObject("game")
+            kind = com.telegramyou.app.telegram.model.InlineResultKind.Game
+            title = game?.optString("title").orEmpty()
+            description = game?.optString("description").orEmpty()
+            thumb = smallest(game?.optJSONObject("photo"))
+        }
+        else -> return null
+    }
+    return com.telegramyou.app.telegram.model.InlineResult(
+        id = id,
+        kind = kind,
+        title = title,
+        description = description,
+        thumbFileId = thumb?.optInt("id")?.takeIf { it != 0 },
+        thumbPath = thumb?.localPathIfDownloaded()
+    )
+}
+
+private val STILL_THUMBNAILS = setOf("thumbnailFormatJpeg", "thumbnailFormatWebp", "thumbnailFormatPng")

@@ -62,6 +62,12 @@ import com.telegramyou.app.telegram.model.TextEntity
 import com.telegramyou.app.telegram.model.parseMarkdown
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.InlineBot
+import com.telegramyou.app.telegram.model.InlineResult
+import com.telegramyou.app.telegram.model.InlineResultKind
+import com.telegramyou.app.telegram.model.InlineResults
+import com.telegramyou.app.telegram.model.WebAppSession
+import com.telegramyou.app.telegram.model.WebAppTheme
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.LastMessageStatus
 import com.telegramyou.app.telegram.model.LinkPreview
@@ -2186,6 +2192,60 @@ class DemoTelegramClient(
         keptGifs.add(0, GifItem(id = "kept-${keptGifs.size}", video = video, width = 360, height = 202))
     }
 
+    // ── inline bots and Mini Apps (2.0) ──────────────────────────────────
+
+    /**
+     * Two inline bots: @expressive, which answers with Material's
+     * components as articles — rows — and @gif, which answers with the
+     * demo's GIFs as tiles. The two ways an inline panel draws.
+     */
+    override suspend fun inlineBot(username: String): InlineBot? {
+        delay(80)
+        return when (username.lowercase()) {
+            DEMO_INLINE_BOT -> InlineBot(DEMO_INLINE_BOT_ID, DEMO_INLINE_BOT, "Search Material components")
+            "gif" -> InlineBot(DEMO_GIF_BOT_ID, "gif", "Search GIFs")
+            else -> null
+        }
+    }
+
+    private var lastGifs: List<GifItem> = emptyList()
+
+    override suspend fun inlineResults(botId: Long, chatId: Long, query: String, offset: String): InlineResults? {
+        delay(200)
+        if (offset.isNotEmpty()) return InlineResults(queryId = 1, results = emptyList())
+        return when (botId) {
+            DEMO_INLINE_BOT_ID -> InlineResults(
+                queryId = 1,
+                results = DEMO_COMPONENTS
+                    .filter { (title, about) -> query.isBlank() || title.contains(query, true) || about.contains(query, true) }
+                    .map { (title, about) -> InlineResult(id = title, kind = InlineResultKind.Article, title = title, description = about) }
+            )
+            DEMO_GIF_BOT_ID -> {
+                lastGifs = searchGifs(query)
+                InlineResults(
+                    queryId = 2,
+                    results = lastGifs.map { InlineResult(id = it.id, kind = InlineResultKind.Gif, thumbPath = it.video.thumbPath) }
+                )
+            }
+            else -> null
+        }
+    }
+
+    override suspend fun sendInlineResult(chatId: Long, queryId: Long, resultId: String, replyToId: Long?) {
+        if (queryId == 2L) {
+            lastGifs.firstOrNull { it.id == resultId }?.let { sendGif(chatId, it, replyToId) }
+            return
+        }
+        val about = DEMO_COMPONENTS.firstOrNull { it.first == resultId }?.second ?: return
+        sendText(chatId, "$resultId — $about", replyToId, null)
+    }
+
+    /** The Mini App is a page in the APK's assets, which talks to the client the way a real one does. */
+    override suspend fun openWebApp(chatId: Long, botId: Long, url: String, theme: WebAppTheme): WebAppSession? {
+        delay(150)
+        return WebAppSession(launchId = 1, url = DEMO_MINI_APP_URL)
+    }
+
     override suspend fun searchGifs(query: String): List<GifItem> {
         delay(250)
         return if (query.isBlank()) demoGifs("saved") else demoGifs("found")
@@ -2904,7 +2964,10 @@ class DemoTelegramClient(
                         InlineButton("Download", ButtonAction.OpenUrl("https://github.com/TemaSil/TelegramYou")),
                         InlineButton(DEMO_CHANGELOG_BUTTON, ButtonAction.Callback("Y2hhbmdlbG9n"))
                     ),
-                    listOf(InlineButton("Copy version", ButtonAction.CopyText("1.0.366")))
+                    listOf(
+                        InlineButton("Copy version", ButtonAction.CopyText("1.0.366")),
+                        InlineButton(DEMO_MINI_APP_BUTTON, ButtonAction.WebApp("https://example.org/builds"))
+                    )
                 )
             )
         )
@@ -3182,6 +3245,25 @@ private const val PUBLIC_CHANNEL_ID = 500L
 internal const val DEMO_PUBLIC_CHANNEL = "Expressive Design Weekly"
 internal const val DEMO_POLL_QUESTION = "What do you reach for first?"
 internal const val DEMO_CHANGELOG_BUTTON = "Changelog"
+
+/** The Build Bot's Mini App button, and the page it opens. */
+internal const val DEMO_MINI_APP_BUTTON = "Open builds"
+private const val DEMO_MINI_APP_URL = "file:///android_asset/demo-mini-app.html"
+
+/** The demo's inline bots; see inlineBot. */
+internal const val DEMO_INLINE_BOT = "expressive"
+private const val DEMO_INLINE_BOT_ID = 9001L
+private const val DEMO_GIF_BOT_ID = 9002L
+
+/** What @expressive answers with: Material 3 Expressive's components. */
+private val DEMO_COMPONENTS = listOf(
+    "Loading indicator" to "A shape that morphs while something loads",
+    "Motion scheme" to "Springs for every movement, expressive or standard",
+    "Button group" to "Buttons that make room for the one pressed",
+    "Split button" to "An action and its menu, side by side",
+    "Wavy progress" to "Progress that moves like it means it",
+    "Floating toolbar" to "Actions that float over the content"
+)
 internal const val DEMO_CHANGELOG_ANSWER = "Polls and bot buttons landed"
 internal const val DEMO_BOT_STATUS = "All green ✅"
 internal const val DEMO_AUDIO_TITLE = "Expressive Motion"

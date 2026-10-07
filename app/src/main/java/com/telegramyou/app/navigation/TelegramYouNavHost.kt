@@ -1224,6 +1224,10 @@ fun TelegramYouNavHost(
                             navController.navigateTo(Route.Chat(thread.chatId, threadId = thread.threadId))
                         }
                     },
+                    onInlineResultPicked = chatViewModel::onInlineResultPicked,
+                    onInlineMore = chatViewModel::onInlineMore,
+                    onOpenWebApp = chatViewModel::onOpenWebApp,
+                    onWebAppClosed = chatViewModel::onWebAppClosed,
                     onMessageExtra = chatViewModel::onMessageExtra,
                     onTranslate = chatViewModel::onTranslate,
                     onTranslationDismissed = chatViewModel::onTranslationDismissed,

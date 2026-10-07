@@ -180,6 +180,12 @@ fun ChatScreen(
     onContentOpened: (ChatMessage) -> Unit = {},
     /** A channel post's comments opened (2.0). */
     onOpenComments: (ChatMessage) -> Unit = {},
+    /** One of an inline bot's answers picked, and the bot's next page (2.0). */
+    onInlineResultPicked: (com.telegramyou.app.telegram.model.InlineResult) -> Unit = {},
+    onInlineMore: () -> Unit = {},
+    /** A Mini App button: opened in the client, or as the link through the last argument (2.0). */
+    onOpenWebApp: (ChatMessage, String, com.telegramyou.app.telegram.model.WebAppTheme, (String) -> Unit) -> Unit = { _, url, _, fallback -> fallback(url) },
+    onWebAppClosed: () -> Unit = {},
     /** A message put into the phone's language; see TranslationDialog. */
     onTranslate: (ChatMessage, String) -> Unit = { _, _ -> },
     onTranslationDismissed: () -> Unit = {},
@@ -568,6 +574,13 @@ fun ChatScreen(
     DisposableEffect(Unit) {
         onDispose { videoNotePreview?.let { java.io.File(it.path).delete() } }
     }
+
+    // The inline panel keeps its last answers while it folds away, so it
+    // does not empty under its own exit.
+    var inlineShown by remember { mutableStateOf(state.inline) }
+    if (state.inline != null) inlineShown = state.inline
+    // What a Mini App is told of the client's colours, from this screen's scheme.
+    val webAppTheme = MaterialTheme.colorScheme.toWebAppTheme()
 
     // The bot's keyboard, when this chat has one: whether it is up, and how
     // tall it drew. Held here rather than beside the composer, because the
@@ -1185,6 +1198,9 @@ fun ChatScreen(
                                         // are the platform's, and neither talks
                                         // to Telegram.
                                         is ButtonAction.OpenUrl -> runCatching { uriHandler.openUri(action.url) }
+                                        is ButtonAction.WebApp -> onOpenWebApp(message, action.url, webAppTheme) { url ->
+                                            runCatching { uriHandler.openUri(url) }
+                                        }
                                         is ButtonAction.CopyText -> {
                                             copyToClipboard(action.text)
                                             scope.launch { snackbarHostState.showSnackbar("Copied") }
@@ -1410,6 +1426,18 @@ fun ChatScreen(
                         )
                     }
 
+                    // An inline bot's answers, over the field the query is typed in (2.0).
+                    AnimatedVisibility(
+                        visible = state.inline != null,
+                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                            expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                            shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
+                    ) {
+                        inlineShown?.let { panel ->
+                            InlineResultsPanel(panel = panel, onPick = onInlineResultPicked, onMore = onInlineMore)
+                        }
+                    }
                     if (botKeyboard != null && botPanelVisible) {
                         ReplyKeyboardPanel(
                             modifier = Modifier.onSizeChanged { botPanelHeight = it.height },
@@ -1608,6 +1636,7 @@ fun ChatScreen(
         onDelete = cancelVideoNote,
         onStop = previewVideoNote
     )
+    state.webApp?.let { app -> MiniAppSheet(app = app, theme = webAppTheme, onClose = onWebAppClosed) }
     VideoNotePreview(
         note = videoNotePreview,
         onSend = sendPreviewedVideoNote,

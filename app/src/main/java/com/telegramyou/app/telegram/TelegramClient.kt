@@ -29,6 +29,7 @@ import com.telegramyou.app.telegram.stories.TelegramStories
  */
 interface TelegramClient :
     TelegramAuth,
+    com.telegramyou.app.telegram.bots.TelegramBots,
     TelegramChats,
     TelegramGroups,
     TelegramMessages,

@@ -53,6 +53,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.coroutineScope
+import com.telegramyou.app.telegram.model.InlineBot
+import com.telegramyou.app.telegram.model.InlineQuery
+import com.telegramyou.app.telegram.model.InlineResult
+import com.telegramyou.app.telegram.model.WebAppSession
+import com.telegramyou.app.telegram.model.WebAppTheme
+import com.telegramyou.app.telegram.model.inlineQueryOf
 
 /**
  * Searching inside one conversation.
@@ -253,7 +260,11 @@ data class ChatUiState(
      * Incoming messages put into the phone's language, by id, while the
      * chat's Translate messages is on (2.0); see AutoTranslate.
      */
-    val translations: Map<Long, String> = emptyMap()
+    val translations: Map<Long, String> = emptyMap(),
+    /** An inline bot's answers to what is typed after its name (2.0); null when none is being asked. */
+    val inline: InlinePanel? = null,
+    /** A bot's Mini App, while it is open (2.0). */
+    val webApp: OpenWebApp? = null
 ) {
     /** Polls go to groups and channels, as in every Telegram client. */
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
@@ -346,7 +357,6 @@ class ChatViewModel(
             }
         }
         reload()
-        translateAsTheyCome()
         // The draft, kept as it is typed: a pause of a second and it is on
         // the server, where the chat list and the account's other devices
         // see it. Not while editing a message — the field holds the edit
@@ -526,6 +536,8 @@ class ChatViewModel(
         // An emptied field takes the picked custom emoji with it.
         if (text.isEmpty()) picked.clear()
         _uiState.update { it.copy(draft = text) }
+        // An edit is not a new message, so no bot is asked for one.
+        inlineQuery.value = if (_uiState.value.editing == null) inlineQueryOf(text) else null
     }
 
     /**
@@ -1195,8 +1207,144 @@ class ChatViewModel(
         }
     }
 
+    // ── inline bots and Mini Apps (2.0) ──────────────────────────────────
+
+    /** "@bot query" as typed, or null; see onDraftChange. */
+    private val inlineQuery = MutableStateFlow<InlineQuery?>(null)
+
+    /**
+     * Asks the bot named at the start of the composer, as the typing settles:
+     * each new keystroke cancels the question before it, and the pause
+     * before asking is what keeps one question per word rather than per
+     * letter. Thumbnails are fetched after the answers are shown.
+     */
+    private fun askInlineBots() {
+        viewModelScope.launch {
+            inlineQuery.collectLatest { query ->
+                if (query == null) {
+                    _uiState.update { it.copy(inline = null) }
+                    return@collectLatest
+                }
+                delay(INLINE_PAUSE_MS)
+                val bot = runCatching { repository.inlineBot(query.botUsername) }.getOrNull()
+                if (bot == null) {
+                    _uiState.update { it.copy(inline = null) }
+                    return@collectLatest
+                }
+                _uiState.update { state ->
+                    val before = state.inline?.takeIf { it.bot.userId == bot.userId }
+                    state.copy(inline = InlinePanel(bot, query.query, results = before?.results.orEmpty(), isLoading = true))
+                }
+                val answer = runCatching { repository.inlineResults(bot.userId, chatId, query.query) }.getOrNull()
+                _uiState.update {
+                    it.copy(
+                        inline = InlinePanel(
+                            bot = bot,
+                            query = query.query,
+                            results = answer?.results.orEmpty(),
+                            queryId = answer?.queryId ?: 0L,
+                            nextOffset = answer?.nextOffset.orEmpty()
+                        )
+                    )
+                }
+                fetchInlineThumbs(answer?.results.orEmpty())
+            }
+        }
+    }
+
+    private suspend fun fetchInlineThumbs(results: List<InlineResult>) = coroutineScope {
+        results.filter { it.thumbPath == null && it.thumbFileId != null }.take(INLINE_THUMBS).forEach { result ->
+            launch {
+                val path = runCatching { repository.downloadFile(result.thumbFileId!!) }.getOrNull() ?: return@launch
+                _uiState.update { state ->
+                    val panel = state.inline ?: return@update state
+                    state.copy(
+                        inline = panel.copy(
+                            results = panel.results.map { if (it.id == result.id) it.copy(thumbPath = path) else it }
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /** The end of the panel was reached: the bot's next page, when it has one. */
+    fun onInlineMore() {
+        val panel = _uiState.value.inline ?: return
+        if (panel.nextOffset.isEmpty() || panel.isLoading) return
+        _uiState.update { it.copy(inline = panel.copy(isLoading = true)) }
+        viewModelScope.launch {
+            val more = runCatching {
+                repository.inlineResults(panel.bot.userId, chatId, panel.query, panel.nextOffset)
+            }.getOrNull()
+            _uiState.update { state ->
+                val now = state.inline?.takeIf { it.queryId == panel.queryId } ?: return@update state
+                state.copy(
+                    inline = now.copy(
+                        results = (now.results + more?.results.orEmpty()).distinctBy { it.id },
+                        nextOffset = more?.nextOffset.orEmpty(),
+                        isLoading = false
+                    )
+                )
+            }
+            fetchInlineThumbs(more?.results.orEmpty())
+        }
+    }
+
+    /** A result picked: it goes into the chat as the bot made it, and the composer empties. */
+    fun onInlineResultPicked(result: InlineResult) {
+        val state = _uiState.value
+        val panel = state.inline ?: return
+        val answering = state.replyTo
+        inlineQuery.value = null
+        _uiState.update { it.copy(draft = "", replyTo = null, inline = null) }
+        onJumpToLatest()
+        viewModelScope.launch {
+            attempt("Could not send") {
+                repository.sendInlineResult(chatId, panel.queryId, result.id, answering?.id)
+            }
+        }
+    }
+
+    /**
+     * A Mini App button: opened inside the client when Telegram allows it,
+     * as a link through [fallback] when it does not — a bot that is not the
+     * message's sender, or a server that refuses.
+     */
+    fun onOpenWebApp(message: ChatMessage, url: String, theme: WebAppTheme, fallback: (String) -> Unit) {
+        val botId = message.senderId?.takeIf { it > 0 }
+        if (botId == null) {
+            fallback(url)
+            return
+        }
+        viewModelScope.launch {
+            val session = runCatching { repository.openWebApp(chatId, botId, url, theme) }.getOrNull()
+            if (session == null) {
+                fallback(url)
+            } else {
+                _uiState.update { it.copy(webApp = OpenWebApp(session, message.senderName?.ifBlank { null } ?: "Mini App")) }
+            }
+        }
+    }
+
+    fun onWebAppClosed() {
+        val open = _uiState.value.webApp ?: return
+        _uiState.update { it.copy(webApp = null) }
+        viewModelScope.launch { repository.closeWebApp(open.session.launchId) }
+    }
+
     /** Messages already asked to be translated, so each is asked once. */
     private val autoTranslated = mutableSetOf<Long>()
+
+    // Started here, below every field the two read, and not in the first
+    // init: viewModelScope runs on Main.immediate, so a launch made while
+    // the view model is being built runs at once — before any property
+    // declared further down has been given its value. Started from the top
+    // init, the first collect found autoTranslated still null.
+    init {
+        translateAsTheyCome()
+        askInlineBots()
+    }
 
     /**
      * The chat's Translate messages (2.0): while it is on, every incoming
@@ -2103,6 +2251,10 @@ class ChatViewModel(
         /** Ten position reads a second, which is smooth at a hundred pixels. */
         const val PROGRESS_TICK_MS = 100L
 
+        /** How long the typing has to pause before an inline bot is asked. */
+        const val INLINE_PAUSE_MS = 350L
+        /** Thumbnails fetched for one page of an inline bot's answers. */
+        const val INLINE_THUMBS = 40
         /** How many of the newest incoming messages a chat's auto-translation covers at once. */
         const val AUTO_TRANSLATE_WINDOW = 40
 
@@ -2152,3 +2304,16 @@ class ChatViewModel(
         }
     }
 }
+
+/** An inline bot's answers, as the panel over the composer shows them (2.0). */
+data class InlinePanel(
+    val bot: InlineBot,
+    val query: String,
+    val results: List<InlineResult> = emptyList(),
+    val queryId: Long = 0L,
+    val nextOffset: String = "",
+    val isLoading: Boolean = false
+)
+
+/** A Mini App open over the chat: the page, and the bot's name for its bar. */
+data class OpenWebApp(val session: WebAppSession, val title: String)

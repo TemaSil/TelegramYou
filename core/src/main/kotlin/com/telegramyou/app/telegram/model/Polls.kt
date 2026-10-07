@@ -147,6 +147,9 @@ sealed interface ButtonAction {
      */
     data class Callback(val data: String) : ButtonAction
     data class CopyText(val text: String) : ButtonAction
+
+    /** Opens a bot's Mini App at [url], inside the client (2.0). */
+    data class WebApp(val url: String) : ButtonAction
     data object Unsupported : ButtonAction
 }
 
