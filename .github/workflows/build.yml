@@ -346,6 +346,7 @@ jobs:
           files = (glob.glob('app/build/test-results/**/*.xml', recursive=True)
                    + glob.glob('core/build/test-results/**/*.xml', recursive=True))
           total = failed = skipped = 0
+          named = 0
           for path in files:
               root = ET.parse(path).getroot()
               if root.tag != 'testsuite':
@@ -355,6 +356,19 @@ jobs:
               skipped += int(root.get('skipped', 0))
               print(f"  {root.get('name')}: {root.get('tests')} tests, "
                     f"{root.get('failures')} failures, {root.get('errors')} errors")
+              # Each failure by name, with the first line of what it threw,
+              # as an annotation: the count alone said 49 had failed and
+              # nothing about which, and the log is not reachable from
+              # where this project is written. Capped, so a failure in
+              # set-up shared by a whole class does not flood the page.
+              for case in root.iter('testcase'):
+                  for problem in list(case):
+                      if problem.tag not in ('failure', 'error') or named >= 15:
+                          continue
+                      named += 1
+                      first = (problem.get('message') or problem.text or '').strip().splitlines()[:1]
+                      where = f"{case.get('classname', '').rsplit('.', 1)[-1]}.{case.get('name')}"
+                      print(f"::error title=Test failed::{where}: {first[0][:300] if first else problem.tag}")
 
           # A notice, not just stdout: post-job steps bury the tail of the log,
           # but annotations stay readable through the check-runs API.
