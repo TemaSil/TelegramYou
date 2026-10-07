@@ -46,7 +46,13 @@ data class NotificationContext(
     /** Message ids already shown, so a reconnect does not notify twice. */
     val alreadyNotified: Set<Long> = emptySet(),
     /** Now, in epoch milliseconds; a parameter so tests do not depend on the clock. */
-    val nowMillis: Long = System.currentTimeMillis()
+    val nowMillis: Long = System.currentTimeMillis(),
+    /**
+     * Chats on screen within the last [CAUGHT_UP_AFTER_MILLIS] — those
+     * whose old messages Telegram may still be delivering because they
+     * were opened; see [SuppressionReason.CaughtUp].
+     */
+    val recentlyOpened: Set<Long> = emptySet()
 )
 
 /** Why a message was not notified. Named, because "false" debugs badly. */
@@ -94,7 +100,10 @@ fun decideNotification(
         NotificationDecision.Suppress(SuppressionReason.ChatIsOpen)
     message.messageId in context.alreadyNotified ->
         NotificationDecision.Suppress(SuppressionReason.AlreadyNotified)
-    message.isGroupOrChannel && context.nowMillis - message.timestampMillis > CAUGHT_UP_AFTER_MILLIS ->
+    // Only for a chat just opened: a group's message held up while the
+    // phone was offline arrives just as late, and is still news.
+    message.isGroupOrChannel && message.chatId in context.recentlyOpened &&
+        context.nowMillis - message.timestampMillis > CAUGHT_UP_AFTER_MILLIS ->
         NotificationDecision.Suppress(SuppressionReason.CaughtUp)
     else -> NotificationDecision.Notify(message)
 }

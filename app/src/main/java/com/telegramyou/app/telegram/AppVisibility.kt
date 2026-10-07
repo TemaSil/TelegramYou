@@ -27,4 +27,21 @@ object AppVisibility {
     /** The chat on screen, or null when the conversation screen is not up. */
     @Volatile
     var openChatId: Long? = null
+        set(value) {
+            // The chat left and the chat come to are both "just open": what
+            // TDLib catches up on for a chat can keep arriving after it is shut.
+            val now = System.currentTimeMillis()
+            field?.let { lastOpen[it] = now }
+            value?.let { lastOpen[it] = now }
+            field = value
+        }
+
+    /** When each chat was last on screen, for [recentlyOpened]. */
+    private val lastOpen = java.util.concurrent.ConcurrentHashMap<Long, Long>()
+
+    /** Chats on screen within [withinMillis] of [now], the open one included. */
+    fun recentlyOpened(now: Long, withinMillis: Long): Set<Long> {
+        lastOpen.entries.removeIf { now - it.value > withinMillis }
+        return lastOpen.keys + listOfNotNull(openChatId)
+    }
 }

@@ -170,9 +170,19 @@ class NotificationPolicyTest {
         val old = message(timestampMillis = now - 3 * 60 * 60 * 1000L).copy(isGroupOrChannel = true)
         assertEquals(
             NotificationDecision.Suppress(SuppressionReason.CaughtUp),
-            decideNotification(old, NotificationContext(nowMillis = now))
+            decideNotification(old, NotificationContext(nowMillis = now, recentlyOpened = setOf(old.chatId)))
         )
     }
+
+    @Test
+    fun `a group message held up while offline still notifies`() {
+        // The chat was not just opened, so nothing is being caught up on:
+        // the phone was simply away, and the message is still news.
+        val now = 10_000_000L
+        val late = message(timestampMillis = now - 10 * 60 * 1000L).copy(isGroupOrChannel = true)
+        assertTrue(decideNotification(late, NotificationContext(nowMillis = now)) is NotificationDecision.Notify)
+    }
+
 
     @Test
     fun `a group message that is just in still notifies`() {

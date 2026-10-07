@@ -138,7 +138,11 @@ class TelegramForegroundService : Service() {
                     NotificationContext(
                         openChatId = AppVisibility.openChatId,
                         isAppInForeground = AppVisibility.isInForeground,
-                        alreadyNotified = PostedNotifications.shownMessageIds()
+                        alreadyNotified = PostedNotifications.shownMessageIds(),
+                        recentlyOpened = AppVisibility.recentlyOpened(
+                            System.currentTimeMillis(),
+                            com.telegramyou.app.notifications.CAUGHT_UP_AFTER_MILLIS
+                        )
                     )
                 )
                 if (decision is NotificationDecision.Notify) post(decision.message)

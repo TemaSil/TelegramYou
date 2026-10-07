@@ -70,6 +70,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -841,7 +842,9 @@ private fun VoiceSendButton(
             )
         }
         var scheduleMenu by remember { mutableStateOf(false) }
-        val showsSend = sendable || voice.locked
+        // Read by the gesture, which outlives the composition it started in.
+        val recordingNow by rememberUpdatedState(recording)
+        val showsSend = sendable || (voice.locked && recording)
         FilledIconButton(
             onClick = {
                 when {
@@ -869,7 +872,13 @@ private fun VoiceSendButton(
                     // already taken and holding the microphone did nothing.
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                        if (voice.locked) return@awaitEachGesture
+                        // Locked with a recording running: this press is
+                        // Send, and the button's own click handles it. A lock
+                        // left over with nothing recording — the microphone
+                        // refused, say — would leave the button dead, so it
+                        // is cleared and the press starts afresh.
+                        if (voice.locked && recordingNow) return@awaitEachGesture
+                        if (voice.locked) voice.reset()
                         if (sendable) {
                             // Held rather than tapped: the schedule menu, and
                             // the release swallowed so a hold does not also send.
@@ -898,7 +907,7 @@ private fun VoiceSendButton(
                             if (voice.locked) continue
                             val moved = change.position - down.position
                             voice.slide = Offset(moved.x.coerceAtMost(0f), moved.y.coerceAtMost(0f))
-                            if (moved.y < -LOCK_SLIDE.toPx()) {
+                            if (moved.y < -LOCK_SLIDE.toPx() && recordingNow) {
                                 voice.locked = true
                                 voice.slide = Offset.Zero
                             } else if (moved.x < -CANCEL_SLIDE.toPx()) {

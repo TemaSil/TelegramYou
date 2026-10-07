@@ -149,6 +149,11 @@ internal fun MiniAppSheet(app: OpenWebApp, theme: WebAppTheme, onClose: () -> Un
         dragHandle = null,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
+        // The page's own back first, when it has one; otherwise Back closes
+        // the sheet. Inside the sheet's content, because the sheet is a window
+        // of its own and Back goes to it, not to the screen under it: a
+        // handler registered outside never heard Back at all.
+        BackHandler(enabled = backVisible) { send("back_button_pressed") }
         Column(Modifier.fillMaxSize()) {
             TopAppBar(
                 title = { Text(app.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -209,9 +214,6 @@ internal fun MiniAppSheet(app: OpenWebApp, theme: WebAppTheme, onClose: () -> Un
             }
         }
     }
-    // The page's own back first, when it has one; otherwise Back closes it.
-    BackHandler(enabled = backVisible) { send("back_button_pressed") }
-
     popup?.let { shown ->
         AlertDialog(
             onDismissRequest = {
