@@ -3136,8 +3136,11 @@ class SmokeTest {
             device.swipe((width * 0.15).toInt(), middle, (width * 0.85).toInt(), middle, 12)
         }
         waitFor(By.text("$next of 3"), "the neighbouring photo after a swipe")
-        device.pressBack()
-        waitFor(By.text("Photos from the meetup"), "the chat, the gallery closed")
+        // Back until the chat is there, not one press: the system keyboard,
+        // up earlier in this process, can leave its back callback behind
+        // while hidden, and the first press goes to it — "Back callback
+        // invoked on a hidden IME" in the log of the run that failed here.
+        backTo(By.text("Photos from the meetup"), "the chat, the gallery closed")
     }
 
     /**
