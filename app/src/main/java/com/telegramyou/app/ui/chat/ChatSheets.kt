@@ -173,7 +173,8 @@ internal fun ForwardSheet(
                                 seed = target.avatarColor,
                                 size = 40.dp,
                                 shape = personShape(target.avatarColor),
-                                photoPath = target.photoPath
+                                photoPath = target.photoPath,
+                                savedMessages = target.isSavedMessages
                             )
                         },
                         // The sheet's tone, not the row's default — see the

@@ -979,7 +979,9 @@ fun TelegramYouNavHost(
                 progress = if (nowPlaying.track != null && nowPlaying.isPlaying) nowPlaying.progress else state.voiceProgress,
                 offline = nowPlaying.offline?.takeIf { it.chatId == state.detail?.chat?.id },
                 onDownloadAll = { state.detail?.chat?.id?.let { music?.downloadChat(it) } },
-                onBack = { navController.popBackStack() },
+                // In a bubble the chat has nothing under it: the arrow folds
+                // the bubble, as Back does (2.1).
+                onBack = { if (!navController.popBackStack()) navController.context.findActivity()?.finish() },
                 // One entry point, two kinds of thing behind it: the grid
                 // holds photos and videos alike, and which viewer opens is
                 // the message's business rather than the tile's.
@@ -1458,3 +1460,12 @@ fun TelegramYouNavHost(
 /** Destinations that open out of an element on the chat list; see containerTransform. */
 private val containerRoutes = setOf(Route.Chat.PATTERN, Route.Story.PATTERN)
 
+/** The activity behind a context, through any wrappers the theme put round it. */
+private fun android.content.Context.findActivity(): android.app.Activity? {
+    var current: android.content.Context? = this
+    while (current is android.content.ContextWrapper) {
+        if (current is android.app.Activity) return current
+        current = current.baseContext
+    }
+    return null
+}
