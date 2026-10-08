@@ -13,10 +13,12 @@
 # other workflows keep their evidence.
 name: Release check
 
+# On every push to main as well, so a release — which requires this to have
+# passed on the commit it is made from — is never a build nobody started.
 on:
   workflow_dispatch:
   push:
-    branches: ['fix/startup-crash']
+    branches: [main, 'fix/startup-crash']
 
 permissions:
   contents: write
@@ -93,8 +95,9 @@ jobs:
           grep -A 60 "FATAL EXCEPTION" logcat.txt > evidence/crash.txt 2>/dev/null || true
           grep -iE "telegramyou|AndroidRuntime|TdLib" logcat.txt | tail -300 > evidence/app-log.txt 2>/dev/null || true
           if [ -s evidence/crash.txt ]; then
+            # The mapping is read here, not published: it is tens of
+            # megabytes, and the push of the evidence failed on it.
             mapping=app/build/outputs/mapping/release/mapping.txt
-            cp "$mapping" evidence/ 2>/dev/null || true
             retrace="$ANDROID_HOME/cmdline-tools/latest/bin/retrace"
             if [ -x "$retrace" ] && [ -f "$mapping" ]; then
               "$retrace" "$mapping" evidence/crash.txt > evidence/crash-retraced.txt 2>&1 || true

@@ -12,7 +12,8 @@
 # It refuses to run when:
 #   - it is not on main;
 #   - the commit has no green Build and UI run — a release is only ever a
-#     build that already passed everything;
+#     build that already passed everything — or no green Release check, the
+#     release build itself started on an emulator (since 2.1.1);
 #   - `v<version>` already exists — a new release needs a new version, which
 #     is appVersionName in app/build.gradle.kts, moved on the owner's word;
 #   - the Telegram credentials or the release key are missing — a release is
@@ -79,6 +80,14 @@ jobs:
           ui=$(conclusion ui.yml conclusion)
           if [ "$build" != success ] || [ "$ui" != success ]; then
             echo "::error::Build is '${build:-not run}' and UI is '${ui:-not run}' for ${GITHUB_SHA::7}; release only a commit where both are green."
+            exit 1
+          fi
+          # And the release build itself started on an emulator (since 2.1.1):
+          # Build and UI run debug builds only, and 2.1's release, shrunk by
+          # R8, died on starting while both were green.
+          started=$(conclusion release-check.yml conclusion)
+          if [ "$started" != success ]; then
+            echo "::error::Release check is '${started:-not run}' for ${GITHUB_SHA::7}; the release build has to have started on an emulator."
             exit 1
           fi
           number=$(conclusion build.yml run_number)
