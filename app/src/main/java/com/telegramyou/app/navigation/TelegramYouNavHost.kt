@@ -150,7 +150,13 @@ fun TelegramYouNavHost(
     openDownloads: Boolean = false,
     onDownloadsOpened: () -> Unit = {},
     /** The login screen's mark was tapped ten times; see TelegramYouApp.setDemoMode. */
-    onDemoRequested: () -> Unit = {}
+    onDemoRequested: () -> Unit = {},
+    /** Something shared here from another app (2.1), until it is in a composer. */
+    share: com.telegramyou.app.telegram.model.IncomingShare? = null,
+    /** The chat picked for [share] when it came without one. */
+    onShareTarget: (Long) -> Unit = {},
+    /** [share] is in a composer, or was turned away. */
+    onShareHandled: () -> Unit = {}
 ) {
     val navController = rememberNavController()
     // Only the auth state is read here, and only to decide where to send the
@@ -335,6 +341,25 @@ fun TelegramYouNavHost(
             popUpTo(Route.Home.PATTERN)
         }
         onChatOpened()
+    }
+
+    // A share for a chat — its Direct Share target, or one picked below —
+    // opens that chat, whose screen then takes the share into its composer.
+    LaunchedEffect(share?.chatId, auth.state) {
+        val chatId = share?.chatId ?: return@LaunchedEffect
+        if (auth.state != AuthState.Ready) return@LaunchedEffect
+        navController.navigateTo(chatRoute(chatId)) { popUpTo(Route.Home.PATTERN) }
+    }
+    // The app itself chosen in the share sheet: which chat, as a forward asks.
+    if (share != null && share.chatId == null && auth.state == AuthState.Ready) {
+        val shareTargets by repository.observeChats().collectAsStateWithLifecycle()
+        com.telegramyou.app.ui.chat.ForwardSheet(
+            targets = shareTargets,
+            count = 1,
+            title = "Share to…",
+            onDismiss = onShareHandled,
+            onPick = { chat -> onShareTarget(chat.id) }
+        )
     }
 
     LaunchedEffect(openDownloads, auth.state) {
@@ -1161,6 +1186,14 @@ fun TelegramYouNavHost(
                     PostedNotifications.clear(id)
                 }
                 onDispose { AppVisibility.openChatId = null }
+            }
+            // A share for this chat into its composer: the words as the draft,
+            // the things as the attachment, to be looked at before they go.
+            LaunchedEffect(share, openChat) {
+                val incoming = share ?: return@LaunchedEffect
+                if (openChat == null || incoming.chatId != openChat) return@LaunchedEffect
+                chatViewModel.onShareReceived(incoming.text, com.telegramyou.app.telegram.model.shareDraft(incoming.items))
+                onShareHandled()
             }
             // The chat as an Android conversation, marked as used: it rises
             // among the share sheet's targets and keeps its shortcut (2.1).

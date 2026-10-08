@@ -104,7 +104,9 @@ internal fun ForwardSheet(
     onPick: (ChatPreview) -> Unit,
     /** The account's contacts, for people the search finds with no chat yet. */
     contacts: List<TelegramUser> = emptyList(),
-    onPickContact: (TelegramUser) -> Unit = {}
+    onPickContact: (TelegramUser) -> Unit = {},
+    /** In place of "Forward to…", for the same list put to another use — a share (2.1). */
+    title: String? = null
 ) {
     // Expanded straight away: the search field takes the keyboard, and a
     // half-open sheet under it would leave the results off the screen.
@@ -134,7 +136,7 @@ internal fun ForwardSheet(
             }
         }
         Text(
-            if (count == 1) "Forward to…" else "Forward $count messages to…",
+            title ?: if (count == 1) "Forward to…" else "Forward $count messages to…",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )

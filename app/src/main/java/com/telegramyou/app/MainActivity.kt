@@ -38,6 +38,8 @@ import com.telegramyou.app.settings.isDark
 import androidx.compose.ui.Modifier
 import android.content.Intent
 import com.telegramyou.app.navigation.TelegramYouNavHost
+import com.telegramyou.app.notifications.IncomingShares
+import com.telegramyou.app.telegram.model.IncomingShare
 import com.telegramyou.app.telegram.AppVisibility
 import com.telegramyou.app.telegram.TelegramForegroundService
 import com.telegramyou.app.ui.theme.TelegramYouTheme
@@ -56,6 +58,19 @@ class MainActivity : ComponentActivity() {
 
     /** The downloads notification was tapped: the Downloads screen, once. */
     private var pendingDownloads by mutableStateOf(false)
+
+    /**
+     * Something another app shared here (2.1), until it is in a chat's
+     * composer: to the chat its Direct Share target named, or to the one
+     * picked from the list when the app itself was chosen.
+     */
+    private var pendingShare by mutableStateOf<IncomingShare?>(null)
+
+    /** Reads a share off [intent], if it is one; the copying is off the main thread. */
+    private fun takeShare(intent: Intent?) {
+        if (!IncomingShares.isShare(intent)) return
+        lifecycleScope.launch { pendingShare = IncomingShares.read(this@MainActivity, intent ?: return@launch) }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +102,9 @@ class MainActivity : ComponentActivity() {
         val app = application as TelegramYouApp
         pendingChatId = intent.chatIdExtra()
         pendingDownloads = intent.opensDownloads()
+        // Not again after a rotation: the intent is still this one, and its
+        // share has already gone into a composer.
+        if (savedInstanceState == null) takeShare(intent)
         // Started from the activity rather than from Application.onCreate:
         // a foreground service begun before anything is on screen is a
         // notification for an app the person has not opened.
@@ -171,6 +189,9 @@ class MainActivity : ComponentActivity() {
                             onChatOpened = { pendingChatId = null },
                             openDownloads = pendingDownloads,
                             onDownloadsOpened = { pendingDownloads = false },
+                            share = pendingShare,
+                            onShareTarget = { chatId -> pendingShare = pendingShare?.copy(chatId = chatId) },
+                            onShareHandled = { pendingShare = null },
                             onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }
                         )
                         }
@@ -235,6 +256,7 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         pendingChatId = intent.chatIdExtra()
         pendingDownloads = intent.opensDownloads()
+        takeShare(intent)
     }
 
     override fun onStart() {

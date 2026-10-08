@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The app's Direct Share target (2.1): anything shared may go to a chat's
+    conversation shortcut, which ConversationShortcuts files under this
+    category as it pushes each one. Read from the launcher entry's
+    android.app.shortcuts meta-data.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="com.telegramyou.app.MainActivity">
+        <data android:mimeType="*/*" />
+        <category android:name="com.telegramyou.app.category.SHARE_TARGET" />
+    </share-target>
+</shortcuts>

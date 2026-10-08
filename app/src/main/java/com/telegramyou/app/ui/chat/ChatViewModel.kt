@@ -847,6 +847,19 @@ class ChatViewModel(
 
     fun onAttachmentCleared() = _uiState.update { it.copy(pendingAttachment = null) }
 
+    /**
+     * Something shared from another app (2.1): its words after whatever is
+     * typed already, its things as the attachment — in the composer, to be
+     * looked at and sent, never sent unseen.
+     */
+    fun onShareReceived(text: String, draft: AttachmentDraft?) {
+        if (text.isNotBlank()) {
+            val typed = _uiState.value.draft
+            onDraftChange(if (typed.isBlank()) text else "$typed\n$text")
+        }
+        if (draft != null) onAttachmentPicked(draft)
+    }
+
     /** A photo in the attachment sheet's recent strip, in or out; the sheet stays up for more. */
     fun onRecentPhotoToggled(uri: String) =
         _uiState.update { it.copy(pendingAttachment = it.pendingAttachment.toggled(uri)) }

@@ -2217,6 +2217,44 @@ class SmokeTest {
     }
 
     /**
+     * 2.1: something shared from another app. With the app itself chosen in
+     * the share sheet, a list asks which chat; through a chat's own Direct
+     * Share target, that chat opens with the words already in its composer,
+     * to be sent or not — never sent unseen.
+     */
+    @Test
+    fun somethingSharedLandsInAComposer() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        fun share(text: String, chatId: Long?) = Intent(Intent.ACTION_SEND)
+            .setClassName(context.packageName, "com.telegramyou.app.MainActivity")
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, text)
+            .apply { chatId?.let { putExtra("android.intent.extra.shortcut.ID", "chat_$it") } }
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+        context.startActivity(share("Shared from elsewhere", chatId = null))
+        waitFor(By.text("Share to…"), "the chat picker for a share")
+        screenshot("96-share-to")
+        // Back until it goes: the first may only put the search's keyboard away.
+        repeat(3) {
+            if (!device.hasObject(By.text("Share to…"))) return@repeat
+            device.pressBack()
+            device.wait(Until.gone(By.text("Share to…")), SHORT_WAIT)
+        }
+        assertFalse("the picker stayed", device.hasObject(By.text("Share to…")))
+
+        context.startActivity(share("Shared into Saved Messages", chatId = SAVED_MESSAGES_ID))
+        val field = By.clazz("android.widget.EditText").text("Shared into Saved Messages")
+        waitFor(field, "the shared words in Saved Messages' composer")
+        screenshot("96b-shared-into-chat")
+        // Not left as a draft for the tests after this one to find.
+        device.findObject(field)?.text = ""
+    }
+
+    /**
      * 1.9: a text longer than Telegram takes in one message is sent as
      * several, cut between words, rather than refused as "too long".
      */
@@ -3568,6 +3606,8 @@ class SmokeTest {
         // and the difference was a failure rather than a wait.
         const val LAUNCH_TIMEOUT = 30_000L
         const val STEP_TIMEOUT = 20_000L
+        /** The demo's Saved Messages, as its chat id; see DemoTelegramClient. */
+        const val SAVED_MESSAGES_ID = 6L
 
         /** How long one look through a fresh tree waits before the next. */
         const val FRESH_LOOK_MILLIS = 1_000L
