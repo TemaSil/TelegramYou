@@ -11,7 +11,7 @@ README.md.
 
 ## 2.0.2
 
-- **"Message" closer to the plus** in the composer.
+- **"Message" closer to the plus** in the composer, by twelve.
 - **Composer in a capsule moved to Appearance → Chat**, from For geeks; whoever had it on keeps it on.
 
 ## 2.0.1

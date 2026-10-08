@@ -1004,8 +1004,12 @@ internal val FIELD_CORNER = 28.dp
 /** The plain composer's distance from the screen's sides, and between the field and its button. */
 internal val PLAIN_GUTTER = 12.dp
 
-/** How far the plain composer's field reaches back under the plus. */
-private val FIELD_PULL = 8.dp
+/**
+ * How far the plain composer's field reaches back under the plus: as far as
+ * the plus's own icon and no further — the icon is 24 in a 48 button, so
+ * twelve brings the field to its edge and leaves every tap on it the plus's.
+ */
+private val FIELD_PULL = 12.dp
 
 /**
  * Widens what it modifies by [by] and moves it that far towards the start,
