@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="0.000" timestamp="2026-10-08T19:23:42" hostname="localhost">
+  <testsuite name="com.telegramyou.app.TestDcClientTest" tests="1" failures="1" errors="0" skipped="0" time="5.649" timestamp="2026-10-08T19:23:42" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="signsInAndSendsAPhotoToSavedMessages" classname="com.telegramyou.app.TestDcClientTest" time="5.649">
+      <failure>java.lang.IllegalStateException: No test data centre let us in:
++9996624217, 5 digits (We've sent an SMS with the code to +9996624217): WaitCode PHONE_CODE_INVALID
+	at com.telegramyou.app.TestDcClientTest$signsInAndSendsAPhotoToSavedMessages$1.invokeSuspend(TestDcClientTest.kt:118)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:98)
+	at kotlinx.coroutines.EventLoopImplBase.processNextEvent(EventLoop.common.kt:256)
+	at kotlinx.coroutines.BlockingCoroutine.joinBlocking(Builders.kt:54)
+	at kotlinx.coroutines.BuildersKt__BuildersKt.runBlockingImpl(Builders.kt:30)
+	at kotlinx.coroutines.BuildersKt.runBlockingImpl(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK(Builders.concurrent.kt:172)
+	at kotlinx.coroutines.BuildersKt.runBlockingK(Unknown Source:1)
+	at kotlinx.coroutines.BuildersKt__Builders_concurrentKt.runBlockingK$default(Builders.concurrent.kt:157)
+	at kotlinx.coroutines.BuildersKt.runBlockingK$default(Unknown Source:1)
+	at com.telegramyou.app.TestDcClientTest.signsInAndSendsAPhotoToSavedMessages(TestDcClientTest.kt:66)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>
