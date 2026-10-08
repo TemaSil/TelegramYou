@@ -82,6 +82,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.layout.onSizeChanged
@@ -401,7 +407,20 @@ internal fun ComposerBar(
                 onValueChange = onValueChange,
                 modifier = modifier
                     .padding(vertical = if (capsule) 0.dp else 2.dp)
-                    .focusRequester(focusRequester),
+                    .focusRequester(focusRequester)
+                    // A hardware keyboard's Enter sends, and Shift+Enter
+                    // starts a new line, as on every desktop messenger (2.1,
+                    // for tablets and keyboards). The on-screen keyboard's
+                    // Enter is left alone: it is a new line, as it always was.
+                    .onPreviewKeyEvent { event ->
+                        val hardware = event.nativeKeyEvent.deviceId != android.view.KeyCharacterMap.VIRTUAL_KEYBOARD
+                        if (hardware && event.key == Key.Enter && !event.isShiftPressed) {
+                            if (event.type == KeyEventType.KeyDown && sendable) onSend()
+                            true
+                        } else {
+                            false
+                        }
+                    },
                 placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 // In the capsule, inside the field at its end, where Telegram
                 // keeps them. The plain composer stands them in its own row

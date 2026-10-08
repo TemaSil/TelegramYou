@@ -1,5 +1,11 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.ContactContent
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -791,6 +797,17 @@ fun ChatScreen(
     }
 
     Scaffold(
+        // Ctrl+F searches the chat from a hardware keyboard (2.1), as it does
+        // in every desktop messenger. Read before the field, which would
+        // otherwise type the f.
+        modifier = Modifier.onPreviewKeyEvent { event ->
+            if (event.type == KeyEventType.KeyDown && event.isCtrlPressed && event.key == Key.F) {
+                onSearchOpenChange(true)
+                true
+            } else {
+                false
+            }
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
