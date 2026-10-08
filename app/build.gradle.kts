@@ -58,7 +58,7 @@ val buildNumber: Int =
  * with profiles, blocking, contacts and deleting chats; 1.3 the same day,
  * with the Appearance screen.
  */
-val appVersionName = "2.0.3"
+val appVersionName = "2.1"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")

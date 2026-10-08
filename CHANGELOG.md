@@ -9,6 +9,16 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.1
+
+Android's own: the places where a client that is Android can be ahead of one drawn by hand.
+
+- **Chats as Android's conversations.** Each chat is a conversation shortcut with its picture, so its notifications sit in the shade's Conversations section and it can be made a priority conversation. It can **bubble** over other apps where Android allows it — the chat alone, and Back folds it.
+- **Share into a chat from any app.** The share sheet offers your chats themselves; what is shared lands in the chat's composer — words as the text, pictures as an album, anything else as files — to look at before it goes. Choosing the app instead asks which chat.
+- **A notification channel each for private chats, groups and channels**, so Android's settings for tone, vibration and Do Not Disturb are set per kind; Settings → Notifications leads to each.
+- **Widgets**, in the wallpaper's colours: your newest chats, and the music playing with previous, play and next.
+- **With a keyboard**, Enter sends and Shift+Enter starts a new line; Ctrl+F searches the chat.
+
 ## 2.0.3
 
 From users' reports.

@@ -147,23 +147,31 @@ The official client draws Android by hand; this one is Android, and the
 platform has things a hand-drawn client does not reach for. These are the
 places to be ahead rather than level.
 
-- [ ] **Conversations as Android means them** — each chat a long-lived
-      sharing shortcut, so it shows in the shade's Conversations section,
-      can be made a priority conversation, can **bubble** over other apps,
-      and is offered as a **Direct Share** target in the system's share
-      sheet. Notifications already use `MessagingStyle`; the shortcuts are
-      what is missing.
-- [ ] **Notification channels per kind of chat**, so Android's own
-      settings for the app speak the same language as 2.0's screen.
-- [ ] **Widgets**, in Glance and Material You: recent chats, one person,
-      the music now playing.
-- [ ] **Android Auto and a watch** — messages there come mostly free with
-      `MessagingStyle` and reply actions; music needs the player as a
-      `MediaLibraryService` with a browse tree. Waits on a way to test it:
-      an emulator image with Auto's desktop head unit.
-- [ ] **Large screens and input** — two panes on a tablet and an unfolded
-      phone (the rail is done), keyboard shortcuts, stylus handwriting into
-      the composer.
+- [x] **Conversations as Android means them** (2.1) — each chat a
+      long-lived sharing shortcut with its picture, so its notifications sit
+      in the shade's Conversations section and it can be made a priority
+      one; it **bubbles** over other apps (BubbleActivity, one chat, Back
+      folds it); and it is a **Direct Share** target — the share sheet's
+      text, pictures and files land in its composer, or in a picked chat's
+      when the app itself is chosen.
+- [x] **Notification channels per kind of chat** (2.1): private chats,
+      groups, channels, each with "More in Android's settings" in
+      Settings → Notifications.
+- [x] **Widgets** (2.1), in Glance and Material You: recent chats, and the
+      music now playing with its controls.
+- [ ] **A widget for one person** — the chat picked when it is placed, its
+      newest line, a tap into it. Needs Glance's configuration activity.
+- [x] **Keyboard** (2.1): Enter sends from a hardware keyboard,
+      Shift+Enter a new line, Ctrl+F searches the chat.
+- [ ] **Two panes** on a tablet and an unfolded phone, the chat beside the
+      list (the rail is done). Larger than it looks: the chat screen's
+      wiring lives inside the navigation graph, with the container
+      transform from its row, and has to come out into something a pane
+      can hold first.
+- [ ] **Stylus handwriting** into the composer — Compose's text fields take
+      it on Android 14 by themselves; to be checked on a device with a pen.
+
+Android Auto and a watch are out, on the owner's word of 8 October.
 
 ### 3. Later — from the forks
 

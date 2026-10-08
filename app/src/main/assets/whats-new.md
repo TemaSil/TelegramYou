@@ -1,7 +1,6 @@
-# TelegramYou 2.0
-- A new composer, and voice messages held and locked as in the official app
-- Several photos at once, large in the field, to reorder or take out
-- Comments under channel posts, inline bots and Mini Apps
-- Quotes, go to a date, see when it was read, message links and Report
-- Notifications by kind of chat, and no flood when a channel opens
-- In groups, each person's name and picture where they belong
+# TelegramYou 2.1
+- Chats in the shade's Conversations, as priority ones and as bubbles
+- Share from any app straight into a chat
+- A notification channel each for private chats, groups and channels
+- Widgets: your newest chats, and the music playing
+- With a keyboard, Enter sends and Shift+Enter starts a new line
