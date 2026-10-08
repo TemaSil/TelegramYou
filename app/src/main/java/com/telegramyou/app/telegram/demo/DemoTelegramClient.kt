@@ -923,7 +923,18 @@ class DemoTelegramClient(
         // The demo's threads are named by the post's own id, in the channel.
         val post = chatMessages.values.asSequence().flatten()
             .firstOrNull { it.id == threadId && it.commentCount != null } ?: return emptyList()
-        return listOf(post.copy(chatId = chatId, commentCount = null, threadId = threadId))
+        // Sent by the channel itself, as Telegram's copy in the discussion
+        // group is: its name over the post, not an anonymous "?".
+        val channel = _chats.value.firstOrNull { it.id == post.chatId }
+        return listOf(
+            post.copy(
+                chatId = chatId,
+                commentCount = null,
+                threadId = threadId,
+                senderName = channel?.title ?: post.senderName,
+                senderId = post.chatId
+            )
+        )
     }
 
     /** A chat's messages, or the open topic's or thread's when its screen is on one. */

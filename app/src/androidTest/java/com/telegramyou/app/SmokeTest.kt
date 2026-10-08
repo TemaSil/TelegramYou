@@ -2229,6 +2229,9 @@ class SmokeTest {
         waitFor(By.text("Welcome to TelegramYou"), "the conversation")
         val long = "Part one " + "and then some more words ".repeat(190) + "the very end"
         type(long)
+        // The field grown to its five lines: the plus, the smiley and the
+        // camera stay down by the last of them (2.0.3).
+        screenshot("89a-long-message-typed")
         tap(By.desc("Send"))
         val tail = By.textEndsWith("the very end")
         waitFor(tail, "the last part of the long message")
