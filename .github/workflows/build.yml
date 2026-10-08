@@ -102,6 +102,11 @@ jobs:
               # The camera behind round video messages (CameraX): its own
               # release line too, and not reachable from where this is written.
               ("camerax", GOOGLE, "androidx/camera/camera-video"),
+              # 2.1: home-screen widgets (Glance, with its Material 3 theme) and
+              # the list-detail layout for large screens — each on its own line.
+              ("glance", GOOGLE, "androidx/glance/glance-appwidget"),
+              ("glance-material3", GOOGLE, "androidx/glance/glance-material3"),
+              ("adaptive-layout", GOOGLE, "androidx/compose/material3/adaptive/adaptive-layout"),
               ("kotlin", CENTRAL, "org/jetbrains/kotlin/kotlin-gradle-plugin"),
               # The rest of androidx the app names by version. Each moves on
               # its own line, none is reachable from where this is written,
