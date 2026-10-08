@@ -151,6 +151,11 @@ fun TelegramYouNavHost(
     onDownloadsOpened: () -> Unit = {},
     /** The login screen's mark was tapped ten times; see TelegramYouApp.setDemoMode. */
     onDemoRequested: () -> Unit = {},
+    /**
+     * A conversation's bubble (2.1): the chat asked for is all there is, with
+     * nothing under it, so Back from it leaves — which folds the bubble.
+     */
+    singleChat: Boolean = false,
     /** Something shared here from another app (2.1), until it is in a composer. */
     share: com.telegramyou.app.telegram.model.IncomingShare? = null,
     /** The chat picked for [share] when it came without one. */
@@ -337,8 +342,9 @@ fun TelegramYouNavHost(
         if (auth.state != AuthState.Ready) return@LaunchedEffect
         navController.navigateTo(chatRoute(chatId)) {
             // Home underneath, so back from a chat opened out of the shade
-            // lands on the chat list rather than leaving the app.
-            popUpTo(Route.Home.PATTERN)
+            // lands on the chat list rather than leaving the app — except in
+            // a bubble, where the chat is the whole of it.
+            if (singleChat) popUpTo(0) { inclusive = true } else popUpTo(Route.Home.PATTERN)
         }
         onChatOpened()
     }

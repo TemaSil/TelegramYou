@@ -2255,6 +2255,48 @@ class SmokeTest {
     }
 
     /**
+     * 2.1: a conversation's bubble — the screen Android floats for one chat.
+     * Started here as its notification would start it: the chat, alone, and
+     * Back leaves it rather than going on to the chat list behind.
+     */
+    @Test
+    fun aBubbleIsOneChatAndBackFoldsIt() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW)
+                .setClassName(context.packageName, "com.telegramyou.app.BubbleActivity")
+                .putExtra("com.telegramyou.app.EXTRA_CHAT_ID", 1L)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+        )
+        waitFor(By.text("Welcome to TelegramYou"), "the chat in its bubble's screen")
+        assertTrue("the bubble's activity is not in front", bubbleInFront())
+        screenshot("97-bubble-chat")
+        // Back until it has gone — past the keyboard, if the field took
+        // focus. Had the chat had Home under it, Back would land there and
+        // the bubble's activity would still be in front.
+        repeat(3) {
+            if (!bubbleInFront()) return@repeat
+            device.pressBack()
+            SystemClock.sleep(SETTLE_MS * 2)
+        }
+        assertFalse("Back from the bubble's chat went somewhere else in it", bubbleInFront())
+    }
+
+    /** Whether the bubble's activity is the one resumed. */
+    private fun bubbleInFront(): Boolean {
+        var front = false
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            front = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED)
+                .any { it is BubbleActivity }
+        }
+        return front
+    }
+
+    /**
      * 1.9: a text longer than Telegram takes in one message is sent as
      * several, cut between words, rather than refused as "too long".
      */

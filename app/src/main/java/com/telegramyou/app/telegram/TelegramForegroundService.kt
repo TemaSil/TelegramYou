@@ -20,6 +20,7 @@ import com.telegramyou.app.notifications.ConversationShortcuts
 import com.telegramyou.app.notifications.NotifiableMessage
 import com.telegramyou.app.notifications.conversationId
 import androidx.core.content.LocusIdCompat
+import androidx.core.graphics.drawable.IconCompat
 import com.telegramyou.app.notifications.NotificationContext
 import com.telegramyou.app.notifications.NotificationDecision
 import com.telegramyou.app.notifications.PostedNotifications
@@ -109,8 +110,12 @@ class TelegramForegroundService : Service() {
         running = true
     }
 
-    /** The chats whose conversation shortcut this service has pushed; see ConversationShortcuts. */
-    private val conversations: MutableSet<Long> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    /**
+     * The chats whose conversation shortcut this service has pushed, with
+     * the picture it was pushed with — a bubble shows the same one. See
+     * ConversationShortcuts.
+     */
+    private val conversations = java.util.concurrent.ConcurrentHashMap<Long, IconCompat>()
 
     override fun onDestroy() {
         running = false
@@ -157,7 +162,7 @@ class TelegramForegroundService : Service() {
                     // in the shade (2.1).
                     if (chat != null) {
                         ConversationShortcuts.publish(this@TelegramForegroundService, chat)
-                        conversations += chat.id
+                        conversations[chat.id] = ConversationShortcuts.icon(this@TelegramForegroundService, chat)
                     }
                     post(decision.message)
                 }
@@ -293,10 +298,14 @@ class TelegramForegroundService : Service() {
                 // Tied to the chat's conversation shortcut when it has one
                 // (2.1): the shade then shows it among Conversations, with the
                 // chat's picture, and it can be made a priority one.
-                if (latest.chatId in conversations) {
+                conversations[latest.chatId]?.let { icon ->
                     val id = conversationId(latest.chatId)
                     setShortcutId(id)
                     setLocusId(LocusIdCompat(id))
+                    // And a bubble, where the person has let this app or
+                    // this conversation have them: the chat itself, floating
+                    // over whatever is open. Android shows it only then.
+                    setBubbleMetadata(bubble(latest.chatId, icon))
                 }
             }
             .setAutoCancel(true)
@@ -351,6 +360,25 @@ class TelegramForegroundService : Service() {
     }
 
     /**
+     * The chat in a bubble (2.1): BubbleActivity on it. Mutable, as a
+     * bubble's intent must be — the system adds to it as it expands.
+     */
+    private fun bubble(chatId: Long, icon: IconCompat): NotificationCompat.BubbleMetadata {
+        val intent = Intent(this, com.telegramyou.app.BubbleActivity::class.java)
+            .setAction(Intent.ACTION_VIEW)
+            .putExtra(EXTRA_CHAT_ID, chatId)
+        val pending = PendingIntent.getActivity(
+            this,
+            PostedNotifications.notificationId(chatId),
+            intent,
+            PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        return NotificationCompat.BubbleMetadata.Builder(pending, icon)
+            .setDesiredHeight(BUBBLE_HEIGHT_DP)
+            .build()
+    }
+
+    /**
      * Opens the conversation the notification is about.
      *
      * The chat id rides on the launch intent rather than on a deep link URI:
@@ -396,6 +424,9 @@ class TelegramForegroundService : Service() {
 
     companion object {
         const val EXTRA_CHAT_ID = "com.telegramyou.app.EXTRA_CHAT_ID"
+
+        /** How tall a chat's bubble opens: room for a few messages and the composer. */
+        private const val BUBBLE_HEIGHT_DP = 600
         /** On the downloads notification's tap: open the Downloads screen. */
         const val EXTRA_OPEN_DOWNLOADS = "com.telegramyou.app.EXTRA_OPEN_DOWNLOADS"
         private const val ACTION_PAUSE_DOWNLOADS = "com.telegramyou.app.PAUSE_DOWNLOADS"

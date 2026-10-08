@@ -90,6 +90,21 @@
         </activity>
 
         <!--
+            A conversation's bubble (2.1): one chat, floating over other apps.
+            Embeddable and a new document each time, as bubbles must be —
+            which the app's own activity must not be. Not exported: only the
+            app's own notification launches it.
+        -->
+        <activity
+            android:name=".BubbleActivity"
+            android:exported="false"
+            android:allowEmbedded="true"
+            android:resizeableActivity="true"
+            android:documentLaunchMode="always"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.TelegramYou" />
+
+        <!--
             The launcher entries: one per icon colour (Settings → Appearance →
             App icon), exactly one enabled at a time. Teal is the one the
             manifest enables, so a fresh install and anybody who never chose

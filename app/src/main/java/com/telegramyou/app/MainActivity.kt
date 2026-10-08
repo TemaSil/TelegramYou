@@ -45,7 +45,13 @@ import com.telegramyou.app.telegram.TelegramForegroundService
 import com.telegramyou.app.ui.theme.TelegramYouTheme
 import com.telegramyou.app.update.LocalAppUpdates
 
-class MainActivity : ComponentActivity() {
+open class MainActivity : ComponentActivity() {
+
+    /**
+     * Shown in a conversation's bubble rather than as the app (2.1): one
+     * chat and nothing behind it, so Back folds the bubble. See BubbleActivity.
+     */
+    protected open val isBubble: Boolean = false
 
     /**
      * The chat a notification asked for, consumed once.
@@ -189,6 +195,7 @@ class MainActivity : ComponentActivity() {
                             onChatOpened = { pendingChatId = null },
                             openDownloads = pendingDownloads,
                             onDownloadsOpened = { pendingDownloads = false },
+                            singleChat = isBubble,
                             share = pendingShare,
                             onShareTarget = { chatId -> pendingShare = pendingShare?.copy(chatId = chatId) },
                             onShareHandled = { pendingShare = null },
