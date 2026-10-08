@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.0.2
+
+- **"Message" closer to the plus** in the composer.
+- **Composer in a capsule moved to Appearance → Chat**, from For geeks; whoever had it on keeps it on.
+
 ## 2.0.1
 
 - **The navigation bar under the composer is filled** with the chat's background, as the composer's own fade ends, rather than showing the messages that scroll beneath it. The capsule composer in For geeks keeps it clear.

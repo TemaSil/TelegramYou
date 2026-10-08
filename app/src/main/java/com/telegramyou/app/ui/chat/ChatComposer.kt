@@ -81,6 +81,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -519,7 +520,18 @@ internal fun ComposerBar(
                     ) {
                         Icon(Symbols.AddCircle, contentDescription = "Attach")
                     }
-                    field(Modifier.weight(1f), fill, RoundedCornerShape(0.dp))
+                    // Pulled in towards the plus: a TextField keeps sixteen
+                    // inside its start, which after the plus's own twelve
+                    // left "Message" far from it (2.0.2, on the owner's
+                    // word). Its fill is the column's, so it draws none of
+                    // its own over the plus it now reaches under.
+                    field(
+                        Modifier
+                            .weight(1f)
+                            .pullStart(FIELD_PULL),
+                        Color.Transparent,
+                        RoundedCornerShape(0.dp)
+                    )
                 }
             }
             Spacer(Modifier.width(PLAIN_GAP))
@@ -991,6 +1003,25 @@ internal val FIELD_CORNER = 28.dp
 
 /** The plain composer's distance from the screen's sides, and between the field and its button. */
 internal val PLAIN_GUTTER = 12.dp
+
+/** How far the plain composer's field reaches back under the plus. */
+private val FIELD_PULL = 8.dp
+
+/**
+ * Widens what it modifies by [by] and moves it that far towards the start,
+ * so its content starts closer to what is before it while its end stays put.
+ */
+private fun Modifier.pullStart(by: Dp): Modifier = layout { measurable, constraints ->
+    val extra = by.roundToPx()
+    val wider = constraints.copy(
+        minWidth = constraints.minWidth + extra,
+        maxWidth = if (constraints.hasBoundedWidth) constraints.maxWidth + extra else constraints.maxWidth
+    )
+    val placeable = measurable.measure(wider)
+    layout((placeable.width - extra).coerceAtLeast(0), placeable.height) {
+        placeable.place(-extra, 0)
+    }
+}
 internal val PLAIN_GAP = 8.dp
 
 /** The round button, as tall as the field beside it. */

@@ -128,7 +128,8 @@ class MainActivity : ComponentActivity() {
                             wallpaper = appearance.chatWallpaper,
                             outgoingTone = appearance.outgoingTone,
                             bubbleCorners = appearance.bubbleCorners,
-                            messageTextScale = appearance.messageTextScale
+                            messageTextScale = appearance.messageTextScale,
+                            composerCapsule = appearance.composerCapsule
                         ),
                         LocalAppUpdates provides app.updates,
                         LocalGeekSettings provides geekSettings,

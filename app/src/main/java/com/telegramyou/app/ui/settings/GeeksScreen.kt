@@ -215,11 +215,6 @@ fun GeeksScreen(
                     checked = settings.autoTranslate
                 ) { on -> onChange { it.copy(autoTranslate = on) } }
                 switch(
-                    title = "Composer in a capsule",
-                    summary = "The field and its buttons in one rounded bar, as before 2.0",
-                    checked = settings.composerCapsule
-                ) { on -> onChange { it.copy(composerCapsule = on) } }
-                switch(
                     title = "Hide blocked people in groups",
                     summary = "Their messages are left out of groups you share",
                     checked = settings.hideBlockedInGroups

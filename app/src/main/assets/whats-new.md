@@ -1,4 +1,4 @@
-# TelegramYou 2.0.1
+# TelegramYou 2.0
 - A new composer, and voice messages held and locked as in the official app
 - Several photos at once, large in the field, to reorder or take out
 - Comments under channel posts, inline bots and Mini Apps

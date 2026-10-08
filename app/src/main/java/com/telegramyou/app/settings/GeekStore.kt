@@ -44,7 +44,6 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_CONFIRM_RECORDINGS, now.confirmRecordings)
             .putBoolean(KEY_SILENCE_NON_CONTACTS, now.silenceNonContacts)
             .putBoolean(KEY_AUTO_TRANSLATE, now.autoTranslate)
-            .putBoolean(KEY_COMPOSER_CAPSULE, now.composerCapsule)
             .putBoolean(KEY_GROUP_FACES, now.groupFaces)
             .apply()
         AutoTranslate.allow(now.autoTranslate)
@@ -69,7 +68,6 @@ class GeekStore(context: Context) {
             confirmRecordings = preferences.getBoolean(KEY_CONFIRM_RECORDINGS, false),
             silenceNonContacts = preferences.getBoolean(KEY_SILENCE_NON_CONTACTS, false),
             autoTranslate = preferences.getBoolean(KEY_AUTO_TRANSLATE, false),
-            composerCapsule = preferences.getBoolean(KEY_COMPOSER_CAPSULE, false),
             groupFaces = preferences.getBoolean(KEY_GROUP_FACES, false)
         )
     }
@@ -78,7 +76,6 @@ class GeekStore(context: Context) {
         const val NAME = "geeks"
         const val KEY_DOUBLE_TAP = "double_tap"
         const val KEY_AUTO_TRANSLATE = "auto_translate"
-        const val KEY_COMPOSER_CAPSULE = "composer_capsule"
         const val KEY_GROUP_FACES = "group_faces"
         const val KEY_SECONDS = "show_seconds"
         const val KEY_DETAILS = "message_details"

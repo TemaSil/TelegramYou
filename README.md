@@ -55,7 +55,7 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.0.1 · 7 October 2026
+## Latest: 2.0.2 · 8 October 2026
 
 A new composer as Android's Messages has it, voice messages held and
 locked as in the official app, several photos at once. Comments under

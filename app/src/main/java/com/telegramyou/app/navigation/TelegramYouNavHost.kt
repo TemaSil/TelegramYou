@@ -677,6 +677,7 @@ fun TelegramYouNavHost(
                     onBubbleCornersChange = appearance::setBubbleCorners,
                     onMessageTextScaleChange = appearance::setMessageTextScale,
                     onTwoLinePreviewsChange = appearance::setTwoLinePreviews,
+                    onComposerCapsuleChange = appearance::setComposerCapsule,
                     onReduceMotionChange = appearance::setReduceMotion,
                     onCoverMovesChange = appearance::setCoverMoves,
                     onMiniPlayerOnTopChange = appearance::setMiniPlayerOnTop

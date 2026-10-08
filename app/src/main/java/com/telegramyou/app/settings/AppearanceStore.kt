@@ -140,6 +140,23 @@ class AppearanceStore(context: Context) {
         preferences.edit().putFloat(KEY_MESSAGE_TEXT_SCALE, step).apply()
     }
 
+    fun setComposerCapsule(enabled: Boolean) {
+        _settings.update { it.copy(composerCapsule = enabled) }
+        preferences.edit().putBoolean(KEY_COMPOSER_CAPSULE, enabled).apply()
+    }
+
+    /**
+     * The capsule's switch as it was left under For geeks (2.0, 2.0.1), until
+     * this store has its own: somebody who turned it on keeps it on.
+     */
+    private fun composerCapsule(): Boolean =
+        if (preferences.contains(KEY_COMPOSER_CAPSULE)) {
+            preferences.getBoolean(KEY_COMPOSER_CAPSULE, false)
+        } else {
+            appContext.getSharedPreferences(GEEKS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(GEEKS_KEY_COMPOSER_CAPSULE, false)
+        }
+
     private fun read(): AppearanceSettings {
         val stored = preferences.getString(KEY_THEME, null)
         return AppearanceSettings(
@@ -166,6 +183,7 @@ class AppearanceStore(context: Context) {
                 preferences.getInt(KEY_BUBBLE_CORNERS, BubbleCorners.DEFAULT).toFloat()
             ),
             messageTextScale = TextSize.nearest(preferences.getFloat(KEY_MESSAGE_TEXT_SCALE, 1f)),
+            composerCapsule = composerCapsule(),
             reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false),
             coverMoves = preferences.getBoolean(KEY_COVER_MOVES, true),
             miniPlayerOnTop = preferences.getBoolean(KEY_MINI_PLAYER_ON_TOP, false)
@@ -185,6 +203,11 @@ class AppearanceStore(context: Context) {
         const val KEY_OUTGOING_TONE = "outgoing_tone"
         const val KEY_BUBBLE_CORNERS = "bubble_corners"
         const val KEY_MESSAGE_TEXT_SCALE = "message_text_scale"
+        const val KEY_COMPOSER_CAPSULE = "composer_capsule"
+
+        /** Where GeekStore kept the capsule's switch before 2.0.2. */
+        const val GEEKS_NAME = "geeks"
+        const val GEEKS_KEY_COMPOSER_CAPSULE = "composer_capsule"
         const val KEY_TWO_LINE_PREVIEWS = "two_line_previews"
         const val KEY_REDUCE_MOTION = "reduce_motion"
         const val KEY_COVER_MOVES = "cover_moves"

@@ -292,6 +292,8 @@ fun ChatScreen(
 ) {
     // Settings → For geeks, which changes how a recording leaves.
     val geeks = com.telegramyou.app.settings.LocalGeekSettings.current
+    // Appearance → Composer in a capsule (under For geeks until 2.0.2).
+    val capsule = LocalChatStyle.current.composerCapsule
     val listState = rememberLazyListState()
     val uriHandler = LocalUriHandler.current
 
@@ -1326,7 +1328,7 @@ fun ChatScreen(
             // under it (the owner's word, 7 October, 2.0.1). The capsule
             // composer in For geeks keeps the bar clear: floating over the
             // conversation is the point of it.
-            if (!geeks.composerCapsule && composerLift > 0.dp) {
+            if (!capsule && composerLift > 0.dp) {
                 Box(
                     Modifier
                         .align(Alignment.BottomCenter)
@@ -1421,7 +1423,7 @@ fun ChatScreen(
                 // Photos and files are inside the plain field (see ComposerBar's
                 // inField); above it only for the capsule, or for a recording
                 // waiting for Send, which keeps its chip.
-                val trayInField = !geeks.composerCapsule &&
+                val trayInField = !capsule &&
                     (attachmentShown is AttachmentDraft.Photos || attachmentShown is AttachmentDraft.Files)
                 val pendingTray = state.pendingAttachment
                 val trayContent: (@Composable () -> Unit)? =
@@ -1483,7 +1485,7 @@ fun ChatScreen(
                                 ?: message,
                             isEditing = bannerEditing,
                             onCancel = onComposerBannerCancelled,
-                            plain = !geeks.composerCapsule
+                            plain = !capsule
                         )
                     }
                 }
@@ -1662,7 +1664,7 @@ fun ChatScreen(
                         hasAttachment = state.pendingAttachment != null,
                         focusRequester = composerFocus,
                         attachedAbove = state.replyTo != null || state.editing != null,
-                        capsule = geeks.composerCapsule,
+                        capsule = capsule,
                         inField = trayContent
                     )
                     }

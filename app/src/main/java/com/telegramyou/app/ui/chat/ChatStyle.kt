@@ -37,7 +37,9 @@ data class ChatStyle(
     val wallpaper: ChatWallpaper = ChatWallpaper.Plain,
     val outgoingTone: OutgoingTone = OutgoingTone.Accent,
     val bubbleCorners: Int = BubbleCorners.DEFAULT,
-    val messageTextScale: Float = 1f
+    val messageTextScale: Float = 1f,
+    /** Appearance → Composer in a capsule; see AppearanceSettings. */
+    val composerCapsule: Boolean = false
 )
 
 val LocalChatStyle = staticCompositionLocalOf { ChatStyle() }

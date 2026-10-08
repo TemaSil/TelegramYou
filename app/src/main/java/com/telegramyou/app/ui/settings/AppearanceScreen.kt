@@ -73,6 +73,7 @@ class AppearanceActions(
     val onBubbleCornersChange: (Int) -> Unit = {},
     val onMessageTextScaleChange: (Float) -> Unit = {},
     val onTwoLinePreviewsChange: (Boolean) -> Unit = {},
+    val onComposerCapsuleChange: (Boolean) -> Unit = {},
     val onReduceMotionChange: (Boolean) -> Unit = {},
     val onCoverMovesChange: (Boolean) -> Unit = {},
     val onMiniPlayerOnTopChange: (Boolean) -> Unit = {}
@@ -246,6 +247,14 @@ fun AppearanceScreen(
                                 .semantics { contentDescription = "Message text size" }
                         )
                     }
+                )
+                // How the chat looks, so here rather than under For geeks,
+                // where it was in 2.0 and 2.0.1 (the owner's word).
+                switch(
+                    title = "Composer in a capsule",
+                    summary = "The field and its buttons in one rounded bar, as before 2.0",
+                    checked = settings.composerCapsule,
+                    onChange = actions.onComposerCapsuleChange
                 )
             }
 

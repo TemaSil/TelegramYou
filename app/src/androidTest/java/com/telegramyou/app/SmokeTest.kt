@@ -197,14 +197,17 @@ class SmokeTest {
         // The members' faces, from For geeks, and the capsule composer with
         // them, for how it sits (2.0.1). Set through the store and put back
         // however the test ends, since the tests share one install.
-        val geeks = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp).geeks
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
+        val geeks = app.geeks
         try {
-            geeks.update { it.copy(groupFaces = true, composerCapsule = true) }
+            geeks.update { it.copy(groupFaces = true) }
+            app.appearance.setComposerCapsule(true)
             SystemClock.sleep(SETTLE_MS)
             device.wait(Until.gone(By.text(NOTIFYING_CHAT)), HEADS_UP_TIMEOUT)
             screenshot("06b-group-faces")
         } finally {
-            geeks.update { it.copy(groupFaces = false, composerCapsule = false) }
+            geeks.update { it.copy(groupFaces = false) }
+            app.appearance.setComposerCapsule(false)
         }
     }
 

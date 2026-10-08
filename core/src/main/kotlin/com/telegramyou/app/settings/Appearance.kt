@@ -72,6 +72,14 @@ data class AppearanceSettings(
      */
     val messageTextScale: Float = 1f,
     /**
+     * The composer in one capsule, field and buttons together — how it was
+     * until 2.0, when the owner found it heavy and it became the field and
+     * a round button on the chat's own background, as Google Messages has
+     * it. Under For geeks in 2.0 and 2.0.1; here since 2.0.2, being a
+     * question of how the chat looks.
+     */
+    val composerCapsule: Boolean = false,
+    /**
      * Calmer motion, on top of Android's own "Remove animations": screens
      * fade rather than open out of what was tapped, springs settle without
      * bouncing, and a typing avatar holds its shape.
