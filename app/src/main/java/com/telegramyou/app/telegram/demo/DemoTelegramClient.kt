@@ -876,7 +876,7 @@ class DemoTelegramClient(
                 chat.isSavedMessages -> null
                 else -> if (chat.isOnline) "online" else "last seen recently"
             },
-            isTyping = chatId == 2L,
+            isTyping = chat.isTyping,
             // One chat has something pinned, so the bar is visible offline.
             pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null,
             members = if (chat.isGroup) demoMembers else emptyList()
@@ -2515,6 +2515,9 @@ class DemoTelegramClient(
         ChatPreview(
             7, "Kotlin Night", "Compose BOM tips", "Fri", isGroup = true,
             avatarColor = 77, folderIds = setOf(FOLDER_WORK, FOLDER_NEWS),
+            // Two people writing at once, so a group's "who is typing" (2.1)
+            // is on screen offline — in the list and in the chat's header.
+            isTyping = true, typingNames = listOf("Lina", "Artem"),
             // Our own, and read: the list's two ticks have a row to show on.
             lastMessageStatus = LastMessageStatus.Read
         ),

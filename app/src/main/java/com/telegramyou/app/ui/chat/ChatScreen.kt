@@ -894,10 +894,13 @@ fun ChatScreen(
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             TypingIndicator()
                                             Spacer(Modifier.width(6.dp))
+                                            // Who, in a group (2.1).
                                             Text(
-                                                "typing",
+                                                typingLabel(detail?.chat?.typingNames.orEmpty()),
                                                 style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     } else {

@@ -4,3 +4,4 @@
 - A notification channel each for private chats, groups and channels
 - Widgets: your newest chats, and the music playing
 - With a keyboard, Enter sends and Shift+Enter starts a new line
+- In a group, who is typing

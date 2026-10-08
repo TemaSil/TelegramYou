@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.ui.chat.typingLabel
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.telegram.model.LastMessageStatus
 import androidx.compose.ui.text.withStyle
@@ -183,9 +184,11 @@ fun ChatListRow(
                     // the preview gives way to the fact of it.
                     if (chat.isTyping) {
                         Text(
-                            text = "typing…",
+                            // Who, in a group (2.1): "Lina is typing…".
+                            text = typingLabel(chat.typingNames) + "…",
                             color = MaterialTheme.colorScheme.primary,
-                            maxLines = 1
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     } else if (chat.draft.isNotBlank()) {
                         // As Telegram marks it: the word in the error colour,

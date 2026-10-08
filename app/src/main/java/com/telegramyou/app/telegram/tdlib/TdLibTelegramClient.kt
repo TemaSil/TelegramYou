@@ -202,7 +202,25 @@ class TdLibTelegramClient(
      * mid-sentence never sends the cancel, so each action also expires on
      * its own after [TYPING_MILLIS].
      */
-    private val typingUntil = ConcurrentHashMap<Long, Long>()
+    private val typingUntil = ConcurrentHashMap<Long, ConcurrentHashMap<Long, Long>>()
+
+    /**
+     * Who is typing in [chatId] now: by sender — a user's id, a chat's as
+     * its negative — until when (2.1). Expired ones
+     * are left out here and dropped on the next action.
+     */
+    private fun typingNow(chatId: Long): List<Long> {
+        val now = System.currentTimeMillis()
+        return typingUntil[chatId]?.entries?.filter { it.value > now }?.map { it.key }.orEmpty()
+    }
+
+    /** A typing sender's first name, or a chat's title when a chat writes. */
+    private fun typingName(sender: Long): String? =
+        if (sender > 0) {
+            usersById[sender]?.optString("first_name")?.takeIf { it.isNotBlank() }
+        } else {
+            chatsById[-sender]?.optString("title")?.takeIf { it.isNotBlank() }
+        }
 
     /**
      * How private chats, groups and channels notify by default, by the scope's
@@ -4053,12 +4071,22 @@ class TdLibTelegramClient(
             "updateChatAction" -> {
                 val chatId = update.optLong("chat_id")
                 val action = update.optJSONObject("action")?.optString("@type").orEmpty()
+                // Who: a person, or a chat writing as itself, by its id negated.
+                val senderObject = update.optJSONObject("sender_id")
+                val sender = when (senderObject?.optString("@type")) {
+                    "messageSenderUser" -> senderObject.optLong("user_id")
+                    "messageSenderChat" -> -senderObject.optLong("chat_id")
+                    else -> 0L
+                }
                 if (action == "chatActionCancel" || action.isEmpty()) {
-                    typingUntil.remove(chatId)
+                    typingUntil[chatId]?.remove(sender)
                 } else {
                     // Typing, recording a voice note, choosing a sticker:
                     // all of them are someone in the middle of writing.
-                    typingUntil[chatId] = System.currentTimeMillis() + TYPING_MILLIS
+                    val senders = typingUntil.getOrPut(chatId) { ConcurrentHashMap() }
+                    val now = System.currentTimeMillis()
+                    senders.entries.removeIf { it.value <= now }
+                    senders[sender] = now + TYPING_MILLIS
                     // Redrawn once it has lapsed, in case no cancel comes.
                     scope.launch {
                         delay(TYPING_MILLIS + 100)
@@ -4915,7 +4943,9 @@ class TdLibTelegramClient(
             // a bot is a program. The official client shows neither a dot.
             isOnline = !saved && !isBotChat(chat) &&
                 privateChatUser(chat)?.let { presenceOf(it).isOnline(nowSeconds()) } == true,
-            isTyping = (typingUntil[id] ?: 0L) > System.currentTimeMillis(),
+            isTyping = typingNow(id).isNotEmpty(),
+            // Who, in a group (2.1); a private chat's one person is the chat.
+            typingNames = if (privateChatUser(chat) != null) emptyList() else typingNow(id).mapNotNull(::typingName),
             photoPath = photoPath(chat.optJSONObject("photo")?.optJSONObject("small")),
             // A channel is a supergroup with is_channel set inside its type.
             // This read the flag off the chat itself, where it never is, so

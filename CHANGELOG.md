@@ -18,6 +18,8 @@ Android's own: the places where a client that is Android can be ahead of one dra
 - **A notification channel each for private chats, groups and channels**, so Android's settings for tone, vibration and Do Not Disturb are set per kind; Settings → Notifications leads to each.
 - **Widgets**, in the wallpaper's colours: your newest chats, and the music playing with previous, play and next.
 - **With a keyboard**, Enter sends and Shift+Enter starts a new line; Ctrl+F searches the chat.
+- **Who is typing in a group** — "Lina is typing", "Lina and Artem are typing", or the first and how many more — in the chat's header and its row in the list.
+- **Material 3 Expressive's first beta** (1.5.0-beta01, from alpha29), on stable Compose 1.12.
 
 ## 2.0.3
 

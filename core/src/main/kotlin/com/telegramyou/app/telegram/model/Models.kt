@@ -104,6 +104,11 @@ data class ChatPreview(
     /** Someone in it is typing right now; the avatar morphs while this holds. */
     val isTyping: Boolean = false,
     /**
+     * In a group, who is typing — first names (2.1). Empty in a private
+     * chat, where the chat is the person.
+     */
+    val typingNames: List<String> = emptyList(),
+    /**
      * The chat's picture on this device, or null — while it downloads, and
      * for every chat without one. The avatar draws initials until then.
      */

@@ -1812,8 +1812,12 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
         scrollChatsTo(By.text("Kotlin Night"))
+        // Who is typing in a group (2.1), in its row and then in its header.
+        waitFor(By.text("Lina and Artem are typing…"), "the group's row naming who types")
         tap(By.text("Kotlin Night"))
         waitFor(By.text("What do you reach for first?"), "the poll")
+        waitFor(By.text("Lina and Artem are typing"), "the group's header naming who types")
+        screenshot("98-group-typing")
         tap(By.text("SharedTransitionLayout"))
         // The vote counted: one more voter, and it can be taken back.
         waitFor(By.text("31 votes"), "the poll's results")
