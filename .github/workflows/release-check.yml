@@ -1,0 +1,132 @@
+# Starts the release build on an emulator and keeps what it said.
+#
+# Everything else that runs the app runs the debug build: the UI workflow
+# drives the demo, Live drives the live client — and neither goes through
+# R8. 2.1 crashed on starting for people who installed the release while
+# both of those were green, so the build people actually install is started
+# here too: shrunk by R8 as the Release workflow builds it, live with the
+# repository's credentials, but signed with the tracked debug key, since the
+# owner's key has no business on a runner that publishes nothing.
+#
+# It opens the app and waits; it does not sign in. A crash is kept with its
+# stack retraced through R8's mapping, in the release-check branch, as the
+# other workflows keep their evidence.
+name: Release check
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['fix/startup-crash']
+
+permissions:
+  contents: write
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Build the release, unsigned
+        run: ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Sign it with the debug key
+        run: |
+          set -e
+          unsigned=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
+          tools=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$tools/apksigner" sign \
+            --ks app/debug.keystore --ks-pass pass:android \
+            --ks-key-alias androiddebugkey --key-pass pass:android \
+            --out release-signed.apk "$unsigned"
+          ls -la release-signed.apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start it on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: >-
+            -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+            -camera-back none -camera-front none
+          disable-animations: true
+          script: |
+            adb install -r release-signed.apk
+            adb logcat -c
+            adb shell monkey -p com.telegramyou.app -c android.intent.category.LAUNCHER 1
+            sleep 25
+            adb exec-out screencap -p > started.png || true
+            adb logcat -d > logcat.txt || true
+
+      - name: Gather the evidence
+        if: always()
+        run: |
+          mkdir -p evidence
+          cp started.png evidence/ 2>/dev/null || true
+          # Not the whole log: the crash, and the app's own lines.
+          grep -A 60 "FATAL EXCEPTION" logcat.txt > evidence/crash.txt 2>/dev/null || true
+          grep -iE "telegramyou|AndroidRuntime|TdLib" logcat.txt | tail -300 > evidence/app-log.txt 2>/dev/null || true
+          if [ -s evidence/crash.txt ]; then
+            mapping=app/build/outputs/mapping/release/mapping.txt
+            cp "$mapping" evidence/ 2>/dev/null || true
+            retrace="$ANDROID_HOME/cmdline-tools/latest/bin/retrace"
+            if [ -x "$retrace" ] && [ -f "$mapping" ]; then
+              "$retrace" "$mapping" evidence/crash.txt > evidence/crash-retraced.txt 2>&1 || true
+            fi
+            echo "::error title=The release crashed on starting::$(head -c 600 evidence/crash.txt | tr '\n' ' ')"
+          else
+            rm -f evidence/crash.txt
+            echo "::notice title=Release check::The release started without a fatal exception."
+          fi
+          # The credentials stay out of what is published.
+          [ -n "$TELEGRAM_API_HASH" ] && sed -i "s/$TELEGRAM_API_HASH/<hash>/g" evidence/*.txt 2>/dev/null || true
+          [ -n "$TELEGRAM_API_ID" ] && sed -i -E "s/(^|[^0-9])$TELEGRAM_API_ID([^0-9]|$)/\1<id>\2/g" evidence/*.txt 2>/dev/null || true
+          find evidence -type f | sort
+
+      - name: Publish the evidence
+        if: always()
+        run: |
+          [ -z "$(find evidence -type f 2>/dev/null)" ] && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan release-check
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -not -name . -not -name .git -not -name evidence \
+            -exec rm -rf {} + 2>/dev/null || true
+          printf '# The release build, started on an emulator\n\nFrom commit %s, run %s.\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" > README.md
+          git add -A
+          git commit -q -m "Release check at ${GITHUB_SHA}"
+          git push -f origin release-check
+
+      - name: Did it start
+        if: always()
+        run: |
+          if [ -s evidence/crash.txt ]; then exit 1; fi
+          grep -q "com.telegramyou.app" logcat.txt || { echo "::error::No sign of the app in the log."; exit 1; }
