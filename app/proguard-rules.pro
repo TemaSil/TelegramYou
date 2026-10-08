@@ -4,3 +4,8 @@
 -keepclasseswithmembernames,includedescriptorclasses class * {
     native <methods>;
 }
+
+# Home-screen widgets (2.1): Glance creates a button's ActionCallback by
+# its class name when the button is pressed, so its class and no-argument
+# constructor must survive shrinking.
+-keep class * implements androidx.glance.appwidget.action.ActionCallback { <init>(); }

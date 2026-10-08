@@ -111,6 +111,10 @@ class TelegramYouApp : Application() {
         demoClient = if (BuildConfig.DEMO_ALLOWED) client as? DemoTelegramClient else null
         telegramRepository = TelegramRepository(client)
         telegramRepository.start()
+        // The home screen's widgets, redrawn as what they show changes (2.1).
+        // After the repository, which they read at once: on the main thread's
+        // immediate dispatcher the first collection runs inside this call.
+        com.telegramyou.app.widgets.WidgetUpdates.start(this)
         // The one geek setting that is TDLib's rather than the screens': sent
         // now and again whenever it is switched.
         MainScope().launch {

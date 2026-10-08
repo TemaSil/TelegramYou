@@ -268,6 +268,30 @@
             android:exported="false"
             android:foregroundServiceType="dataSync|remoteMessaging" />
 
+        <!-- Home-screen widgets (2.1); see the widgets package. -->
+        <receiver
+            android:name=".widgets.RecentChatsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_recent_chats">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/recent_chats_widget" />
+        </receiver>
+        <receiver
+            android:name=".widgets.NowPlayingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_now_playing">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/now_playing_widget" />
+        </receiver>
+
         <!--
             The music player's Media3 session. Exported with Media3's action,
             as its documentation requires: that is how the system's media

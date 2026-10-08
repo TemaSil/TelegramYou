@@ -95,8 +95,12 @@ object ConversationShortcuts {
      * The chat's picture, round, or its initials on its colour as the app
      * draws an avatar without one — never a blank where a face should be.
      */
-    fun icon(context: Context, chat: ChatPreview): IconCompat {
-        val size = (ICON_DP * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
+    fun icon(context: Context, chat: ChatPreview): IconCompat =
+        IconCompat.createWithBitmap(avatar(context, chat))
+
+    /** [icon]'s picture as a bitmap — what a widget draws (2.1). */
+    fun avatar(context: Context, chat: ChatPreview, sizeDp: Int = ICON_DP): Bitmap {
+        val size = (sizeDp * context.resources.displayMetrics.density).toInt().coerceAtLeast(48)
         val photo = chat.photoPath?.let { path -> runCatching { BitmapFactory.decodeFile(path) }.getOrNull() }
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -126,7 +130,7 @@ object ConversationShortcuts {
             val baseline = radius - (text.descent() + text.ascent()) / 2f
             canvas.drawText(avatarInitials(chat.title), radius, baseline, text)
         }
-        return IconCompat.createWithBitmap(bitmap)
+        return bitmap
     }
 
     private const val ICON_DP = 96

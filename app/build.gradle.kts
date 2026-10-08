@@ -402,6 +402,11 @@ dependencies {
     // Android's own emoji picker — categories, recents, skin tones — for
     // the emoji tab of the composer's panel, rather than a grid of our own.
     implementation("androidx.emoji2:emoji2-emojipicker:1.7.0")
+    // Home-screen widgets (2.1): Glance draws them in Compose, and its
+    // Material 3 theme gives them the wallpaper's colours as the app has.
+    // Its own release line; the Build workflow prints what it offers.
+    implementation("androidx.glance:glance-appwidget:1.2.0")
+    implementation("androidx.glance:glance-material3:1.2.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
