@@ -281,7 +281,13 @@ fun TelegramYouNavHost(
     /** Home's Music tab: the library without a way back, since it is a tab. */
     val musicTab: @Composable (androidx.compose.ui.unit.Dp) -> Unit = { foot -> libraryPage(null, foot) }
 
+    val appContext = LocalContext.current.applicationContext
     LaunchedEffect(auth.state) {
+        // Signed out: the chats' conversation shortcuts carry their names
+        // and pictures, so they go with the account (2.1).
+        if (auth.state == AuthState.WaitPhoneNumber || auth.state == AuthState.WaitQrScan) {
+            com.telegramyou.app.notifications.ConversationShortcuts.clear(appContext)
+        }
         when (auth.state) {
             AuthState.Ready -> {
                 // Anywhere but the login screen is already inside. This was a
@@ -1155,6 +1161,15 @@ fun TelegramYouNavHost(
                     PostedNotifications.clear(id)
                 }
                 onDispose { AppVisibility.openChatId = null }
+            }
+            // The chat as an Android conversation, marked as used: it rises
+            // among the share sheet's targets and keeps its shortcut (2.1).
+            val openedPreview = state.detail?.chat
+            LaunchedEffect(openedPreview?.id) {
+                val preview = openedPreview ?: return@LaunchedEffect
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.telegramyou.app.notifications.ConversationShortcuts.used(context, preview)
+                }
             }
             // Read while in front, and again as each newer message lands —
             // but not while the app is behind something else, which is what

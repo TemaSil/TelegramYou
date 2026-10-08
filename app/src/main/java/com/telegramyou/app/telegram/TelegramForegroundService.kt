@@ -16,7 +16,10 @@ import androidx.core.app.ServiceCompat
 import com.telegramyou.app.MainActivity
 import com.telegramyou.app.R
 import com.telegramyou.app.TelegramYouApp
+import com.telegramyou.app.notifications.ConversationShortcuts
 import com.telegramyou.app.notifications.NotifiableMessage
+import com.telegramyou.app.notifications.conversationId
+import androidx.core.content.LocusIdCompat
 import com.telegramyou.app.notifications.NotificationContext
 import com.telegramyou.app.notifications.NotificationDecision
 import com.telegramyou.app.notifications.PostedNotifications
@@ -106,6 +109,9 @@ class TelegramForegroundService : Service() {
         running = true
     }
 
+    /** The chats whose conversation shortcut this service has pushed; see ConversationShortcuts. */
+    private val conversations: MutableSet<Long> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
     override fun onDestroy() {
         running = false
         scope.cancel()
@@ -145,7 +151,16 @@ class TelegramForegroundService : Service() {
                         )
                     )
                 )
-                if (decision is NotificationDecision.Notify) post(decision.message)
+                if (decision is NotificationDecision.Notify) {
+                    // The chat as a conversation first, so the notification
+                    // can name it: that is what files it under Conversations
+                    // in the shade (2.1).
+                    if (chat != null) {
+                        ConversationShortcuts.publish(this@TelegramForegroundService, chat)
+                        conversations += chat.id
+                    }
+                    post(decision.message)
+                }
             }
         }
     }
@@ -274,6 +289,16 @@ class TelegramForegroundService : Service() {
         return NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setStyle(style)
+            .apply {
+                // Tied to the chat's conversation shortcut when it has one
+                // (2.1): the shade then shows it among Conversations, with the
+                // chat's picture, and it can be made a priority one.
+                if (latest.chatId in conversations) {
+                    val id = conversationId(latest.chatId)
+                    setShortcutId(id)
+                    setLocusId(LocusIdCompat(id))
+                }
+            }
             .setAutoCancel(true)
             .setContentIntent(openChatIntent(latest.chatId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)

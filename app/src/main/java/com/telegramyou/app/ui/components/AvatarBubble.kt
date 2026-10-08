@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.notifications.avatarInitials
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.Icon
 import androidx.compose.animation.core.animateFloatAsState
@@ -82,12 +83,7 @@ fun AvatarBubble(
     // Always through typingShape, so stopping has somewhere to animate from.
     val outline = typingShape(seed, typing, shape)
     val base = if (savedMessages) MaterialTheme.colorScheme.primary else avatarColor(seed)
-    val initials = title
-        .split(" ")
-        .filter { it.isNotBlank() }
-        .take(2)
-        .joinToString("") { it.first().uppercase() }
-        .ifBlank { "?" }
+    val initials = avatarInitials(title)
 
     // Two boxes, and the outer one deliberately does not clip. The avatar's
     // own outline belongs to the shape below; the online dot sits beside it
