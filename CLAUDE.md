@@ -122,8 +122,8 @@ Three consequences worth remembering, each of which cost a red build:
 
 ## Deliberately on the newest of everything — keep it that way
 
-This project runs the **newest alpha `material3`** and the **newest Android
-toolchain**, on purpose. That is not carelessness: Material 3 Expressive is
+This project runs the **newest pre-release `material3`** — a beta since 2.1,
+an alpha before — and the **newest Android toolchain**, on purpose. That is not carelessness: Material 3 Expressive is
 `internal` in every stable `material3`, so the alpha is the only way to have
 the thing this client exists to show. Having accepted an alpha there, staying
 current everywhere else costs little and keeps the app on what Android

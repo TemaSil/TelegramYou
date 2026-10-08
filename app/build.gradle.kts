@@ -310,10 +310,10 @@ dependencies {
     //
     // Expressive is not public in any stable material3 — MaterialExpressiveTheme,
     // MotionScheme and LoadingIndicator are all `internal` in 1.4.0, the newest
-    // stable there is. It is public only from the 1.5.0 alphas, and material3
-    // 1.5.0-alpha29 declares Compose core 1.12.0, which is what this BOM pins
-    // — and foundation 1.13.0-alpha01 besides, so what actually runs is
-    // Compose 1.13.0-alpha01 (the Build workflow's Resolved annotations).
+    // stable there is. It is public only from the 1.5.0 pre-releases — the
+    // first beta since 8 October 2026 (2.1), after alpha29 — and what Compose
+    // core the beta declares, and so what actually runs, is in the Build
+    // workflow's "needs" and Resolved annotations.
     // Hence compileSdk 37, AGP 9 and Gradle 9 as well: the whole stack moves
     // together or not at all.
     val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
@@ -341,15 +341,15 @@ dependencies {
     androidTestUtil("androidx.test.services:test-services:1.6.0")
 
     // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
-    // this is the only way to reach Expressive at all. It is an alpha, and
-    // the theme every screen is built on, so it is worth knowing that is a
-    // deliberate trade and not an oversight.
-    implementation("androidx.compose.material3:material3:1.5.0-alpha29")
+    // this is the only way to reach Expressive at all. It is a beta now — an
+    // alpha until 2.1 — and the theme every screen is built on, so it is
+    // worth knowing that is a deliberate trade and not an oversight.
+    implementation("androidx.compose.material3:material3:1.5.0-beta01")
     // The navigation suite, for a rail where there is width for one. Its
     // version moves with material3 rather than with the BOM, so it is pinned
-    // to the same alpha — a mismatch here is two copies of the same internal
-    // API and a link error, not a warning.
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-alpha29")
+    // to the same pre-release — a mismatch here is two copies of the same
+    // internal API and a link error, not a warning.
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-beta01")
     // The player behind video messages. Media3 is androidx's own — there is
     // no Material component for playback, and the alternative was MediaPlayer
     // with a SurfaceView and every format quirk handled by hand.

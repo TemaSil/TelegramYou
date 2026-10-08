@@ -199,7 +199,7 @@ jobs:
                   "/maven-metadata.xml", timeout=60
               ).read().decode()
               alphas = re.findall(r"<version>([^<]+)</version>", xml)
-              alphas = [v for v in alphas if v.startswith("1.5.0-alpha")][-3:]
+              alphas = [v for v in alphas if v.startswith("1.5.0-")][-3:]
           except Exception as exc:
               print(f"::warning title=material3 alphas::{exc}")
               alphas = []
