@@ -18,7 +18,7 @@ name: Release check
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'fix/startup-crash']
+    branches: [main]
 
 permissions:
   contents: write
@@ -132,4 +132,5 @@ jobs:
         if: always()
         run: |
           if [ -s evidence/crash.txt ]; then exit 1; fi
-          grep -q "com.telegramyou.app" logcat.txt || { echo "::error::No sign of the app in the log."; exit 1; }
+          # The evidence, not logcat.txt: publishing it clears the workspace.
+          grep -q "Displayed com.telegramyou.app" evidence/app-log.txt || { echo "::error::The app never showed a window."; exit 1; }
