@@ -179,12 +179,20 @@ class TelegramYouApp : Application() {
             description = getString(R.string.notification_channel_desc)
             setShowBadge(false)
         }
-        val messages = NotificationChannel(
-            CHANNEL_MESSAGES,
-            getString(R.string.notification_channel_messages_name),
-            NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-            description = getString(R.string.notification_channel_messages_desc)
+        // Messages in three channels, one per kind of chat (2.1), so that
+        // Android's own settings for the app — sound, vibration, what comes
+        // through Do Not Disturb — are set per kind, as Settings →
+        // Notifications sets the rest. Private chats keep the channel all
+        // messages had before, and with it whatever was set there.
+        val messagesGroup = android.app.NotificationChannelGroup(
+            CHANNEL_GROUP_MESSAGES,
+            getString(R.string.notification_channel_messages_name)
+        )
+        val messages = com.telegramyou.app.notifications.NotificationScope.entries.map { scope ->
+            NotificationChannel(messagesChannel(scope), scope.label, NotificationManager.IMPORTANCE_HIGH).apply {
+                description = scope.summary
+                group = CHANNEL_GROUP_MESSAGES
+            }
         }
         // Low, like sync: a bar filling up is something to glance at, not to
         // be interrupted by.
@@ -199,8 +207,9 @@ class TelegramYouApp : Application() {
         // The channel it replaces, which was LOW: a channel's importance
         // cannot be lowered by the app once made, so it is a new channel.
         manager.deleteNotificationChannel(OLD_CHANNEL_SYNC)
+        manager.createNotificationChannelGroup(messagesGroup)
         manager.createNotificationChannel(sync)
-        manager.createNotificationChannel(messages)
+        messages.forEach(manager::createNotificationChannel)
         manager.createNotificationChannel(downloads)
     }
 
@@ -210,6 +219,14 @@ class TelegramYouApp : Application() {
         const val CHANNEL_SYNC = "telegram_connection"
         private const val OLD_CHANNEL_SYNC = "telegram_sync"
         const val CHANNEL_MESSAGES = "telegram_messages"
+        private const val CHANNEL_GROUP_MESSAGES = "telegram_messages_group"
+
+        /** The channel a kind of chat's messages go to (2.1); private chats keep the old one. */
+        fun messagesChannel(scope: com.telegramyou.app.notifications.NotificationScope): String = when (scope) {
+            com.telegramyou.app.notifications.NotificationScope.PrivateChats -> CHANNEL_MESSAGES
+            com.telegramyou.app.notifications.NotificationScope.Groups -> "telegram_messages_groups"
+            com.telegramyou.app.notifications.NotificationScope.Channels -> "telegram_messages_channels"
+        }
         const val CHANNEL_DOWNLOADS = "telegram_downloads"
     }
 }

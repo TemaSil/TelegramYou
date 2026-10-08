@@ -142,7 +142,12 @@ class TelegramForegroundService : Service() {
                     sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, chat, message.senderId),
                     // A chat not in the list is one being looked at without
                     // having joined — a channel, as a rule — so it counts.
-                    isGroupOrChannel = chat == null || chat.isGroup || chat.isChannel
+                    isGroupOrChannel = chat == null || chat.isGroup || chat.isChannel,
+                    scope = com.telegramyou.app.notifications.notificationScopeOf(
+                        isGroup = chat?.isGroup == true,
+                        isChannel = chat?.isChannel == true,
+                        inList = chat != null
+                    )
                 )
                 val decision = decideNotification(
                     notifiable,
@@ -291,7 +296,7 @@ class TelegramForegroundService : Service() {
             val text = if (message.showPreview) message.text else getString(R.string.notification_hidden_preview)
             style.addMessage(text, message.timestampMillis, sender)
         }
-        return NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_MESSAGES)
+        return NotificationCompat.Builder(this, TelegramYouApp.messagesChannel(latest.scope))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setStyle(style)
             .apply {

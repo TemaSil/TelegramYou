@@ -34,7 +34,9 @@ data class NotifiableMessage(
      * A group or a channel rather than one person. Their old messages come
      * in bulk when the chat is opened — see [SuppressionReason.CaughtUp].
      */
-    val isGroupOrChannel: Boolean = false
+    val isGroupOrChannel: Boolean = false,
+    /** Which kind of chat it is from — which of Android's channels it goes to (2.1). */
+    val scope: NotificationScope = NotificationScope.PrivateChats
 )
 
 /** What the app knows about itself at the moment the message lands. */

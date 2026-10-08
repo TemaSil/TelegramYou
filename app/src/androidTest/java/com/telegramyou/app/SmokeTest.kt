@@ -2165,6 +2165,12 @@ class SmokeTest {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
+        // Android's own side of the same three kinds (2.1): a channel each.
+        val manager = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSystemService(NotificationManager::class.java)
+        for (id in listOf("telegram_messages", "telegram_messages_groups", "telegram_messages_channels")) {
+            assertTrue("no notification channel $id", manager.getNotificationChannel(id) != null)
+        }
         tap(By.text("Settings"))
         waitFor(By.text("Appearance"), "the settings")
         tap(By.text("Notifications"))

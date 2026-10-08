@@ -39,6 +39,7 @@ fun NotificationsScreen(
     onBack: () -> Unit,
     onChange: (NotificationScope, ScopeNotifications) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Scaffold(
         containerColor = settingsBackground(),
         topBar = {
@@ -79,6 +80,14 @@ fun NotificationsScreen(
                         checked = current.sound,
                         enabled = current.enabled
                     ) { on -> onChange(scope, current.copy(sound = on)) }
+                    // The rest is Android's: this kind of chat has a channel
+                    // of its own there (2.1), with the tone, the vibration
+                    // and Do Not Disturb.
+                    link(
+                        title = "More in Android's settings",
+                        summary = "Tone, vibration, and what reaches you in Do Not Disturb",
+                        onClick = { openChannelSettings(context, scope) }
+                    )
                 }
             }
         }
@@ -104,4 +113,13 @@ class NotificationsViewModel(private val repository: TelegramRepository) : ViewM
             if (!saved) runCatching { repository.scopeNotifications() }.onSuccess { _settings.value = it }
         }
     }
+}
+
+/** Android's own page for [scope]'s channel; see TelegramYouApp.messagesChannel. */
+private fun openChannelSettings(context: android.content.Context, scope: NotificationScope) {
+    val intent = android.content.Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+        .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+        .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID, com.telegramyou.app.TelegramYouApp.messagesChannel(scope))
+        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+    runCatching { context.startActivity(intent) }
 }
