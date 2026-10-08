@@ -26,6 +26,7 @@ import androidx.activity.compose.setContent
 import android.graphics.Color
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
@@ -106,8 +107,25 @@ class MainActivity : ComponentActivity() {
             // change the colours behind it, not on the next launch.
             val appearance by app.appearance.settings.collectAsStateWithLifecycle()
             val geekSettings by app.geeks.settings.collectAsStateWithLifecycle()
+            val darkTheme = isDark(appearance.theme, isSystemInDarkTheme())
+            // The bars' icons follow the app's theme, not the system's: the
+            // styles above judge light and dark by the phone's own setting,
+            // so with the app set apart from it — dark here, light there —
+            // the status bar's icons were drawn dark on the app's dark top
+            // bar, which on a Pixel 6 on Android 12 read as a bar that would
+            // not take the app's colour (2.0.3, from users).
+            DisposableEffect(darkTheme) {
+                enableEdgeToEdge(
+                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme },
+                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme }
+                )
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    window.isNavigationBarContrastEnforced = false
+                }
+                onDispose {}
+            }
             TelegramYouTheme(
-                darkTheme = isDark(appearance.theme, isSystemInDarkTheme()),
+                darkTheme = darkTheme,
                 dynamicColor = appearance.dynamicColor,
                 accent = appearance.accent,
                 pureBlack = appearance.pureBlack,

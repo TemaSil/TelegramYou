@@ -277,14 +277,25 @@ data class ChatUiState(
      * Quotes fetched for replies whose original is not in the window, by
      * the replying message's id (2.0) — what drew "Reply / Message".
      */
-    val fetchedQuotes: Map<Long, FetchedQuote> = emptyMap()
+    val fetchedQuotes: Map<Long, FetchedQuote> = emptyMap(),
+    /**
+     * In a comment thread, the post it hangs from, to stand above the
+     * comments (2.0.3); empty anywhere else. See [messages] for when.
+     */
+    val threadPost: List<ChatMessage> = emptyList()
 ) {
     /** Polls go to groups and channels, as in every Telegram client. */
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
 
     val messages: List<ChatMessage>
         get() = (olderMessages + (detachedWindow ?: detail?.messages.orEmpty())).let { all ->
-            if (hiddenSenders.isEmpty()) all else all.filter { it.senderId !in hiddenSenders }
+            val shown = if (hiddenSenders.isEmpty()) all else all.filter { it.senderId !in hiddenSenders }
+            // The thread's post at the very top, once the top is what is on
+            // screen: the history paged back to its start, or a thread with
+            // no comments at all. Earlier it would stand over a gap.
+            val post = threadPost.filter { p -> shown.none { it.id == p.id } }
+            val atTop = !hasMoreOlder || (detail != null && shown.isEmpty() && detachedWindow == null)
+            if (post.isNotEmpty() && atTop) post + shown else shown
         }
 
     /** Whether what is on screen is away from the latest messages. */
@@ -343,6 +354,10 @@ class ChatViewModel(
             // the group's, and a thread's is not worth a request per pause —
             // draftRestored stays false, which keeps the saving off.
             _uiState.update { it.copy(topicName = "Comments") }
+            viewModelScope.launch {
+                val post = runCatching { repository.commentPost(chatId, threadId) }.getOrNull().orEmpty()
+                if (post.isNotEmpty()) _uiState.update { it.copy(threadPost = post) }
+            }
         } else if (topicId != 0) {
             repository.setOpenTopic(chatId, topicId)
             viewModelScope.launch {
@@ -2183,7 +2198,9 @@ class ChatViewModel(
     fun onLoadOlder() {
         val state = _uiState.value
         if (state.isLoadingOlder || !state.hasMoreOlder) return
-        val oldest = state.messages.firstOrNull() ?: return
+        // Not the thread's post, which stands above the comments but is not
+        // one of them: paging from it would find nothing older and stop.
+        val oldest = state.messages.firstOrNull { m -> state.threadPost.none { it.id == m.id } } ?: return
 
         _uiState.update { it.copy(isLoadingOlder = true) }
         viewModelScope.launch {

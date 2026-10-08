@@ -1728,6 +1728,22 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun commentPost(chatId: Long, threadId: Long): List<ChatMessage> {
+        awaitReady()
+        return try {
+            // Asked of the discussion group's own copy of the post, the
+            // thread's root: the answer's messages are that copy, newest
+            // first, an album's every part.
+            val info = requireEngine().send(
+                JSONObject().put("@type", "getMessageThread").put("chat_id", chatId).put("message_id", threadId)
+            )
+            parseMessages(chatId, info.optJSONArray("messages"))
+        } catch (e: TdLibException) {
+            Log.w(TAG, "commentPost($chatId, $threadId): ${e.message}")
+            emptyList()
+        }
+    }
+
     /**
      * A history request or a send, pointed at the topic [chatId]'s screen is
      * on, if it is on one: history becomes that topic's history, and a send

@@ -9,6 +9,16 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.0.3
+
+From users' reports.
+
+- **A capital at the start of a sentence** in the composer, as the keyboard gives elsewhere.
+- **Comments open on a post nobody has commented on yet**, and every thread shows **the post itself at the top**, as the official app does — a thread with no comments used to open onto nothing.
+- **The plus, the smiley and the camera on the field's line**: the plus sat a little low, and with several lines typed the smiley and camera rose to the middle; all three stay at the bottom now, by the last line.
+- **The status bar's icons follow the app's theme**, not the phone's — with the two set apart they were drawn dark on dark (seen on a Pixel 6 on Android 12).
+- **No keyboard over search unasked**: it comes up when search is opened, not again each time Home is shown under a closing chat or the app comes back.
+
 ## 2.0.2
 
 - **"Message" closer to the plus** in the composer, by twelve.

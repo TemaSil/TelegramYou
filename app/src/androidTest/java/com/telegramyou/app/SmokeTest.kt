@@ -2195,6 +2195,9 @@ class SmokeTest {
         tap(By.text("3 comments"))
         waitFor(By.text("Finally, comments!"), "the comments in their thread")
         waitFor(By.text("Comments"), "the thread's header")
+        // The post itself above its comments, as the official client has it
+        // (2.0.3).
+        waitFor(By.textStartsWith("TelegramYou 2.0 is on its way"), "the post at the top of its thread")
         screenshot("90-comments")
         type("Count me in")
         tap(By.desc("Send"))
@@ -2202,6 +2205,15 @@ class SmokeTest {
         device.pressBack()
         if (!device.wait(Until.hasObject(By.text("4 comments")), SHORT_WAIT)) device.pressBack()
         waitFor(By.text("4 comments"), "the post counting the new comment")
+
+        // A post nobody has commented on yet opens too — onto itself, with
+        // the field under it for the first comment (2.0.3: it used to open
+        // onto nothing).
+        tap(By.text("Leave a comment"))
+        waitFor(By.text("Comments"), "the empty thread's header")
+        waitFor(By.text("Which screen should be redesigned next?"), "the post in its empty thread")
+        screenshot("90b-comments-empty")
+        backTo(By.text("4 comments"), "the channel again")
     }
 
     /**

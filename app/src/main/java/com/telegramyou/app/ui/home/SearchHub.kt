@@ -122,8 +122,14 @@ internal fun SearchPage(
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val withoutKeyboard = LocalGeekSettings.current.searchWithoutKeyboard
+    // Once for each time search is opened, not each time it is composed: Home
+    // is composed again under a chat closing back into it, and when the app
+    // returns, and each of those brought the keyboard up over the page
+    // unasked (2.0.3, from users). Saveable, so those survive as "asked".
+    var keyboardOffered by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (withoutKeyboard) return@LaunchedEffect
+        if (withoutKeyboard || keyboardOffered) return@LaunchedEffect
+        keyboardOffered = true
         // A frame first: the field is still being laid out when this starts,
         // and focus asked of a node not yet attached is dropped.
         withFrameNanos { }

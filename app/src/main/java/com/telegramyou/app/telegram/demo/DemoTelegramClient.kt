@@ -918,6 +918,14 @@ class DemoTelegramClient(
         return if (post?.commentCount != null) CommentThread(DISCUSSION_CHAT_ID, messageId) else null
     }
 
+    override suspend fun commentPost(chatId: Long, threadId: Long): List<ChatMessage> {
+        delay(80)
+        // The demo's threads are named by the post's own id, in the channel.
+        val post = chatMessages.values.asSequence().flatten()
+            .firstOrNull { it.id == threadId && it.commentCount != null } ?: return emptyList()
+        return listOf(post.copy(chatId = chatId, commentCount = null, threadId = threadId))
+    }
+
     /** A chat's messages, or the open topic's or thread's when its screen is on one. */
     private fun messagesIn(chatId: Long): List<ChatMessage> {
         val all = chatMessages[chatId].orEmpty()

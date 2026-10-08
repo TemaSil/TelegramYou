@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.groups
 
+import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.AdminRights
 import com.telegramyou.app.telegram.model.ForumTopic
@@ -117,6 +118,15 @@ interface TelegramGroups {
      * the thread in it, or null for a post without them.
      */
     suspend fun commentThread(chatId: Long, messageId: Long): CommentThread? = null
+
+    /**
+     * The post a comment thread hangs from, as discussion group [chatId]
+     * holds it — one message, or an album's several, oldest first — to stand
+     * at the top of the thread, as the official client shows it (2.0.3). A
+     * thread's history holds the comments only, so without this a post with
+     * none opened onto an empty screen.
+     */
+    suspend fun commentPost(chatId: Long, threadId: Long): List<ChatMessage> = emptyList()
 
     /**
      * Which comment thread of discussion group [chatId] the conversation

@@ -82,6 +82,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -349,6 +351,41 @@ internal fun ComposerBar(
     // The field's own shape comes in with its fill: the capsule's field is
     // drawn in it, where clipping a padded field cut its round ends flat
     // (2.0, fixed in 2.0.1); the plain one sits in a column that draws it.
+    // What stands at the end of the field: the bot's keyboard, the smiley or
+    // the keyboard key, and — without a capsule — the camera.
+    val fieldActions: @Composable () -> Unit = {
+        if (botKeyboardShown != null) {
+            IconButton(onClick = onBotKeyboardToggle) {
+                Icon(
+                    if (botKeyboardShown) Symbols.KeyboardHide else Symbols.Keyboard,
+                    contentDescription = if (botKeyboardShown) "Hide bot keyboard" else "Bot keyboard"
+                )
+            }
+        }
+        if (expressionsOpen) {
+            IconButton(onClick = onKeyboard) {
+                Icon(Symbols.Keyboard, contentDescription = "Keyboard")
+            }
+        } else {
+            IconButton(onClick = onExpressions) {
+                Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
+            }
+        }
+        // Without a capsule, the camera sits at the end of the
+        // field, as the picture button does in Messages, and
+        // steps aside once there is something to send.
+        if (!capsule && !sendable) {
+            CameraButton(
+                enabled = true,
+                onCamera = onCamera,
+                onVideoNoteStart = onVideoNoteStart,
+                onVideoNoteStop = onVideoNoteStop,
+                onVideoNoteCancel = onVideoNoteCancel,
+                onVideoNoteLock = onVideoNoteLock
+            )
+        }
+    }
+
     val field: @Composable (Modifier, Color, Shape) -> Unit = { modifier, fill, shape ->
         if (recordingSince != null) {
             RecordingRow(
@@ -366,41 +403,15 @@ internal fun ComposerBar(
                     .padding(vertical = if (capsule) 0.dp else 2.dp)
                     .focusRequester(focusRequester),
                 placeholder = { Text(placeholder, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                // Where Telegram keeps it, and every messenger since:
-                // inside the field, at its end.
-                trailingIcon = {
-                    Row {
-                        if (botKeyboardShown != null) {
-                            IconButton(onClick = onBotKeyboardToggle) {
-                                Icon(
-                                    if (botKeyboardShown) Symbols.KeyboardHide else Symbols.Keyboard,
-                                    contentDescription = if (botKeyboardShown) "Hide bot keyboard" else "Bot keyboard"
-                                )
-                            }
-                        }
-                        if (expressionsOpen) {
-                            IconButton(onClick = onKeyboard) {
-                                Icon(Symbols.Keyboard, contentDescription = "Keyboard")
-                            }
-                        } else {
-                            IconButton(onClick = onExpressions) {
-                                Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
-                            }
-                        }
-                        // Without a capsule, the camera sits at the end of the
-                        // field, as the picture button does in Messages, and
-                        // steps aside once there is something to send.
-                        if (!capsule && !sendable) {
-                            CameraButton(
-                                enabled = true,
-                                onCamera = onCamera,
-                                onVideoNoteStart = onVideoNoteStart,
-                                onVideoNoteStop = onVideoNoteStop,
-                                onVideoNoteCancel = onVideoNoteCancel,
-                                onVideoNoteLock = onVideoNoteLock
-                            )
-                        }
-                    }
+                // In the capsule, inside the field at its end, where Telegram
+                // keeps them. The plain composer stands them in its own row
+                // instead, at the bottom with the plus: in this slot a
+                // TextField centres them, and a field grown to several lines
+                // took them up to its middle (2.0.3, from users).
+                trailingIcon = if (capsule) {
+                    { Row { fieldActions() } }
+                } else {
+                    null
                 },
                 shape = shape,
                 colors = TextFieldDefaults.colors(
@@ -411,6 +422,10 @@ internal fun ComposerBar(
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent
                 ),
+                // A capital at the start of each sentence, as the keyboard
+                // gives in every other messenger (2.0.3, from users): a
+                // TextField asks for none unless told.
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 maxLines = 5
             )
         }
@@ -516,7 +531,7 @@ internal fun ComposerBar(
                     IconButton(
                         onClick = onAttach,
                         enabled = recordingSince == null,
-                        modifier = Modifier.padding(bottom = ComposerButtonLift)
+                        modifier = Modifier.padding(bottom = PLAIN_LIFT)
                     ) {
                         Icon(Symbols.AddCircle, contentDescription = "Attach")
                     }
@@ -532,10 +547,14 @@ internal fun ComposerBar(
                         Color.Transparent,
                         RoundedCornerShape(0.dp)
                     )
+                    if (recordingSince == null) {
+                        Row(Modifier.padding(bottom = PLAIN_LIFT)) { fieldActions() }
+                    }
                 }
             }
             Spacer(Modifier.width(PLAIN_GAP))
-            button(PLAIN_BUTTON)
+            // Its middle on the field's single line, as the plus's is.
+            Box(Modifier.padding(bottom = (PLAIN_FIELD_HEIGHT - PLAIN_BUTTON) / 2)) { button(PLAIN_BUTTON) }
         }
     }
 }
@@ -1003,6 +1022,17 @@ internal val FIELD_CORNER = 28.dp
 
 /** The plain composer's distance from the screen's sides, and between the field and its button. */
 internal val PLAIN_GUTTER = 12.dp
+
+/**
+ * The plain composer's icons, lifted to the middle of the field's last line:
+ * [ComposerButtonLift] is measured on a bare 56dp TextField, and this one
+ * stands two in from its column above and below — so the plus sat two low
+ * of "Message" until 2.0.3, as the owner saw.
+ */
+private val PLAIN_LIFT = ComposerButtonLift + 2.dp
+
+/** The plain field on one line: a 56dp TextField and its two above and below. */
+private val PLAIN_FIELD_HEIGHT = 60.dp
 
 /**
  * How far the plain composer's field reaches back under the plus: as far as
