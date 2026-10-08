@@ -3341,7 +3341,19 @@ class SmokeTest {
         tap(By.text(GROUP_CHAT))
         waitFor(By.text("Info"), "the info screen")
         scrollDownTo(By.text("Revoke"))
-        tap(By.text("Revoke"))
+        // Pressed until the dialog is up, not once: the info screen opens
+        // out of the header, and a press while it is still moving lands
+        // where the button was a moment before — which on 2.0.2's run on
+        // main pressed nothing, 0.4s after the header was tapped.
+        repeat(3) {
+            if (device.hasObject(By.text("Revoke the link?"))) return@repeat
+            device.waitForIdle(IDLE_TIMEOUT)
+            try {
+                device.findObject(By.text("Revoke"))?.click()
+            } catch (_: StaleObjectException) {
+            }
+            device.wait(Until.hasObject(By.text("Revoke the link?")), SHORT_WAIT)
+        }
         waitFor(By.text("Revoke the link?"), "the revoke dialog")
         tap(By.text("Revoke link"))
         waitFor(By.textContains("x1"), "the new link")
