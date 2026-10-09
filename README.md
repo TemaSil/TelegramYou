@@ -59,8 +59,9 @@ wallpaper.
 
 Chats as Android's conversations — priority ones, bubbles, and Direct
 Share from any app straight into a chat's composer. A notification
-channel per kind of chat, widgets for your newest chats and the music
-playing, and Enter to send from a keyboard.
+channel per kind of chat, Material You widgets for your newest chats,
+the music playing and a contact's photo in a shape, and Enter to send
+from a keyboard.
 
 All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
 [releases](https://github.com/TemaSil/TelegramYou/releases) ·

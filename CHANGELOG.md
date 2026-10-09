@@ -11,6 +11,8 @@ README.md.
 
 ## 2.1.3
 
+- **Widgets, done properly.** The chats and the player each show what they are in the widget picker (Android 15 and later) instead of reading as one widget in two sizes, and both are rebuilt on Glance's own Material components in the Expressive style: every chat a rounded tile with its picture in the person's shape, unread ones in the accent colour; the player laid out for its size — a row, a card with its buttons beneath, or a square — with the cover cut to a scalloped cookie.
+- **Contact photo widget.** Someone's photo on the home screen in one of twelve Material shapes, the way Google Photos puts people there, a tap away from the chat with them. The person and the shape are chosen as it is placed and can be changed later; when they change their photo, the widget follows.
 - **Muted chats stay quiet.** A message arrives before its chat moves up the list, and a muted chat further down than the list had loaded, or in the archive, was taken for one that is not muted — so its messages reached the shade. Each chat's own settings are read from Telegram now, wherever the chat is.
 - **No notifications from chats you have not joined.** A channel's discussion group stayed live once its comments had been opened, and every new comment in it reached the shade. Only people, and groups and channels the account is in, notify now.
 
