@@ -64,6 +64,16 @@ interface TelegramChats {
     fun releaseChat(chatId: Long)
 
     /**
+     * One chat as the list would show it, whether or not the list holds it
+     * yet (2.1.3). A message arrives before its chat moves up the list, and
+     * from a chat further down than the list has loaded or in an archive it
+     * never opened — and looked up in the list alone, a muted chat there was
+     * taken for one that is not muted, and every message of it reached the
+     * shade. Null for a chat the backend has not heard of.
+     */
+    fun knownChat(chatId: Long): ChatPreview? = chats.value.firstOrNull { it.id == chatId }
+
+    /**
      * Chats matching [query], best matches first.
      *
      * A blank query returns nothing rather than everything: an empty search

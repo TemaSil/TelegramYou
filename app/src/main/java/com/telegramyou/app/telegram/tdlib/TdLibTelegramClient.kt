@@ -4725,6 +4725,12 @@ class TdLibTelegramClient(
         }
     }
 
+    // Read while TDLib's thread may be writing the same chat; a read that
+    // collides is retried by nothing, and a missed lookup is what this
+    // replaced, so it is caught rather than left to stop the notifier.
+    override fun knownChat(chatId: Long): ChatPreview? =
+        chatsById[chatId]?.let { runCatching { toPreview(it) }.getOrNull() }
+
     /** See com.telegramyou.app.notifications.isAccountsChat. */
     private fun isAccountsChat(chatId: Long): Boolean {
         val type = chatsById[chatId]?.optJSONObject("type")

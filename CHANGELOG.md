@@ -11,6 +11,7 @@ README.md.
 
 ## 2.1.3
 
+- **Muted chats stay quiet.** A message arrives before its chat moves up the list, and a muted chat further down than the list had loaded, or in the archive, was taken for one that is not muted — so its messages reached the shade. Each chat's own settings are read from Telegram now, wherever the chat is.
 - **No notifications from chats you have not joined.** A channel's discussion group stayed live once its comments had been opened, and every new comment in it reached the shade. Only people, and groups and channels the account is in, notify now.
 
 ## 2.1.2

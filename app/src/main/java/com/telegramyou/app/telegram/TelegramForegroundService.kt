@@ -127,8 +127,9 @@ class TelegramForegroundService : Service() {
         val app = application as TelegramYouApp
         return scope.launch {
             app.telegramRepository.incomingMessages.collect { message ->
-                val chat = app.telegramRepository.chats.value
-                    .firstOrNull { it.id == message.chatId }
+                // Not from the list: the list may not hold it yet, and a muted
+                // chat it did not hold notified as if it were not (2.1.3).
+                val chat = app.telegramRepository.knownChat(message.chatId)
                 val notifiable = NotifiableMessage(
                     chatId = message.chatId,
                     messageId = message.id,
