@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -184,7 +185,7 @@ private fun Setup(
         },
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
-                Box(Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), contentAlignment = Alignment.CenterEnd) {
+                Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), contentAlignment = Alignment.CenterEnd) {
                     Button(
                         enabled = chosen != null && !saving,
                         onClick = {

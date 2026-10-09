@@ -57,13 +57,13 @@ import com.telegramyou.app.music.NowPlaying
  *
  * Laid out for the size it is given. A row four cells wide puts it all on
  * one line; two rows or more give the cover room and the buttons a row of
- * their own; narrower than a row it keeps the cover and the one button that
- * matters. With nothing playing it says so, and opens the app.
+ * their own, or, two cells wide, the cover and play above the words;
+ * narrower than a row it keeps the cover and the one button that matters. With nothing playing it says so, and opens the app.
  * Kept current by WidgetUpdates.
  */
 class NowPlayingWidget : GlanceAppWidget() {
 
-    override val sizeMode = SizeMode.Responsive(setOf(NARROW, ROW, CARD))
+    override val sizeMode = SizeMode.Responsive(setOf(NARROW, ROW, SQUARE, CARD))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val app = context.applicationContext as TelegramYouApp
@@ -87,10 +87,11 @@ class NowPlayingWidget : GlanceAppWidget() {
         Scaffold(modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>())) {
             Box(
                 contentAlignment = Alignment.CenterStart,
-                modifier = GlanceModifier.fillMaxSize().padding(vertical = 12.dp)
+                modifier = GlanceModifier.fillMaxSize().padding(vertical = 6.dp)
             ) {
                 when {
-                    size.height >= CARD.height -> Card(context, playing)
+                    size.height >= CARD.height && size.width >= CARD.width -> Card(context, playing)
+                    size.height >= SQUARE.height -> Square(context, playing)
                     size.width >= ROW.width -> Line(context, playing)
                     else -> Narrow(context, playing)
                 }
@@ -124,6 +125,22 @@ class NowPlayingWidget : GlanceAppWidget() {
                     Skip(R.drawable.ic_widget_next, "Next", PlayerControl.ACTION_NEXT)
                 }
             }
+        }
+    }
+
+    /** Two rows but narrow: the cover large, play beside it, the words beneath. */
+    @Composable
+    private fun Square(context: Context, playing: NowPlaying) {
+        Column(modifier = GlanceModifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxWidth()) {
+                Cover(context, playing, 64.dp)
+                if (playing.track != null) {
+                    Spacer(GlanceModifier.defaultWeight())
+                    PlayPause(playing)
+                }
+            }
+            Spacer(GlanceModifier.height(10.dp))
+            Words(playing, titleSize = 15)
         }
     }
 
@@ -243,7 +260,8 @@ class NowPlayingWidget : GlanceAppWidget() {
     private companion object {
         val NARROW = DpSize(110.dp, 48.dp)
         val ROW = DpSize(250.dp, 48.dp)
-        val CARD = DpSize(180.dp, 130.dp)
+        val SQUARE = DpSize(150.dp, 130.dp)
+        val CARD = DpSize(250.dp, 130.dp)
 
         /** The eight-scalloped cookie of the avatar set; see AvatarCluster. */
         const val COVER_SHAPE = 5

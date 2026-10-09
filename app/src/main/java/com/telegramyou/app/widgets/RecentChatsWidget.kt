@@ -16,7 +16,6 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.components.Scaffold
 import androidx.glance.appwidget.components.TitleBar
 import androidx.glance.appwidget.cornerRadius
@@ -87,17 +86,7 @@ class RecentChatsWidget : GlanceAppWidget() {
                     startIcon = ImageProvider(R.drawable.ic_widget_mark),
                     title = "Chats",
                     iconColor = GlanceTheme.colors.primary,
-                    modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>()),
-                    actions = {
-                        // The app's own front door.
-                        CircleIconButton(
-                            imageProvider = ImageProvider(R.drawable.ic_widget_edit),
-                            contentDescription = "Open TelegramYou",
-                            onClick = actionStartActivity<MainActivity>(),
-                            backgroundColor = GlanceTheme.colors.primaryContainer,
-                            contentColor = GlanceTheme.colors.onPrimaryContainer
-                        )
-                    }
+                    modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>())
                 )
             }
         ) {
@@ -107,7 +96,7 @@ class RecentChatsWidget : GlanceAppWidget() {
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 14.sp),
                     modifier = GlanceModifier
                         .fillMaxWidth()
-                        .background(GlanceTheme.colors.surface)
+                        .background(GlanceTheme.colors.secondaryContainer)
                         .cornerRadius(20.dp)
                         .padding(16.dp)
                         .clickable(actionStartActivity<MainActivity>())
@@ -128,7 +117,7 @@ class RecentChatsWidget : GlanceAppWidget() {
     /**
      * One chat as a tile: the Expressive list, where each item is a rounded
      * surface of its own rather than a line between neighbours, and an
-     * unread chat stands out in the secondary container.
+     * unread chat stands out in the primary container.
      */
     @Composable
     private fun ChatTile(context: Context, chat: ChatPreview, shaped: Boolean) {
@@ -137,7 +126,7 @@ class RecentChatsWidget : GlanceAppWidget() {
             verticalAlignment = Alignment.CenterVertically,
             modifier = GlanceModifier
                 .fillMaxWidth()
-                .background(if (unread && !chat.isMuted) GlanceTheme.colors.secondaryContainer else GlanceTheme.colors.surface)
+                .background(if (unread && !chat.isMuted) GlanceTheme.colors.primaryContainer else GlanceTheme.colors.secondaryContainer)
                 .cornerRadius(20.dp)
                 .padding(horizontal = 10.dp, vertical = 8.dp)
                 .clickable(actionStartActivity(ConversationShortcuts.openIntent(context, chat.id)))
