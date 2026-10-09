@@ -252,6 +252,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (testRelease) proguardFile("proguard-test-release.pro")
             signingConfig =
                 if (testRelease) signingConfigs.getByName("debug")
                 else signingConfigs.findByName("release")
