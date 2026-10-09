@@ -55,7 +55,7 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.1.2 · 9 October 2026
+## Latest: 2.1.3 · 9 October 2026
 
 Chats as Android's conversations — priority ones, bubbles, and Direct
 Share from any app straight into a chat's composer. A notification

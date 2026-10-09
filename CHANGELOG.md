@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.1.3
+
+- **No notifications from chats you have not joined.** A channel's discussion group stayed live once its comments had been opened, and every new comment in it reached the shade. Only people, and groups and channels the account is in, notify now.
+
 ## 2.1.2
 
 - **Widgets draw.** Both home-screen widgets showed their loading spinner for good in the release build: R8 had removed a class WorkManager creates by name, and every widget draws through a WorkManager job. The release check now places both widgets on an emulator and fails when either does not draw.

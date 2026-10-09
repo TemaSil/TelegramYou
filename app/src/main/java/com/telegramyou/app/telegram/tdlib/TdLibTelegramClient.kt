@@ -4256,8 +4256,10 @@ class TdLibTelegramClient(
                 chatsById[chatId]?.put("last_message", message)
                 // Announced before publishChats, because a subscriber that
                 // reacts to the message should not have to race the chat list
-                // rebuild to see it.
-                _incomingMessages.tryEmit(mapped)
+                // rebuild to see it — and only from a chat the account is
+                // in: a discussion group whose comments were opened once
+                // keeps sending, and the shade filled with it (2.1.3).
+                if (isAccountsChat(chatId)) _incomingMessages.tryEmit(mapped)
                 emitUpdate(MessageUpdate.Added(mapped))
                 publishChats()
             }
@@ -4721,6 +4723,20 @@ class TdLibTelegramClient(
             chatsRepublishPending.set(false)
             withContext(updateDispatcher) { publishChats() }
         }
+    }
+
+    /** See com.telegramyou.app.notifications.isAccountsChat. */
+    private fun isAccountsChat(chatId: Long): Boolean {
+        val type = chatsById[chatId]?.optJSONObject("type")
+        val status = type?.takeIf { it.optString("@type") == "chatTypeSupergroup" }
+            ?.let { supergroups[it.optLong("supergroup_id")] }
+            ?.optJSONObject("status")
+        return com.telegramyou.app.notifications.isAccountsChat(
+            chatType = type?.optString("@type"),
+            memberStatus = status?.optString("@type"),
+            isMember = status?.optBoolean("is_member") == true,
+            listed = positions.isListed(chatId)
+        )
     }
 
     private suspend fun publishChats() = chatMutex.withLock {
