@@ -5,3 +5,7 @@
 # itself did not need it. AndroidJUnitRunner traces through androidx.tracing,
 # which is such a library.
 -keep class androidx.tracing.** { *; }
+# The Kotlin standard library is another: androidx.test's own Kotlin code
+# (TestStorage among it) calls into the app's copy.
+-keep class kotlin.** { *; }
+-keep class androidx.concurrent.** { *; }
