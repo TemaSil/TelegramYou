@@ -107,7 +107,7 @@ class NowPlayingWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = GlanceModifier.fillMaxWidth().defaultWeight()
             ) {
-                Cover(context, playing, 72.dp)
+                Cover(context, playing, 64.dp)
                 Spacer(GlanceModifier.width(14.dp))
                 Words(playing, titleSize = 18)
             }
@@ -148,13 +148,13 @@ class NowPlayingWidget : GlanceAppWidget() {
     @Composable
     private fun Line(context: Context, playing: NowPlaying) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxSize()) {
-            Cover(context, playing, 52.dp)
+            Cover(context, playing, 44.dp)
             Spacer(GlanceModifier.width(12.dp))
             Words(playing, titleSize = 15, modifier = GlanceModifier.defaultWeight())
             if (playing.track != null) {
                 Skip(R.drawable.ic_widget_previous, "Previous", PlayerControl.ACTION_PREVIOUS)
                 Spacer(GlanceModifier.width(4.dp))
-                PlayPause(playing)
+                PlayPause(playing, large = false)
                 Spacer(GlanceModifier.width(4.dp))
                 Skip(R.drawable.ic_widget_next, "Next", PlayerControl.ACTION_NEXT)
             }
@@ -165,10 +165,10 @@ class NowPlayingWidget : GlanceAppWidget() {
     @Composable
     private fun Narrow(context: Context, playing: NowPlaying) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = GlanceModifier.fillMaxSize()) {
-            Cover(context, playing, 48.dp)
+            Cover(context, playing, 44.dp)
             if (playing.track != null) {
                 Spacer(GlanceModifier.defaultWeight())
-                PlayPause(playing)
+                PlayPause(playing, large = false)
             }
         }
     }
@@ -230,19 +230,33 @@ class NowPlayingWidget : GlanceAppWidget() {
     }
 
     /**
-     * The button that matters, filled in the primary colour — Glance's
-     * square icon button, the larger of its two, so it outranks the round
-     * ones beside it the way Expressive's player does.
+     * The button that matters, filled in the primary colour: Glance's square
+     * icon button where there is room, the larger of its two, so it outranks
+     * the round ones beside it the way Expressive's player does — and the
+     * round one in a single row, which the square does not fit.
      */
     @Composable
-    private fun PlayPause(playing: NowPlaying) {
-        SquareIconButton(
-            imageProvider = ImageProvider(if (playing.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play),
-            contentDescription = if (playing.isPlaying) "Pause" else "Play",
-            onClick = actionRunCallback<PlayerControl>(actionParametersOf(PlayerControl.KEY to PlayerControl.ACTION_TOGGLE)),
-            backgroundColor = GlanceTheme.colors.primary,
-            contentColor = GlanceTheme.colors.onPrimary
-        )
+    private fun PlayPause(playing: NowPlaying, large: Boolean = true) {
+        val icon = ImageProvider(if (playing.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play)
+        val label = if (playing.isPlaying) "Pause" else "Play"
+        val toggle = actionRunCallback<PlayerControl>(actionParametersOf(PlayerControl.KEY to PlayerControl.ACTION_TOGGLE))
+        if (large) {
+            SquareIconButton(
+                imageProvider = icon,
+                contentDescription = label,
+                onClick = toggle,
+                backgroundColor = GlanceTheme.colors.primary,
+                contentColor = GlanceTheme.colors.onPrimary
+            )
+        } else {
+            CircleIconButton(
+                imageProvider = icon,
+                contentDescription = label,
+                onClick = toggle,
+                backgroundColor = GlanceTheme.colors.primary,
+                contentColor = GlanceTheme.colors.onPrimary
+            )
+        }
     }
 
     /** Previous and next, as tonal circles beside it. */
