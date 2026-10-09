@@ -18,3 +18,13 @@
 # workflow now starts the release on an emulator so it cannot happen quietly.
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -keep class androidx.work.impl.WorkDatabase_Impl { *; }
+
+# The rest of what WorkManager creates by name, which its own consumer rules
+# should keep and in this build do not. Without the input merger's
+# constructor no job runs at all — and every Glance widget draws through a
+# WorkManager job, so 2.1.1's widgets showed their loading spinner for good.
+# WidgetTest, which the Release check runs against the release, places both.
+-keep class * extends androidx.work.InputMerger { <init>(); }
+-keep class * extends androidx.work.ListenableWorker {
+    <init>(android.content.Context, androidx.work.WorkerParameters);
+}

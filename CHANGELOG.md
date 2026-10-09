@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.1.2
+
+- **Widgets draw.** Both home-screen widgets showed their loading spinner for good in the release build: R8 had removed a class WorkManager creates by name, and every widget draws through a WorkManager job. The release check now places both widgets on an emulator and fails when either does not draw.
+
 ## 2.1.1
 
 - **2.1 no longer dies on starting.** The release build, shrunk by R8, lost the class WorkManager — which the widgets bring — creates its database by, and the app closed before its first screen on every phone; the test builds were not shrunk and never showed it. The release build is now started on an emulator before any release can be made.
