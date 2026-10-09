@@ -3263,6 +3263,16 @@ class TdLibTelegramClient(
         )
     }
 
+    override suspend fun chatPhoto(chatId: Long): String? {
+        awaitReady()
+        val photo = chatsById[chatId]?.optJSONObject("photo") ?: return null
+        val big = photo.optJSONObject("big")
+        big?.localPathIfDownloaded()?.let { return it }
+        big?.optInt("id")?.takeIf { it != 0 }?.let { id -> downloadFile(id)?.let { return it } }
+        // The small one rather than nothing, if the big one would not come.
+        return photoPath(photo.optJSONObject("small"))
+    }
+
     override suspend fun downloadFile(fileId: Int): String? {
         awaitReady()
         return try {

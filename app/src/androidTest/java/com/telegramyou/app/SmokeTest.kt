@@ -1,6 +1,10 @@
 package com.telegramyou.app
 
 import android.os.Build
+import android.appwidget.AppWidgetHost
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import com.telegramyou.app.widgets.PersonWidget
 import android.app.NotificationManager
 import android.content.ContentValues
 import androidx.core.app.NotificationCompat
@@ -2399,6 +2403,64 @@ class SmokeTest {
     }
 
     /**
+     * The home screen's widgets with the demo's chats in them (2.2): the
+     * chats, the player as a card and as a row with music playing, and the
+     * contact photo — set up on the way, as a launcher has it set up when it
+     * is placed. Shown on WidgetBoard, the debug builds' stand-in home
+     * screen. Pictures for a person to judge; WidgetTest, which the Release
+     * check runs against the release, is the assertion that each draws.
+     */
+    @Test
+    fun widgetsOnAHomeScreen() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val app = context.applicationContext as TelegramYouApp
+        instrumentation.runOnMainSync { app.music.playSaved(SAVED_MESSAGES_ID) }
+        device.executeShellCommand("appwidget grantbind --package ${context.packageName} --user 0")
+        val manager = AppWidgetManager.getInstance(context)
+        val host = AppWidgetHost(context, WIDGET_HOST_ID)
+        val bound = mutableListOf<Int>()
+        fun bind(receiver: String): Int = host.allocateAppWidgetId().also { id ->
+            bound += id
+            val provider = ComponentName(context.packageName, "com.telegramyou.app.widgets.$receiver")
+            assertTrue("Could not bind $receiver", manager.bindAppWidgetIdIfAllowed(id, provider))
+        }
+        try {
+            val chats = bind("RecentChatsWidgetReceiver")
+            val card = bind("NowPlayingWidgetReceiver")
+            val row = bind("NowPlayingWidgetReceiver")
+            val person = bind("PersonWidgetReceiver")
+            context.startActivity(PersonWidget.setupIntent(context, person))
+            waitFor(By.text("Photo on the home screen"), "the contact photo's setup")
+            tap(By.text("Lina Park"))
+            tap(By.desc("Clover"))
+            screenshot("99a-contact-photo-setup")
+            tap(By.text("Add to home screen"))
+            device.wait(Until.gone(By.text("Photo on the home screen")), STEP_TIMEOUT)
+            context.startActivity(
+                Intent()
+                    .setClassName(context, "com.telegramyou.app.WidgetBoard")
+                    .putExtra("host", WIDGET_HOST_ID)
+                    .putExtra("ids", intArrayOf(chats, card, row, person))
+                    .putExtra("heights", intArrayOf(300, 150, 72, 170))
+                    .putExtra("widths", intArrayOf(0, 0, 0, 170))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+            waitFor(By.desc("Widget board"), "the stand-in home screen")
+            waitFor(By.text("Lina Park"), "the chats widget's list")
+            device.wait(Until.hasObject(By.desc("Pause")), STEP_TIMEOUT)
+            screenshot("99b-widgets")
+            device.pressBack()
+        } finally {
+            instrumentation.runOnMainSync { bound.forEach(host::deleteAppWidgetId) }
+            instrumentation.runOnMainSync { if (app.music.state.value.isPlaying) app.music.toggle() }
+        }
+    }
+
+    /**
      * The music library, switched on under For geeks and reached from My
      * music: its front page, an album — four tracks posted together — and
      * that album played from its first track as posted.
@@ -3660,6 +3722,9 @@ class SmokeTest {
         const val STEP_TIMEOUT = 20_000L
         /** The demo's Saved Messages, as its chat id; see DemoTelegramClient. */
         const val SAVED_MESSAGES_ID = 6L
+
+        /** The widgets' host in widgetsOnAHomeScreen, shared with WidgetBoard. */
+        const val WIDGET_HOST_ID = 0x7e1e
 
         /** How long one look through a fresh tree waits before the next. */
         const val FRESH_LOOK_MILLIS = 1_000L

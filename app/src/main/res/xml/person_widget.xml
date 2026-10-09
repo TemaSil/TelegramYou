@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    PersonWidget (2.2): someone's photo in a shape, two cells square to begin
+    with. Set up as it is placed (PersonWidgetSetup) and again on the
+    launcher's reconfigure.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="2"
+    android:minResizeWidth="50dp"
+    android:minResizeHeight="50dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="0"
+    android:configure="com.telegramyou.app.widgets.PersonWidgetSetup"
+    android:widgetFeatures="reconfigurable"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:description="@string/widget_person_desc" />

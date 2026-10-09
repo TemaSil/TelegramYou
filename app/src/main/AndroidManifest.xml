@@ -292,6 +292,33 @@
                 android:resource="@xml/now_playing_widget" />
         </receiver>
 
+        <receiver
+            android:name=".widgets.PersonWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_person">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/person_widget" />
+        </receiver>
+        <!--
+            Choosing the person and the shape for a PersonWidget. Exported:
+            the launcher opens it, with the widget's id, as the widget is
+            placed and when it is reconfigured.
+        -->
+        <activity
+            android:name=".widgets.PersonWidgetSetup"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.TelegramYou">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!--
             The music player's Media3 session. Exported with Media3's action,
             as its documentation requires: that is how the system's media

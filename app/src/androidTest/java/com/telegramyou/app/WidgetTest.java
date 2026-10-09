@@ -93,6 +93,13 @@ public class WidgetTest {
         waitForText(view, "Nothing playing", "99-widget-now-playing");
     }
 
+    @Test
+    public void contactPhotoAsksWhoBeforeAnyoneIsChosen() throws IOException {
+        // Placed without its setup having run, as a host that skips it would.
+        AppWidgetHostView view = place("com.telegramyou.app.widgets.PersonWidgetReceiver", 480, 480);
+        waitForText(view, "Choose someone", "99-widget-contact-photo");
+    }
+
     /** Binds a widget of [receiver]'s kind, as a launcher does when one is dropped on it. */
     private AppWidgetHostView place(String receiver, int width, int height) {
         ComponentName provider = new ComponentName(context.getPackageName(), receiver);

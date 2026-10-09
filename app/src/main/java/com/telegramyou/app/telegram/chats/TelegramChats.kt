@@ -74,6 +74,14 @@ interface TelegramChats {
     fun knownChat(chatId: Long): ChatPreview? = chats.value.firstOrNull { it.id == chatId }
 
     /**
+     * The chat's photo at full size, downloaded — for the home-screen photo
+     * widget (2.2), which shows it far larger than the list's avatar. The
+     * list's own small photo where a backend has nothing larger; null when
+     * the chat has no photo or it could not be fetched.
+     */
+    suspend fun chatPhoto(chatId: Long): String? = chats.value.firstOrNull { it.id == chatId }?.photoPath
+
+    /**
      * Chats matching [query], best matches first.
      *
      * A blank query returns nothing rather than everything: an empty search
