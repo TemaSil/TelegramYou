@@ -8,9 +8,12 @@
 # repository's credentials, but signed with the tracked debug key, since the
 # owner's key has no business on a runner that publishes nothing.
 #
-# It opens the app and waits; it does not sign in. A crash is kept with its
-# stack retraced through R8's mapping, in the release-check branch, as the
-# other workflows keep their evidence.
+# It opens the app and waits; it does not sign in. Then it puts each
+# home-screen widget on a host and waits for it to draw (WidgetTest) — 2.1.1's
+# widgets never got past their loading spinner, and nothing had ever placed
+# one. A crash is kept with its stack retraced through R8's mapping, in the
+# release-check branch, as the other workflows keep their evidence, with the
+# pictures the widget test took.
 name: Release check
 
 # On every push to main as well, so a release — which requires this to have
@@ -18,7 +21,7 @@ name: Release check
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'fix/widgets-loading']
 
 permissions:
   contents: write
@@ -46,18 +49,12 @@ jobs:
         with:
           cache-read-only: true
 
-      - name: Build the release, unsigned
-        run: ./gradlew :app:assembleRelease --stacktrace
-
-      - name: Sign it with the debug key
+      # testRelease signs the release with the tracked debug key and points
+      # the instrumentation tests at it; see app/build.gradle.kts.
+      - name: Build the release and its tests
         run: |
-          set -e
-          unsigned=$(find app/build/outputs/apk/release -name '*.apk' | head -1)
-          tools=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
-          "$ANDROID_HOME/build-tools/$tools/apksigner" sign \
-            --ks app/debug.keystore --ks-pass pass:android \
-            --ks-key-alias androiddebugkey --key-pass pass:android \
-            --out release-signed.apk "$unsigned"
+          ./gradlew :app:assembleRelease :app:assembleReleaseAndroidTest -PtestRelease=true --stacktrace
+          cp "$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' | head -1)" release-signed.apk
           ls -la release-signed.apk
 
       - name: Enable KVM
@@ -84,6 +81,7 @@ jobs:
             adb shell monkey -p com.telegramyou.app -c android.intent.category.LAUNCHER 1
             sleep 25
             adb exec-out screencap -p > started.png || true
+            ./gradlew :app:connectedReleaseAndroidTest -PtestRelease=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.WidgetTest --stacktrace || true
             adb logcat -d > logcat.txt || true
 
       - name: Gather the evidence
@@ -91,9 +89,16 @@ jobs:
         run: |
           mkdir -p evidence
           cp started.png evidence/ 2>/dev/null || true
-          # Not the whole log: the crash, and the app's own lines.
+          find app/build/outputs -name '99-widget-*.png' -exec cp {} evidence/ \; 2>/dev/null || true
+          mkdir -p evidence/results
+          cp -r app/build/outputs/androidTest-results/connected/. evidence/results/ 2>/dev/null || true
+          find evidence/results -type f ! -name '*.xml' -delete 2>/dev/null || true
+          # Not the whole log: the crash, and the app's own lines — the
+          # widgets' among them, which Glance and WorkManager log under
+          # their own tags.
           grep -A 60 "FATAL EXCEPTION" logcat.txt > evidence/crash.txt 2>/dev/null || true
-          grep -iE "telegramyou|AndroidRuntime|TdLib" logcat.txt | tail -300 > evidence/app-log.txt 2>/dev/null || true
+          grep "Displayed com.telegramyou.app" logcat.txt > evidence/displayed.txt 2>/dev/null || true
+          grep -iE "telegramyou|AndroidRuntime|TdLib|Glance|WM-|WorkManager|AppWidget" logcat.txt | tail -600 > evidence/app-log.txt 2>/dev/null || true
           if [ -s evidence/crash.txt ]; then
             # The mapping is read here, not published: it is tens of
             # megabytes, and the push of the evidence failed on it.
@@ -133,4 +138,20 @@ jobs:
         run: |
           if [ -s evidence/crash.txt ]; then exit 1; fi
           # The evidence, not logcat.txt: publishing it clears the workspace.
-          grep -q "Displayed com.telegramyou.app" evidence/app-log.txt || { echo "::error::The app never showed a window."; exit 1; }
+          [ -s evidence/displayed.txt ] || { echo "::error::The app never showed a window."; exit 1; }
+          # The report, not Gradle's exit code, which is 0 with a test failed
+          # (see CLAUDE.md); and a run with no tests in it fails too.
+          python3 - <<'PY'
+          import glob, sys, xml.etree.ElementTree as ET
+          tests = failed = 0
+          for path in glob.glob('evidence/results/**/*.xml', recursive=True):
+              root = ET.parse(path).getroot()
+              for suite in ([root] if root.tag == 'testsuite' else root.iter('testsuite')):
+                  tests += int(suite.get('tests', 0))
+                  failed += int(suite.get('failures', 0)) + int(suite.get('errors', 0))
+                  for case in suite.iter('testcase'):
+                      for bad in list(case.findall('failure')) + list(case.findall('error')):
+                          print(f"::error title={case.get('name')}::{(bad.get('message') or bad.text or '')[:600]}")
+          print(f"::notice title=Widget test::{tests} run, {failed} failed")
+          sys.exit(1 if tests == 0 or failed else 0)
+          PY

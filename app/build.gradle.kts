@@ -79,6 +79,15 @@ val localProperties = Properties().apply {
  * login code, which a live build does not have.
  */
 val forceDemo = providers.gradleProperty("demoClient").orNull == "true"
+
+/**
+ * `-PtestRelease=true` points the instrumentation tests at the release build
+ * — R8-shrunk, as people install it — and signs that release with the tracked
+ * debug key, which is all the Release check workflow uses it for. The
+ * Release workflow never sets it: what it publishes is signed with the
+ * owner's key or not built.
+ */
+val testRelease = providers.gradleProperty("testRelease").orNull == "true"
 val telegramApiId: String =
     if (forceDemo) "0"
     else localProperties.getProperty("TELEGRAM_API_ID")?.takeIf { it.isNotBlank() }
@@ -229,6 +238,8 @@ android {
         }
     }
 
+    if (testRelease) testBuildType = "release"
+
     buildTypes {
         // The build people install: live only, shrunk and optimised by R8,
         // signed with the owner's key. Debug is the one for testing — the
@@ -241,7 +252,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.findByName("release")
+            signingConfig =
+                if (testRelease) signingConfigs.getByName("debug")
+                else signingConfigs.findByName("release")
             buildConfigField("boolean", "USE_DEMO_CLIENT", "false")
             buildConfigField("boolean", "DEMO_ALLOWED", "false")
             buildConfigField("String", "UPDATE_ASSET", "\"TelegramYou.apk\"")

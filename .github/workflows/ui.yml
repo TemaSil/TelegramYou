@@ -141,7 +141,7 @@ jobs:
             # failure, so leaving it to skip itself turns the run red.
             # One line: the emulator runner executes each line of this
             # script on its own, so a backslash continuation is two commands.
-            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest -Pandroid.testInstrumentationRunnerArguments.numShards=4 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard }} --stacktrace || echo failed > failed.marker
+            ./gradlew :app:connectedDebugAndroidTest -PdemoClient=true -Pandroid.testInstrumentationRunnerArguments.class=com.telegramyou.app.SmokeTest,com.telegramyou.app.WidgetTest -Pandroid.testInstrumentationRunnerArguments.numShards=4 -Pandroid.testInstrumentationRunnerArguments.shardIndex=${{ matrix.shard }} --stacktrace || echo failed > failed.marker
             # Pulled whether or not the test passed: a screenshot of the wrong
             # screen is the most useful thing there is when it failed.
             # Nothing is pulled off the device: the screenshots go through
