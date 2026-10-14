@@ -597,8 +597,11 @@ class SmokeTest {
         waitFor(By.text("My story"), "the stories rail")
         awaitNoHeadsUp()
         tap(By.text("My story"))
-        waitFor(By.text("New story"), "the new story screen")
+        // The question first: since the attach panel's strip went (2.2)
+        // this screen is the one that asks for photos, and its dialog stands
+        // over the screen before the screen can be found under it.
         allowPhotos()
+        waitFor(By.text("New story"), "the new story screen")
         waitFor(By.desc("Recent photo"), "a recent photo to post")
         // The widest of the carousel's photos, not the first found: that was
         // the sliver at the right edge, and its centre is off the screen.
