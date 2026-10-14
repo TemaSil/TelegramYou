@@ -679,11 +679,15 @@ fun ChatScreen(
     // composition: the inset changes every frame the keyboard slides, and
     // this whole screen recomposing with it is what that would cost.
     val expressionsOpen = state.expressions != null
+    // The plus's panel takes the same place (2.2), and everything said here
+    // of the emoji panel holds for it.
+    val attachOpen = state.attachmentSheetOpen
+    val panelOpen = expressionsOpen || attachOpen
     val density = LocalDensity.current
     val imeInsets = WindowInsets.ime
     val navInsets = WindowInsets.navigationBars
     var keyboardHeight by rememberSaveable { mutableIntStateOf(0) }
-    val latestExpressionsOpen by rememberUpdatedState(expressionsOpen)
+    val latestPanelOpen by rememberUpdatedState(panelOpen)
     LaunchedEffect(imeInsets, navInsets) {
         snapshotFlow { imeInsets.getBottom(density) - navInsets.getBottom(density) }
             .collect { height -> if (height > keyboardHeight) keyboardHeight = height }
@@ -692,7 +696,12 @@ fun ChatScreen(
     // panel away: one keyboard at a time, as with the bot's.
     LaunchedEffect(imeInsets) {
         snapshotFlow { imeInsets.getBottom(density) > 0 }
-            .collect { up -> if (up && latestExpressionsOpen) onExpressionsClose() }
+            .collect { up ->
+                if (up && latestPanelOpen) {
+                    onExpressionsClose()
+                    onAttachmentSheetOpenChange(false)
+                }
+            }
     }
     val panelHeight = if (keyboardHeight > 0) {
         with(density) { keyboardHeight.toDp() }.coerceAtLeast(PANEL_MIN_HEIGHT)
@@ -719,8 +728,11 @@ fun ChatScreen(
     // the keyboard up the Box ends that far inside the keyboard (the screen's
     // Column pads by the keyboard less the bar), so the same lift puts the
     // capsule exactly on the keyboard.
-    val composerLift = if (expressionsOpen) 0.dp else navBarHeight
-    BackHandler(enabled = expressionsOpen) { onExpressionsClose() }
+    val composerLift = if (panelOpen) 0.dp else navBarHeight
+    BackHandler(enabled = panelOpen) {
+        onExpressionsClose()
+        onAttachmentSheetOpenChange(false)
+    }
 
     // What the open menu offers to react with: the message's own list, with
     // Telegram's animations, once asked; the chat's until then.
@@ -1582,33 +1594,6 @@ fun ChatScreen(
                         onClear = onSelectionCleared
                     )
                 } else {
-                    if (state.attachmentSheetOpen) {
-                        AttachmentSheet(
-                            onDismiss = { onAttachmentSheetOpenChange(false) },
-                            onPickPhoto = {
-                                photoPicker.launch(
-                                    androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            onPickFile = { filePicker.launch(arrayOf("*/*")) },
-                            onTakePhoto = onTakePhoto,
-                            // Several at once (2.0): each tap in the strip puts a
-                            // photo in or takes it out, and the sheet stays up
-                            // until they are all picked.
-                            onPickRecent = onRecentPhotoToggled,
-                            selected = (state.pendingAttachment as? AttachmentDraft.Photos)?.uris.orEmpty().toSet(),
-                            onPoll = if (state.canSendPolls) onPollOpen else null,
-                            onContact = onContactPickerOpen,
-                            onLocation = {
-                                onAttachmentSheetOpenChange(false)
-                                if (hasLocationPermission(context)) {
-                                    locationOpen = true
-                                } else {
-                                    locationPermission.launch(LOCATION_PERMISSIONS)
-                                }
-                            }
-                        )
-                    }
                     state.contactPicker?.let { contacts ->
                         ContactPickerSheet(
                             contacts = contacts,
@@ -1651,11 +1636,24 @@ fun ChatScreen(
                         },
                         value = state.draft,
                         onValueChange = onDraftChange,
-                        onAttach = { onAttachmentSheetOpenChange(true) },
+                        // The plus opens its panel in the keyboard's place,
+                        // and, turned into a cross, puts it away (2.2).
+                        attachOpen = attachOpen,
+                        onAttach = {
+                            if (attachOpen) {
+                                onAttachmentSheetOpenChange(false)
+                            } else {
+                                keyboardController?.hide()
+                                botKeyboardShown = false
+                                onExpressionsClose()
+                                onAttachmentSheetOpenChange(true)
+                            }
+                        },
                         expressionsOpen = expressionsOpen,
                         onExpressions = {
                             keyboardController?.hide()
                             botKeyboardShown = false
+                            onAttachmentSheetOpenChange(false)
                             onExpressionsOpen()
                         },
                         onKeyboard = {
@@ -1749,6 +1747,56 @@ fun ChatScreen(
                     }
                 }
             }
+            }
+
+            // What the plus opens, in the keyboard's place as the emoji panel
+            // is (2.2, after Google Messages): the composer stays above it.
+            if (attachOpen) {
+                AttachPanel(
+                    // Taller than the keyboard where the keyboard is short, as
+                    // Messages' is: the recent photos and two rows of buttons
+                    // all in sight, nothing to scroll for.
+                    height = maxOf(panelHeight, LocalConfiguration.current.screenHeightDp.dp * ATTACH_PANEL_SHARE) + navBarHeight,
+                    bottomInset = navBarHeight,
+                    onDismiss = { onAttachmentSheetOpenChange(false) },
+                    onPickPhoto = {
+                        photoPicker.launch(
+                            androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    onPickFile = { filePicker.launch(arrayOf("*/*")) },
+                    onTakePhoto = onTakePhoto,
+                    // Several at once (2.0): each tap in the strip puts a
+                    // photo in or takes it out, and the panel stays up
+                    // until they are all picked.
+                    onPickRecent = onRecentPhotoToggled,
+                    selected = (state.pendingAttachment as? AttachmentDraft.Photos)?.uris.orEmpty().toSet(),
+                    onGifs = {
+                        onAttachmentSheetOpenChange(false)
+                        onExpressionTab(ExpressionTab.Gifs)
+                    },
+                    onStickers = {
+                        onAttachmentSheetOpenChange(false)
+                        onExpressionTab(ExpressionTab.Stickers)
+                    },
+                    onPoll = if (state.canSendPolls) onPollOpen else null,
+                    onContact = onContactPickerOpen,
+                    onLocation = {
+                        onAttachmentSheetOpenChange(false)
+                        if (hasLocationPermission(context)) {
+                            locationOpen = true
+                        } else {
+                            locationPermission.launch(LOCATION_PERMISSIONS)
+                        }
+                    },
+                    // A time for what is typed; nothing typed, nothing to schedule.
+                    onSchedule = if (state.draft.isNotBlank() && state.pendingAttachment == null && state.editing == null) {
+                        {
+                            onAttachmentSheetOpenChange(false)
+                            schedulePicking = true
+                        }
+                    } else null
+                )
             }
 
             // Under the composer, in the keyboard's place; see keyboardHeight.
@@ -2072,6 +2120,9 @@ internal val HIGHLIGHT_CORNER = 20.dp
 /** How much of the screen the expression panel may be pulled up to. */
 private const val PANEL_EXPANDED_SHARE = 0.72f
 private val PANEL_DEFAULT_HEIGHT = 300.dp
+
+/** The least of the screen the plus's panel takes; see AttachPanel. */
+private const val ATTACH_PANEL_SHARE = 0.46f
 
 /** No shorter than this, whatever a floating or split keyboard measured. */
 private val PANEL_MIN_HEIGHT = 240.dp

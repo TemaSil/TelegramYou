@@ -897,7 +897,8 @@ class SmokeTest {
 
         tap(By.desc("Attach"))
         allowPhotos()
-        waitFor(By.text("Photo or video"), "the attachment sheet")
+        // The plus's panel, in the keyboard's place (2.2), its grid of buttons.
+        waitFor(By.desc("Gallery"), "the attach panel")
         // The carousel, not just the sheet around it. Without this the test
         // would pass on a build where the strip never drew — which is what
         // it looked like before the gallery was seeded, and is
@@ -1935,7 +1936,7 @@ class SmokeTest {
         // The sheet asks for the photos it shows recent ones from; which test
         // meets that request first depends on how the runner shards them.
         allowPhotos()
-        tap(By.text("Poll"))
+        tap(By.desc("Poll"))
         waitFor(By.text("New poll"), "the poll form")
         // By name: the chat's own field is behind the dialog, and a search
         // by class alone finds it first.
@@ -3539,7 +3540,7 @@ class SmokeTest {
         allowPhotos()
         // On screen with the sheet all the way up, as Poll is in the poll
         // test: scrolling for it would drag the sheet itself away.
-        tap(By.text("Location"))
+        tap(By.desc("Location"))
         waitFor(By.text("Send your location?"), "the location dialog")
         SystemClock.sleep(1_500)
         screenshot("67-send-location")

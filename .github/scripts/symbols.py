@@ -34,7 +34,7 @@ NotificationsOff OpenInNew Pause Person Phone PhoneAndroid PhoneIphone PhotoCame
 Palette PersonAdd PhotoLibrary PlayArrow Poll Public PushPin QrCode2 Reply Schedule Science Search
 Send Settings Share Snooze Stop SwitchCamera Translate SportsEsports Storage SystemUpdate TabletMac Unarchive
 Visibility VisibilityOff VolumeOff VolumeUp VpnKey WorkspacePremium
-Crop Rotate90DegreesCcw PersonCheck
+Crop Rotate90DegreesCcw PersonCheck Sticker
 """.split()
 
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/android"

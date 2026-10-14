@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -260,6 +261,8 @@ internal fun ComposerBar(
     value: String,
     onValueChange: (String) -> Unit,
     onAttach: () -> Unit,
+    /** The plus's panel is up: the plus turns into a cross that puts it away (2.2). */
+    attachOpen: Boolean = false,
     /**
      * The emoji, GIF and sticker panel, from the smiley at the end of the
      * field — and [onKeyboard], from the keyboard key that stands there
@@ -478,6 +481,7 @@ internal fun ComposerBar(
 
     if (capsule) {
         CapsuleComposer(
+            attachOpen = attachOpen,
             attachedAbove = attachedAbove,
             bottomMargin = bottomMargin,
             recording = recordingSince != null,
@@ -552,7 +556,19 @@ internal fun ComposerBar(
                         enabled = recordingSince == null,
                         modifier = Modifier.padding(bottom = PLAIN_LIFT)
                     ) {
-                        Icon(Symbols.AddCircle, contentDescription = "Attach")
+                        // A circled plus turned an eighth is a circled cross:
+                        // one glyph, turning on the theme's spring, as
+                        // Messages' plus does when its panel opens.
+                        val turn by animateFloatAsState(
+                            targetValue = if (attachOpen) 45f else 0f,
+                            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                            label = "plusTurn"
+                        )
+                        Icon(
+                            Symbols.AddCircle,
+                            contentDescription = if (attachOpen) "Close attachments" else "Attach",
+                            modifier = Modifier.rotate(turn)
+                        )
                     }
                     // Pulled in towards the plus: a TextField keeps sixteen
                     // inside its start, which after the plus's own twelve
@@ -582,6 +598,7 @@ internal fun ComposerBar(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CapsuleComposer(
+    attachOpen: Boolean,
     attachedAbove: Boolean,
     bottomMargin: Dp,
     recording: Boolean,
@@ -641,7 +658,10 @@ private fun CapsuleComposer(
                 enabled = !recording,
                 modifier = Modifier.padding(bottom = ComposerButtonLift)
             ) {
-                Icon(Symbols.AttachFile, contentDescription = "Attach")
+                Icon(
+                    if (attachOpen) Symbols.Close else Symbols.AttachFile,
+                    contentDescription = if (attachOpen) "Close attachments" else "Attach"
+                )
             }
             camera()
             field(

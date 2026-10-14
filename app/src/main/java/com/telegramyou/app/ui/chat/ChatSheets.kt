@@ -1,5 +1,12 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.material3.Surface
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.SearchBarDefaults
@@ -219,18 +226,24 @@ internal fun ForwardSheet(
 }
 
 /**
- * What the paperclip opens.
+ * What the plus opens (2.2, after Google Messages): a panel in the
+ * keyboard's place, as the emoji panel is, rather than a sheet over the
+ * conversation — the recent photos along its top, and under them a grid of
+ * what can be sent, each a round tonal button with its name.
  *
- * `ModalBottomSheet` with `ListItem` rows, which is what Material ships for
- * "choose one of these" — Telegram draws a grid of its own here, and this is
- * the platform's answer to the same question.
+ * Expressive's own icon buttons, the medium size in their wide form, which
+ * is what Messages draws there; the composer stays in view above, and the
+ * plus turns into a cross to put the panel away.
  *
  * Camera hands the photo straight to the composer as a draft, the same shape
  * the gallery picker produces, so everything downstream treats the two alike.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-internal fun AttachmentSheet(
+internal fun AttachPanel(
+    height: Dp,
+    /** The navigation bar's height, which the panel runs under and keeps clear. */
+    bottomInset: Dp,
     onDismiss: () -> Unit,
     onPickPhoto: () -> Unit,
     onPickFile: () -> Unit,
@@ -238,113 +251,122 @@ internal fun AttachmentSheet(
     onPickRecent: (String) -> Unit,
     /** The recent photos already picked, ticked in the strip (2.0). */
     selected: Set<String> = emptySet(),
+    onGifs: () -> Unit = {},
+    onStickers: () -> Unit = {},
     /** A poll, where the chat takes them — groups and channels. */
     onPoll: (() -> Unit)? = null,
     /** Somebody's card, from this account's contacts. */
     onContact: () -> Unit = {},
     /** Where this phone is, sent once. */
-    onLocation: () -> Unit = {}
+    onLocation: () -> Unit = {},
+    /** What is typed, sent later; null where there is nothing typed to send. */
+    onSchedule: (() -> Unit)? = null
 ) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        // All the way up at once: half open, the rows past File sit under the fold.
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
     ) {
-        // Everything but the button at the bottom, which stays in reach
-        // however tall the sheet is: the rows scroll above it if they must.
-        Column(
-            Modifier
-                .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState())
-        ) {
-        // The pictures somebody is most likely to send are the ones they just
-        // took, and reaching them through a row called "Photo or video" is a
-        // screen and a scroll away from the sheet that was supposed to be the
-        // shortcut. Draws nothing without the permission for it.
-        RecentPhotoCarousel(
-            onPick = onPickRecent,
-            selected = selected,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        // Transparent containers, all three. A ListItem paints itself
-        // `surface` by default, and a ModalBottomSheet is
-        // `surfaceContainerLow` — so the rows sat as three pale slabs on a
-        // slightly darker sheet, with seams between them. Inside a container
-        // that has already chosen a tone, the rows take it.
-        val sheetRow = ListItemDefaults.colors(containerColor = Color.Transparent)
-        ListItem(
-            headlineContent = { Text("Photo or video") },
-            supportingContent = { Text("From the gallery") },
-            leadingContent = { Icon(Symbols.Image, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onPickPhoto)
-        )
-        ListItem(
-            headlineContent = { Text("Camera") },
-            supportingContent = { Text("Take a photo now") },
-            leadingContent = { Icon(Symbols.PhotoCamera, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onTakePhoto)
-        )
-        ListItem(
-            headlineContent = { Text("File") },
-            supportingContent = { Text("Anything else") },
-            leadingContent = { Icon(Symbols.AttachFile, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onPickFile)
-        )
-        ListItem(
-            headlineContent = { Text("Contact") },
-            supportingContent = { Text("Send somebody's card") },
-            leadingContent = { Icon(Symbols.Person, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onContact)
-        )
-        ListItem(
-            headlineContent = { Text("Location") },
-            supportingContent = { Text("Send where you are") },
-            leadingContent = { Icon(Symbols.LocationOn, contentDescription = null) },
-            colors = sheetRow,
-            modifier = Modifier.clickable(onClick = onLocation)
-        )
-        if (onPoll != null) {
-            ListItem(
-                headlineContent = { Text("Poll") },
-                supportingContent = { Text("A question with answers to vote on") },
-                leadingContent = { Icon(Symbols.Poll, contentDescription = null) },
-                colors = sheetRow,
-                modifier = Modifier.clickable(onClick = onPoll)
-            )
-        }
-        }
-        // Picked from the strip, they are already in the composer; this only
-        // puts the sheet away to show them there. At the bottom of the sheet,
-        // where the thumb ends up and where a sheet's action sits (2.0.1) —
-        // it used to sit under the strip, and pushed the rows down as it came.
-        AnimatedVisibility(
-            visible = selected.isNotEmpty(),
-            enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
-            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
-                shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
-        ) {
-            // The count as it was last shown, so the label does not read
-            // "Attach 0 photos" while the button leaves.
-            var lastShown by remember { mutableIntStateOf(selected.size) }
-            SideEffect { if (selected.isNotEmpty()) lastShown = selected.size }
-            val shown = if (selected.isNotEmpty()) selected.size else lastShown
-            androidx.compose.material3.Button(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp)
+        Column(Modifier.padding(bottom = bottomInset)) {
+            // Everything but the button at the bottom, which stays in reach:
+            // the rest scrolls above it on a short screen.
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 12.dp)
             ) {
-                Text(if (shown == 1) "Attach 1 photo" else "Attach $shown photos")
+                // The pictures somebody is most likely to send are the ones
+                // they just took. Draws nothing without the permission for it.
+                RecentPhotoCarousel(
+                    onPick = onPickRecent,
+                    selected = selected,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+                val actions = buildList {
+                    add(AttachAction("Gallery", Symbols.PhotoLibrary, onPickPhoto))
+                    add(AttachAction("Camera", Symbols.PhotoCamera, onTakePhoto))
+                    add(AttachAction("GIFs", Symbols.Gif, onGifs))
+                    add(AttachAction("Stickers", Symbols.Sticker, onStickers))
+                    add(AttachAction("Files", Symbols.AttachFile, onPickFile))
+                    add(AttachAction("Location", Symbols.LocationOn, onLocation))
+                    add(AttachAction("Contacts", Symbols.Person, onContact))
+                    if (onPoll != null) add(AttachAction("Poll", Symbols.Poll, onPoll))
+                    if (onSchedule != null) add(AttachAction("Schedule send", Symbols.Schedule, onSchedule))
+                }
+                actions.chunked(ATTACH_COLUMNS).forEach { row ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                        row.forEach { action -> AttachButton(action, Modifier.weight(1f)) }
+                        repeat(ATTACH_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
+            }
+            // Picked from the strip, they are already in the composer; this
+            // only puts the panel away to show them there.
+            AnimatedVisibility(
+                visible = selected.isNotEmpty(),
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                    expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                    shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
+            ) {
+                // The count as it was last shown, so the label does not read
+                // "Attach 0 photos" while the button leaves.
+                var lastShown by remember { mutableIntStateOf(selected.size) }
+                SideEffect { if (selected.isNotEmpty()) lastShown = selected.size }
+                val shown = if (selected.isNotEmpty()) selected.size else lastShown
+                androidx.compose.material3.Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Text(if (shown == 1) "Attach 1 photo" else "Attach $shown photos")
+                }
             }
         }
-        Spacer(Modifier.height(24.dp))
     }
 }
+
+private data class AttachAction(val label: String, val icon: ImageVector, val onClick: () -> Unit)
+
+/** One of the panel's buttons: Expressive's medium wide icon button, its name under it. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun AttachButton(action: AttachAction, modifier: Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
+        FilledTonalIconButton(
+            onClick = action.onClick,
+            shape = IconButtonDefaults.mediumRoundShape,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier
+                .size(IconButtonDefaults.mediumContainerSize(IconButtonDefaults.IconButtonWidthOption.Wide))
+                .semantics { contentDescription = action.label }
+        ) {
+            Icon(action.icon, contentDescription = null, modifier = Modifier.size(IconButtonDefaults.mediumIconSize))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            action.label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            // Its name is the button's; read once, from the button.
+            modifier = Modifier.clearAndSetSemantics {}
+        )
+    }
+}
+
+/** Four to a row, as Messages has them. */
+private const val ATTACH_COLUMNS = 4
 
 /** This account's contacts, one of whom to send as a card. */
 @OptIn(ExperimentalMaterial3Api::class)
