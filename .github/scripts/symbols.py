@@ -25,7 +25,7 @@ ICONS = """
 Add AddAPhoto AddCircle AddReaction AlternateEmail Archive ArrowBack AttachFile Block Bookmark
 Campaign Chat Check CheckCircle Close FormatQuote Computer Contacts ContentCopy ContentPaste DarkMode
 Delete DeleteSweep Description DesktopWindows Devices Done DoneAll Download Edit EmojiEmotions Folder
-ArrowUpward ArrowDownward Backspace Fingerprint Gif LocationOn MyLocation Tag PictureInPictureAlt
+ArrowUpward ArrowDownward Backspace Fingerprint LocationOn MyLocation Tag PictureInPictureAlt
 AdminPanelSettings Forum SkipNext SkipPrevious QueueMusic Shuffle Repeat RepeatOne GraphicEq Bedtime Equalizer LibraryMusic
 ErrorOutline Forward Group History Image Info InstallMobile Keyboard
 KeyboardArrowDown KeyboardArrowUp ChevronLeft KeyboardHide Language LaptopMac LightMode Link Lock Logout
@@ -34,7 +34,7 @@ NotificationsOff OpenInNew Pause Person Phone PhoneAndroid PhoneIphone PhotoCame
 Palette PersonAdd PhotoLibrary PlayArrow Poll Public PushPin QrCode2 Reply Schedule Science Search
 Send Settings Share Snooze Stop SwitchCamera Translate SportsEsports Storage SystemUpdate TabletMac Unarchive
 Visibility VisibilityOff VolumeOff VolumeUp VpnKey WorkspacePremium
-Crop Rotate90DegreesCcw PersonCheck Sticker
+Crop Rotate90DegreesCcw PersonCheck Sticker GifBox
 """.split()
 
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/android"

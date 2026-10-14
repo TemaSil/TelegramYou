@@ -271,7 +271,7 @@ internal fun AttachPanel(
             val actions = buildList {
                 add(AttachAction("Gallery", Symbols.PhotoLibrary, onPickPhoto))
                 add(AttachAction("Camera", Symbols.PhotoCamera, onTakePhoto))
-                add(AttachAction("GIFs", Symbols.Gif, onGifs))
+                add(AttachAction("GIFs", Symbols.GifBox, onGifs))
                 add(AttachAction("Stickers", Symbols.Sticker, onStickers))
                 add(AttachAction("Files", Symbols.AttachFile, onPickFile))
                 add(AttachAction("Location", Symbols.LocationOn, onLocation))

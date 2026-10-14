@@ -170,7 +170,7 @@ private fun ResultRow(result: InlineResult, onPick: (InlineResult) -> Unit) {
 
 private fun kindIcon(kind: InlineResultKind): ImageVector = when (kind) {
     InlineResultKind.Photo -> Symbols.Image
-    InlineResultKind.Gif, InlineResultKind.Video -> Symbols.Gif
+    InlineResultKind.Gif, InlineResultKind.Video -> Symbols.GifBox
     InlineResultKind.Sticker -> Symbols.EmojiEmotions
     InlineResultKind.Audio -> Symbols.MusicNote
     InlineResultKind.Voice -> Symbols.Mic

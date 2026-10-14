@@ -850,7 +850,7 @@ internal fun MessageBubble(
                 if (message.contentType == MessageContentType.Animation && message.video != null) {
                     DropdownMenuItem(
                         text = { Text("Add to GIFs") },
-                        leadingIcon = { Icon(Symbols.Gif, contentDescription = null) },
+                        leadingIcon = { Icon(Symbols.GifBox, contentDescription = null) },
                         onClick = {
                             onSaveGif()
                             menuOpen = false
