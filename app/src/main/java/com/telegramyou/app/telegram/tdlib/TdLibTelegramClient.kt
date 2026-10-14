@@ -277,9 +277,9 @@ class TdLibTelegramClient(
     // stalls every other update behind this one.
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
 
-    /** See TelegramChats.isOnline; from TDLib's updateConnectionState. */
-    private val _online = MutableStateFlow(true)
-    override val isOnline: StateFlow<Boolean> = _online.asStateFlow()
+    /** See TelegramChats.isConnected; from TDLib's updateConnectionState. */
+    private val _connected = MutableStateFlow(true)
+    override val isConnected: StateFlow<Boolean> = _connected.asStateFlow()
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
     // Same buffering, for the same reason: emitted from the update handler.
@@ -1334,10 +1334,10 @@ class TdLibTelegramClient(
         // wait with it, never opening offline (2.2, from the owner).
         val local = historyPage(chatId, onlyLocal = true)
         if (local.length() >= HISTORY_PAGE) return local
-        if (!_online.value && local.length() > 0) return local
+        if (!_connected.value && local.length() > 0) return local
         // Then the server, for as long as a person waits on a chat opening;
         // past that, what is here — and the conversation reloads by itself
-        // when the connection comes back (ChatViewModel, isOnline).
+        // when the connection comes back (ChatViewModel, isConnected).
         val remote = withTimeoutOrNull(HISTORY_REMOTE_WAIT_MS) { historyPage(chatId, onlyLocal = false) }
         return if (remote != null && remote.length() >= local.length()) remote else local
     }
@@ -4313,7 +4313,7 @@ class TdLibTelegramClient(
             }
             "updateConnectionState" -> {
                 // Online only when TDLib says it is caught up with the server.
-                _online.value = update.optJSONObject("state")?.optString("@type") == "connectionStateReady"
+                _connected.value = update.optJSONObject("state")?.optString("@type") == "connectionStateReady"
             }
             "updateNewMessage" -> {
                 val message = update.optJSONObject("message") ?: return

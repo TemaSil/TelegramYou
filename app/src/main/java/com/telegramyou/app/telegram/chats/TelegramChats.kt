@@ -77,7 +77,7 @@ interface TelegramChats {
      * shows what this device holds, and reloads when this turns true.
      * Always true where there is no server, the demo's case.
      */
-    val isOnline: StateFlow<Boolean> get() = AlwaysOnline
+    val isConnected: StateFlow<Boolean> get() = AlwaysConnected
 
     fun knownChat(chatId: Long): ChatPreview? = chats.value.firstOrNull { it.id == chatId }
 
@@ -283,5 +283,5 @@ interface TelegramChats {
     suspend fun openPrivateChat(userId: Long): Long
 }
 
-/** isOnline for a backend with no server to lose. */
-private val AlwaysOnline: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true)
+/** isConnected for a backend with no server to lose. */
+private val AlwaysConnected: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true)

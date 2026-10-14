@@ -391,7 +391,7 @@ class ChatViewModel(
         // (TdLibTelegramClient.firstPage); when the connection comes back, the
         // server's copy, without being asked (2.2).
         viewModelScope.launch {
-            repository.isOnline.drop(1).filter { it }.collect { reload() }
+            repository.isConnected.drop(1).filter { it }.collect { reload() }
         }
         // The draft, kept as it is typed: a pause of a second and it is on
         // the server, where the chat list and the account's other devices
