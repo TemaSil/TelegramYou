@@ -55,13 +55,14 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.2.1 · 14 October 2026
+## Latest: 2.2.2 · 14 October 2026
 
-A fix for 2.2: switching between the keyboard, the emoji panel and the
-plus's panel no longer makes the chat jump, and all three are the same
-height. 2.2 itself brought the composer after Google Messages, photos
-edited before they go, spoilers, "Typing…" and chats that open without
-internet — see the [changelog](CHANGELOG.md).
+Fixes for 2.2: the message field holds still as the keyboard and the
+emoji and plus panels come and go, all three the same height, and the
+photo editor's buttons read in the light theme. 2.2 itself brought the
+composer after Google Messages, photos edited before they go, spoilers,
+"Typing…" and chats that open without internet — see the
+[changelog](CHANGELOG.md).
 
 ## Screenshots
 

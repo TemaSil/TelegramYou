@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.2.2
+
+- **The composer stays put.** It closed up a little over the keyboard and the emoji panel but not over the plus panel, and eased back once the keyboard had gone: a small hop at the end of every keyboard dismissal and a step between the plus and emoji panels. One margin now, whatever is under it.
+- **The photo editor is dark in either theme.** Its page was black but its buttons took the light theme's colours, so Reset and the Spoiler chip came out dark on black. It now uses the app's own colour as a dark scheme, as Photos' editor does.
+
 ## 2.2.1
 
 - **No more jumping between the keyboard and the panels.** Opening emoji or the plus panel while the keyboard was up, or bringing the keyboard back over one, stacked the panel on the keyboard for a moment: the composer leapt up and fell back. The panel now waits under the keyboard as it slides away, or stays under it as it slides in, and the composer stands still.

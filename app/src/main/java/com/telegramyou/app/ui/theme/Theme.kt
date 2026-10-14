@@ -11,6 +11,9 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -113,6 +116,9 @@ fun TelegramYouTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = appColorScheme(darkTheme, dynamicColor, accent, pureBlack)
+    // The same colour dark, on black, for the screens that are always dark
+    // whatever the theme; see DarkTheme.
+    val darkScheme = appColorScheme(darkTheme = true, dynamicColor, accent, pureBlack = true)
 
     // MaterialExpressiveTheme, not MaterialTheme. The difference is the motion
     // scheme it publishes: Material components read their spring specs from
@@ -123,13 +129,37 @@ fun TelegramYouTheme(
     // every stable release keeps these declarations internal. It replaces a
     // hand-rolled ExpressiveMotion holder that approximated the same springs
     // and was read by nothing, so it styled nothing.
+    CompositionLocalProvider(LocalDarkScheme provides darkScheme) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            // Less motion (Appearance): the standard scheme's springs, which
+            // settle without the expressive overshoot.
+            motionScheme = if (reduceMotion) MotionScheme.standard() else MotionScheme.expressive(),
+            typography = TelegramYouTypography,
+            shapes = TelegramYouShapes,
+            content = content
+        )
+    }
+}
+
+/** The app's colour as a dark scheme on black, whatever the theme; see DarkTheme. */
+private val LocalDarkScheme = staticCompositionLocalOf<ColorScheme?> { null }
+
+/**
+ * The app's own colours, dark and on black, for a screen that is black in
+ * either theme — the photo editor (2.2.1), as Photos' is. Its buttons took
+ * the light theme's colours before and came out dark on the black: Reset
+ * and the Spoiler chip all but vanished. Motion, type and shapes are the
+ * app's as they stand.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun DarkTheme(content: @Composable () -> Unit) {
     MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        // Less motion (Appearance): the standard scheme's springs, which
-        // settle without the expressive overshoot.
-        motionScheme = if (reduceMotion) MotionScheme.standard() else MotionScheme.expressive(),
-        typography = TelegramYouTypography,
-        shapes = TelegramYouShapes,
+        colorScheme = LocalDarkScheme.current ?: MaterialTheme.colorScheme,
+        motionScheme = MaterialTheme.motionScheme,
+        typography = MaterialTheme.typography,
+        shapes = MaterialTheme.shapes,
         content = content
     )
 }

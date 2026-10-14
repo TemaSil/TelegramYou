@@ -1,3 +1,3 @@
-# TelegramYou 2.2.1
-- Switching between the keyboard, emoji and the plus panel no longer makes the chat jump
-- The emoji panel and the plus panel are now exactly the keyboard's height
+# TelegramYou 2.2.2
+- The message field no longer hops when the keyboard goes or you switch panels
+- Photo editor buttons are readable in the light theme too

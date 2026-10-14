@@ -33,7 +33,6 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.animation.core.animateDpAsState
 import com.telegramyou.app.ui.icons.Symbols
@@ -354,14 +353,12 @@ internal fun ComposerBar(
     // with the microphone still on.
     BackHandler(enabled = recordingSince != null && voice.locked) { onRecordCancel() }
 
-    // Closer over the keyboard than over the bottom of the screen; eased
-    // between the two rather than switched, since the switch lands the moment
-    // the keyboard is gone and read as a last small hop.
-    val bottomMargin by animateDpAsState(
-        targetValue = if (WindowInsets.isImeVisible || expressionsOpen) COMPOSER_MARGIN_OVER_KEYBOARD else COMPOSER_MARGIN,
-        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-        label = "composerBottomMargin"
-    )
+    // The same margin under the capsule whatever is under it — the screen's
+    // bottom, the keyboard, either panel. It used to close up over the
+    // keyboard and the emoji panel and not over the plus's, and the change
+    // eased in once the keyboard was gone: a last small hop as the keyboard
+    // went, and a step between the plus and the emoji panel (2.2.1).
+    val bottomMargin = COMPOSER_MARGIN
     val sendable = value.isNotBlank() || hasAttachment
 
     // The field's own shape comes in with its fill: the capsule's field is
@@ -1093,9 +1090,6 @@ private val CANCEL_SLIDE = 96.dp
 
 /** The composer capsule's margin above and below. */
 internal val COMPOSER_MARGIN = 8.dp
-
-/** Below the capsule while the keyboard, or the panel in its place, is up. */
-internal val COMPOSER_MARGIN_OVER_KEYBOARD = 4.dp
 
 /** The reply banner's own corners, away from the capsule. */
 internal val BANNER_OUTER_CORNER = 24.dp

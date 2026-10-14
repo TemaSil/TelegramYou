@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,6 +60,7 @@ import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.telegramyou.app.ui.icons.Symbols
+import com.telegramyou.app.ui.theme.DarkTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,9 +101,12 @@ internal fun PhotoEditor(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
     ) {
+        // Black in either theme, so dark in either theme: in the light one
+        // its buttons were dark on the black.
+        DarkTheme {
         Scaffold(
             containerColor = Color.Black,
-            contentColor = Color.White,
+            contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 TopAppBar(
                     title = { Text("Edit photo") },
@@ -126,12 +131,7 @@ internal fun PhotoEditor(
                             }
                         ) { Text("Done") }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Black,
-                        titleContentColor = Color.White,
-                        navigationIconContentColor = Color.White,
-                        actionIconContentColor = Color.White
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
                 )
             },
             bottomBar = {
@@ -176,6 +176,7 @@ internal fun PhotoEditor(
                     CropFrame(picture, edit.crop, onCrop = { edit = edit.copy(crop = it) })
                 }
             }
+        }
         }
     }
 }
