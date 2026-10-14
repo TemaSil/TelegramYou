@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.2.1
+
+- **No more jumping between the keyboard and the panels.** Opening emoji or the plus panel while the keyboard was up, or bringing the keyboard back over one, stacked the panel on the keyboard for a moment: the composer leapt up and fell back. The panel now waits under the keyboard as it slides away, or stays under it as it slides in, and the composer stands still.
+- **One height for all three.** The emoji panel, the plus panel and the keyboard are the same height — the keyboard's own, navigation bar included — so moving between them moves nothing above. The plus panel used to be taller.
+
 ## 2.2
 
 The composer and what is around it, after Google Messages, and the things a person coming from the official app missed first.

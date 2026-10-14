@@ -55,14 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.2 · 14 October 2026
+## Latest: 2.2.1 · 14 October 2026
 
-The composer after Google Messages: a panel of everything that can be
-sent in the keyboard's place, the microphone turning into Send, and a
-held Send that goes silently, when they are next online or as files.
-Photos edited before they go — turned, cropped, under a spoiler — and
-spoilers hidden when they arrive. "Typing…" told, and chats that open
-without internet from what the phone already holds.
+A fix for 2.2: switching between the keyboard, the emoji panel and the
+plus's panel no longer makes the chat jump, and all three are the same
+height. 2.2 itself brought the composer after Google Messages, photos
+edited before they go, spoilers, "Typing…" and chats that open without
+internet — see the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

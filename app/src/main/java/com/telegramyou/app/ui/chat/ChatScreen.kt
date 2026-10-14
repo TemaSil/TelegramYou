@@ -115,6 +115,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -158,7 +162,7 @@ private val COMPOSER_ROOM_MIN = 76.dp
  * reply and edit banners, the pending deletion, the messages themselves —
  * belongs to [ChatViewModel] and survives rotation there.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     state: ChatUiState,
@@ -687,25 +691,30 @@ fun ChatScreen(
     val navInsets = WindowInsets.navigationBars
     var keyboardHeight by rememberSaveable { mutableIntStateOf(0) }
     val latestPanelOpen by rememberUpdatedState(panelOpen)
-    LaunchedEffect(imeInsets, navInsets) {
-        snapshotFlow { imeInsets.getBottom(density) - navInsets.getBottom(density) }
+    // The keyboard's whole height from the bottom of the screen, navigation
+    // bar and all — where the composer stands on it — so a panel the same
+    // height puts the composer in exactly the same place (2.2.1).
+    LaunchedEffect(imeInsets) {
+        snapshotFlow { imeInsets.getBottom(density) }
             .collect { height -> if (height > keyboardHeight) keyboardHeight = height }
     }
     // The keyboard coming up — the field tapped, a reply started — puts the
-    // panel away: one keyboard at a time, as with the bot's.
-    LaunchedEffect(imeInsets) {
-        snapshotFlow { imeInsets.getBottom(density) > 0 }
+    // panel away: one keyboard at a time, as with the bot's. Once it is all
+    // the way up, not as it starts: until then the panel stays under the
+    // composer, behind the keyboard rising over it (see PanelSlot), and the
+    // composer does not drop to the bottom and climb back up with it.
+    val imeTarget = WindowInsets.imeAnimationTarget
+    LaunchedEffect(imeInsets, imeTarget) {
+        snapshotFlow {
+            val now = imeInsets.getBottom(density)
+            now > 0 && now >= imeTarget.getBottom(density)
+        }
             .collect { up ->
                 if (up && latestPanelOpen) {
                     onExpressionsClose()
                     onAttachmentSheetOpenChange(false)
                 }
             }
-    }
-    val panelHeight = if (keyboardHeight > 0) {
-        with(density) { keyboardHeight.toDp() }.coerceAtLeast(PANEL_MIN_HEIGHT)
-    } else {
-        PANEL_DEFAULT_HEIGHT
     }
     // The navigation bar's height with the keyboard down, and only that. On
     // gesture navigation the bar grows while the keyboard is up — it holds
@@ -721,6 +730,14 @@ fun ChatScreen(
             .collect { (keyboardDown, nav) -> if (keyboardDown) restingNav = nav }
     }
     val navBarHeight = with(density) { restingNav.toDp() }
+    // Both panels' height, the bar under them included: the keyboard's own,
+    // so switching between the keyboard, the emoji panel and the plus's
+    // moves nothing above them.
+    val panelHeight = if (keyboardHeight > 0) {
+        maxOf(with(density) { keyboardHeight.toDp() }, PANEL_MIN_HEIGHT + navBarHeight)
+    } else {
+        PANEL_DEFAULT_HEIGHT + navBarHeight
+    }
     // How far the composer stands off the bottom of the list's Box, which
     // runs under the navigation bar: the bar's height, except with the panel
     // up, which stands under the composer and carries the inset itself. With
@@ -1656,7 +1673,8 @@ fun ChatScreen(
                             onExpressionsOpen()
                         },
                         onKeyboard = {
-                            onExpressionsClose()
+                            // The panel stays until the keyboard is up over
+                            // it, and is put away then; see imeTarget.
                             composerFocus.requestFocus()
                             keyboardController?.show()
                         },
@@ -1748,13 +1766,13 @@ fun ChatScreen(
             }
             }
 
+            PanelSlot(imeInsets = imeInsets, restingNav = restingNav) {
             // What the plus opens, in the keyboard's place as the emoji panel
             // is (2.2, after Google Messages): the composer stays above it.
             if (attachOpen) {
                 AttachPanel(
-                    // The keyboard's height, as Messages' is, but never so
-                    // short that its three rows of buttons need scrolling.
-                    height = maxOf(panelHeight, ATTACH_PANEL_MIN_HEIGHT) + navBarHeight,
+                    // The keyboard's height, as the emoji panel's is.
+                    height = panelHeight,
                     bottomInset = navBarHeight,
                     onPickPhoto = {
                         photoPicker.launch(
@@ -1795,7 +1813,7 @@ fun ChatScreen(
             state.expressions?.let { tab ->
                 ExpressionPanel(
                     tab = tab,
-                    height = panelHeight + navBarHeight,
+                    height = panelHeight,
                     // Up to three quarters of the screen, pulled by its
                     // handle; the header and the composer stay in view.
                     expandedHeight = LocalConfiguration.current.screenHeightDp.dp * PANEL_EXPANDED_SHARE + navBarHeight,
@@ -1817,6 +1835,7 @@ fun ChatScreen(
                     onCustomEmojiPicked = onCustomEmojiPicked,
                     bottomInset = navBarHeight
                 )
+            }
             }
 
             state.translation?.let { translation ->
@@ -2113,9 +2132,6 @@ internal val HIGHLIGHT_CORNER = 20.dp
 private const val PANEL_EXPANDED_SHARE = 0.72f
 private val PANEL_DEFAULT_HEIGHT = 300.dp
 
-/** The plus's panel is no shorter than this; see AttachPanel. */
-private val ATTACH_PANEL_MIN_HEIGHT = 320.dp
-
 /** No shorter than this, whatever a floating or split keyboard measured. */
 private val PANEL_MIN_HEIGHT = 240.dp
 
@@ -2126,3 +2142,56 @@ private const val KEYBOARD_BACK_FLING = 2_500f
 
 /** How often a running recording is said again; see OwnActivityPacer for how often it reaches Telegram. */
 private const val OWN_ACTIVITY_TICK_MS = 1_000L
+
+/**
+ * Where the emoji panel and the plus's stand, under the composer (2.2.1).
+ *
+ * The screen's column already stands off the bottom by the keyboard, so a
+ * panel under the composer while the keyboard is still there — on its way
+ * down after the emoji button, or on its way up after the keyboard one —
+ * used to stack on top of it: the composer leapt up by the panel's height
+ * and came back down. Here the panel takes only the room the keyboard does
+ * not already, and runs on underneath it, where the keyboard covers it:
+ * the composer stands on whichever is taller, which, the two being the same
+ * height, is the same place throughout. The keyboard slides away off the
+ * panel, or over it, the way Messages does it.
+ *
+ * Never less than the resting navigation bar while a panel is up: the
+ * composer drops its own lift for the bar then (composerLift), so this
+ * stands in for it and the composer does not step when the panel goes.
+ */
+@Composable
+private fun PanelSlot(
+    imeInsets: WindowInsets,
+    restingNav: Int,
+    content: @Composable () -> Unit
+) {
+    val density = LocalDensity.current
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .layout { measurable, constraints ->
+                // Read here, in layout, as the keyboard slides: a frame of
+                // its movement re-lays this out and recomposes nothing.
+                val underKeyboard = (imeInsets.getBottom(density) - restingNav).coerceAtLeast(0)
+                val placeable = measurable.measure(
+                    constraints.copy(
+                        minHeight = 0,
+                        maxHeight = if (constraints.hasBoundedHeight) {
+                            constraints.maxHeight + underKeyboard
+                        } else {
+                            Constraints.Infinity
+                        }
+                    )
+                )
+                val shown = if (placeable.height == 0) {
+                    0
+                } else {
+                    maxOf(restingNav, placeable.height - underKeyboard).coerceAtMost(placeable.height)
+                }
+                layout(placeable.width, shown) { placeable.place(0, 0) }
+            }
+    ) {
+        content()
+    }
+}
