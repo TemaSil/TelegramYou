@@ -47,6 +47,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -386,6 +387,12 @@ class ChatViewModel(
             }
         }
         reload()
+        // Opened without a connection, the chat shows what this device holds
+        // (TdLibTelegramClient.firstPage); when the connection comes back, the
+        // server's copy, without being asked (2.2).
+        viewModelScope.launch {
+            repository.isOnline.drop(1).filter { it }.collect { reload() }
+        }
         // The draft, kept as it is typed: a pause of a second and it is on
         // the server, where the chat list and the account's other devices
         // see it. Not while editing a message — the field holds the edit

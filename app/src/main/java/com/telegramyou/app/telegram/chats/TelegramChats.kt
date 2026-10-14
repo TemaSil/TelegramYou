@@ -71,6 +71,14 @@ interface TelegramChats {
      * taken for one that is not muted, and every message of it reached the
      * shade. Null for a chat the backend has not heard of.
      */
+    /**
+     * Whether the backend is caught up with the server (2.2). False while
+     * there is no network or it is still connecting: a chat opened then
+     * shows what this device holds, and reloads when this turns true.
+     * Always true where there is no server, the demo's case.
+     */
+    val isOnline: StateFlow<Boolean> get() = AlwaysOnline
+
     fun knownChat(chatId: Long): ChatPreview? = chats.value.firstOrNull { it.id == chatId }
 
     /**
@@ -274,3 +282,6 @@ interface TelegramChats {
      */
     suspend fun openPrivateChat(userId: Long): Long
 }
+
+/** isOnline for a backend with no server to lose. */
+private val AlwaysOnline: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true)

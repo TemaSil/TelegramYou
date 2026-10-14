@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import kotlinx.coroutines.withTimeoutOrNull
 import com.telegramyou.app.ui.chat.OwnActivity
 import com.telegramyou.app.notifications.ScopeNotifications
 import com.telegramyou.app.notifications.NotificationScope
@@ -275,6 +276,10 @@ class TdLibTelegramClient(
     // the TDLib update callback, which must return promptly — blocking it
     // stalls every other update behind this one.
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
+
+    /** See TelegramChats.isOnline; from TDLib's updateConnectionState. */
+    private val _online = MutableStateFlow(true)
+    override val isOnline: StateFlow<Boolean> = _online.asStateFlow()
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
     // Same buffering, for the same reason: emitted from the update handler.
@@ -1304,8 +1309,10 @@ class TdLibTelegramClient(
             messages = mapped,
             memberCountLabel = statusLabel(chat),
             isTyping = preview.isTyping,
-            pinnedMessage = pinnedMessage(chatId),
-            members = groupMembers(chat)
+            // Neither is worth a chat that will not open: offline, each would
+            // wait for the network the way history did.
+            pinnedMessage = withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { pinnedMessage(chatId) },
+            members = withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { groupMembers(chat) }.orEmpty()
         )
     }
 
@@ -1320,6 +1327,22 @@ class TdLibTelegramClient(
      * [HISTORY_ATTEMPTS] tries — scrolling up pages in the rest either way.
      */
     private suspend fun firstPage(chatId: Long): JSONArray {
+        // What this device already holds first, as the official client does:
+        // TDLib keeps every chat that was opened in its message database, and
+        // asked for that alone it answers at once. Asked for the server's
+        // copy with no connection, it waits for one — and the chat used to
+        // wait with it, never opening offline (2.2, from the owner).
+        val local = historyPage(chatId, onlyLocal = true)
+        if (local.length() >= HISTORY_PAGE) return local
+        if (!_online.value && local.length() > 0) return local
+        // Then the server, for as long as a person waits on a chat opening;
+        // past that, what is here — and the conversation reloads by itself
+        // when the connection comes back (ChatViewModel, isOnline).
+        val remote = withTimeoutOrNull(HISTORY_REMOTE_WAIT_MS) { historyPage(chatId, onlyLocal = false) }
+        return if (remote != null && remote.length() >= local.length()) remote else local
+    }
+
+    private suspend fun historyPage(chatId: Long, onlyLocal: Boolean): JSONArray {
         val engine = requireEngine()
         val page = JSONArray()
         var from = 0L
@@ -1332,7 +1355,7 @@ class TdLibTelegramClient(
                     .put("from_message_id", from)
                     .put("offset", 0)
                     .put("limit", HISTORY_PAGE - page.length())
-                    .put("only_local", false)
+                    .put("only_local", onlyLocal)
             ).optJSONArray("messages")
             if (answer == null || answer.length() == 0) return page
             for (index in 0 until answer.length()) page.put(answer.get(index))
@@ -4288,6 +4311,10 @@ class TdLibTelegramClient(
                 applyPosition(chatId, position)
                 publishChats()
             }
+            "updateConnectionState" -> {
+                // Online only when TDLib says it is caught up with the server.
+                _online.value = update.optJSONObject("state")?.optString("@type") == "connectionStateReady"
+            }
             "updateNewMessage" -> {
                 val message = update.optJSONObject("message") ?: return
                 // A scheduled message is not in the conversation until it
@@ -5459,6 +5486,12 @@ class TdLibTelegramClient(
 
         /** How many requests [firstPage] may spend filling that page. */
         private const val HISTORY_ATTEMPTS = 4
+
+        /** How long a chat waits on the server for its history before showing what is here. */
+        private const val HISTORY_REMOTE_WAIT_MS = 6_000L
+
+        /** How long a chat waits for its pinned message and members before opening without them. */
+        private const val OPEN_EXTRAS_WAIT_MS = 3_000L
 
         /** How many chats one `loadChats` asks for. */
         private const val CHAT_PAGE = 50
