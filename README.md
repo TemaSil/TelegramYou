@@ -55,17 +55,14 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.1.3 · 9 October 2026
+## Latest: 2.2 · 14 October 2026
 
-Chats as Android's conversations — priority ones, bubbles, and Direct
-Share from any app straight into a chat's composer. A notification
-channel per kind of chat, Material You widgets for your newest chats,
-the music playing and a contact's photo in a shape, and Enter to send
-from a keyboard.
-
-All versions: **[CHANGELOG.md](CHANGELOG.md)** ·
-[releases](https://github.com/TemaSil/TelegramYou/releases) ·
-next: [ROADMAP.md](ROADMAP.md)
+The composer after Google Messages: a panel of everything that can be
+sent in the keyboard's place, the microphone turning into Send, and a
+held Send that goes silently, when they are next online or as files.
+Photos edited before they go — turned, cropped, under a spoiler — and
+spoilers hidden when they arrive. "Typing…" told, and chats that open
+without internet from what the phone already holds.
 
 ## Screenshots
 

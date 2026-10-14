@@ -9,6 +9,19 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.2
+
+The composer and what is around it, after Google Messages, and the things a person coming from the official app missed first.
+
+- **Photos edited before they go.** A tap on a photo waiting in the composer opens it to be turned a quarter at a time, cropped by its corners, and put under a spoiler.
+- **Spoilers.** A photo, video or GIF sent under one is hidden behind its own picture blurred, with "Spoiler" over it, until tapped — both ways: what you send and what arrives.
+- **Held, Send offers more**: Send without sound, Send when online (to a person), Send as files (photos, uncompressed) and Schedule message.
+- **The plus opens a panel in the keyboard's place**, as Messages has it: the recent photos along the top and a grid of what can be sent — gallery, camera, GIFs, stickers, files, location, contacts, a poll, a scheduled message. The plus turns into a cross to put it away.
+- **The microphone turns into Send** as the first letter goes in, shrinking away as Send grows out of it, and the camera beside the field steps aside the same way.
+- **Emoji, GIFs and Stickers** are a connected button group at the top of their panel.
+- **"Typing…" is told** to the other side, and "recording a voice message" or "a video message" while one is held.
+- **Chats open without internet.** A chat opened before shows what the phone holds at once, as the official client does, and catches up with the server when the connection comes back; it used to wait for a connection and not open at all.
+
 ## 2.1.3
 
 - **Widgets, done properly.** The chats and the player each show what they are in the widget picker (Android 15 and later) instead of reading as one widget in two sizes, and both are rebuilt on Glance's own Material components in the Expressive style: every chat a rounded tile with its picture in the person's shape, unread ones in the accent colour; the player laid out for its size — a row, a card with its buttons beneath, or a square — with the cover cut to a scalloped cookie.
