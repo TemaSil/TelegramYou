@@ -1481,11 +1481,20 @@ class SmokeTest {
             lookFresh(selector)
             val node = device.findObject(selector)
             if (node != null) {
-                node.click()
+                // Gone between being found and being clicked — the button a
+                // morph is replacing, as the microphone turns into Send
+                // (2.2) — is looked for again rather than failed on.
+                val clicked = try {
+                    node.click()
+                    true
+                } catch (_: StaleObjectException) {
+                    false
+                }
                 device.waitForIdle(IDLE_TIMEOUT)
-                return
+                if (clicked) return
+            } else {
+                device.waitForIdle(IDLE_TIMEOUT)
             }
-            device.waitForIdle(IDLE_TIMEOUT)
         }
         // The selector's own text is full of quotes, backslashes and brackets,
         // which TestStorage refuses as a file name — the first time this
