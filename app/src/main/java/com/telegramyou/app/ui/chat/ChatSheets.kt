@@ -15,14 +15,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.SideEffect
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.slideInVertically
@@ -228,8 +223,8 @@ internal fun ForwardSheet(
 /**
  * What the plus opens (2.2, after Google Messages): a panel in the
  * keyboard's place, as the emoji panel is, rather than a sheet over the
- * conversation — the recent photos along its top, and under them a grid of
- * what can be sent, each a round tonal button with its name.
+ * conversation — a grid of what can be sent, each a round tonal button
+ * with its name.
  *
  * Expressive's own icon buttons, the medium size in their wide form, which
  * is what Messages draws there; the composer stays in view above, and the
@@ -244,13 +239,9 @@ internal fun AttachPanel(
     height: Dp,
     /** The navigation bar's height, which the panel runs under and keeps clear. */
     bottomInset: Dp,
-    onDismiss: () -> Unit,
     onPickPhoto: () -> Unit,
     onPickFile: () -> Unit,
     onTakePhoto: () -> Unit,
-    onPickRecent: (String) -> Unit,
-    /** The recent photos already picked, ticked in the strip (2.0). */
-    selected: Set<String> = emptySet(),
     onGifs: () -> Unit = {},
     onStickers: () -> Unit = {},
     /** A poll, where the chat takes them — groups and channels. */
@@ -268,61 +259,30 @@ internal fun AttachPanel(
             .fillMaxWidth()
             .height(height)
     ) {
-        Column(Modifier.padding(bottom = bottomInset)) {
-            // Everything but the button at the bottom, which stays in reach:
-            // the rest scrolls above it on a short screen.
-            Column(
-                Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 12.dp)
-            ) {
-                // The pictures somebody is most likely to send are the ones
-                // they just took. Draws nothing without the permission for it.
-                RecentPhotoCarousel(
-                    onPick = onPickRecent,
-                    selected = selected,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                val actions = buildList {
-                    add(AttachAction("Gallery", Symbols.PhotoLibrary, onPickPhoto))
-                    add(AttachAction("Camera", Symbols.PhotoCamera, onTakePhoto))
-                    add(AttachAction("GIFs", Symbols.Gif, onGifs))
-                    add(AttachAction("Stickers", Symbols.Sticker, onStickers))
-                    add(AttachAction("Files", Symbols.AttachFile, onPickFile))
-                    add(AttachAction("Location", Symbols.LocationOn, onLocation))
-                    add(AttachAction("Contacts", Symbols.Person, onContact))
-                    if (onPoll != null) add(AttachAction("Poll", Symbols.Poll, onPoll))
-                    if (onSchedule != null) add(AttachAction("Schedule send", Symbols.Schedule, onSchedule))
-                }
-                actions.chunked(ATTACH_COLUMNS).forEach { row ->
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
-                        row.forEach { action -> AttachButton(action, Modifier.weight(1f)) }
-                        repeat(ATTACH_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
-                }
+        // Only the buttons (2.2): the strip of recent photos that stood
+        // above them was dropped on the owner's word — Gallery is one tap
+        // away and opens the whole library. Scrolls on a short screen.
+        Column(
+            Modifier
+                .padding(bottom = bottomInset)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 12.dp)
+        ) {
+            val actions = buildList {
+                add(AttachAction("Gallery", Symbols.PhotoLibrary, onPickPhoto))
+                add(AttachAction("Camera", Symbols.PhotoCamera, onTakePhoto))
+                add(AttachAction("GIFs", Symbols.Gif, onGifs))
+                add(AttachAction("Stickers", Symbols.Sticker, onStickers))
+                add(AttachAction("Files", Symbols.AttachFile, onPickFile))
+                add(AttachAction("Location", Symbols.LocationOn, onLocation))
+                add(AttachAction("Contacts", Symbols.Person, onContact))
+                if (onPoll != null) add(AttachAction("Poll", Symbols.Poll, onPoll))
+                if (onSchedule != null) add(AttachAction("Schedule send", Symbols.Schedule, onSchedule))
             }
-            // Picked from the strip, they are already in the composer; this
-            // only puts the panel away to show them there.
-            AnimatedVisibility(
-                visible = selected.isNotEmpty(),
-                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                    expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
-                exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
-                    shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
-            ) {
-                // The count as it was last shown, so the label does not read
-                // "Attach 0 photos" while the button leaves.
-                var lastShown by remember { mutableIntStateOf(selected.size) }
-                SideEffect { if (selected.isNotEmpty()) lastShown = selected.size }
-                val shown = if (selected.isNotEmpty()) selected.size else lastShown
-                androidx.compose.material3.Button(
-                    onClick = onDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(if (shown == 1) "Attach 1 photo" else "Attach $shown photos")
+            actions.chunked(ATTACH_COLUMNS).forEach { row ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
+                    row.forEach { action -> AttachButton(action, Modifier.weight(1f)) }
+                    repeat(ATTACH_COLUMNS - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }

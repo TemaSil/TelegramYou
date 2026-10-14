@@ -228,13 +228,14 @@ The screen everything else depends on. 366 lines today: a `TopAppBar`, a
       and shown, but the list cannot jump to it yet)
 - [x] Copy, forward and select — long-press to select, then the toolbar's own
       copy, forward and delete; forwarding picks a chat in a `ModalBottomSheet`
-- [x] Attachment sheet — `ModalBottomSheet` with `ListItem` rows for gallery,
-      camera and file, above them a `HorizontalMultiBrowseCarousel` of the
-      most recent pictures. Everything travels as a `content://` Uri; the
-      TDLib backend resolves it into the upload cache, which is where that
-      belongs. The carousel needs `READ_MEDIA_IMAGES`, asked for when the
-      sheet opens and answerable with Android 14's "Select photos"; refused,
-      the sheet is exactly the three rows it was
+- [x] Attachment panel (2.2, after Google Messages) — in the keyboard's
+      place, a grid of Expressive's medium wide tonal icon buttons: gallery,
+      camera, GIFs, stickers, files, location, contacts, poll, schedule.
+      Everything travels as a `content://` Uri; the TDLib backend resolves
+      it into the upload cache, which is where that belongs. The strip of
+      recent photos above the buttons (a `HorizontalMultiBrowseCarousel`,
+      since 1.x) was dropped in 2.2 on the owner's word; it stays on the new
+      story screen
 - [x] Photos in bubbles — `AsyncImage`, space reserved from the photo's own
       aspect before the bytes arrive; tapping one opens it full-screen as a
       `Dialog`, with pinch, pan, double-tap and drag-to-dismiss

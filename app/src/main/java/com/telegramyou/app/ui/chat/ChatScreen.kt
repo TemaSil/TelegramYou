@@ -177,10 +177,9 @@ fun ChatScreen(
     onOwnActivity: (OwnActivity) -> Unit = {},
     onAttachmentPicked: (AttachmentDraft) -> Unit,
     onAttachmentCleared: () -> Unit,
-    /** The tray above the composer (2.0): a photo taken out, one moved, one from the recent strip in or out. */
+    /** The tray above the composer (2.0): a photo taken out, or one moved. */
     onAttachmentRemoved: (Int) -> Unit = {},
     onAttachmentMoved: (Int, Int) -> Unit = { _, _ -> },
-    onRecentPhotoToggled: (String) -> Unit = {},
     onReplyTo: (ChatMessage) -> Unit,
     onEdit: (ChatMessage) -> Unit,
     onComposerBannerCancelled: () -> Unit,
@@ -1753,12 +1752,10 @@ fun ChatScreen(
             // is (2.2, after Google Messages): the composer stays above it.
             if (attachOpen) {
                 AttachPanel(
-                    // Taller than the keyboard where the keyboard is short, as
-                    // Messages' is: the recent photos and two rows of buttons
-                    // all in sight, nothing to scroll for.
-                    height = maxOf(panelHeight, LocalConfiguration.current.screenHeightDp.dp * ATTACH_PANEL_SHARE) + navBarHeight,
+                    // The keyboard's height, as Messages' is, but never so
+                    // short that its three rows of buttons need scrolling.
+                    height = maxOf(panelHeight, ATTACH_PANEL_MIN_HEIGHT) + navBarHeight,
                     bottomInset = navBarHeight,
-                    onDismiss = { onAttachmentSheetOpenChange(false) },
                     onPickPhoto = {
                         photoPicker.launch(
                             androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -1766,11 +1763,6 @@ fun ChatScreen(
                     },
                     onPickFile = { filePicker.launch(arrayOf("*/*")) },
                     onTakePhoto = onTakePhoto,
-                    // Several at once (2.0): each tap in the strip puts a
-                    // photo in or takes it out, and the panel stays up
-                    // until they are all picked.
-                    onPickRecent = onRecentPhotoToggled,
-                    selected = (state.pendingAttachment as? AttachmentDraft.Photos)?.uris.orEmpty().toSet(),
                     onGifs = {
                         onAttachmentSheetOpenChange(false)
                         onExpressionTab(ExpressionTab.Gifs)
@@ -2121,8 +2113,8 @@ internal val HIGHLIGHT_CORNER = 20.dp
 private const val PANEL_EXPANDED_SHARE = 0.72f
 private val PANEL_DEFAULT_HEIGHT = 300.dp
 
-/** The least of the screen the plus's panel takes; see AttachPanel. */
-private const val ATTACH_PANEL_SHARE = 0.46f
+/** The plus's panel is no shorter than this; see AttachPanel. */
+private val ATTACH_PANEL_MIN_HEIGHT = 320.dp
 
 /** No shorter than this, whatever a floating or split keyboard measured. */
 private val PANEL_MIN_HEIGHT = 240.dp

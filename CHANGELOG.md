@@ -16,11 +16,12 @@ The composer and what is around it, after Google Messages, and the things a pers
 - **Photos edited before they go.** A tap on a photo waiting in the composer opens it to be turned a quarter at a time, cropped by its corners, and put under a spoiler.
 - **Spoilers.** A photo, video or GIF sent under one is hidden behind its own picture blurred, with "Spoiler" over it, until tapped — both ways: what you send and what arrives.
 - **Held, Send offers more**: Send without sound, Send when online (to a person), Send as files (photos, uncompressed) and Schedule message.
-- **The plus opens a panel in the keyboard's place**, as Messages has it: the recent photos along the top and a grid of what can be sent — gallery, camera, GIFs, stickers, files, location, contacts, a poll, a scheduled message. The plus turns into a cross to put it away.
+- **The plus opens a panel in the keyboard's place**, as Messages has it: a grid of what can be sent — gallery, camera, GIFs, stickers, files, location, contacts, a poll, a scheduled message. The plus turns into a cross to put it away. The strip of recent photos is gone; Gallery opens the whole library.
 - **The microphone turns into Send** as the first letter goes in, shrinking away as Send grows out of it, and the camera beside the field steps aside the same way.
 - **Emoji, GIFs and Stickers** are a connected button group at the top of their panel.
 - **"Typing…" is told** to the other side, and "recording a voice message" or "a video message" while one is held.
 - **Track covers.** The player shows the picture inside the file, as the shade's player always did, where Telegram sent no thumbnail of it; and a track with no cover at all gets the one Telegram's server finds by its title and artist — Appearance → Find missing covers, on by default. The library fetches covers as its tiles appear.
+- **"My story" in the theme's colour**, a plus on the primary container, where it took a fixed green from the avatar palette.
 - **Chats open without internet.** A chat opened before shows what the phone holds at once, as the official client does, and catches up with the server when the connection comes back; it used to wait for a connection and not open at all.
 
 ## 2.1.3

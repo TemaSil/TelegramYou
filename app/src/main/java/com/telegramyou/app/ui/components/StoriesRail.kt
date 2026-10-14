@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
@@ -77,21 +83,32 @@ private fun StoryOrb(story: StoryItem, addLabel: String, onClick: () -> Unit) {
             .clickable(onClick = onClick)
             .padding(vertical = 2.dp)
     ) {
-        AvatarBubble(
-            title = if (story.isOwn) "＋" else story.authorName,
-            seed = story.avatarColor,
-            size = 64.dp,
-            ring = !story.isOwn,
-            ringSeen = !story.hasUnseen,
-            photoPath = story.photoPath,
-            // The circle the viewer opens out of and closes back into. Not
-            // "My story", which opens nothing of its own.
-            modifier = if (story.isOwn) {
-                Modifier
-            } else {
-                Modifier.containerTransform(storyContainerKey(story.id), StoryContainerShape)
+        if (story.isOwn) {
+            // The add entry is a button, not somebody's face: the theme's own
+            // primary container — the wallpaper's colour — rather than an
+            // avatar's seeded hue, which drew it a fixed green.
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Symbols.Add, contentDescription = null, modifier = Modifier.size(28.dp))
+                }
             }
-        )
+        } else {
+            AvatarBubble(
+                title = story.authorName,
+                seed = story.avatarColor,
+                size = 64.dp,
+                ring = true,
+                ringSeen = !story.hasUnseen,
+                photoPath = story.photoPath,
+                // The circle the viewer opens out of and closes back into.
+                modifier = Modifier.containerTransform(storyContainerKey(story.id), StoryContainerShape)
+            )
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             text = if (story.isOwn) addLabel else story.authorName,

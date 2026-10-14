@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.telegramyou.app.notifications.PostedNotifications
 import android.os.SystemClock
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -871,23 +872,17 @@ class SmokeTest {
     }
 
     /**
-     * The attachment sheet, which now asks for something before it opens.
+     * The plus's panel (2.2), and the tray its photos land in.
      *
-     * The carousel of recent pictures reads the media library, and on this
-     * emulator — Android 14, no photos on it — the interesting part is not
-     * the strip, which has nothing to draw. It is the dialog: the sheet
-     * requests the permission as it appears, and a dialog that is answered
-     * and then leaves a broken sheet behind, or one that is never dismissed,
-     * would strand the one route to sending a photo.
-     *
-     * So this proves the rows are still reachable with the question answered,
-     * which is the failure a person would otherwise find on their own phone.
+     * The panel is only buttons since its strip of recent photos went, so
+     * the photos come in by a share instead — the same tray, the same
+     * crosses, whichever way they arrived.
      */
     @Test
     fun theAttachmentSheetOpens() {
-        // Before anything is signed in, so the pictures are already in the
-        // library by the time the sheet reads it.
-        seedGallery()
+        // Before anything is signed in, so the pictures are in the library
+        // by the time they are shared.
+        val photos = seedGallery()
 
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
@@ -896,23 +891,17 @@ class SmokeTest {
         waitFor(GROUP_OPEN, "the group")
 
         tap(By.desc("Attach"))
-        allowPhotos()
         // The plus's panel, in the keyboard's place (2.2), its grid of buttons.
         waitFor(By.desc("Gallery"), "the attach panel")
-        // The carousel, not just the sheet around it. Without this the test
-        // would pass on a build where the strip never drew — which is what
-        // it looked like before the gallery was seeded, and is
-        // indistinguishable from a device that simply has no photos.
-        waitFor(By.desc("Recent photo"), "the recent-photo carousel")
+        waitFor(By.desc("Location"), "the panel's second row")
         screenshot("09-attachments")
+        tap(By.desc("Close attachments"))
+        device.wait(Until.gone(By.desc("Gallery")), STEP_TIMEOUT)
 
-        // Two picked from the strip, which stays up between them (2.0), and
-        // then the tray inside the field: one large picture each, and a
-        // cross on each that takes just that one out.
-        tap(By.desc("Recent photo"))
-        waitFor(By.desc("Recent photo, picked"), "the first photo ticked")
-        tap(By.desc("Recent photo"))
-        tap(By.text("Attach 2 photos"))
+        // Two photos in the tray inside the field: one large picture each,
+        // and a cross on each that takes just that one out. Shared in, as
+        // the system's own picker behind Gallery is not this app's to drive.
+        sharePhotos(photos.take(2), GROUP_CHAT_ID)
         waitFor(By.desc("Attachments, 2"), "two photos in the composer")
         waitFor(By.desc("Remove attachment"), "a cross on each photo")
         screenshot("09b-attachment-tray")
@@ -940,17 +929,12 @@ class SmokeTest {
      */
     @Test
     fun aPhotoIsEditedAndSentUnderASpoiler() {
-        seedGallery()
+        val photos = seedGallery()
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
-        tap(By.text(GROUP_CHAT))
+        awaitNoHeadsUp()
+        sharePhotos(photos.take(1), GROUP_CHAT_ID)
         waitFor(GROUP_OPEN, "the group")
-
-        tap(By.desc("Attach"))
-        allowPhotos()
-        waitFor(By.desc("Recent photo"), "the recent-photo carousel")
-        tap(By.desc("Recent photo"))
-        tap(By.text("Attach 1 photo"))
         waitFor(By.desc("Attachments, 1"), "the photo in the composer")
 
         tap(By.desc("Photo 1"))
@@ -997,9 +981,10 @@ class SmokeTest {
      * that the strip is populated and masked, and a screenshot of three
      * plain squares says that more legibly than a picture would.
      */
-    private fun seedGallery(count: Int = 4) {
+    private fun seedGallery(count: Int = 4): List<Uri> {
         val resolver = InstrumentationRegistry.getInstrumentation()
             .targetContext.contentResolver
+        val seeded = mutableListOf<Uri>()
         val colours = intArrayOf(
             Color.rgb(0xE9, 0x6D, 0x3F),
             Color.rgb(0x4E, 0x8C, 0xD6),
@@ -1015,11 +1000,33 @@ class SmokeTest {
             }
             val uri = resolver.insert(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-            ) ?: return
+            ) ?: return seeded
             resolver.openOutputStream(uri)?.use { out ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
+            seeded += uri
         }
+        return seeded
+    }
+
+    /**
+     * Shares [photos] into chat [chatId] as another app's share sheet would,
+     * through the chat's Direct Share target: they land in its composer's
+     * tray. How the tests put photos there since the attach panel's strip of
+     * recent ones went (2.2) — the system picker behind Gallery is another
+     * app's screen, different on every Android.
+     */
+    private fun sharePhotos(photos: List<Uri>, chatId: Long) {
+        assertTrue("no photos were seeded to share", photos.isNotEmpty())
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.startActivity(
+            Intent(Intent.ACTION_SEND_MULTIPLE)
+                .setClassName(context.packageName, "com.telegramyou.app.MainActivity")
+                .setType("image/png")
+                .putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(photos))
+                .putExtra("android.intent.extra.shortcut.ID", "chat_$chatId")
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     /**
@@ -3852,6 +3859,7 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+        const val GROUP_CHAT_ID = 3L
         const val FORUM_CHAT = "Compose Forum"
         const val MUSIC_CHANNEL = "Material Sound"
 

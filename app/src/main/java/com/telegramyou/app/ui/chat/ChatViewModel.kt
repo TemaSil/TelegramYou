@@ -885,10 +885,6 @@ class ChatViewModel(
         if (draft != null) onAttachmentPicked(draft)
     }
 
-    /** A photo in the attachment sheet's recent strip, in or out; the sheet stays up for more. */
-    fun onRecentPhotoToggled(uri: String) =
-        _uiState.update { it.copy(pendingAttachment = it.pendingAttachment.toggled(uri)) }
-
     /** One photo or file taken out of the tray above the composer. */
     fun onAttachmentRemoved(index: Int) =
         _uiState.update { it.copy(pendingAttachment = it.pendingAttachment?.without(index)) }
