@@ -112,9 +112,10 @@ and leave the forks' extras for later.
 
 By how soon they would notice, not by how hard it is.
 
-- [ ] **Photos edited before they go** — crop and rotate at least, and the
-      options the official app has in the same place: send as a file, as a
-      spoiler, without sound, when the person is online.
+- [x] **Photos edited before they go** (2.2) — a photo in the tray, tapped,
+      turns and crops (PhotoEditor) and goes under a spoiler; the held send
+      button offers Send without sound, Send when online, Send as files and
+      Schedule. Drawing on a photo, as the official app has, is not done.
 - [ ] **Voice to text** — TDLib's `recognizeSpeech`, Premium on Telegram's
       side; the button on a voice message, the text under it.
 - [ ] **Stickers looked after** — a pack opened from a sticker, added and
@@ -130,9 +131,9 @@ By how soon they would notice, not by how hard it is.
       screens are the work.
 - [ ] **Channel statistics and boosts**, for admins.
 - [ ] **Report a whole chat**, from its info — 2.0 reports a message.
-- [ ] **"Typing…" sent** — the client shows others typing but has never
-      told them it is; TDLib's `sendChatAction` as the field changes, and
-      "recording a voice message" while one is held.
+- [x] **"Typing…" sent** (2.2) — `sendChatAction` as the field changes,
+      "recording a voice message" or "a video message" while one is held,
+      paced by OwnActivityPacer.
 - [ ] **Russian** — with Android 13's per-app language, chosen in the
       system's settings like any other app's. Asked about for 2.0 and not
       yet answered.

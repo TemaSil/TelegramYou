@@ -1,5 +1,12 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.activity.compose.BackHandler
@@ -383,7 +390,17 @@ internal fun ComposerBar(
         // Without a capsule, the camera sits at the end of the
         // field, as the picture button does in Messages, and
         // steps aside once there is something to send.
-        if (!capsule && !sendable) {
+        // It shrinks away as the first letter is typed and grows back as
+        // the last is taken out, the emoji key sliding into its place —
+        // as Messages' picture button does (2.2, from the owner's video).
+        val motion = MaterialTheme.motionScheme
+        AnimatedVisibility(
+            visible = !capsule && !sendable,
+            enter = scaleIn(motion.fastSpatialSpec()) + fadeIn(motion.fastEffectsSpec()) +
+                expandHorizontally(motion.fastSpatialSpec(), expandFrom = Alignment.Start),
+            exit = scaleOut(motion.fastSpatialSpec()) + fadeOut(motion.fastEffectsSpec()) +
+                shrinkHorizontally(motion.fastSpatialSpec(), shrinkTowards = Alignment.Start)
+        ) {
             CameraButton(
                 enabled = true,
                 onCamera = onCamera,
@@ -938,9 +955,19 @@ private fun VoiceSendButton(
                 }
             },
             shape = CircleShape,
+            // From the quiet microphone to the bright send, through the
+            // colours rather than at once, on the theme's effects spring.
             colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = if (showsSend || recording || !quietAtRest) colors.primary else colors.primaryContainer,
-                contentColor = if (showsSend || recording || !quietAtRest) colors.onPrimary else colors.onPrimaryContainer
+                containerColor = animateColorAsState(
+                    if (showsSend || recording || !quietAtRest) colors.primary else colors.primaryContainer,
+                    MaterialTheme.motionScheme.defaultEffectsSpec(),
+                    label = "sendFill"
+                ).value,
+                contentColor = animateColorAsState(
+                    if (showsSend || recording || !quietAtRest) colors.onPrimary else colors.onPrimaryContainer,
+                    MaterialTheme.motionScheme.defaultEffectsSpec(),
+                    label = "sendInk"
+                ).value
             ),
             modifier = Modifier
                 .size(size)
@@ -1004,17 +1031,26 @@ private fun VoiceSendButton(
                     }
                 }
         ) {
-            Icon(
-                when {
-                    showsSend -> Symbols.SendFilled
-                    else -> Symbols.Mic
+            // The microphone shrinks to nothing and send grows out of it,
+            // as the first letter goes in — and back, as Messages has it.
+            val motion = MaterialTheme.motionScheme
+            AnimatedContent(
+                targetState = showsSend,
+                transitionSpec = {
+                    (scaleIn(motion.fastSpatialSpec(), initialScale = 0.2f) + fadeIn(motion.fastEffectsSpec())) togetherWith
+                        (scaleOut(motion.fastSpatialSpec(), targetScale = 0.2f) + fadeOut(motion.fastEffectsSpec()))
                 },
-                contentDescription = when {
-                    voice.locked -> "Send voice message"
-                    sendable -> "Send"
-                    else -> "Hold to record"
-                }
-            )
+                label = "sendIcon"
+            ) { send ->
+                Icon(
+                    if (send) Symbols.SendFilled else Symbols.Mic,
+                    contentDescription = when {
+                        voice.locked -> "Send voice message"
+                        sendable -> "Send"
+                        else -> "Hold to record"
+                    }
+                )
+            }
         }
         DropdownMenu(expanded = sendMenu, onDismissRequest = { sendMenu = false }) {
             sendChoices.withoutSound?.let { action ->

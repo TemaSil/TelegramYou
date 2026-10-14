@@ -1,5 +1,11 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.ButtonGroupDefaults
+import androidx.compose.material3.ToggleButton
 import android.view.ContextThemeWrapper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,7 +28,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -89,7 +94,8 @@ data class GifPickerState(
  * brings the keyboard back, as in every Telegram client and in Gboard's
  * own emoji panel.
  *
- * Stock parts throughout: a `SecondaryTabRow` for the three, the Jetpack
+ * Stock parts throughout: Expressive's connected button group for the
+ * three (2.2; a `SecondaryTabRow` before it), the Jetpack
  * `EmojiPickerView` for emoji — Android's own picker, with its categories,
  * recents and skin tones, rather than a grid of our own — and lazy grids
  * for the rest.
@@ -187,16 +193,32 @@ fun ExpressionPanel(
                 // and here the band around it is the target instead.
                 BottomSheetDefaults.DragHandle(Modifier.wrapContentHeight(unbounded = true))
             }
-            SecondaryTabRow(
-                selectedTabIndex = tab.ordinal,
-                containerColor = Color.Transparent
+            // Expressive's connected button group (2.2, as Google Messages
+            // has its Emoji, GIFs and Stickers): the chosen one a filled
+            // pill, the others flat segments beside it, the shapes trading
+            // as the choice moves.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                ExpressionTab.entries.forEach { entry ->
-                    Tab(
-                        selected = entry == tab,
-                        onClick = { onTab(entry) },
-                        text = { Text(entry.label) }
-                    )
+                val entries = ExpressionTab.entries
+                entries.forEachIndexed { index, entry ->
+                    ToggleButton(
+                        checked = entry == tab,
+                        onCheckedChange = { onTab(entry) },
+                        shapes = when (index) {
+                            0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                            entries.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                            else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .semantics { role = Role.Tab }
+                    ) {
+                        Text(entry.label, maxLines = 1)
+                    }
                 }
             }
             }
