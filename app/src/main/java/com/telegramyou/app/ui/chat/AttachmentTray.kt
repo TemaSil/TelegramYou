@@ -31,6 +31,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -70,6 +71,8 @@ internal fun AttachmentTray(
     onMove: (from: Int, to: Int) -> Unit,
     onAddMore: () -> Unit,
     modifier: Modifier = Modifier,
+    /** A photo tapped: open it in PhotoEditor (2.2). Files are not edited. */
+    onEdit: (String) -> Unit = {},
     /**
      * Inside the field rather than over it (2.0): the field grows up round
      * the pictures, larger and portrait, the caption typed under them — as
@@ -160,8 +163,12 @@ internal fun AttachmentTray(
                     }
                     .clip(MaterialTheme.shapes.large)
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .pointerInput(uri) {
-                        detectTapGestures(onTap = { editing = false })
+                    .pointerInput(uri, name) {
+                        // A tap puts the crosses away when they are up, and
+                        // otherwise opens a photo to be edited (2.2).
+                        detectTapGestures(onTap = {
+                            if (editing) editing = false else if (name == null) onEdit(uri)
+                        })
                     }
                     .pointerInput(uri) {
                         detectDragGesturesAfterLongPress(
@@ -218,6 +225,20 @@ internal fun AttachmentTray(
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center
                         )
+                    }
+                }
+                // Under a spoiler, said on the picture, as the editor left it.
+                if (draft is AttachmentDraft.Photos && uri in draft.spoilered) Surface(
+                    shape = CircleShape,
+                    color = Color.Black.copy(alpha = 0.45f),
+                    contentColor = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(4.dp)
+                        .size(24.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Symbols.VisibilityOff, contentDescription = "Spoiler", modifier = Modifier.size(14.dp))
                     }
                 }
                 // The cross: on the picture, in its corner, small enough

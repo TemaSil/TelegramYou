@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.ui.chat.OwnActivity
 import com.telegramyou.app.notifications.ScopeNotifications
 import com.telegramyou.app.notifications.NotificationScope
 import com.telegramyou.app.telegram.model.CommentThread
@@ -2724,6 +2725,31 @@ class TdLibTelegramClient(
         )
     }
 
+    override suspend fun sendChatAction(chatId: Long, activity: OwnActivity) {
+        awaitReady()
+        val type = when (activity) {
+            OwnActivity.Typing -> "chatActionTyping"
+            OwnActivity.RecordingVoice -> "chatActionRecordingVoiceNote"
+            OwnActivity.RecordingVideoNote -> "chatActionRecordingVideoNote"
+            OwnActivity.None -> "chatActionCancel"
+        }
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "sendChatAction")
+                    .put("chat_id", chatId)
+                    // Into the topic or the comment thread that is open, as
+                    // what is sent goes — "typing…" belongs where it shows.
+                    .inOpenTopic(chatId)
+                    .put("action", JSONObject().put("@type", type))
+            )
+        } catch (e: TdLibException) {
+            // A channel this account cannot post in, a chat it has left:
+            // nothing is shown, and nothing needs saying.
+            Log.d(TAG, "sendChatAction: ${e.message}")
+        }
+    }
+
     override suspend fun sendAttachment(
         chatId: Long,
         draft: AttachmentDraft,
@@ -2740,10 +2766,12 @@ class TdLibTelegramClient(
                 val paths = draft.uris.map { uri ->
                     copyUriToCache(uri, "photo_${System.currentTimeMillis()}.jpg")
                 }
+                // Under a spoiler, photo by photo, as the editor left each (2.2).
+                val spoilers = draft.uris.map { it in draft.spoilered }
                 if (paths.size == 1) {
-                    sendLocalFile(chatId, paths.single(), caption, photo = true, replyToId = replyToId)
+                    sendLocalFile(chatId, paths.single(), caption, photo = true, replyToId = replyToId, spoiler = spoilers.single())
                 } else {
-                    sendPhotoAlbums(chatId, paths, caption, replyToId)
+                    sendPhotoAlbums(chatId, paths, caption, replyToId, spoilers)
                 }
             }
             // Files one by one, with the caption and the quote on the first
@@ -2805,7 +2833,8 @@ class TdLibTelegramClient(
         chatId: Long,
         paths: List<String>,
         caption: String,
-        replyToId: Long?
+        replyToId: Long?,
+        spoilers: List<Boolean> = emptyList()
     ) {
         paths.chunked(ALBUM_LIMIT).forEachIndexed { chunkIndex, chunk ->
             val contents = JSONArray()
@@ -2815,6 +2844,7 @@ class TdLibTelegramClient(
                     JSONObject()
                         .put("@type", "inputMessagePhoto")
                         .put("photo", inputPhoto(path))
+                        .put("has_spoiler", spoilers.getOrElse(chunkIndex * ALBUM_LIMIT + index) { false })
                         .put(
                             "caption",
                             JSONObject()
@@ -4022,12 +4052,14 @@ class TdLibTelegramClient(
         path: String,
         caption: String,
         photo: Boolean,
-        replyToId: Long? = null
+        replyToId: Long? = null,
+        spoiler: Boolean = false
     ) {
         val content = if (photo) {
             JSONObject()
                 .put("@type", "inputMessagePhoto")
                 .put("photo", inputPhoto(path))
+                .put("has_spoiler", spoiler)
                 .put(
                     "caption",
                     JSONObject().put("@type", "formattedText").put("text", caption)
@@ -5231,6 +5263,7 @@ class TdLibTelegramClient(
             entities = entitiesOf(formattedOf(content), text),
             forwardedFrom = forwardOrigin(message.optJSONObject("forward_info")),
             albumId = message.optInt64("media_album_id").takeIf { it != 0L },
+            hasSpoiler = content?.optBoolean("has_spoiler") == true,
             isPinned = message.optBoolean("is_pinned"),
             topicId = topicIdOf(message),
             commentCount = commentCountOf(message),

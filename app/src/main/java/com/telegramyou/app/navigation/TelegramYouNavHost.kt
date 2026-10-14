@@ -1256,6 +1256,10 @@ fun TelegramYouNavHost(
                         }
                     },
                     onDraftChange = chatViewModel::onDraftChange,
+                    onOwnActivity = chatViewModel::onOwnActivity,
+                    onSendWith = chatViewModel::onSend,
+                    onSendAsFiles = chatViewModel::onSendAsFiles,
+                    onPhotoEdited = chatViewModel::onPhotoEdited,
                     onAttachmentPicked = chatViewModel::onAttachmentPicked,
                     onAttachmentCleared = chatViewModel::onAttachmentCleared,
                     onAttachmentRemoved = chatViewModel::onAttachmentRemoved,

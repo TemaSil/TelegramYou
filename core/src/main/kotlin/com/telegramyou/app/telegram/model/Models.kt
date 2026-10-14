@@ -539,7 +539,12 @@ data class ChatMessage(
     /** The comment thread it was written in, in a discussion group; 0 otherwise. */
     val threadId: Long = 0,
     /** How many times it has been forwarded, where Telegram says (channel posts mostly); 0 otherwise. */
-    val forwardCount: Int = 0
+    val forwardCount: Int = 0,
+    /**
+     * A photo, video or GIF sent under a spoiler (2.2): covered until it is
+     * tapped, as the sender asked.
+     */
+    val hasSpoiler: Boolean = false
 )
 
 /** Where a channel post's comments live: its discussion group, and the thread in it. */
@@ -613,7 +618,12 @@ data class MessageHit(
 
 sealed interface AttachmentDraft {
     data class Files(val uris: List<String>, val names: List<String>) : AttachmentDraft
-    data class Photos(val uris: List<String>) : AttachmentDraft
+    /**
+     * Photos waiting to go, in order; [spoilered] the ones to go under a
+     * spoiler (2.2), by their uri — which stays a photo's own through a move
+     * or another's removal, where an index would not.
+     */
+    data class Photos(val uris: List<String>, val spoilered: Set<String> = emptySet()) : AttachmentDraft
 
     /**
      * A recording made in the composer.

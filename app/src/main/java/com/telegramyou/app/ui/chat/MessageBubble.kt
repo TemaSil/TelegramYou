@@ -570,7 +570,8 @@ internal fun MessageBubble(
                             onVisible = onPhotoVisible,
                             onOpen = { if (isSelecting) onSelect() else onPhotoOpened() },
                             onLongClick = onBubbleLongClick,
-                            originId = message.id
+                            originId = message.id,
+                            spoiler = message.hasSpoiler
                         )
                     }
                     MessageContentType.Video -> {
@@ -601,7 +602,8 @@ internal fun MessageBubble(
                                 onPosterVisible = onPhotoVisible,
                                 onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
                                 onLongClick = onBubbleLongClick,
-                                originId = message.id
+                                originId = message.id,
+                                spoiler = message.hasSpoiler
                             )
                         }
                     }
@@ -625,7 +627,8 @@ internal fun MessageBubble(
                                 onVisible = onPhotoVisible,
                                 onOpen = { if (isSelecting) onSelect() else onVideoOpened() },
                                 onLongClick = onBubbleLongClick,
-                                originId = message.id
+                                originId = message.id,
+                                spoiler = message.hasSpoiler
                             )
                         }
                     }

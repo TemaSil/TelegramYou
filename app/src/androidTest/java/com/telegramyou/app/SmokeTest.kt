@@ -933,6 +933,57 @@ class SmokeTest {
     }
 
     /**
+     * A photo edited before it goes (2.2): tapped in the tray, turned and
+     * put under a spoiler in the editor, then sent from the send button's
+     * held menu — without a sound — and covered in its bubble until tapped.
+     */
+    @Test
+    fun aPhotoIsEditedAndSentUnderASpoiler() {
+        seedGallery()
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        tap(By.text(GROUP_CHAT))
+        waitFor(GROUP_OPEN, "the group")
+
+        tap(By.desc("Attach"))
+        allowPhotos()
+        waitFor(By.desc("Recent photo"), "the recent-photo carousel")
+        tap(By.desc("Recent photo"))
+        tap(By.text("Attach 1 photo"))
+        waitFor(By.desc("Attachments, 1"), "the photo in the composer")
+
+        tap(By.desc("Photo 1"))
+        waitFor(By.text("Edit photo"), "the photo editor")
+        tap(By.desc("Rotate"))
+        tap(By.text("Spoiler"))
+        screenshot("100-photo-editor")
+        tap(By.text("Done"))
+        device.wait(Until.gone(By.text("Edit photo")), STEP_TIMEOUT)
+        waitFor(By.desc("Spoiler"), "the spoiler marked on the photo in the tray")
+
+        // Held, send offers its choices; a photo can go as a file.
+        val send = By.desc("Send")
+        waitFor(send, "the send button")
+        device.findObject(send).longClick()
+        waitFor(By.text("Send without sound"), "the send menu")
+        waitFor(By.text("Send as files"), "Send as files, for photos")
+        screenshot("100b-send-menu")
+        tap(By.text("Send without sound"))
+        assertTrue(
+            "the tray stayed after the photo was sent",
+            device.wait(Until.gone(By.descStartsWith("Attachments,")), STEP_TIMEOUT)
+        )
+        // In the bubble, covered: the spoiler's own cover, said as it is.
+        waitFor(By.desc("Spoiler"), "the sent photo under its spoiler")
+        screenshot("100c-spoiler")
+        tap(By.desc("Spoiler"))
+        assertTrue(
+            "the spoiler did not uncover on a tap",
+            device.wait(Until.gone(By.desc("Spoiler")), STEP_TIMEOUT)
+        )
+    }
+
+    /**
      * Puts a few pictures into the device's library.
      *
      * A fresh emulator has an empty gallery, so the carousel correctly draws

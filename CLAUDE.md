@@ -58,8 +58,14 @@ Three consequences, and they decide arguments:
   picture, as the official client does; the owner asked for it by name. It is
   a picture that has not arrived, not a surface pretending to be glass, and
   it is blurred on the pixels (`MiniThumbnail` in `:core`, drawn by
-  `BlurredMini`), not with `Modifier.blur`. That is the whole list; anywhere
-  else still needs asking, with a mockup in hand.
+  `BlurredMini`), not with `Modifier.blur`.
+
+  **Granted on 14 October 2026, for a second place:** a photo, video or GIF
+  sent under a spoiler is hidden behind its own minithumbnail, blurred the
+  same way, with "Spoiler" over it until it is tapped (`SpoilerCover`), as
+  the official client hides one. The owner's words, asked whether it was
+  wanted: "Нормальная история же". That is the whole list; anywhere else
+  still needs asking, with a mockup in hand.
   Material 3 Expressive ships no blurred material of its own — the effect is
   the platform's, through `Modifier.blur` and `RenderEffect`, and it does
   nothing below Android 12.

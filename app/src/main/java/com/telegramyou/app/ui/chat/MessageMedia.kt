@@ -7,6 +7,7 @@ import com.telegramyou.app.media.MiniThumbnail
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.foundation.Image
 import android.graphics.BitmapFactory
@@ -56,6 +57,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +78,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.waveformBars
 import com.telegramyou.app.ui.media.FileTransfer
@@ -299,7 +302,9 @@ internal fun PhotoMessage(
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
     onLongClick: () -> Unit = {},
     /** The message, so the gallery opens out of here and closes back in; see MediaOrigins. */
-    originId: Long? = null
+    originId: Long? = null,
+    /** Sent under a spoiler: covered until tapped; see SpoilerCover. */
+    spoiler: Boolean = false
 ) {
     LaunchedEffect(path) {
         if (path == null) onVisible()
@@ -352,6 +357,7 @@ internal fun PhotoMessage(
                         .fillMaxWidth()
                 )
             }
+            if (spoiler && originId != null) SpoilerCover(originId, mini, path)
         }
         // "Photo" is what a message with no caption is called, not something
         // the sender wrote, so it is not repeated under the picture.
@@ -362,6 +368,59 @@ internal fun PhotoMessage(
                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+/**
+ * A picture sent under a spoiler (2.2), hidden until it is tapped and then
+ * shown for as long as the conversation stays open, as the official client
+ * has it: the picture itself, blurred past reading, and "Spoiler" over it.
+ *
+ * Blurred on the owner's word of 14 October 2026 — the second place blur is
+ * granted in this client (CLAUDE.md), and done the same way as the first:
+ * on the pixels of Telegram's minithumbnail ([mini], BlurredMini), never
+ * with Modifier.blur. A photo of one's own that has no minithumbnail yet —
+ * it has not been uploaded — is drawn the same way from [path]: decoded a
+ * few pixels across and smoothed back up, which is what a minithumbnail is.
+ * The tap that uncovers is only that; the next one opens it.
+ */
+@Composable
+internal fun SpoilerCover(messageId: Long, mini: String?, path: String? = null, modifier: Modifier = Modifier) {
+    var revealed by rememberSaveable(messageId) { mutableStateOf(false) }
+    if (revealed) return
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .clickable(onClickLabel = "Show") { revealed = true }
+            .semantics(mergeDescendants = true) { contentDescription = "Spoiler" }
+    ) {
+        if (mini != null) {
+            BlurredMini(mini, Modifier.fillMaxSize())
+        } else if (path != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current).data(path).size(SPOILER_PIXELS).build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                filterQuality = FilterQuality.Medium,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Surface(
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            contentColor = Color.White
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Icon(Symbols.VisibilityOff, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Spoiler", style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }
@@ -437,7 +496,9 @@ internal fun VideoMessage(
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
     onLongClick: () -> Unit = {},
     /** The message, so the gallery opens out of here; see MediaOrigins. */
-    originId: Long? = null
+    originId: Long? = null,
+    /** Sent under a spoiler: covered until tapped; see SpoilerCover. */
+    spoiler: Boolean = false
 ) {
     LaunchedEffect(video.thumbPath) {
         if (video.thumbPath == null) onPosterVisible()
@@ -521,6 +582,7 @@ internal fun VideoMessage(
                     )
                 }
             }
+            if (spoiler && originId != null) SpoilerCover(originId, video.mini, video.thumbPath)
         }
         // As with a photo: "Video" is what an untitled one is called, not
         // something the sender wrote.
@@ -557,7 +619,9 @@ internal fun AnimationMessage(
     /** The message's own menu: a picture is the bubble, so it holds the bubble's long-press. */
     onLongClick: () -> Unit = {},
     /** The message, so the gallery opens out of here; see MediaOrigins. */
-    originId: Long? = null
+    originId: Long? = null,
+    /** Sent under a spoiler: covered until tapped; see SpoilerCover. */
+    spoiler: Boolean = false
 ) {
     LaunchedEffect(gif.path, gif.thumbPath) {
         if (gif.path == null || gif.thumbPath == null) onVisible()
@@ -621,6 +685,7 @@ internal fun AnimationMessage(
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
+            if (spoiler && originId != null) SpoilerCover(originId, gif.mini, gif.thumbPath)
         }
         if (caption.isNotBlank() && caption != "GIF") {
             Spacer(Modifier.height(6.dp))
@@ -929,3 +994,6 @@ private fun decodeMini(data: String): ImageBitmap? = try {
 } catch (_: IllegalArgumentException) {
     null
 }
+
+/** How many pixels across a spoiler's own photo is decoded at, to be smoothed back up; see SpoilerCover. */
+private const val SPOILER_PIXELS = 24

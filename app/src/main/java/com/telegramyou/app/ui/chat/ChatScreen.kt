@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.SendOptions
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
@@ -166,6 +167,14 @@ fun ChatScreen(
     onOpenMedia: () -> Unit,
     onOpenInfo: () -> Unit,
     onDraftChange: (String) -> Unit,
+    /** Send, without a sound or when they are next online (2.2). */
+    onSendWith: (SendOptions) -> Unit = {},
+    /** Send the photos waiting as files, uncompressed (2.2). */
+    onSendAsFiles: () -> Unit = {},
+    /** A photo in the tray edited: its new uri, or null for the spoiler alone; and the spoiler (2.2). */
+    onPhotoEdited: (original: String, edited: String?, spoiler: Boolean) -> Unit = { _, _, _ -> },
+    /** A recording running or ended, for the chat's "recording…" (2.2); see ChatViewModel.onOwnActivity. */
+    onOwnActivity: (OwnActivity) -> Unit = {},
     onAttachmentPicked: (AttachmentDraft) -> Unit,
     onAttachmentCleared: () -> Unit,
     /** The tray above the composer (2.0): a photo taken out, one moved, one from the recent strip in or out. */
@@ -538,6 +547,39 @@ fun ChatScreen(
         // the hold that asked is over by the time the dialog is answered.
     }
     DisposableEffect(videoNotes) { onDispose { videoNotes.cancel() } }
+    // A photo in the tray being edited before it goes (2.2); see PhotoEditor.
+    var editingPhoto by rememberSaveable { mutableStateOf<String?>(null) }
+    editingPhoto?.let { uri ->
+        val photos = state.pendingAttachment as? AttachmentDraft.Photos
+        if (photos == null || uri !in photos.uris) {
+            editingPhoto = null
+        } else {
+            PhotoEditor(
+                uri = uri,
+                spoiler = uri in photos.spoilered,
+                onDone = { edited, spoiler ->
+                    editingPhoto = null
+                    onPhotoEdited(uri, edited, spoiler)
+                },
+                onDismiss = { editingPhoto = null }
+            )
+        }
+    }
+    // A recording, said to the chat for as long as it runs (2.2): every
+    // second here, and the pacer behind onOwnActivity keeps that to one
+    // request in four or five. Its end is said when it ends without a send.
+    val recordingKind = when {
+        videoNoteSince != null -> OwnActivity.RecordingVideoNote
+        recordingSince != null -> OwnActivity.RecordingVoice
+        else -> OwnActivity.None
+    }
+    LaunchedEffect(recordingKind) {
+        onOwnActivity(recordingKind)
+        while (recordingKind != OwnActivity.None) {
+            delay(OWN_ACTIVITY_TICK_MS)
+            onOwnActivity(recordingKind)
+        }
+    }
     // CameraX started while the chat opens, where the camera is allowed, so
     // the first hold records at once.
     LaunchedEffect(Unit) {
@@ -1454,6 +1496,7 @@ fun ChatScreen(
                                 onRemove = onAttachmentRemoved,
                                 onMove = onAttachmentMoved,
                                 onAddMore = { onAttachmentSheetOpenChange(true) },
+                                onEdit = { editingPhoto = it },
                                 inField = true
                             )
                         }
@@ -1477,7 +1520,8 @@ fun ChatScreen(
                             draft = shown as AttachmentDraft,
                             onRemove = onAttachmentRemoved,
                             onMove = onAttachmentMoved,
-                            onAddMore = { onAttachmentSheetOpenChange(true) }
+                            onAddMore = { onAttachmentSheetOpenChange(true) },
+                            onEdit = { editingPhoto = it }
                         )
                         else -> AttachmentChip(draft = shown, onClear = onAttachmentCleared)
                     }
@@ -1643,11 +1687,26 @@ fun ChatScreen(
                         onVideoNoteCancel = cancelVideoNote,
                         onVideoNoteLock = { if (videoNoteSince != null) videoNoteLocked = true },
                         onSend = onSend,
-                        // Held, send offers to schedule — only for text: an
-                        // attachment or an edit goes now or not at all.
-                        onSchedule = if (state.pendingAttachment == null && state.editing == null) {
-                            { schedulePicking = true }
-                        } else null,
+                        // Held, send offers its choices (2.2). None for an
+                        // edit, which is not a message going out; a schedule
+                        // only for text, which is all Telegram schedules here;
+                        // "when online" only to a person who can be online.
+                        sendChoices = if (state.editing != null) SendChoices() else {
+                            val chat = state.detail?.chat
+                            val person = chat != null && !chat.isGroup && !chat.isChannel && !chat.isBot && !chat.isSavedMessages
+                            SendChoices(
+                                withoutSound = if (chat?.isSavedMessages == true) null else {
+                                    { onSendWith(SendOptions(silent = true)) }
+                                },
+                                whenOnline = if (person) {
+                                    { onSendWith(SendOptions(whenOnline = true)) }
+                                } else null,
+                                asFiles = if (state.pendingAttachment is AttachmentDraft.Photos) onSendAsFiles else null,
+                                schedule = if (state.pendingAttachment == null) {
+                                    { schedulePicking = true }
+                                } else null
+                            )
+                        },
                         recordingSince = recordingSince,
                         onRecordStart = {
                             if (ContextCompat.checkSelfPermission(
@@ -2021,3 +2080,6 @@ private val PANEL_MIN_HEIGHT = 240.dp
 private const val KEYBOARD_BACK_WITHIN_MS = 2_500L
 /** How fast that flick back has to be, in px a second: a deliberate one. */
 private const val KEYBOARD_BACK_FLING = 2_500f
+
+/** How often a running recording is said again; see OwnActivityPacer for how often it reaches Telegram. */
+private const val OWN_ACTIVITY_TICK_MS = 1_000L

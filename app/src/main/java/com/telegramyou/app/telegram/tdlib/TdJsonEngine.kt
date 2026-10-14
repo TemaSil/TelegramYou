@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.SendOptions
+import kotlinx.coroutines.currentCoroutineContext
 import android.os.Build
 import android.util.Log
 import org.drinkless.tdlib.JsonClient
@@ -75,7 +77,14 @@ class TdJsonEngine(
         JsonClient.send(clientId, request.toString())
     }
 
-    suspend fun send(request: JSONObject): JSONObject = suspendCoroutine { cont ->
+    suspend fun send(request: JSONObject): JSONObject {
+        // A message sent under SendOptions takes them with it (2.2): read
+        // here, where every way a message leaves passes, rather than at each.
+        currentCoroutineContext()[SendOptions]?.let { request.withSendOptions(it) }
+        return sendNow(request)
+    }
+
+    private suspend fun sendNow(request: JSONObject): JSONObject = suspendCoroutine { cont ->
         val extra = extraSeq.incrementAndGet().toString()
         request.put("@extra", extra)
         pending[extra] = cont

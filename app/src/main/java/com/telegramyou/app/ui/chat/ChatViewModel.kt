@@ -1,5 +1,6 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.telegram.model.SendOptions
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.combine
 import com.telegramyou.app.settings.AutoTranslate
@@ -564,8 +565,25 @@ class ChatViewModel(
         // An emptied field takes the picked custom emoji with it.
         if (text.isEmpty()) picked.clear()
         _uiState.update { it.copy(draft = text) }
-        // An edit is not a new message, so no bot is asked for one.
-        inlineQuery.value = if (_uiState.value.editing == null) inlineQueryOf(text) else null
+        // An edit is not a new message, so no bot is asked for one — and
+        // nobody is told this account is typing one.
+        val editing = _uiState.value.editing != null
+        inlineQuery.value = if (!editing) inlineQueryOf(text) else null
+        if (!editing) onOwnActivity(if (text.isBlank()) OwnActivity.None else OwnActivity.Typing)
+    }
+
+    /** See OwnActivityPacer: what this account is doing, told to the chat no more often than it needs. */
+    private val ownActivity = OwnActivityPacer()
+
+    /**
+     * Typing, recording a voice message or a round video, or none of them
+     * (2.2) — from the field as it changes, and from the screen while a
+     * recording runs, which says so again every few seconds for as long as
+     * it lasts.
+     */
+    fun onOwnActivity(activity: OwnActivity) {
+        val say = ownActivity.update(activity, System.currentTimeMillis()) ?: return
+        viewModelScope.launch { runCatching { repository.sendChatAction(chatId, say) } }
     }
 
     /**
@@ -908,7 +926,7 @@ class ChatViewModel(
      * drawn at once and confirmed the same way. A refusal puts back what was
      * typed, unless something new has been typed since.
      */
-    fun onSend() {
+    fun onSend(options: SendOptions = SendOptions()) {
         val state = _uiState.value
         val text = state.draft
         val attachment = state.pendingAttachment
@@ -922,6 +940,7 @@ class ChatViewModel(
         _uiState.update {
             it.copy(draft = "", pendingAttachment = null, replyTo = null, replyQuote = null, editing = null)
         }
+        ownActivity.sent()
         // A new message goes at the end of the conversation, so that is where
         // the list has to be to show it — not in a stretch of the past.
         if (amending == null) onJumpToLatest()
@@ -934,7 +953,7 @@ class ChatViewModel(
                 }
             } else {
                 attempt("Could not send") {
-                    repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji, quote = quoting)
+                    repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji, quote = quoting, options = options)
                 }
             }
             if (sent) return@launch
@@ -952,6 +971,27 @@ class ChatViewModel(
             // the one to show.
             if (amending != null) reload()
         }
+    }
+
+    /**
+     * A photo waiting in the tray, edited (2.2): [edited] takes its place,
+     * when there is a new picture, and the spoiler is set on whichever one
+     * stands there now.
+     */
+    fun onPhotoEdited(original: String, edited: String?, spoiler: Boolean) = _uiState.update { state ->
+        val photos = state.pendingAttachment as? AttachmentDraft.Photos ?: return@update state
+        val replaced = if (edited != null) photos.replaced(original, edited) else photos
+        state.copy(pendingAttachment = replaced.withSpoiler(edited ?: original, spoiler))
+    }
+
+    /**
+     * The photos waiting, sent as files — uncompressed, as "Send as files"
+     * in the send button's menu has it (2.2) — with whatever was typed.
+     */
+    fun onSendAsFiles() {
+        val photos = _uiState.value.pendingAttachment as? AttachmentDraft.Photos ?: return
+        _uiState.update { it.copy(pendingAttachment = photos.asFiles()) }
+        onSend()
     }
 
     // ── reacting ─────────────────────────────────────────────────────────

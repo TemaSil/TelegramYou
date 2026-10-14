@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.messages
 
+import com.telegramyou.app.ui.chat.OwnActivity
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.ContactContent
@@ -134,6 +135,14 @@ interface TelegramMessages {
 
     /** Sends a scheduled message now rather than at its time. */
     suspend fun sendScheduledNow(chatId: Long, messageId: Long)
+
+    /**
+     * Tells the chat what this account is doing — typing, recording a voice
+     * or a round video — or that it has stopped (2.2). How often is the
+     * caller's to judge; see OwnActivityPacer. Nothing where a backend has
+     * nobody to tell.
+     */
+    suspend fun sendChatAction(chatId: Long, activity: OwnActivity) {}
 
     suspend fun sendAttachment(
         chatId: Long,

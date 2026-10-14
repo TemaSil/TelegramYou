@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.model.SendOptions
 import com.telegramyou.app.telegram.model.LocationContent
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.telegram.model.customEmojiIdOf
@@ -171,6 +172,22 @@ internal fun stickerFromThumbnail(thumbnail: JSONObject, title: String): Sticker
  */
 internal fun localFile(path: String): JSONObject =
     JSONObject().put("@type", "inputFileLocal").put("path", path)
+
+/**
+ * [options] onto a request that sends a message — `sendMessage` or
+ * `sendMessageAlbum`; anything else is left alone. A time it was already
+ * scheduled for stands: "when online" is for a message going now.
+ */
+internal fun JSONObject.withSendOptions(options: SendOptions): JSONObject = apply {
+    if (options.isPlain) return@apply
+    if (optString("@type") != "sendMessage" && optString("@type") != "sendMessageAlbum") return@apply
+    val sending = optJSONObject("options") ?: JSONObject().put("@type", "messageSendOptions")
+    if (options.silent) sending.put("disable_notification", true)
+    if (options.whenOnline && sending.optJSONObject("scheduling_state") == null) {
+        sending.put("scheduling_state", JSONObject().put("@type", "messageSchedulingStateSendWhenOnline"))
+    }
+    put("options", sending)
+}
 
 internal fun inputPhoto(path: String): JSONObject =
     JSONObject().put("@type", "inputPhoto").put("photo", localFile(path))

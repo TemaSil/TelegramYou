@@ -285,8 +285,8 @@ internal fun ComposerBar(
      */
     onVideoNoteLock: () -> Unit = {},
     onSend: () -> Unit,
-    /** Held send button's "Schedule message"; null where it is not offered. */
-    onSchedule: (() -> Unit)? = null,
+    /** What a held send button offers; see SendChoices. */
+    sendChoices: SendChoices = SendChoices(),
     recordingSince: Long?,
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
@@ -457,7 +457,7 @@ internal fun ComposerBar(
             recording = recordingSince != null,
             voice = voice,
             onSend = onSend,
-            onSchedule = onSchedule,
+            sendChoices = sendChoices,
             onRecordStart = onRecordStart,
             onRecordStop = onRecordStop,
             onRecordCancel = onRecordCancel,
@@ -835,7 +835,7 @@ private fun VoiceSendButton(
     recording: Boolean,
     voice: VoiceHold,
     onSend: () -> Unit,
-    onSchedule: (() -> Unit)?,
+    sendChoices: SendChoices,
     onRecordStart: () -> Unit,
     onRecordStop: () -> Unit,
     onRecordCancel: () -> Unit,
@@ -905,7 +905,7 @@ private fun VoiceSendButton(
                     .background(colors.primary.copy(alpha = 0.22f), CircleShape)
             )
         }
-        var scheduleMenu by remember { mutableStateOf(false) }
+        var sendMenu by remember { mutableStateOf(false) }
         // Read by the gesture, which outlives the composition it started in.
         val recordingNow by rememberUpdatedState(recording)
         val showsSend = sendable || (voice.locked && recording)
@@ -930,7 +930,7 @@ private fun VoiceSendButton(
                     translationX = if (following) voice.slide.x else 0f
                     translationY = if (following) voice.slide.y else 0f
                 }
-                .pointerInput(sendable, onSchedule != null) {
+                .pointerInput(sendable, sendChoices.isEmpty) {
                     // Read on the Initial pass, before the button's own
                     // clickable sees the press: read after it, the press was
                     // already taken and holding the microphone did nothing.
@@ -944,14 +944,14 @@ private fun VoiceSendButton(
                         if (voice.locked && recordingNow) return@awaitEachGesture
                         if (voice.locked) voice.reset()
                         if (sendable) {
-                            // Held rather than tapped: the schedule menu, and
-                            // the release swallowed so a hold does not also send.
-                            if (onSchedule == null) return@awaitEachGesture
+                            // Held rather than tapped: the send menu, and the
+                            // release swallowed so a hold does not also send.
+                            if (sendChoices.isEmpty) return@awaitEachGesture
                             val released = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
                                 waitForUpOrCancellation(PointerEventPass.Initial)
                             }
                             if (released == null) {
-                                scheduleMenu = true
+                                sendMenu = true
                                 waitForUpOrCancellation(PointerEventPass.Initial)?.consume()
                             }
                             return@awaitEachGesture
@@ -996,15 +996,33 @@ private fun VoiceSendButton(
                 }
             )
         }
-        if (onSchedule != null) {
-            DropdownMenu(expanded = scheduleMenu, onDismissRequest = { scheduleMenu = false }) {
+        DropdownMenu(expanded = sendMenu, onDismissRequest = { sendMenu = false }) {
+            sendChoices.withoutSound?.let { action ->
+                DropdownMenuItem(
+                    text = { Text("Send without sound") },
+                    leadingIcon = { Icon(Symbols.NotificationsOff, contentDescription = null) },
+                    onClick = { sendMenu = false; action() }
+                )
+            }
+            sendChoices.whenOnline?.let { action ->
+                DropdownMenuItem(
+                    text = { Text("Send when online") },
+                    leadingIcon = { Icon(Symbols.PersonCheck, contentDescription = null) },
+                    onClick = { sendMenu = false; action() }
+                )
+            }
+            sendChoices.asFiles?.let { action ->
+                DropdownMenuItem(
+                    text = { Text("Send as files") },
+                    leadingIcon = { Icon(Symbols.Description, contentDescription = null) },
+                    onClick = { sendMenu = false; action() }
+                )
+            }
+            sendChoices.schedule?.let { action ->
                 DropdownMenuItem(
                     text = { Text("Schedule message") },
                     leadingIcon = { Icon(Symbols.Schedule, contentDescription = null) },
-                    onClick = {
-                        scheduleMenu = false
-                        onSchedule()
-                    }
+                    onClick = { sendMenu = false; action() }
                 )
             }
         }
@@ -1087,3 +1105,18 @@ private const val BREATH_REACH = 0.6f
 /** The lock over a held voice button: its height, and its distance above the swollen button. */
 private val LOCK_PILL_HEIGHT = 72.dp
 private val LOCK_PILL_GAP = 32.dp
+
+/**
+ * What a held send button offers (2.2) — each null where it does not
+ * apply: a sound only matters to a message going now, "when online" only to
+ * one person, files only to photos, a schedule only to text. The official
+ * client's own list, in its order.
+ */
+data class SendChoices(
+    val withoutSound: (() -> Unit)? = null,
+    val whenOnline: (() -> Unit)? = null,
+    val asFiles: (() -> Unit)? = null,
+    val schedule: (() -> Unit)? = null
+) {
+    val isEmpty: Boolean get() = withoutSound == null && whenOnline == null && asFiles == null && schedule == null
+}

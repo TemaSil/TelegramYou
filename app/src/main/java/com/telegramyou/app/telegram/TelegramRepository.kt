@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram
 
+import com.telegramyou.app.telegram.model.SendOptions
+import kotlinx.coroutines.withContext
 import com.telegramyou.app.telegram.model.PickedEmoji
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthUiState
@@ -112,8 +114,10 @@ class TelegramRepository(
         /** Premium custom emoji picked into the text; see placePickedEmoji. */
         picked: List<PickedEmoji> = emptyList(),
         /** Part of the answered message quoted, and where it starts in it (2.0). */
-        quote: Pair<String, Int>? = null
-    ) {
+        quote: Pair<String, Int>? = null,
+        /** Without a sound, or when they are next online (2.2); see SendOptions. */
+        options: SendOptions = SendOptions()
+    ) = withContext(options) {
         if (attachment != null) {
             client.sendAttachment(chatId, attachment, text, replyToId)
         } else if (quote != null && replyToId != null && picked.isEmpty() && sendAt == null && text.isNotBlank()) {

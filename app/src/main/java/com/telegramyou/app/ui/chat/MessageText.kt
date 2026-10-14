@@ -250,5 +250,6 @@ private fun AlbumCell(
                 )
             }
         }
+        if (photo.hasSpoiler) SpoilerCover(photo.id, mini, path)
     }
 }

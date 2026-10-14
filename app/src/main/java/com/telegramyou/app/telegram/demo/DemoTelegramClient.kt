@@ -1607,7 +1607,8 @@ class DemoTelegramClient(
                         // but a send with no bar would be a send nobody can
                         // look at, and this is the build people look at.
                         photoFileId = uploadFileId.incrementAndGet()
-                            .also { fakeUpload(it, DEMO_UPLOAD_BYTES) }
+                            .also { fakeUpload(it, DEMO_UPLOAD_BYTES) },
+                        hasSpoiler = uri in draft.spoilered
                     )
                 }
             }
@@ -2421,7 +2422,8 @@ class DemoTelegramClient(
         contact: ContactContent? = null,
         location: LocationContent? = null,
         /** Part of the answered message quoted, shown in place of the whole (2.0). */
-        quote: String? = null
+        quote: String? = null,
+        hasSpoiler: Boolean = false
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -2455,7 +2457,8 @@ class DemoTelegramClient(
             contact = contact,
             location = location,
             topicId = openTopics[chatId] ?: 0,
-            threadId = openThreads[chatId] ?: 0
+            threadId = openThreads[chatId] ?: 0,
+            hasSpoiler = hasSpoiler
         )
         val bucket = chatMessages.getOrPut(chatId) { mutableListOf() }
         bucket.add(msg)
