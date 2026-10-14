@@ -3009,7 +3009,10 @@ class SmokeTest {
         waitFor(By.text("Topic name"), "the new topic dialog")
         type("Screenshots")
         tap(By.text("Create"))
-        waitFor(By.text("Screenshots"), "the new topic in the list")
+        // Its menu button, not the name: "Screenshots" is also the dialog's
+        // own field until the dialog has gone, and the tap that followed it
+        // once found no menu yet.
+        waitFor(By.desc("Manage Screenshots"), "the new topic in the list")
 
         // Its admin can close it from its menu.
         tap(By.desc("Manage Screenshots"))
