@@ -17,6 +17,8 @@ data class Track(
     val coverPath: String? = null,
     /** The cover's file id, for fetching it. */
     val coverFileId: Int? = null,
+    /** A cover Telegram found for it, where the file has none; see AudioContent.foundCoverFileId. */
+    val foundCoverFileId: Int? = null,
     /** Who sent it into the chat. */
     val senderName: String = "",
     /** Telegram's album, when the track was posted as one of several together. */
@@ -36,6 +38,7 @@ fun ChatMessage.asTrack(): Track? {
         path = audio.path ?: voicePath,
         coverPath = audio.coverPath,
         coverFileId = audio.coverFileId,
+        foundCoverFileId = audio.foundCoverFileId,
         senderName = if (isOutgoing) "You" else senderName.orEmpty(),
         albumId = albumId
     )

@@ -717,7 +717,8 @@ fun TelegramYouNavHost(
                     onComposerCapsuleChange = appearance::setComposerCapsule,
                     onReduceMotionChange = appearance::setReduceMotion,
                     onCoverMovesChange = appearance::setCoverMoves,
-                    onMiniPlayerOnTopChange = appearance::setMiniPlayerOnTop
+                    onMiniPlayerOnTopChange = appearance::setMiniPlayerOnTop,
+                    onFindCoversChange = appearance::setFindCovers
                 )
             )
         }

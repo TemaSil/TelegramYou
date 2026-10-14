@@ -4,3 +4,4 @@
 - The plus opens a panel of everything you can send, right where the keyboard was
 - People now see when you're typing or recording
 - Chats you've opened before open without internet too
+- Track covers: from the file itself, or found by Telegram when there is none

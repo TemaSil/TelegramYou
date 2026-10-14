@@ -5281,7 +5281,15 @@ class TdLibTelegramClient(
                     coverFileId = audio.optJSONObject("album_cover_thumbnail")?.optJSONObject("file")
                         ?.optInt("id")?.takeIf { it != 0 },
                     coverPath = audio.optJSONObject("album_cover_thumbnail")?.optJSONObject("file")
-                        ?.localPathIfDownloaded()
+                        ?.localPathIfDownloaded(),
+                    // The covers Telegram's server found for an untagged
+                    // track, the largest of them (2.2).
+                    foundCoverFileId = audio.optJSONArray("external_album_covers")?.let { covers ->
+                        (0 until covers.length())
+                            .mapNotNull { covers.optJSONObject(it) }
+                            .maxByOrNull { it.optInt("width") * it.optInt("height") }
+                            ?.optJSONObject("file")?.optInt("id")?.takeIf { it != 0 }
+                    }
                 )
             },
             scheduledAt = message.optJSONObject("scheduling_state")

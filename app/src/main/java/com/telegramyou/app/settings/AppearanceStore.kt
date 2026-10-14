@@ -61,6 +61,11 @@ class AppearanceStore(context: Context) {
         preferences.edit().putBoolean(KEY_COVER_MOVES, enabled).apply()
     }
 
+    fun setFindCovers(enabled: Boolean) {
+        _settings.update { it.copy(findCovers = enabled) }
+        preferences.edit().putBoolean(KEY_FIND_COVERS, enabled).apply()
+    }
+
     fun setMiniPlayerOnTop(enabled: Boolean) {
         _settings.update { it.copy(miniPlayerOnTop = enabled) }
         preferences.edit().putBoolean(KEY_MINI_PLAYER_ON_TOP, enabled).apply()
@@ -186,7 +191,8 @@ class AppearanceStore(context: Context) {
             composerCapsule = composerCapsule(),
             reduceMotion = preferences.getBoolean(KEY_REDUCE_MOTION, false),
             coverMoves = preferences.getBoolean(KEY_COVER_MOVES, true),
-            miniPlayerOnTop = preferences.getBoolean(KEY_MINI_PLAYER_ON_TOP, false)
+            miniPlayerOnTop = preferences.getBoolean(KEY_MINI_PLAYER_ON_TOP, false),
+            findCovers = preferences.getBoolean(KEY_FIND_COVERS, true)
         )
     }
 
@@ -212,6 +218,7 @@ class AppearanceStore(context: Context) {
         const val KEY_REDUCE_MOTION = "reduce_motion"
         const val KEY_COVER_MOVES = "cover_moves"
         const val KEY_MINI_PLAYER_ON_TOP = "mini_player_on_top"
+        const val KEY_FIND_COVERS = "find_covers"
 
         /** The namespace the manifest's launcher aliases are named in. */
         const val ALIAS_PACKAGE = "com.telegramyou.app"

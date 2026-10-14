@@ -90,7 +90,9 @@ data class OfflineProgress(val chatId: Long, val done: Int, val total: Int)
  */
 class MusicPlayer(
     private val context: Context,
-    private val repository: TelegramRepository
+    private val repository: TelegramRepository,
+    /** Appearance → Find missing covers, read as each track starts (2.2). */
+    private val findCovers: () -> Boolean = { true }
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(NowPlaying())
@@ -194,6 +196,13 @@ class MusicPlayer(
         .build()
         .also { created ->
             created.addListener(object : Player.Listener {
+                // The picture inside the file, as the player in the shade
+                // shows it — which the app's own did not, wherever Telegram
+                // had sent no thumbnail of it (2.2, from the owner).
+                override fun onMediaMetadataChanged(mediaMetadata: androidx.media3.common.MediaMetadata) {
+                    mediaMetadata.artworkData?.let { coverFromFile(it) }
+                }
+
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
                     _state.update { it.copy(isPlaying = isPlaying) }
                     if (isPlaying) tick() else ticker?.cancel()
@@ -532,26 +541,67 @@ class MusicPlayer(
         positions.edit().remove(positionKey(track)).apply()
     }
 
-    /** The cover, fetched and turned into the player's colours; see TrackTheme. */
+    /**
+     * The cover, fetched and turned into the player's colours; see TrackTheme.
+     *
+     * The file's own first — Telegram's thumbnail of it — and, where the file
+     * has none and Appearance allows, the one Telegram's server found for
+     * the track (2.2). A picture the player then reads out of the file
+     * itself takes the found one's place; see coverFromFile.
+     */
     private fun fetchCover(track: Track) {
-        if (track.coverPath == null && track.coverFileId == null) return
+        val found = track.foundCoverFileId.takeIf { findCovers() }
+        if (track.coverPath == null && track.coverFileId == null && found == null) return
         scope.launch {
-            val path = track.coverPath ?: track.coverFileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+            val path = track.coverPath
+                ?: track.coverFileId?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
+                ?: found?.let { runCatching { repository.downloadFile(it) }.getOrNull() }
                 ?: return@launch
-            val seed = withContext(Dispatchers.Default) {
+            // The file's own picture arrived while this was fetched: it stands.
+            if (track.coverFileId == null && coverFromFileFor == track.messageId) return@launch
+            showCover(track, path)
+        }
+    }
+
+    /** The track whose cover came out of its file, so a found one does not replace it. */
+    private var coverFromFileFor: Long? = null
+
+    /**
+     * The picture the player read out of the playing file: kept in the cache
+     * and shown, where Telegram had no thumbnail of it — the same one the
+     * shade's player shows.
+     */
+    private fun coverFromFile(bytes: ByteArray) {
+        val track = _state.value.track ?: return
+        if (track.coverFileId != null || coverFromFileFor == track.messageId) return
+        coverFromFileFor = track.messageId
+        scope.launch {
+            val path = withContext(Dispatchers.IO) {
                 runCatching {
-                    val bitmap = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 4 })
-                        ?: return@runCatching null
-                    val pixels = IntArray(bitmap.width * bitmap.height)
-                    bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-                    seedFromPixels(pixels)
+                    val dir = java.io.File(context.cacheDir, "covers").apply { mkdirs() }
+                    java.io.File(dir, "${track.chatId}-${track.messageId}.img")
+                        .apply { if (length() != bytes.size.toLong()) writeBytes(bytes) }
+                        .absolutePath
                 }.getOrNull()
-            }
-            _state.update { state ->
-                if (state.track?.messageId != track.messageId) return@update state
-                val tracks = state.queue.tracks.map { if (it.messageId == track.messageId) it.copy(coverPath = path) else it }
-                state.copy(queue = state.queue.copy(tracks = tracks), coverSeed = seed)
-            }
+            } ?: return@launch
+            showCover(track, path)
+        }
+    }
+
+    private suspend fun showCover(track: Track, path: String) {
+        val seed = withContext(Dispatchers.Default) {
+            runCatching {
+                val bitmap = BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = 4 })
+                    ?: return@runCatching null
+                val pixels = IntArray(bitmap.width * bitmap.height)
+                bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+                seedFromPixels(pixels)
+            }.getOrNull()
+        }
+        _state.update { state ->
+            if (state.track?.messageId != track.messageId) return@update state
+            val tracks = state.queue.tracks.map { if (it.messageId == track.messageId) it.copy(coverPath = path) else it }
+            state.copy(queue = state.queue.copy(tracks = tracks), coverSeed = seed)
         }
     }
 

@@ -132,7 +132,14 @@ data class AudioContent(
     /** The album cover's file id — Telegram's thumbnail of it — when there is one. */
     val coverFileId: Int? = null,
     /** The cover on this device, once it is here. */
-    val coverPath: String? = null
+    val coverPath: String? = null,
+    /**
+     * A cover Telegram's server found for the track by its title and
+     * performer, for a file that carries none (2.2) — the official client's
+     * covers for untagged music. Used where Appearance → Find missing covers
+     * allows.
+     */
+    val foundCoverFileId: Int? = null
 ) {
     /** The title, or the file's name when the file carries no tags. */
     val displayTitle: String get() = title.ifBlank { fileName.substringBeforeLast('.').ifBlank { "Audio" } }

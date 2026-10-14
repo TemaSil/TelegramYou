@@ -76,7 +76,8 @@ class AppearanceActions(
     val onComposerCapsuleChange: (Boolean) -> Unit = {},
     val onReduceMotionChange: (Boolean) -> Unit = {},
     val onCoverMovesChange: (Boolean) -> Unit = {},
-    val onMiniPlayerOnTopChange: (Boolean) -> Unit = {}
+    val onMiniPlayerOnTopChange: (Boolean) -> Unit = {},
+    val onFindCoversChange: (Boolean) -> Unit = {}
 )
 
 /**
@@ -312,6 +313,12 @@ fun AppearanceScreen(
                     summary = "Under the screen's title, rather than above the navigation bar and the composer",
                     checked = settings.miniPlayerOnTop,
                     onChange = actions.onMiniPlayerOnTopChange
+                )
+                switch(
+                    title = "Find missing covers",
+                    summary = "A track without a cover gets the one Telegram finds by its title and artist",
+                    checked = settings.findCovers,
+                    onChange = actions.onFindCoversChange
                 )
             }
         }

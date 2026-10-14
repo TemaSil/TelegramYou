@@ -20,6 +20,7 @@ The composer and what is around it, after Google Messages, and the things a pers
 - **The microphone turns into Send** as the first letter goes in, shrinking away as Send grows out of it, and the camera beside the field steps aside the same way.
 - **Emoji, GIFs and Stickers** are a connected button group at the top of their panel.
 - **"Typing…" is told** to the other side, and "recording a voice message" or "a video message" while one is held.
+- **Track covers.** The player shows the picture inside the file, as the shade's player always did, where Telegram sent no thumbnail of it; and a track with no cover at all gets the one Telegram's server finds by its title and artist — Appearance → Find missing covers, on by default. The library fetches covers as its tiles appear.
 - **Chats open without internet.** A chat opened before shows what the phone holds at once, as the official client does, and catches up with the server when the connection comes back; it used to wait for a connection and not open at all.
 
 ## 2.1.3

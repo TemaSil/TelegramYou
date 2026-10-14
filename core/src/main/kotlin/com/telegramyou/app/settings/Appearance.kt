@@ -95,7 +95,13 @@ data class AppearanceSettings(
      * rather than at the foot over the navigation bar or the composer. Off
      * by default; for whoever preferred it there.
      */
-    val miniPlayerOnTop: Boolean = false
+    val miniPlayerOnTop: Boolean = false,
+    /**
+     * A track whose file has no cover gets the one Telegram's server finds
+     * for it by its title and performer (2.2). On by default — the owner's
+     * word; off for whoever would rather see the note than a guess.
+     */
+    val findCovers: Boolean = true
 )
 
 /**

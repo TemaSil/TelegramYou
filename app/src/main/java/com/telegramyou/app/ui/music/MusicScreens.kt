@@ -263,10 +263,26 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
     }
 }
 
-/** The cover, or — without one yet — the note on the track's own colour. */
+/**
+ * The cover, or — without one yet — the note on the track's own colour.
+ *
+ * Fetched as the tile appears when it is not on the phone (2.2): Telegram's
+ * thumbnail of the file's own cover, or, where the file has none and
+ * Appearance → Find missing covers allows, the one Telegram found for it.
+ * Before, a library tile showed only what playing had already fetched.
+ */
 @Composable
 internal fun Cover(track: Track, size: Int, corner: Int) {
     val colors = MaterialTheme.colorScheme
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coverPath by androidx.compose.runtime.produceState(track.coverPath, track.messageId, track.coverPath, track.coverFileId) {
+        if (value != null) return@produceState
+        val app = context.applicationContext as? com.telegramyou.app.TelegramYouApp ?: return@produceState
+        val id = track.coverFileId
+            ?: track.foundCoverFileId?.takeIf { app.appearance.settings.value.findCovers }
+            ?: return@produceState
+        value = runCatching { app.telegramRepository.downloadFile(id) }.getOrNull()
+    }
     Box(
         modifier = Modifier
             .size(size.dp)
@@ -274,8 +290,9 @@ internal fun Cover(track: Track, size: Int, corner: Int) {
             .background(Brush.linearGradient(listOf(colors.primary, colors.tertiary))),
         contentAlignment = Alignment.Center
     ) {
-        if (track.coverPath != null) {
-            AsyncImage(model = File(track.coverPath), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        val shown = coverPath
+        if (shown != null) {
+            AsyncImage(model = File(shown), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
             Icon(
                 Symbols.MusicNote,

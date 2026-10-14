@@ -61,7 +61,7 @@ class TelegramYouApp : Application() {
 
     /** The music player, one for the app; see MusicPlayer. */
     val music: com.telegramyou.app.music.MusicPlayer by lazy {
-        com.telegramyou.app.music.MusicPlayer(this, telegramRepository)
+        com.telegramyou.app.music.MusicPlayer(this, telegramRepository) { appearance.settings.value.findCovers }
     }
 
     /**
