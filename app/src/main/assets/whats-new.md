@@ -1,4 +1,5 @@
-# TelegramYou 2.2.3
-- The mini player shows the track's cover, just like the full player
-- Tracks played from Up next get their covers too
-- No more flash of the sign-in screen when the app starts after an update
+# TelegramYou 2.3
+- Up to three Telegram accounts on one phone
+- Switch between them from your profile, in an instant
+- Add one from the profile, and back out if you change your mind
+- Signing out of one keeps you in the others

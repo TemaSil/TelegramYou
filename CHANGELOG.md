@@ -9,6 +9,16 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.3
+
+More than one account.
+
+- **Up to three accounts**, as the official app holds. Each is a Telegram session of its own on the phone, with its own chats, files and settings on Telegram's side; the one you had stays where it was.
+- **Switched in place.** The Profile tab lists the other accounts under your own; a tap is the switch — no restart, and the account left keeps running, so switching back is just as quick. The music, a voice message playing and the account's notifications stop with the switch.
+- **Added from the profile.** Add account opens a sign-in of its own, with a way back to the account you were on.
+- **Signing out of one** takes it off the phone and carries on in another. Signing in as someone already here keeps the account you had.
+- Notifications come from the account in use; the others' are next.
+
 ## 2.2.3
 
 - **Covers in the mini player.** A cover that arrived after the strip was first drawn — the one read out of the file itself — showed in the full player but not in the mini player or on library tiles, which kept the music note. They read the track's cover now, whenever it comes.

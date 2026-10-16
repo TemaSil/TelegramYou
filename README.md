@@ -55,15 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.2.3 · 16 October 2026
+## Latest: 2.3 · 16 October 2026
 
-Fixes for 2.2: the mini player shows the track's cover as the full player
-does, the sign-in screen no longer flashes at start after an update, the
-message field holds still as the keyboard and the emoji and plus panels
-come and go, and the photo editor reads in the light theme. 2.2 itself
-brought the composer after Google Messages, photos edited before they go,
-spoilers, "Typing…" and chats that open without internet — see the
-[changelog](CHANGELOG.md).
+More than one account: up to three on a phone, as the official app holds,
+switched in place from the Profile tab — the other accounts stay signed in
+and running, so switching back is instant. Added from the profile with a
+way back, and signing out of one carries on in another. See the
+[changelog](CHANGELOG.md) for 2.3 and the fixes before it.
 
 ## Screenshots
 
