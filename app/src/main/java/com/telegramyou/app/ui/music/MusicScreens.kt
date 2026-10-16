@@ -275,14 +275,21 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
 internal fun Cover(track: Track, size: Int, corner: Int) {
     val colors = MaterialTheme.colorScheme
     val context = androidx.compose.ui.platform.LocalContext.current
-    val coverPath by androidx.compose.runtime.produceState(track.coverPath, track.messageId, track.coverPath, track.coverFileId) {
-        if (value != null) return@produceState
+    // Only what the track does not carry yet. The track's own coverPath is
+    // read directly below: held in this state instead, a cover that arrived
+    // later — the one the player reads out of the file — never replaced the
+    // null kept from before, and the mini player showed the note while the
+    // full player, reading the track, showed the picture.
+    val fetched by androidx.compose.runtime.produceState<String?>(null, track.messageId, track.coverFileId, track.foundCoverFileId) {
+        value = null
+        if (track.coverPath != null) return@produceState
         val app = context.applicationContext as? com.telegramyou.app.TelegramYouApp ?: return@produceState
         val id = track.coverFileId
             ?: track.foundCoverFileId?.takeIf { app.appearance.settings.value.findCovers }
             ?: return@produceState
         value = runCatching { app.telegramRepository.downloadFile(id) }.getOrNull()
     }
+    val coverPath = track.coverPath ?: fetched
     Box(
         modifier = Modifier
             .size(size.dp)

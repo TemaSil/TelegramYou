@@ -600,8 +600,18 @@ class MusicPlayer(
         }
         _state.update { state ->
             if (state.track?.messageId != track.messageId) return@update state
-            val tracks = state.queue.tracks.map { if (it.messageId == track.messageId) it.copy(coverPath = path) else it }
-            state.copy(queue = state.queue.copy(tracks = tracks), coverSeed = seed)
+            // Wherever the track is — the queue, Up next, playing from Up
+            // next — or a track played from Up next never showed its cover.
+            val covered: (Track) -> Track = { if (it.messageId == track.messageId) it.copy(coverPath = path) else it }
+            val queue = state.queue
+            state.copy(
+                queue = queue.copy(
+                    tracks = queue.tracks.map(covered),
+                    upNext = queue.upNext.map(covered),
+                    interlude = queue.interlude?.let(covered)
+                ),
+                coverSeed = seed
+            )
         }
     }
 
