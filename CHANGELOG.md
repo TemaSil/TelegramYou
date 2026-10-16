@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.2.3
+
+- **Covers in the mini player.** A cover that arrived after the strip was first drawn — the one read out of the file itself — showed in the full player but not in the mini player or on library tiles, which kept the music note. They read the track's cover now, whenever it comes.
+- **Up next has covers.** A cover found for a track playing from Up next reached only the queue's copy of the track, never the one playing.
+
 ## 2.2.2
 
 - **The composer stays put.** It closed up a little over the keyboard and the emoji panel but not over the plus panel, and eased back once the keyboard had gone: a small hop at the end of every keyboard dismissal and a step between the plus and emoji panels. One margin now, whatever is under it.
