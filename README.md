@@ -58,11 +58,12 @@ wallpaper.
 ## Latest: 2.2.3 · 16 October 2026
 
 Fixes for 2.2: the mini player shows the track's cover as the full player
-does, the message field holds still as the keyboard and the emoji and
-plus panels come and go, and the photo editor reads in the light theme.
-2.2 itself brought the composer after Google Messages, photos edited
-before they go, spoilers, "Typing…" and chats that open without internet
-— see the [changelog](CHANGELOG.md).
+does, the sign-in screen no longer flashes at start after an update, the
+message field holds still as the keyboard and the emoji and plus panels
+come and go, and the photo editor reads in the light theme. 2.2 itself
+brought the composer after Google Messages, photos edited before they go,
+spoilers, "Typing…" and chats that open without internet — see the
+[changelog](CHANGELOG.md).
 
 ## Screenshots
 

@@ -106,6 +106,7 @@ open class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
         val app = application as TelegramYouApp
+        if (savedInstanceState == null) holdFirstFrame(app)
         pendingChatId = intent.chatIdExtra()
         pendingDownloads = intent.opensDownloads()
         // Not again after a rotation: the intent is still this one, and its
@@ -255,6 +256,36 @@ open class MainActivity : ComponentActivity() {
         PictureInPicture.active.value = isInPictureInPictureMode
     }
 
+    /**
+     * The system's splash stays until TDLib has said whether this phone is
+     * signed in (2.2.3). Until then the start destination is the login
+     * screen, and on a slow start — the first after an update, while
+     * Android optimises the new code and TDLib opens its database — its
+     * phone number field showed for a second before the chats replaced it.
+     *
+     * Held by cancelling the window's first draws, the platform's own way
+     * to keep a splash, which works on every Android this app runs on. Two
+     * frames more once the answer is in, for the navigation to the chats to
+     * land; and never more than [FIRST_FRAME_HOLD_MS] in all, so a TDLib
+     * that never answers still shows the login screen and its error.
+     */
+    private fun holdFirstFrame(app: TelegramYouApp) {
+        val content = findViewById<android.view.View>(android.R.id.content)
+        val started = android.os.SystemClock.uptimeMillis()
+        var framesSinceKnown = 0
+        content.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                val known = app.telegramRepository.observeAuth().value.state !=
+                    com.telegramyou.app.telegram.model.AuthState.Bootstrapping
+                if (known) framesSinceKnown++
+                val done = framesSinceKnown > 2 ||
+                    android.os.SystemClock.uptimeMillis() - started > FIRST_FRAME_HOLD_MS
+                if (done) content.viewTreeObserver.removeOnPreDrawListener(this)
+                return done
+            }
+        })
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // setIntent so a recreation after this — a rotation, say — does not
@@ -293,3 +324,6 @@ private fun Intent.opensDownloads(): Boolean =
 
 private fun Intent.chatIdExtra(): Long? =
     getLongExtra(TelegramForegroundService.EXTRA_CHAT_ID, -1L).takeIf { it != -1L }
+
+/** The longest the splash is held for; see MainActivity.holdFirstFrame. */
+private const val FIRST_FRAME_HOLD_MS = 3_000L

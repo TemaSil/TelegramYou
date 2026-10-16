@@ -13,6 +13,7 @@ README.md.
 
 - **Covers in the mini player.** A cover that arrived after the strip was first drawn — the one read out of the file itself — showed in the full player but not in the mini player or on library tiles, which kept the music note. They read the track's cover now, whenever it comes.
 - **Up next has covers.** A cover found for a track playing from Up next reached only the queue's copy of the track, never the one playing.
+- **No sign-in screen flashing at start.** Until TDLib says whether the phone is signed in, the app's first screen is the sign-in one; on a slow start — the first after an update — its phone number field showed for a second before the chats. The system's splash now stays until the answer is in (three seconds at most).
 
 ## 2.2.2
 
