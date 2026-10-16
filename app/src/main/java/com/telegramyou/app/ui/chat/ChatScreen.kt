@@ -48,6 +48,13 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import com.telegramyou.app.ui.motion.LocalReduceMotion
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
@@ -1766,10 +1773,31 @@ fun ChatScreen(
             }
             }
 
-            PanelSlot(imeInsets = imeInsets, restingNav = restingNav) {
+            PanelSlot(imeInsets = imeInsets, restingNav = restingNav, open = panelOpen) {
+            // Up from the bottom as the keyboard comes, and back down (2.3),
+            // when it opens on the screen's bottom. Not with the keyboard
+            // there — on its way down after the emoji button, or up after the
+            // keyboard one: the panel is under it then (see PanelSlot), and
+            // rising too would have the two pull the composer two ways. Not
+            // between the plus and the emoji panel either, which are the
+            // same height and swap in place. Read once, not followed: the
+            // keyboard's every frame would recompose this.
+            val keyboardThere = Snapshot.withoutReadObservation { imeInsets.getBottom(density) > 0 }
+            val still = LocalReduceMotion.current
+            // What was last open, kept on screen while it slides away.
+            val shown = remember { ShownPanel() }
+            if (panelOpen) {
+                shown.attach = attachOpen
+                shown.tab = state.expressions
+            }
+            AnimatedVisibility(
+                visible = panelOpen,
+                enter = if (keyboardThere || still) EnterTransition.None else expandVertically(PANEL_RISE, expandFrom = Alignment.Top),
+                exit = if (keyboardThere || still) ExitTransition.None else shrinkVertically(PANEL_FALL, shrinkTowards = Alignment.Top)
+            ) {
             // What the plus opens, in the keyboard's place as the emoji panel
             // is (2.2, after Google Messages): the composer stays above it.
-            if (attachOpen) {
+            if (shown.attach) {
                 AttachPanel(
                     // The keyboard's height, as the emoji panel's is.
                     height = panelHeight,
@@ -1810,7 +1838,7 @@ fun ChatScreen(
             }
 
             // Under the composer, in the keyboard's place; see keyboardHeight.
-            state.expressions?.let { tab ->
+            shown.tab?.let { tab ->
                 ExpressionPanel(
                     tab = tab,
                     height = panelHeight,
@@ -1835,6 +1863,7 @@ fun ChatScreen(
                     onCustomEmojiPicked = onCustomEmojiPicked,
                     bottomInset = navBarHeight
                 )
+            }
             }
             }
 
@@ -2164,6 +2193,14 @@ private const val OWN_ACTIVITY_TICK_MS = 1_000L
 private fun PanelSlot(
     imeInsets: WindowInsets,
     restingNav: Int,
+    /**
+     * Whether a panel is open, as against one sliding away (2.3). Open, the
+     * composer drops its lift for the navigation bar and this slot holds
+     * the bar's height for it; sliding away, the lift is back already, so
+     * the slot gives up the bar's height too — or the composer would jump
+     * by it as the panel started down.
+     */
+    open: Boolean,
     content: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
@@ -2173,7 +2210,8 @@ private fun PanelSlot(
             .layout { measurable, constraints ->
                 // Read here, in layout, as the keyboard slides: a frame of
                 // its movement re-lays this out and recomposes nothing.
-                val underKeyboard = (imeInsets.getBottom(density) - restingNav).coerceAtLeast(0)
+                val ime = imeInsets.getBottom(density)
+                val underKeyboard = if (open) (ime - restingNav).coerceAtLeast(0) else maxOf(ime, restingNav)
                 val placeable = measurable.measure(
                     constraints.copy(
                         minHeight = 0,
@@ -2187,7 +2225,7 @@ private fun PanelSlot(
                 val shown = if (placeable.height == 0) {
                     0
                 } else {
-                    maxOf(restingNav, placeable.height - underKeyboard).coerceAtMost(placeable.height)
+                    maxOf(if (open) restingNav else 0, placeable.height - underKeyboard).coerceAtMost(placeable.height)
                 }
                 layout(placeable.width, shown) { placeable.place(0, 0) }
             }
@@ -2195,3 +2233,17 @@ private fun PanelSlot(
         content()
     }
 }
+
+/** The panel last open, which goes on being drawn while it slides away; see PanelSlot. */
+private class ShownPanel {
+    var attach: Boolean = false
+    var tab: ExpressionTab? = null
+}
+
+/**
+ * The panels come up and go down on the keyboard's own curves: Android
+ * shows the keyboard over 285 ms on (0.2, 0, 0, 1), and the panel in its
+ * place should arrive the way it does.
+ */
+private val PANEL_RISE = tween<IntSize>(durationMillis = 285, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f))
+private val PANEL_FALL = tween<IntSize>(durationMillis = 200, easing = CubicBezierEasing(0.4f, 0f, 1f, 1f))
