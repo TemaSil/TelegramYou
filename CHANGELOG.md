@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.3.1
+
+- **The panels slide up like the keyboard.** Opened from the bottom of the screen, the emoji panel and the plus panel rise on the keyboard's own curve, the message field riding on them, and go back down when closed. Switching from the keyboard to a panel, or back, stays as it was — the panel waits under the keyboard — and the plus and emoji panels still swap in place.
+
 ## 2.3
 
 More than one account.

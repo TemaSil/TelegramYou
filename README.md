@@ -55,13 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.3 · 16 October 2026
+## Latest: 2.3.1 · 16 October 2026
 
-More than one account: up to three on a phone, as the official app holds,
-switched in place from the Profile tab — the other accounts stay signed in
-and running, so switching back is instant. Added from the profile with a
-way back, and signing out of one carries on in another. See the
-[changelog](CHANGELOG.md) for 2.3 and the fixes before it.
+The emoji and plus panels slide up from the bottom as the keyboard does.
+2.3 before it brought more than one account: up to three on a phone,
+switched in place from the Profile tab — the others stay signed in and
+running, so switching back is instant. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 
