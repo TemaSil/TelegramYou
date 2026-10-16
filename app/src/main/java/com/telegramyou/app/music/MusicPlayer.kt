@@ -90,10 +90,16 @@ data class OfflineProgress(val chatId: Long, val done: Int, val total: Int)
  */
 class MusicPlayer(
     private val context: Context,
-    private val repository: TelegramRepository,
+    /**
+     * The account in use, asked each time (2.3): switching accounts stops
+     * the music (TelegramYouApp), and what plays next is that account's.
+     */
+    private val repositoryOf: () -> TelegramRepository,
     /** Appearance → Find missing covers, read as each track starts (2.2). */
     private val findCovers: () -> Boolean = { true }
 ) {
+    private val repository: TelegramRepository get() = repositoryOf()
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(NowPlaying())
     val state: StateFlow<NowPlaying> = _state.asStateFlow()

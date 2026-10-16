@@ -161,9 +161,12 @@ fun TelegramYouNavHost(
     /** The chat picked for [share] when it came without one. */
     onShareTarget: (Long) -> Unit = {},
     /** [share] is in a composer, or was turned away. */
-    onShareHandled: () -> Unit = {}
+    onShareHandled: () -> Unit = {},
+    /** The accounts on this phone (2.3); absent in previews. */
+    accounts: com.telegramyou.app.telegram.accounts.AccountManager? = null
 ) {
     val navController = rememberNavController()
+    val accountList = accounts?.accounts?.collectAsStateWithLifecycle()?.value
     // Only the auth state is read here, and only to decide where to send the
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
@@ -455,7 +458,8 @@ fun TelegramYouNavHost(
                 onEmailChange = authViewModel::onEmailChange,
                 onSubmitEmail = authViewModel::submitEmail,
                 onSubmitEmailCode = authViewModel::submitEmailCode,
-                onResetEmail = authViewModel::resetEmail
+                onResetEmail = authViewModel::resetEmail,
+                onCancelAdding = if (accountList?.canCancelAdding == true) ({ accounts?.cancelAdding() }) else null
             )
         }
         composable(
@@ -569,6 +573,9 @@ fun TelegramYouNavHost(
                 onContactPicked = homeViewModel::onContactPicked,
                 onComposeNavigated = homeViewModel::onComposeNavigated,
                 onLogout = homeViewModel::logout,
+                accounts = accountList,
+                onSwitchAccount = { id -> accounts?.switchTo(id) },
+                onAddAccount = { accounts?.add() },
                 onErrorShown = homeViewModel::onErrorShown,
                 onListEndReached = homeViewModel::onListEndReached,
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },

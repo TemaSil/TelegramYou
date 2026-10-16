@@ -24,10 +24,7 @@ class TdJsonEngine(
 ) {
     // Replaced by [reopen]; read from any thread that sends.
     @Volatile private var clientId: Int
-    private val extraSeq = AtomicLong(1)
-    private val pending = ConcurrentHashMap<String, Continuation<JSONObject>>()
     @Volatile private var running = false
-    private var receiverThread: Thread? = null
 
     init {
         JsonClient.execute("""{"@type":"setLogVerbosityLevel","new_verbosity_level":1}""")
@@ -37,40 +34,25 @@ class TdJsonEngine(
     fun start() {
         if (running) return
         running = true
-        receiverThread = Thread({
-            while (running) {
-                val raw = try {
-                    JsonClient.receive(1.0)
-                } catch (t: Throwable) {
-                    Log.e(TAG, "receive failed", t)
-                    null
-                } ?: continue
-                handleIncoming(raw)
-            }
-        }, "tdlib-json-receiver").apply {
-            isDaemon = true
-            start()
-        }
+        Receiver.register(clientId, this)
     }
 
     /**
      * A fresh TDLib instance in place of one that has closed — after a
      * log-out TDLib closes the instance for good, and anything sent to it
-     * answers "Request aborted". The receiver thread stays: `receive` serves
-     * every instance, and two threads may not call it at once.
+     * answers "Request aborted". Updates still arriving from the old one are
+     * dropped; answers to what was asked of it are still delivered.
      */
     fun reopen() {
+        Receiver.unregister(clientId)
         clientId = JsonClient.createClientId()
+        if (running) Receiver.register(clientId, this)
     }
 
     fun stop() {
         running = false
-        receiverThread?.interrupt()
-        receiverThread = null
-        pending.values.forEach {
-            it.resumeWithException(IllegalStateException("TDLib stopped"))
-        }
-        pending.clear()
+        Receiver.unregister(clientId)
+        Receiver.failAll(this, IllegalStateException("TDLib stopped"))
     }
 
     fun sendFireAndForget(request: JSONObject) {
@@ -85,43 +67,105 @@ class TdJsonEngine(
     }
 
     private suspend fun sendNow(request: JSONObject): JSONObject = suspendCoroutine { cont ->
-        val extra = extraSeq.incrementAndGet().toString()
+        val extra = Receiver.expect(this, cont)
         request.put("@extra", extra)
-        pending[extra] = cont
         try {
             JsonClient.send(clientId, request.toString())
         } catch (t: Throwable) {
-            pending.remove(extra)
+            Receiver.forget(extra)
             cont.resumeWithException(t)
         }
     }
 
-    private fun handleIncoming(raw: String) {
-        val obj = try {
-            JSONObject(raw)
-        } catch (t: Throwable) {
-            Log.w(TAG, "bad json: $raw")
-            return
+    /**
+     * The one thread that reads from TDLib, for every engine in the process
+     * (2.3). `JsonClient.receive` serves every instance at once and may not
+     * be called from two threads together — one engine per account, each
+     * with a receiver of its own, would have done exactly that. Answers go
+     * back to whoever asked, by their `@extra`, unique across engines;
+     * updates go to the engine whose instance sent them, by `@client_id`.
+     */
+    private object Receiver {
+        private val engines = ConcurrentHashMap<Int, TdJsonEngine>()
+        private val pending = ConcurrentHashMap<String, Pair<TdJsonEngine, Continuation<JSONObject>>>()
+        private val extraSeq = AtomicLong(1)
+        @Volatile private var thread: Thread? = null
+
+        fun register(clientId: Int, engine: TdJsonEngine) {
+            engines[clientId] = engine
+            ensureThread()
         }
-        val extra = obj.optString("@extra", "")
-        if (extra.isNotEmpty()) {
-            val cont = pending.remove(extra)
-            if (cont != null) {
-                if (obj.optString("@type") == "error") {
-                    cont.resumeWithException(
-                        TdLibException(obj.optInt("code"), obj.optString("message"))
-                    )
-                } else {
-                    cont.resume(obj)
-                }
-                return
+
+        fun unregister(clientId: Int) {
+            engines.remove(clientId)
+        }
+
+        fun expect(engine: TdJsonEngine, cont: Continuation<JSONObject>): String {
+            val extra = extraSeq.incrementAndGet().toString()
+            pending[extra] = engine to cont
+            return extra
+        }
+
+        fun forget(extra: String) {
+            pending.remove(extra)
+        }
+
+        fun failAll(engine: TdJsonEngine, error: Throwable) {
+            pending.entries.filter { it.value.first === engine }.forEach { entry ->
+                pending.remove(entry.key)?.second?.resumeWithException(error)
             }
         }
-        // An update still arriving from an instance that was replaced. Only
-        // updates: an answer to a request is delivered whichever instance
-        // it came from, so nothing waiting on one hangs.
-        if (obj.has("@client_id") && obj.optInt("@client_id") != clientId) return
-        onUpdate(obj)
+
+        @Synchronized
+        private fun ensureThread() {
+            if (thread != null) return
+            thread = Thread({
+                while (true) {
+                    val raw = try {
+                        JsonClient.receive(1.0)
+                    } catch (t: Throwable) {
+                        Log.e(TAG, "receive failed", t)
+                        null
+                    } ?: continue
+                    handle(raw)
+                }
+            }, "tdlib-json-receiver").apply {
+                isDaemon = true
+                start()
+            }
+        }
+
+        private fun handle(raw: String) {
+            val obj = try {
+                JSONObject(raw)
+            } catch (t: Throwable) {
+                Log.w(TAG, "bad json: $raw")
+                return
+            }
+            val extra = obj.optString("@extra", "")
+            if (extra.isNotEmpty()) {
+                val waiting = pending.remove(extra)
+                if (waiting != null) {
+                    val cont = waiting.second
+                    if (obj.optString("@type") == "error") {
+                        cont.resumeWithException(TdLibException(obj.optInt("code"), obj.optString("message")))
+                    } else {
+                        cont.resume(obj)
+                    }
+                    return
+                }
+            }
+            // An update from an instance no engine holds any more — one
+            // replaced after a log-out, or an account's engine stopped — is
+            // dropped.
+            val engine = if (obj.has("@client_id")) {
+                engines[obj.optInt("@client_id")]
+            } else {
+                // Without one, as before there were several: the only engine.
+                engines.values.singleOrNull()
+            } ?: return
+            engine.onUpdate(obj)
+        }
     }
 
     companion object {

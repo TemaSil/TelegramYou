@@ -48,6 +48,13 @@ interface TelegramClient :
     fun shutdown()
 
     /**
+     * Closed for good, and everything it kept on this phone deleted (2.3):
+     * an account given up while being added, or signed out of with others
+     * to go on with. Without a backend of its own to destroy, a shutdown.
+     */
+    suspend fun destroy() = shutdown()
+
+    /**
      * Whether the app is in front of the person. Telegram treats a session
      * that never says so as away: it shows the account offline, and it does
      * not send it who is typing. Nothing here said so, which is why the live

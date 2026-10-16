@@ -180,12 +180,23 @@ open class MainActivity : ComponentActivity() {
                     ) {
                         val lockSettings by app.appLock.settings.collectAsStateWithLifecycle()
                         val locked by app.appLock.locked.collectAsStateWithLifecycle()
+                        // The account in use (2.3). Switching builds the
+                        // whole graph again on the other account, its screens'
+                        // state holders in a store of that account's own, so
+                        // nothing of the last account's is left running or on
+                        // screen; see AccountViewModelStores.
+                        val repository by app.accounts.active.collectAsStateWithLifecycle()
+                        val stores: AccountViewModelStores = androidx.lifecycle.viewmodel.compose.viewModel()
+                        val owner = androidx.compose.runtime.remember(repository) { stores.ownerFor(repository) }
+                        LaunchedEffect(repository) { stores.dropAllBut(repository) }
                         // Behind the lock the app stays composed but says
                         // nothing: without this, TalkBack could read the
                         // chats straight through it.
                         Box(if (locked) Modifier.clearAndSetSemantics {} else Modifier) {
+                        CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides owner) {
+                        androidx.compose.runtime.key(repository) {
                         TelegramYouNavHost(
-                            repository = app.telegramRepository,
+                            repository = repository,
                             appearance = app.appearance,
                             appLock = app.appLock,
                             geeks = app.geeks,
@@ -200,8 +211,11 @@ open class MainActivity : ComponentActivity() {
                             share = pendingShare,
                             onShareTarget = { chatId -> pendingShare = pendingShare?.copy(chatId = chatId) },
                             onShareHandled = { pendingShare = null },
-                            onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) }
+                            onDemoRequested = { app.setDemoMode(!app.isSwitchedToDemo) },
+                            accounts = app.accounts
                         )
+                        }
+                        }
                         }
                         // Over everything, the app still composed beneath:
                         // unlocking puts back exactly the screen that was
@@ -327,3 +341,30 @@ private fun Intent.chatIdExtra(): Long? =
 
 /** The longest the splash is held for; see MainActivity.holdFirstFrame. */
 private const val FIRST_FRAME_HOLD_MS = 3_000L
+
+/**
+ * A store of screen state holders for each account (2.3), held by the
+ * activity's own ViewModel so it outlives a rotation as the screens' always
+ * did. The account switched away from has its store cleared — its state
+ * holders stopped and their work cancelled — rather than left running on
+ * the account no longer in use.
+ */
+class AccountViewModelStores : androidx.lifecycle.ViewModel() {
+    private val stores = HashMap<com.telegramyou.app.telegram.TelegramRepository, androidx.lifecycle.ViewModelStore>()
+
+    fun ownerFor(repository: com.telegramyou.app.telegram.TelegramRepository): androidx.lifecycle.ViewModelStoreOwner {
+        val store = stores.getOrPut(repository) { androidx.lifecycle.ViewModelStore() }
+        return object : androidx.lifecycle.ViewModelStoreOwner {
+            override val viewModelStore: androidx.lifecycle.ViewModelStore = store
+        }
+    }
+
+    fun dropAllBut(repository: com.telegramyou.app.telegram.TelegramRepository) {
+        stores.keys.filter { it !== repository }.forEach { stores.remove(it)?.clear() }
+    }
+
+    override fun onCleared() {
+        stores.values.forEach { it.clear() }
+        stores.clear()
+    }
+}

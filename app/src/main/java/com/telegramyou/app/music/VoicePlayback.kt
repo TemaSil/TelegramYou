@@ -40,9 +40,12 @@ data class VoiceNow(
  * - the music turns down under them and comes back (VoicePlayer ducks).
  */
 class VoicePlayback(
-    private val repository: TelegramRepository?,
+    /** The account in use, asked each time; see MusicPlayer.repositoryOf. */
+    private val repositoryOf: () -> TelegramRepository?,
     private val prefs: SharedPreferences?
 ) {
+    private val repository: TelegramRepository? get() = repositoryOf()
+
     private val player = VoicePlayer()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val _state = MutableStateFlow(VoiceNow(speed = prefs?.getFloat(KEY_SPEED, 1f) ?: 1f))

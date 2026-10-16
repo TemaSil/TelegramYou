@@ -135,7 +135,13 @@ class DemoTelegramClient(
      * a file is copied into a little at a time, as TDLib writes one that
      * is being downloaded. Without it the demo fetches whole, as before.
      */
-    private val context: android.content.Context? = null
+    private val context: android.content.Context? = null,
+    /**
+     * Which account on the phone (2.3). The first is "You Expressive"; one
+     * added after it is somebody else, so the switcher has two people to
+     * tell apart — the same seeded chats, a different name.
+     */
+    private val accountId: Int = 0
 ) : TelegramClient {
     private val messageId = AtomicLong(1_000)
 
@@ -207,19 +213,25 @@ class DemoTelegramClient(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var chatter: Job? = null
 
+    /** Who is signed in to this demo account; see [accountId]. */
+    private fun demoMe(phone: String = ""): TelegramUser = when (accountId) {
+        0 -> TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", phoneNumber = phone, isPremium = true)
+        else -> TelegramUser(
+            id = 1_000L + accountId,
+            firstName = DEMO_OTHER_NAMES[(accountId - 1) % DEMO_OTHER_NAMES.size],
+            lastName = "Material",
+            username = "material$accountId",
+            phoneNumber = phone.ifBlank { "+1555010${accountId}00" }
+        )
+    }
+
     override fun start() {
         _authState.value = AuthUiState(state = AuthState.WaitPhoneNumber, isLoading = false)
         seedMessages()
         if (signedIn) {
             _authState.value = AuthUiState(
                 state = AuthState.Ready,
-                me = TelegramUser(
-                    id = 1,
-                    firstName = "You",
-                    lastName = "Expressive",
-                    username = "telegramyou",
-                    isPremium = true
-                )
+                me = demoMe()
             )
             startDemoChatter()
         }
@@ -401,14 +413,7 @@ class DemoTelegramClient(
             it.copy(
                 isLoading = false,
                 state = AuthState.Ready,
-                me = TelegramUser(
-                    id = 1,
-                    firstName = "You",
-                    lastName = "Expressive",
-                    username = "telegramyou",
-                    phoneNumber = it.phoneNumber,
-                    isPremium = true
-                )
+                me = demoMe(phone = it.phoneNumber)
             )
         }
         startDemoChatter()
@@ -435,7 +440,7 @@ class DemoTelegramClient(
             it.copy(
                 state = AuthState.Ready,
                 qrLink = null,
-                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", isPremium = true)
+                me = demoMe()
             )
         }
         startDemoChatter()
@@ -448,7 +453,7 @@ class DemoTelegramClient(
             it.copy(
                 isLoading = false,
                 state = AuthState.Ready,
-                me = TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", isPremium = true)
+                me = demoMe()
             )
         }
         startDemoChatter()
@@ -3144,6 +3149,9 @@ private val DEMO_REACTIONS = listOf("👍", "👎", "❤️", "🔥", "🎉", "�
  * An invite to a group this account is not in, for the join screen's main case.
  * The hash is shaped like a real one so it passes the same parsing.
  */
+/** The demo's second and third accounts; see DemoTelegramClient.demoMe. */
+private val DEMO_OTHER_NAMES = listOf("Robin", "Sasha")
+
 private val DEMO_JOIN_LINK = "https://t.me/+ExpressiveDesignClub"
 
 /** The seeded chat the demo's timer speaks in — Material Design. */

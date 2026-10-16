@@ -190,3 +190,31 @@ What does not change: the demo backend stays a first-class citizen. Every
 screen must work offline with `DemoTelegramClient`, because that is what
 makes interface work possible without credentials — and it is the only
 backend CI ever exercises.
+
+## Accounts (2.3)
+
+Each account on the phone is a client of its own — for the live backend a
+TDLib instance with its own database directory, `tdlib` for the first (the
+one the app always had) and `tdlib-<n>` after it. `AccountManager` opens one
+the first time it is used and keeps it running after another is switched
+to. `TelegramYouApp.telegramRepository` is the one in use; whatever holds a
+repository rather than asking for it each time follows
+`AccountManager.active` instead:
+
+- **The screens.** `MainActivity` builds the navigation graph again on a
+  switch, inside a `ViewModelStore` of that account's own
+  (`AccountViewModelStores`), and clears the last account's store, so none
+  of its state holders is left running.
+- **The notification service and the widgets** collect the active account's
+  flows with `collectLatest` / `flatMapLatest`.
+- **The music and voice players** ask for the repository on each use and
+  are stopped on a switch.
+
+`JsonClient.receive` serves every TDLib instance in the process and may not
+be called from two threads at once, so `TdJsonEngine` has one receiver for
+all of them: answers go back by `@extra`, updates to their engine by
+`@client_id`.
+
+The list of accounts, and who is signed in to each — what the switcher
+shows without opening the others — is `Accounts` in `:core`, kept in
+SharedPreferences by `AccountManager`.

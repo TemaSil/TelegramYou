@@ -2029,6 +2029,74 @@ class SmokeTest {
     }
 
     /**
+     * A second account (2.3): added from the profile and given up from its
+     * sign-in screen; added again and signed into — the demo's second
+     * account is Robin — switched between both ways; and signed out of,
+     * which takes it off the phone and goes back to the first. Signed out
+     * at the end so the tests after this one, in the same process, are on
+     * the first account as they expect.
+     */
+    @Test
+    fun aSecondAccountIsAddedSwitchedToAndSignedOutOf() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the profile")
+        scrollDownTo(By.text("Add account"))
+
+        // Given up: the sign-in screen's cross goes back to the first.
+        tap(By.text("Add account"))
+        waitFor(By.text("Your phone"), "the new account's sign-in")
+        screenshot("101-add-account")
+        tap(By.desc("Cancel adding account"))
+        waitFor(By.text("Material Design"), "the first account's chats again")
+
+        // Signed into, as the demo's second account.
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        scrollDownTo(By.text("Add account"))
+        tap(By.text("Add account"))
+        waitFor(By.text("Your phone"), "the new account's sign-in")
+        type("+15550100100")
+        tap(By.text("Continue"))
+        waitFor(By.text("Enter code"), "the second account's code screen")
+        type("12345")
+        waitFor(By.text("Material Design"), "the second account's chats")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Robin Material"), "the second account's profile")
+        scrollDownTo(By.text("You Expressive"))
+        screenshot("101b-accounts")
+
+        // Over to the first and back.
+        tap(By.text("You Expressive"))
+        waitFor(By.text("Material Design"), "the first account's chats")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the first account's profile")
+        scrollDownTo(By.text("Robin Material"))
+        tap(By.text("Robin Material"))
+        waitFor(By.text("Material Design"), "the second account's chats again")
+
+        // Signed out of: off the phone, and back on the first account.
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        val logOut = By.text("Log out")
+        scrollDownTo(logOut)
+        tap(logOut)
+        waitFor(By.text("Log out of Telegram?"), "the log-out question")
+        device.findObjects(logOut).maxByOrNull { it.visibleBounds.centerX() }!!.click()
+        waitFor(By.text("Material Design"), "the first account's chats after signing out of the second")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the first account's profile")
+        scrollDownTo(By.text("Add account"))
+        assertFalse("the signed-out account is still listed", device.hasObject(By.text("Robin Material")))
+    }
+
+    /**
      * Whether [selector] leaves the screen, looking at a fresh tree each time.
      *
      * UiAutomator reads through the accessibility cache, and after the folder

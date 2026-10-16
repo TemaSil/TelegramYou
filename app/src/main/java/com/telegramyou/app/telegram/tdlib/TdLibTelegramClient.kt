@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.telegram.accounts.databaseDirName
+import com.telegramyou.app.telegram.accounts.filesDirName
 import kotlinx.coroutines.withTimeoutOrNull
 import com.telegramyou.app.ui.chat.OwnActivity
 import com.telegramyou.app.notifications.ScopeNotifications
@@ -138,16 +140,22 @@ import java.util.concurrent.atomic.AtomicLong
 class TdLibTelegramClient(
     private val context: Context,
     private val apiId: Int,
-    private val apiHash: String
+    private val apiHash: String,
+    /**
+     * Which account on this phone (2.3): its own database and files, so
+     * several can be open at once. 0 is the one the app always had, in the
+     * directories it always used.
+     */
+    private val accountId: Int = 0
 ) : TelegramClient {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val chatMutex = Mutex()
 
     private val databaseDir: File =
-        File(context.filesDir, "tdlib").also { it.mkdirs() }
+        File(context.filesDir, databaseDirName(accountId)).also { it.mkdirs() }
     private val filesDir: File =
-        File(context.filesDir, "tdlib-files").also { it.mkdirs() }
+        File(context.filesDir, filesDirName(accountId)).also { it.mkdirs() }
     private val uploadCache: File =
         File(context.cacheDir, "tdlib-upload").also { it.mkdirs() }
 
@@ -366,6 +374,22 @@ class TdLibTelegramClient(
     override fun shutdown() {
         shuttingDown = true
         engine?.stop()
+        engine = null
+    }
+
+    /**
+     * TDLib's `destroy`: the instance closed without a proper log-out and
+     * its local data — database and files — removed (2.3). Answered once
+     * it is under way; the engine is stopped after, so the closing updates
+     * that follow go nowhere.
+     */
+    override suspend fun destroy() {
+        shuttingDown = true
+        engine?.let { eng ->
+            runCatching { eng.send(JSONObject().put("@type", "destroy")) }
+                .onFailure { Log.w(TAG, "destroy: ${it.message}") }
+            eng.stop()
+        }
         engine = null
     }
 

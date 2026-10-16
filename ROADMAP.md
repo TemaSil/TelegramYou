@@ -122,11 +122,17 @@ By how soon they would notice, not by how hard it is.
       removed, the packs reordered, trending ones.
 - [ ] **Emoji status, profile colour, birthday** on profiles.
 - [ ] **Saved Messages by chat** and its tags; **shared folder links**.
-- [ ] **More than one account** — the official app holds three. TDLib runs
-      one instance per database directory, so it is a client per account
-      and a switcher on the Profile tab; everything above the backend
-      already takes "the account" as given. The largest item here, and the
-      one people would miss most.
+- [x] **More than one account** (2.3) — up to three, as the official app
+      holds. A TDLib instance per account, each with its own database
+      (`tdlib`, `tdlib-1`, …; the first keeps the directory it always had),
+      all served by one receiver thread (TdJsonEngine); AccountManager holds
+      the list and the one in use, and the screens, the notification
+      service and the widgets follow it. Switched, added and given up from
+      the Profile tab and the sign-in screen; signing out of one with
+      others left takes it off the phone.
+- [ ] **Notifications from every account**, not only the one in use — the
+      other accounts are open already; their arrivals need notification ids
+      of their own and a tap that switches to the account before the chat.
 - [ ] **Secret chats** — end-to-end, one device; TDLib carries them, the
       screens are the work.
 - [ ] **Channel statistics and boosts**, for admins.
@@ -160,8 +166,9 @@ places to be ahead rather than level.
       Settings → Notifications.
 - [x] **Widgets** (2.1), in Glance and Material You: recent chats, and the
       music now playing with its controls.
-- [ ] **A widget for one person** — the chat picked when it is placed, its
-      newest line, a tap into it. Needs Glance's configuration activity.
+- [x] **A widget for one person** (2.1.3) — the contact photo widget: the
+      person and one of twelve shapes picked as it is placed, a tap into
+      the chat.
 - [x] **Keyboard** (2.1): Enter sends from a hardware keyboard,
       Shift+Enter a new line, Ctrl+F searches the chat.
 - [ ] **Two panes** on a tablet and an unfolded phone, the chat beside the

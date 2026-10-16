@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -29,10 +30,12 @@ object WidgetUpdates {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    @OptIn(FlowPreview::class)
+    @OptIn(FlowPreview::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     fun start(app: TelegramYouApp) {
+        // The account in use's chats, followed across a switch (2.3).
+        val chats = app.accounts.active.flatMapLatest { it.chats }
         scope.launch {
-            app.telegramRepository.chats
+            chats
                 // What a row shows, and nothing else: the list changes for
                 // reasons a widget does not draw — typing, online dots.
                 .map { chats ->
@@ -61,7 +64,7 @@ object WidgetUpdates {
         scope.launch {
             // Someone on a photo widget set a new photo (2.2): only the list's
             // pictures matter, and each widget checks its own person.
-            app.telegramRepository.chats
+            chats
                 .map { chats -> chats.map { it.id to it.photoPath } }
                 .distinctUntilChanged()
                 .debounce(RECENT_SETTLE_MS)

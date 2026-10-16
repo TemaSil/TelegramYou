@@ -69,4 +69,16 @@ object PostedNotifications {
     fun clear(chatId: Long) {
         byChat.remove(chatId)
     }
+
+    /**
+     * Forgets every chat, and answers with the ones that were on show, so
+     * their notifications can be taken down: the account they belong to has
+     * just been switched away from (2.3).
+     */
+    @Synchronized
+    fun clearAll(): Set<Long> {
+        val shown = byChat.keys.toSet()
+        byChat.clear()
+        return shown
+    }
 }

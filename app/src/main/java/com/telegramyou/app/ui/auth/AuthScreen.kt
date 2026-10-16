@@ -140,12 +140,20 @@ fun AuthScreen(
     onEmailChange: (String) -> Unit = {},
     onSubmitEmail: () -> Unit = {},
     onSubmitEmailCode: () -> Unit = {},
-    onResetEmail: () -> Unit = {}
+    onResetEmail: () -> Unit = {},
+    /**
+     * Signing in as another account (2.3): giving it up, back to the one it
+     * was added from. Null on the first account's sign-in, which has
+     * nowhere to go back to.
+     */
+    onCancelAdding: (() -> Unit)? = null
 ) {
     val auth = state.auth
     val context = LocalContext.current
     LaunchedEffect(Unit) { onDefaultRegion(deviceRegion(context)) }
     BackHandler(enabled = state.isChangingNumber, onBack = onChangeNumberCancelled)
+    // Back, adding an account, goes back to the account it was added from.
+    BackHandler(enabled = !state.isChangingNumber && onCancelAdding != null) { onCancelAdding?.invoke() }
 
     val submit: () -> Unit = when (state.step) {
         AuthStep.Phone -> onSubmitPhone
@@ -271,6 +279,16 @@ fun AuthScreen(
                 modifier = Modifier.align(Alignment.TopEnd)
             ) {
                 Icon(Symbols.VpnKey, contentDescription = "Proxy")
+            }
+            // Adding an account: a way back to the one already signed in,
+            // where an app bar keeps its navigation.
+            if (onCancelAdding != null) {
+                IconButton(
+                    onClick = onCancelAdding,
+                    modifier = Modifier.align(Alignment.TopStart)
+                ) {
+                    Icon(Symbols.Close, contentDescription = "Cancel adding account")
+                }
             }
         }
 

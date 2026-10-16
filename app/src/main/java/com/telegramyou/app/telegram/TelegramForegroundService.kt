@@ -32,6 +32,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import com.telegramyou.app.telegram.model.downloadNotificationText
@@ -126,10 +129,13 @@ class TelegramForegroundService : Service() {
     private fun observeArrivals(): Job {
         val app = application as TelegramYouApp
         return scope.launch {
-            app.telegramRepository.incomingMessages.collect { message ->
+            // The account in use's arrivals, followed across a switch (2.3);
+            // the others' are not announced yet.
+            app.accounts.active.collectLatest { repository ->
+            repository.incomingMessages.collect { message ->
                 // Not from the list: the list may not hold it yet, and a muted
                 // chat it did not hold notified as if it were not (2.1.3).
-                val chat = app.telegramRepository.knownChat(message.chatId)
+                val chat = repository.knownChat(message.chatId)
                 val notifiable = NotifiableMessage(
                     chatId = message.chatId,
                     messageId = message.id,
@@ -173,6 +179,7 @@ class TelegramForegroundService : Service() {
                     post(decision.message)
                 }
             }
+            }
         }
     }
 
@@ -197,10 +204,14 @@ class TelegramForegroundService : Service() {
      * process alive, which is what keeps a download going with the screen
      * off; the notification is so that it is not going on unseen.
      */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observeDownloads(): Job {
-        val repository = (application as TelegramYouApp).telegramRepository
+        val app = application as TelegramYouApp
         return scope.launch {
-            combine(repository.listDownloads, repository.fileTransfers) { ids, transfers ->
+            // The account in use's downloads, followed across a switch (2.3).
+            app.accounts.active.flatMapLatest { repository ->
+                combine(repository.listDownloads, repository.fileTransfers) { ids, transfers -> ids to transfers }
+            }.map { (ids, transfers) ->
                 if (ids.isEmpty()) {
                     null
                 } else {

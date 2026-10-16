@@ -318,7 +318,7 @@ class ChatViewModel(
     private val repository: TelegramRepository,
     savedStateHandle: SavedStateHandle,
     /** The app's voice messages, which outlive this screen; its own where none is given, as in tests. */
-    private val voice: com.telegramyou.app.music.VoicePlayback = com.telegramyou.app.music.VoicePlayback(repository, null)
+    private val voice: com.telegramyou.app.music.VoicePlayback = com.telegramyou.app.music.VoicePlayback({ repository }, null)
 ) : ViewModel() {
 
     /**

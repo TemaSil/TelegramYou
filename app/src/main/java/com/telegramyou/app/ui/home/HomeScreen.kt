@@ -180,6 +180,10 @@ fun HomeScreen(
     onContactPicked: (Long) -> Unit,
     onComposeNavigated: () -> Unit,
     onLogout: () -> Unit,
+    /** The accounts on this phone (2.3), for the Profile tab; null for none. */
+    accounts: com.telegramyou.app.telegram.accounts.Accounts? = null,
+    onSwitchAccount: (Int) -> Unit = {},
+    onAddAccount: () -> Unit = {},
     /** Called once a refusal in [HomeUiState.errorMessage] has been shown. */
     onErrorShown: () -> Unit = {},
     /** A list is near its end: the main one for null, else that folder. */
@@ -423,7 +427,10 @@ fun HomeScreen(
                         onSave = onProfileSave,
                         contentPadding = padding,
                         onPhotoPicked = onProfilePhotoPicked,
-                        onOpenSettings = { onTabSelected(HomeTab.Settings) }
+                        onOpenSettings = { onTabSelected(HomeTab.Settings) },
+                        accounts = accounts,
+                        onSwitchAccount = onSwitchAccount,
+                        onAddAccount = onAddAccount
                     )
                     return@AnimatedContent
                 }

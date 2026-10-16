@@ -23,8 +23,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class TelegramYouApp : Application() {
-    lateinit var telegramRepository: TelegramRepository
+    /**
+     * The accounts on this phone (2.3); see AccountManager. Everything that
+     * talks to Telegram goes through [telegramRepository], the one in use.
+     */
+    lateinit var accounts: com.telegramyou.app.telegram.accounts.AccountManager
         private set
+
+    /** The account in use's repository; it changes as accounts are switched. */
+    val telegramRepository: TelegramRepository get() = accounts.current
 
     /** Read once here so the activity does not touch disk on every recreate. */
     lateinit var appearance: AppearanceStore
@@ -56,12 +63,12 @@ class TelegramYouApp : Application() {
 
     /** Voice messages, one for the app so they outlive a chat; see VoicePlayback. */
     val voice: com.telegramyou.app.music.VoicePlayback by lazy {
-        com.telegramyou.app.music.VoicePlayback(telegramRepository, getSharedPreferences("voice", MODE_PRIVATE))
+        com.telegramyou.app.music.VoicePlayback({ telegramRepository }, getSharedPreferences("voice", MODE_PRIVATE))
     }
 
     /** The music player, one for the app; see MusicPlayer. */
     val music: com.telegramyou.app.music.MusicPlayer by lazy {
-        com.telegramyou.app.music.MusicPlayer(this, telegramRepository) { appearance.settings.value.findCovers }
+        com.telegramyou.app.music.MusicPlayer(this, { telegramRepository }) { appearance.settings.value.findCovers }
     }
 
     /**
@@ -94,23 +101,61 @@ class TelegramYouApp : Application() {
         // drop it — the backend, its seeded chats, its media — whole.
         isSwitchedToDemo = BuildConfig.DEMO_ALLOWED && !BuildConfig.USE_DEMO_CLIENT &&
             getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_DEMO, false)
-        val client = if (BuildConfig.DEMO_ALLOWED && BuildConfig.USE_DEMO_CLIENT) {
-            DemoTelegramClient(context = this)
-        } else if (BuildConfig.DEMO_ALLOWED && isSwitchedToDemo) {
-            DemoTelegramClient(signedIn = true, context = this)
-        } else {
-            TdLibTelegramClient(
-                context = this,
-                apiId = BuildConfig.TELEGRAM_API_ID,
-                apiHash = unmaskApiHash(
-                    BuildConfig.TELEGRAM_API_HASH_MASKED,
-                    BuildConfig.TELEGRAM_API_HASH_MASK
+        val makeClient: (Int) -> com.telegramyou.app.telegram.TelegramClient = { accountId ->
+            if (BuildConfig.DEMO_ALLOWED && BuildConfig.USE_DEMO_CLIENT) {
+                DemoTelegramClient(context = this, accountId = accountId)
+            } else if (BuildConfig.DEMO_ALLOWED && isSwitchedToDemo) {
+                // The demo reached from the login screen starts signed in;
+                // an account added inside it signs in as the demo's does.
+                DemoTelegramClient(signedIn = accountId == 0, context = this, accountId = accountId)
+            } else {
+                TdLibTelegramClient(
+                    context = this,
+                    apiId = BuildConfig.TELEGRAM_API_ID,
+                    apiHash = unmaskApiHash(
+                        BuildConfig.TELEGRAM_API_HASH_MASKED,
+                        BuildConfig.TELEGRAM_API_HASH_MASK
+                    ),
+                    accountId = accountId
                 )
-            )
+            }
         }
-        demoClient = if (BuildConfig.DEMO_ALLOWED) client as? DemoTelegramClient else null
-        telegramRepository = TelegramRepository(client)
-        telegramRepository.start()
+        var firstDemo: DemoTelegramClient? = null
+        accounts = com.telegramyou.app.telegram.accounts.AccountManager(
+            context = this,
+            makeClient = { accountId ->
+                makeClient(accountId).also { if (firstDemo == null) firstDemo = it as? DemoTelegramClient }
+            },
+            // The one geek setting that is TDLib's, given to each account
+            // as it opens; see below for its changes.
+            onCreated = { repository -> repository.setPreferIpv6(geeks.settings.value.preferIpv6) },
+            prefsName = if (isSwitchedToDemo) {
+                com.telegramyou.app.telegram.accounts.AccountManager.DEMO_PREFS
+            } else {
+                com.telegramyou.app.telegram.accounts.AccountManager.PREFS
+            }
+        )
+        // The first demo client, which the UI test asks to speak.
+        demoClient = if (BuildConfig.DEMO_ALLOWED) firstDemo else null
+        // Switching accounts (2.3): the music and a voice message playing
+        // were the last account's, and stop; the shade's conversations and
+        // the shortcuts that name them were its too.
+        MainScope().launch {
+            var previous = accounts.current
+            accounts.active.drop(1).collect { now ->
+                // Online is the account on screen; the one left goes away.
+                previous.setOnline(false)
+                now.setOnline(com.telegramyou.app.telegram.AppVisibility.isInForeground)
+                previous = now
+                music.stop()
+                voice.stop()
+                com.telegramyou.app.notifications.ConversationShortcuts.clear(this@TelegramYouApp)
+                val shade = androidx.core.app.NotificationManagerCompat.from(this@TelegramYouApp)
+                com.telegramyou.app.notifications.PostedNotifications.clearAll().forEach { chatId ->
+                    shade.cancel(com.telegramyou.app.notifications.PostedNotifications.notificationId(chatId))
+                }
+            }
+        }
         // The home screen's widgets, redrawn as what they show changes (2.1).
         // After the repository, which they read at once: on the main thread's
         // immediate dispatcher the first collection runs inside this call.
@@ -119,7 +164,7 @@ class TelegramYouApp : Application() {
         // now and again whenever it is switched.
         MainScope().launch {
             geeks.settings.map { it.preferIpv6 }.distinctUntilChanged().collect {
-                telegramRepository.setPreferIpv6(it)
+                accounts.current.setPreferIpv6(it)
             }
         }
 

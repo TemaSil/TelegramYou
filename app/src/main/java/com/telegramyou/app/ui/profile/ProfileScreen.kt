@@ -100,7 +100,11 @@ fun ProfileContent(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     onPhotoPicked: (String) -> Unit = {},
-    onOpenSettings: () -> Unit = {}
+    onOpenSettings: () -> Unit = {},
+    /** The accounts on this phone (2.3); null where there is no switching. */
+    accounts: com.telegramyou.app.telegram.accounts.Accounts? = null,
+    onSwitchAccount: (Int) -> Unit = {},
+    onAddAccount: () -> Unit = {}
 ) {
     if (me == null) {
         // Before the client has answered. Not an error and not an empty
@@ -283,6 +287,48 @@ fun ProfileContent(
                         onClick = {}
                     )
             }
+        }
+        if (accounts != null) {
+            AccountsGroup(accounts = accounts, onSwitch = onSwitchAccount, onAdd = onAddAccount)
+        }
+    }
+}
+
+/**
+ * The phone's other accounts, a tap from being the one in use, and adding
+ * one (2.3) — under the profile, as the official client puts them under
+ * its own: this page is the account in use, and the group is the others.
+ */
+@Composable
+private fun AccountsGroup(
+    accounts: com.telegramyou.app.telegram.accounts.Accounts,
+    onSwitch: (Int) -> Unit,
+    onAdd: () -> Unit
+) {
+    val others = accounts.others
+    if (others.isEmpty() && !accounts.canAdd) return
+    SettingsGroup(title = "Accounts") {
+        others.forEach { slot ->
+            item(
+                title = slot.name.ifBlank { "Telegram account" },
+                summary = slot.phone.takeIf { it.isNotBlank() }?.let { PhoneEntry.format(it) },
+                leading = {
+                    AvatarBubble(
+                        title = slot.name.ifBlank { "?" },
+                        seed = slot.userId,
+                        size = 40.dp,
+                        photoPath = slot.photoPath
+                    )
+                },
+                onClick = { onSwitch(slot.id) }
+            )
+        }
+        if (accounts.canAdd) {
+            item(
+                title = "Add account",
+                leading = { SettingsIcon(Symbols.PersonAdd) },
+                onClick = onAdd
+            )
         }
     }
 }
