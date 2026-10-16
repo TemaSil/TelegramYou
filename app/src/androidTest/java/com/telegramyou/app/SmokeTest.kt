@@ -2847,12 +2847,17 @@ class SmokeTest {
         // The queue stays open; the new track is the one playing.
         waitFor(By.desc("Playing"), "the new track marked playing in the queue")
         screenshot("79-queue")
-        // Back past the keyboard, then the sheet.
-        repeat(3) {
-            if (!device.hasObject(By.textContains("12 tracks"))) return@repeat
+        // Back past the keyboard, then the sheet — until the sheet has
+        // gone, not a fixed number of times: it once stayed up after three,
+        // and the player's track was then "found" in the queue's own list,
+        // which the test went on to drive as if it were the player.
+        val queueSheet = By.textContains("12 tracks")
+        repeat(5) {
+            if (!device.hasObject(queueSheet)) return@repeat
             device.pressBack()
-            SystemClock.sleep(600)
+            device.wait(Until.gone(queueSheet), SHORT_WAIT)
         }
+        assertTrue("the queue stayed up", device.wait(Until.gone(queueSheet), STEP_TIMEOUT))
         waitFor(By.text("Tonal Spot"), "the player on the new track")
 
         // Three ways through the queue, from one button's menu.
