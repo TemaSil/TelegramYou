@@ -1,0 +1,652 @@
+10-16 11:04:32.782  2381  2401 I TestRunner: started: aVideoStickerPlays(com.telegramyou.app.SmokeTest)
+10-16 11:04:32.796  2381  2401 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 0
+10-16 11:04:32.835  2381  2401 D UiDevice: Executing shell command: cmd uimode night yes
+10-16 11:04:32.849   795   813 I ndroid.systemui: NativeAlloc concurrent copying GC freed 285500(11MB) AllocSpace objects, 9(180KB) LOS objects, 50% free, 14MB/28MB, paused 43us,35us total 314.564ms
+10-16 11:04:32.887   504   513 I system_server: NativeAlloc concurrent copying GC freed 241176(8715KB) AllocSpace objects, 156(7408KB) LOS objects, 49% free, 18MB/37MB, paused 66us,52us total 366.132ms
+10-16 11:04:33.068  2381  2401 D UiDevice: Pressing home button.
+10-16 11:04:33.087  1042  1042 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras) }
+10-16 11:04:33.092   795   861 D KeyguardService: setOccluded(false)
+10-16 11:04:33.092   795   861 D KeyguardViewMediator: setOccluded(false)
+10-16 11:04:33.092   795   795 D KeyguardViewMediator: handleSetOccluded(false)
+10-16 11:04:33.100   795   795 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+10-16 11:04:33.101   795   795 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+10-16 11:04:33.101   795   795 D vol.VolumeDialogImpl: dismissH: skipping dismiss because isAnimatingDismiss is true and showingStateInconsistent is false
+10-16 11:04:34.108  2381  2401 W InteractionController: Timed out waiting 1000ms for command and events.
+10-16 11:04:34.115   795   858 D SplashScreenView: Build android.window.SplashScreenView{d49f7de V.E...... ......ID 0,0-0,0}
+10-16 11:04:34.115   795   858 D SplashScreenView: Icon: view: null drawable: null size: 0
+10-16 11:04:34.115   795   858 D SplashScreenView: Branding: view: android.view.View{5b85dbf G.ED..... ......I. 0,0-0,0 #10204ef android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+10-16 11:04:34.117  2381  2401 D UiDevice: Waiting 30000ms for SearchCondition[hasObject=BySelector [PKG='\Qcom.telegramyou.app.debug\E']].
+10-16 11:04:34.118  2381  2401 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+10-16 11:04:34.139   389   389 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+10-16 11:04:34.152  2381  2381 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@db8ba74 in: PRE_ON_CREATE
+10-16 11:04:34.180  2381  2381 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@db8ba74 in: CREATED
+10-16 11:04:34.183  1042  1518 D EGL_emulation: app_time_stats: avg=565.75ms min=51.00ms max=1546.15ms count=3
+10-16 11:04:34.198  2381  2381 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@db8ba74 in: STARTED
+10-16 11:04:34.234  2381  2381 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@db8ba74 in: RESUMED
+10-16 11:04:34.362  2381  2401 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+10-16 11:04:34.415  2381  2401 W UiDevice: Active window root not found.
+10-16 11:04:34.422  2381  2401 W UiDevice: Skipping null root node for window: AccessibilityWindowInfo[title=Home, displayId=0, id=9, taskId=7, type=TYPE_APPLICATION, layer=0, region=SkRegion((0,0,1080,2400)), bounds=Rect(0, 0 - 1080, 2400), focused=true, active=true, pictureInPicture=false, transitionTime=834084, hasParent=false, isAnchored=false, hasChildren=false]
+10-16 11:04:34.464  1042  1042 W FrameTracker: Missing SF jank callback for vsyncId: 115914, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 11:04:34.464  1042  1042 W FrameTracker: Missed App frame:UNKNOWN: 10, 116086, 33724626, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 11:04:34.464  1042  1042 W FrameTracker: Missed SF frame:UNKNOWN: 10, 116086, 33724626, CUJ=J<LAUNCHER_APP_CLOSE_TO_HOME>
+10-16 11:04:34.465  1042  1758 V PerfettoTrigger: Not triggering com.android.telemetry.interaction-jank-monitor-9 - not enough time since last trigger
+10-16 11:04:34.496  2381  2381 D AutofillManager: Fill dialog is enabled:false, hints=[]
+10-16 11:04:34.538  2381  2401 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+10-16 11:04:34.580  2381  2381 I ImeTracker: com.telegramyou.app.debug:f8ad11aa: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+10-16 11:04:34.581  2381  2381 I ImeTracker: com.telegramyou.app.debug:f8ad11aa: onFailed at PHASE_CLIENT_VIEW_SERVED
+10-16 11:04:34.581  2381  2381 I ImeTracker: com.telegramyou.app.debug:352d1129: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT_BY_INSETS_API
+10-16 11:04:34.582  2381  2381 I ImeTracker: com.telegramyou.app.debug:352d1129: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+10-16 11:04:34.584  2381  2381 E FrameTracker: force finish cuj, time out: J<IME_INSETS_ANIMATION::1@1@com.telegramyou.app.debug>
+10-16 11:04:34.660   504   521 W ziparchive: Unable to open '/data/app/~~O0g5KWv1UGdwsLo0rLUQVg==/com.telegramyou.app.debug-g8lrU7ltSdrKtSXZLrfAHg==/base.dm': No such file or directory
+10-16 11:04:34.662   504   521 I ActivityTaskManager: Displayed com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal for user 0: +549ms
+10-16 11:04:34.697   504  3198 W InputManager-JNI: Input channel object 'fe0dcc6 Splash Screen com.telegramyou.app.debug (client)' was disposed without first being removed with the input manager!
+10-16 11:04:34.711  1042  1097 I ImeTracker: com.android.launcher3:89cd1790: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+10-16 11:04:34.712   504  3198 I ImeTracker: com.android.launcher3:89cd1790: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-16 11:04:34.861   331  2494 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 14282176
+10-16 11:04:34.885  2381  2390 W System  : A resource failed to call release. 
+10-16 11:04:34.936   504  1772 I ImeTracker: com.telegramyou.app.debug:ce6ea16b: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+10-16 11:04:34.936   504  1772 I ImeTracker: com.telegramyou.app.debug:ce6ea16b: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-16 11:04:35.999  2381  2444 D EGL_emulation: app_time_stats: avg=65.97ms min=31.58ms max=305.89ms count=20
+10-16 11:04:36.251   795   795 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+10-16 11:04:36.967  2381  3386 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+10-16 11:04:36.974  1406  1580 D androidtc: Initializing SystemTextClassifier, type = System
+10-16 11:04:37.010  2381  2444 D EGL_emulation: app_time_stats: avg=45.47ms min=33.47ms max=57.60ms count=20
+10-16 11:04:37.118  2381  2401 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+10-16 11:04:37.120  2381  2401 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+10-16 11:04:37.131  2381  2401 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='\QYour phone\E']].
+10-16 11:04:37.132  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:37.174   504   504 D FlashNotifController: requestStartFlashNotification
+10-16 11:04:37.174   504   504 I FlashNotifController: startFlashNotification: type=1, tag=android
+10-16 11:04:37.174   504   504 D FlashNotifController: Flash notification is disabled
+10-16 11:04:37.178   795   871 D PeopleSpaceWidgetMgr: No app widget ids returned
+10-16 11:04:37.186   447  2102 D NuPlayerDriver: NuPlayerDriver(0x72f3ebb48bd0) created, clientPid(795)
+10-16 11:04:37.186   134   134 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+10-16 11:04:37.187   447  2102 D MediaPlayerService: OMX service is not available
+10-16 11:04:37.189   447  3465 D GenericSource: FileSource remote
+10-16 11:04:37.196   795   872 D EGL_emulation: app_time_stats: avg=12531.32ms min=200.12ms max=24862.51ms count=2
+10-16 11:04:37.200   504  3198 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/795 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@dec31f0 callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+10-16 11:04:37.201   504  3198 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+10-16 11:04:37.211   795   871 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+10-16 11:04:37.213   795   871 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+10-16 11:04:37.369  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:37.702   447  3464 I GenericSource: start
+10-16 11:04:37.703   795   795 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+10-16 11:04:37.703   795   795 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+10-16 11:04:37.705   447  3469 D CCodec  : allocate(c2.android.vorbis.decoder)
+10-16 11:04:37.706   447  3469 I CCodec  : setting up 'default' as default (vendor) store
+10-16 11:04:37.708   447  3469 I CCodec  : Created component [c2.android.vorbis.decoder]
+10-16 11:04:37.708   447  3469 D CCodecConfig: read media type: audio/vorbis
+10-16 11:04:37.710   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+10-16 11:04:37.710   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+10-16 11:04:37.711   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+10-16 11:04:37.711   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+10-16 11:04:37.712   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+10-16 11:04:37.712   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+10-16 11:04:37.713   447  3469 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+10-16 11:04:37.714   447  3469 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+10-16 11:04:37.714   447  3469 D CCodecConfig: c2 config diff is Dict {
+10-16 11:04:37.714   447  3469 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+10-16 11:04:37.714   447  3469 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+10-16 11:04:37.714   447  3469 D CCodecConfig:   c2::u32 input.delay.value = 0
+10-16 11:04:37.714   447  3469 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+10-16 11:04:37.714   447  3469 D CCodecConfig:   string output.media-type.value = "audio/raw"
+10-16 11:04:37.714   447  3469 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+10-16 11:04:37.714   447  3469 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+10-16 11:04:37.714   447  3469 D CCodecConfig: }
+10-16 11:04:37.715   447  3469 D MediaCodec: flushMediametrics
+10-16 11:04:37.715   447  3469 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+10-16 11:04:37.716   447  3469 D CCodecConfig: no c2 equivalents for durationUs
+10-16 11:04:37.716   447  3469 D CCodecConfig: no c2 equivalents for csd-1
+10-16 11:04:37.716   447  3469 D CCodecConfig: no c2 equivalents for flags
+10-16 11:04:37.716   447  3469 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+10-16 11:04:37.716   447  3469 W Codec2Client: query -- param skipped: index = 1107298332.
+10-16 11:04:37.717   447  3469 D CCodec  : encoding statistics level = 0
+10-16 11:04:37.717   447  3469 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t bitrate = 70000
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t channel-count = 1
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t max-input-size = 32768
+10-16 11:04:37.717   447  3469 D CCodec  :   string mime = "audio/vorbis"
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t sample-rate = 48000
+10-16 11:04:37.717   447  3469 D CCodec  : }
+10-16 11:04:37.717   447  3469 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t channel-count = 1
+10-16 11:04:37.717   447  3469 D CCodec  :   string mime = "audio/raw"
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t sample-rate = 48000
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t channel-mask = 1
+10-16 11:04:37.717   447  3469 D CCodec  :   int32_t android._config-pcm-encoding = 2
+10-16 11:04:37.717   447  3469 D CCodec  : }
+10-16 11:04:37.717   447  3469 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+10-16 11:04:37.717   447  3469 I MediaCodec: MediaCodec will operate in async mode
+10-16 11:04:37.717   447  3468 D MediaCodec: keep callback message for reclaim
+10-16 11:04:37.718   447  3469 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:04:37.718   447  3469 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:04:37.719   454   841 D BufferPoolAccessor2.0: bufferpool2 0x789d4c58d188 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+10-16 11:04:37.719   454   841 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x789d4c58d188 cached: 0/0M, 0/0% in use; allocs: 97, 96% recycled; transfers: 96, 96% unfetched
+10-16 11:04:37.719   447  3469 D CCodecBufferChannel: [c2.android.vorbis.decoder#541] Created input block pool with allocatorID 16 => poolID 46 - OK (0)
+10-16 11:04:37.720   447  3469 I CCodecBufferChannel: [c2.android.vorbis.decoder#541] Created output block pool with allocatorID 16 => poolID 59 - OK
+10-16 11:04:37.720   447  2510 D BufferPoolAccessor2.0: bufferpool2 0x72f36bb55628 : 0(0 size) total buffers - 0(0 size) used buffers - 93/101 (recycle/alloc) - 8/198 (fetch/transfer)
+10-16 11:04:37.720   447  2510 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x72f36bb55628 cached: 0/0M, 0/0% in use; allocs: 101, 92% recycled; transfers: 198, 96% unfetched
+10-16 11:04:37.720   447  3469 D CCodecBufferChannel: [c2.android.vorbis.decoder#541] Configured output block pool ids 59 => OK
+10-16 11:04:37.722   454  3470 D SimpleC2Component: Using output block pool with poolID 59 => got 59 - 0
+10-16 11:04:37.727   386   405 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+10-16 11:04:37.728   386   405 D AF::TrackHandle: OpPlayAudio: track:89 usage:5 not muted
+10-16 11:04:37.731   386   405 D audioserver: FGS Logger Transaction failed
+10-16 11:04:37.731   386   405 D audioserver: -129
+10-16 11:04:37.732   447  3467 D AudioTrack: getTimestamp_l(49): device stall time corrected using current time 839251554675
+10-16 11:04:37.788  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:37.806   386   489 D AudioFlinger: mixer(0x7dc95f1c3930) throttle end: throttle time(33)
+10-16 11:04:37.911  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.027  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.148  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.262  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.380  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.495  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.614  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.732  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.805   447  3469 D CCodecBufferChannel: [c2.android.vorbis.decoder#541] buffers after EOS ignored (0 us)
+10-16 11:04:38.846  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.963  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:38.980  2381  2381 E FrameTracker: force finish cuj, time out: J<IME_INSETS_ANIMATION::0@0@com.telegramyou.app.debug>
+10-16 11:04:39.066   447  3467 D AudioTrack: stop(49): called with 82980 frames delivered
+10-16 11:04:39.076  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.190  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.384  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.485   504  1772 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/795 clientId=android.media.AudioManager@dec31f0
+10-16 11:04:39.485   795  3462 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+10-16 11:04:39.486   795  3462 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+10-16 11:04:39.486   447  2102 D NuPlayerDriver: reset(0x72f3ebb48bd0) at state 6
+10-16 11:04:39.489   447  3469 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:04:39.489   454   841 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:04:39.489   454   841 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:04:39.490   447  3468 D MediaCodec: flushMediametrics
+10-16 11:04:39.492   447  3464 D NuPlayerDriver: notifyResetComplete(0x72f3ebb48bd0)
+10-16 11:04:39.492   447  2102 W AMessage: failed to post message as target looper for handler 0 is gone.
+10-16 11:04:39.505  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.546   386   489 D audioserver: FGS Logger Transaction failed
+10-16 11:04:39.546   386   489 D audioserver: -129
+10-16 11:04:39.560   386   489 D audioserver: FGS Logger Transaction failed
+10-16 11:04:39.560   386   489 D audioserver: -129
+10-16 11:04:39.626  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.746  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.866  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:39.981  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.096  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.211  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.325  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.440  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.555  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.668  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.783  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:40.897  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:41.011  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:41.126  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+10-16 11:04:41.148  2381  2401 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='allow']].
+10-16 11:04:41.149  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.264  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.460  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.574  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.688  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.802  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:41.917  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.034  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.148  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.262  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.375  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.413   331  2494 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 14509568
+10-16 11:04:42.489  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.603  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.717  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.719   454   793 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+10-16 11:04:42.831  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:42.945  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.058  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.173  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.287  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.474  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.588  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.701  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.719   447  2518 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+10-16 11:04:43.815  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:43.928  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.041  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.155  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.268  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.381  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.494  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.607  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.719   447  2518 D BufferPoolAccessor2.0: bufferpool2 0x72f36bb52c88 : 0(0 size) total buffers - 0(0 size) used buffers - 94/102 (recycle/alloc) - 8/198 (fetch/transfer)
+10-16 11:04:44.719   447  2518 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+10-16 11:04:44.720   454   793 D BufferPoolAccessor2.0: bufferpool2 0x789d4c58d188 : 0(0 size) total buffers - 0(0 size) used buffers - 94/97 (recycle/alloc) - 3/96 (fetch/transfer)
+10-16 11:04:44.720   454   793 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+10-16 11:04:44.721  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.834  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:44.947  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:45.060  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:45.174  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+10-16 11:04:45.187  2381  2401 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMaterial Design\E']].
+10-16 11:04:45.187  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+10-16 11:04:45.220  2381  2401 D UiDevice: Waiting 10000ms for SearchCondition[gone=BySelector [TEXT='reply']].
+10-16 11:04:45.221  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='reply'].
+10-16 11:04:45.299  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSend me the apk?\E'].
+10-16 11:04:45.388  2381  2401 D UiDevice: Swiping from (540, 1920) to (540, 1080) in 25 steps.
+10-16 11:04:45.507  2381  2444 D EGL_emulation: app_time_stats: avg=4242.29ms min=56.07ms max=8428.50ms count=2
+10-16 11:04:46.262   795   795 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+10-16 11:04:46.533  2381  2444 D EGL_emulation: app_time_stats: avg=45.68ms min=35.55ms max=58.78ms count=20
+10-16 11:04:47.543  2381  2444 D EGL_emulation: app_time_stats: avg=50.35ms min=36.43ms max=62.58ms count=18
+10-16 11:04:48.183  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSend me the apk?\E'].
+10-16 11:04:48.552  2381  2444 D EGL_emulation: app_time_stats: avg=55.89ms min=38.51ms max=75.09ms count=17
+10-16 11:04:49.591  2381  2444 D EGL_emulation: app_time_stats: avg=52.66ms min=41.34ms max=64.66ms count=18
+10-16 11:04:50.594  2381  2444 D EGL_emulation: app_time_stats: avg=59.22ms min=42.00ms max=94.52ms count=16
+10-16 11:04:51.647  2381  2444 D EGL_emulation: app_time_stats: avg=55.19ms min=44.84ms max=79.47ms count=18
+10-16 11:04:52.178  2381  2401 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QSend me the apk?\E']].
+10-16 11:04:52.179  2381  2401 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSend me the apk?\E'].
+10-16 11:04:52.648  2381  2444 D EGL_emulation: app_time_stats: avg=54.40ms min=39.93ms max=65.31ms count=17
+10-16 11:04:53.665  2381  2444 D EGL_emulation: app_time_stats: avg=55.96ms min=44.82ms max=72.44ms count=17
+10-16 11:04:53.795  2381  2388 I amyou.app.debug: Background concurrent copying GC freed 331702(10MB) AllocSpace objects, 1(24KB) LOS objects, 49% free, 15MB/30MB, paused 188us,16us total 122.630ms
+10-16 11:04:54.669  2381  2444 D EGL_emulation: app_time_stats: avg=57.00ms min=38.67ms max=68.01ms count=17
+10-16 11:04:55.436  2381  2401 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QSend me the apk?\E'].
+10-16 11:04:55.677  2381  2444 D EGL_emulation: app_time_stats: avg=55.20ms min=39.49ms max=77.58ms count=17
+10-16 11:04:56.248   795   795 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+10-16 11:04:56.689  2381  2444 D EGL_emulation: app_time_stats: avg=52.61ms min=42.61ms max=64.93ms count=18
+10-16 11:04:57.715  2381  2444 D EGL_emulation: app_time_stats: avg=56.21ms min=37.13ms max=83.76ms count=17
+10-16 11:04:58.768  2381  2444 D EGL_emulation: app_time_stats: avg=59.02ms min=42.88ms max=72.03ms count=17
+10-16 11:04:59.357  2381  2401 D UiObject2: Clicking on (390, 2060).
+10-16 11:04:59.359  2381  2401 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@bac89; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(243, 2057 - 537, 2064); boundsInWindow: Rect(243, 2057 - 537, 2064); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: Send me the apk?; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+10-16 11:04:59.535   386   405 D audioserver: FGS Logger Transaction failed
+10-16 11:04:59.535   386   405 D audioserver: -129
+10-16 11:04:59.560  2381  2401 W GestureController: Gestures took longer than expected (199ms >> 16ms), device might be in a busy state.
+10-16 11:04:59.710   386   489 D audioserver: FGS Logger Transaction failed
+10-16 11:04:59.710   386   489 D audioserver: -129
+10-16 11:04:59.771  2381  2444 D EGL_emulation: app_time_stats: avg=53.57ms min=39.20ms max=70.15ms count=17
+10-16 11:05:00.064   795   872 D EGL_emulation: app_time_stats: avg=11433.72ms min=55.62ms max=22811.83ms count=2
+10-16 11:05:00.154   504  1440 W AppSearchIcing: icing-search-engine.cc:283: Error: 5, Message: Failed to find DocumentId by key: android$com.telegramyou.app.debug/com.telegramyou.app.debug, chat_5;Key not found 1657936710979832057 in DynamicTrieKeyMapper /data/system_ce/0/appsearch/icing/document_dir/key_mapper_dir/key_mapper.
+10-16 11:05:00.162  2381  2410 D MediaCodecList: codecHandlesFormat: no format, so no extra checks
+10-16 11:05:00.163  2381  2410 D MediaCodecList: codecHandlesFormat: no format, so no extra checks
+10-16 11:05:00.165  2381  3477 D CCodec  : allocate(c2.goldfish.vp9.decoder)
+10-16 11:05:00.166  2381  3477 I CCodec  : setting up 'default' as default (vendor) store
+10-16 11:05:00.167   343  3274 I GoldfishComponentStore: in init
+10-16 11:05:00.167   343  3274 I GoldfishComponentStore: loading dll of path libcodec2_goldfish_vp9dec.so
+10-16 11:05:00.167   343  3274 I GoldfishComponentStore: Create()
+10-16 11:05:00.167   343  3274 I C2GoldfishVpxDec: platform store is 0x70dafa35ffc8, reflector is 0x70db4a357728
+10-16 11:05:00.167   343  3274 I GoldfishComponentStore: created interface
+10-16 11:05:00.167   343  3274 I GoldfishComponentStore: created component
+10-16 11:05:00.168  2381  3477 I CCodec  : Created component [c2.goldfish.vp9.decoder]
+10-16 11:05:00.169  2381  3477 D CCodecConfig: read media type: video/x-vnd.on2.vp9
+10-16 11:05:00.170  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+10-16 11:05:00.171  2381  3477 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+10-16 11:05:00.172  2381  3477 D ReflectedParamUpdater: ignored struct field coded.color-format.locations
+10-16 11:05:00.172  2381  3477 D CCodecConfig: ignoring local param raw.size (0xd2001800) as it is already supported
+10-16 11:05:00.172  2381  3477 D CCodecConfig: ignoring local param default.color (0x5200180b) as it is already supported
+10-16 11:05:00.172  2381  3477 D ReflectedParamUpdater: ignored struct field raw.hdr-static-info.mastering
+10-16 11:05:00.173  2381  3477 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:00.173  2381  3477 D CCodecConfig: c2 config diff is Dict {
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 coded.pl.level = 28680
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 coded.pl.profile = 28672
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 default.color.matrix = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 default.color.primaries = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 default.color.range = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 default.color.transfer = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 6291456
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 input.delay.value = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   Buffer input.hdr10-plus-info.value = {
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   }
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   string input.media-type.value = "video/x-vnd.on2.vp9"
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   Buffer output.hdr10-plus-info.value = {
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   }
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   string output.media-type.value = "video/raw"
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.max-size.height = 240
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.max-size.width = 320
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.pixel-format.value = 35
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::i32 raw.rotation.flip = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::i32 raw.rotation.value = 0
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.sar.height = 1
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.sar.width = 1
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.size.height = 240
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.size.width = 320
+10-16 11:05:00.173  2381  3477 D CCodecConfig:   c2::u32 raw.surface-scaling.value = 1
+10-16 11:05:00.173  2381  3477 D CCodecConfig: }
+10-16 11:05:00.173  2381  3477 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.175  2381  3476 D MediaCodec: flushMediametrics
+10-16 11:05:00.175  2381  3477 D CCodec  : [c2.goldfish.vp9.decoder] buffers are bound to CCodec for this session
+10-16 11:05:00.175  2381  3477 D CCodecConfig: no c2 equivalents for color-format
+10-16 11:05:00.175  2381  3477 D CCodecConfig: no c2 equivalents for flags
+10-16 11:05:00.176  2381  3477 D CCodecConfig: c2 config diff is   c2::u32 raw.size.height = 512
+10-16 11:05:00.176  2381  3477 D CCodecConfig:   c2::u32 raw.size.width = 512
+10-16 11:05:00.176  2381  3477 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.176  2381  3477 W Codec2Client: query -- param skipped: index = 1107298332.
+10-16 11:05:00.176  2381  3477 D CCodec  : encoding statistics level = 0
+10-16 11:05:00.176  2381  3477 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t height = 512
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t level = 256
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t max-input-size = 6291456
+10-16 11:05:00.176  2381  3477 D CCodec  :   string mime = "video/x-vnd.on2.vp9"
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t profile = 1
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t width = 512
+10-16 11:05:00.176  2381  3477 D CCodec  :   Rect crop(0, 0, 511, 511)
+10-16 11:05:00.176  2381  3477 D CCodec  : }
+10-16 11:05:00.176  2381  3477 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t android._color-format = 2135033992
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t android._video-scaling = 1
+10-16 11:05:00.176  2381  3477 D CCodec  :   Rect crop(0, 0, 511, 511)
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t color-standard = 0
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t color-range = 0
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t color-transfer = 0
+10-16 11:05:00.176  2381  3477 D CCodec  :   Buffer hdr10-plus-info = {
+10-16 11:05:00.176  2381  3477 D CCodec  :   }
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t height = 512
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t max-height = 240
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t max-width = 320
+10-16 11:05:00.176  2381  3477 D CCodec  :   string mime = "video/raw"
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t rotation-degrees = 0
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t sar-height = 1
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t sar-width = 1
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t width = 512
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t android._dataspace = 0
+10-16 11:05:00.176  2381  3477 D CCodec  :   int32_t color-format = 2135033992
+10-16 11:05:00.176  2381  3477 D CCodec  : }
+10-16 11:05:00.176  2381  3477 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:00.176  2381  3477 D CCodecConfig: c2 config diff is   c2::u32 raw.max-size.height = 512
+10-16 11:05:00.176  2381  3477 D CCodecConfig:   c2::u32 raw.max-size.width = 512
+10-16 11:05:00.177  2381  3477 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.177   343  3478 I C2GoldfishVpxDec: calling init GoldfishVPX
+10-16 11:05:00.177  2381  3477 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:05:00.177  2381  3477 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:05:00.177  2381  3477 W Codec2Client: query -- param skipped: index = 2684356609.
+10-16 11:05:00.178  2381  3477 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#128] Created input block pool with allocatorID 16 => poolID 25 - OK (0)
+10-16 11:05:00.178   454   841 D BufferPoolAccessor2.0: bufferpool2 0x789d4c588c28 : 0(0 size) total buffers - 0(0 size) used buffers - 164/168 (recycle/alloc) - 4/168 (fetch/transfer)
+10-16 11:05:00.178   454   841 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x789d4c588c28 cached: 0/0M, 0/0% in use; allocs: 168, 98% recycled; transfers: 168, 98% unfetched
+10-16 11:05:00.178   454   841 D BufferPoolAccessor2.0: bufferpool2 0x789d4c5879a8 : 0(0 size) total buffers - 0(0 size) used buffers - 26/30 (recycle/alloc) - 4/30 (fetch/transfer)
+10-16 11:05:00.178   454   841 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x789d4c5879a8 cached: 0/0M, 0/0% in use; allocs: 30, 87% recycled; transfers: 30, 87% unfetched
+10-16 11:05:00.178  2381  3477 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#128] Configured output block pool ids 1 => OK
+10-16 11:05:00.179   447  2102 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
+10-16 11:05:00.180  2381  2410 D MediaCodecList: codecHandlesFormat: no format, so no extra checks
+10-16 11:05:00.180  2381  2410 D MediaCodecList: codecHandlesFormat: no format, so no extra checks
+10-16 11:05:00.198  2381  3480 D CCodec  : allocate(c2.goldfish.vp9.decoder)
+10-16 11:05:00.199  2381  3480 I CCodec  : setting up 'default' as default (vendor) store
+10-16 11:05:00.199   343  3110 I GoldfishComponentStore: created component
+10-16 11:05:00.200  2381  3480 I CCodec  : Created component [c2.goldfish.vp9.decoder]
+10-16 11:05:00.201  2381  3480 D CCodecConfig: read media type: video/x-vnd.on2.vp9
+10-16 11:05:00.203  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+10-16 11:05:00.203  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+10-16 11:05:00.204  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+10-16 11:05:00.204  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+10-16 11:05:00.204  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+10-16 11:05:00.204  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+10-16 11:05:00.204  2381  3480 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+10-16 11:05:00.206  2381  3480 D ReflectedParamUpdater: ignored struct field coded.color-format.locations
+10-16 11:05:00.207  2381  3480 D CCodecConfig: ignoring local param raw.size (0xd2001800) as it is already supported
+10-16 11:05:00.207  2381  3480 D CCodecConfig: ignoring local param default.color (0x5200180b) as it is already supported
+10-16 11:05:00.207  2381  3480 D ReflectedParamUpdater: ignored struct field raw.hdr-static-info.mastering
+10-16 11:05:00.208  2381  3480 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:00.208  2381  3480 D CCodecConfig: c2 config diff is Dict {
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 coded.pl.level = 28680
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 coded.pl.profile = 28672
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 default.color.matrix = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 default.color.primaries = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 default.color.range = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 default.color.transfer = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 6291456
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 input.delay.value = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   Buffer input.hdr10-plus-info.value = {
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   }
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   string input.media-type.value = "video/x-vnd.on2.vp9"
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   Buffer output.hdr10-plus-info.value = {
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   }
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   string output.media-type.value = "video/raw"
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.max-size.height = 240
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.max-size.width = 320
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.pixel-format.value = 35
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::i32 raw.rotation.flip = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::i32 raw.rotation.value = 0
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.sar.height = 1
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.sar.width = 1
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.size.height = 240
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.size.width = 320
+10-16 11:05:00.208  2381  3480 D CCodecConfig:   c2::u32 raw.surface-scaling.value = 1
+10-16 11:05:00.208  2381  3480 D CCodecConfig: }
+10-16 11:05:00.208  2381  3480 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.209  2381  3479 D MediaCodec: flushMediametrics
+10-16 11:05:00.209  2381  3480 D CCodec  : [c2.goldfish.vp9.decoder] buffers are bound to CCodec for this session
+10-16 11:05:00.210  2381  3480 D CCodecConfig: no c2 equivalents for color-format
+10-16 11:05:00.210  2381  3480 D CCodecConfig: no c2 equivalents for flags
+10-16 11:05:00.210  2381  3480 D CCodecConfig: c2 config diff is   c2::u32 raw.size.height = 512
+10-16 11:05:00.210  2381  3480 D CCodecConfig:   c2::u32 raw.size.width = 512
+10-16 11:05:00.211  2381  3480 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.211  2381  3480 W Codec2Client: query -- param skipped: index = 1107298332.
+10-16 11:05:00.211  2381  3480 D CCodec  : encoding statistics level = 0
+10-16 11:05:00.211  2381  3480 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t height = 512
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t level = 256
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t max-input-size = 6291456
+10-16 11:05:00.211  2381  3480 D CCodec  :   string mime = "video/x-vnd.on2.vp9"
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t profile = 1
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t width = 512
+10-16 11:05:00.211  2381  3480 D CCodec  :   Rect crop(0, 0, 511, 511)
+10-16 11:05:00.211  2381  3480 D CCodec  : }
+10-16 11:05:00.211  2381  3480 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t android._color-format = 2135033992
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t android._video-scaling = 1
+10-16 11:05:00.211  2381  3480 D CCodec  :   Rect crop(0, 0, 511, 511)
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t color-standard = 0
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t color-range = 0
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t color-transfer = 0
+10-16 11:05:00.211  2381  3480 D CCodec  :   Buffer hdr10-plus-info = {
+10-16 11:05:00.211  2381  3480 D CCodec  :   }
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t height = 512
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t max-height = 240
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t max-width = 320
+10-16 11:05:00.211  2381  3480 D CCodec  :   string mime = "video/raw"
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t rotation-degrees = 0
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t sar-height = 1
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t sar-width = 1
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t width = 512
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t android._dataspace = 0
+10-16 11:05:00.211  2381  3480 D CCodec  :   int32_t color-format = 2135033992
+10-16 11:05:00.211  2381  3480 D CCodec  : }
+10-16 11:05:00.211  2381  3480 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:00.211  2381  3480 D CCodecConfig: c2 config diff is   c2::u32 raw.max-size.height = 512
+10-16 11:05:00.211  2381  3480 D CCodecConfig:   c2::u32 raw.max-size.width = 512
+10-16 11:05:00.212  2381  3480 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.212   343  3481 I C2GoldfishVpxDec: calling init GoldfishVPX
+10-16 11:05:00.212  2381  3480 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:05:00.212  2381  3480 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:05:00.212  2381  3480 W Codec2Client: query -- param skipped: index = 2684356609.
+10-16 11:05:00.213  2381  3480 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#921] Created input block pool with allocatorID 16 => poolID 26 - OK (0)
+10-16 11:05:00.213  2381  3480 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#921] Configured output block pool ids 1 => OK
+10-16 11:05:00.215   447  2102 W ResourceManagerService: Ignoring request to add new resource entry with value <= 0
+10-16 11:05:00.216  2381  3103 D BufferPoolAccessor2.0: bufferpool2 0x70f1308588e8 : 0(0 size) total buffers - 0(0 size) used buffers - 21/27 (recycle/alloc) - 7/26 (fetch/transfer)
+10-16 11:05:00.216  2381  3103 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x70f1308588e8 cached: 0/0M, 0/0% in use; allocs: 27, 78% recycled; transfers: 26, 73% unfetched
+10-16 11:05:00.216  2381  3103 D BufferPoolAccessor2.0: bufferpool2 0x70f130847ef8 : 0(0 size) total buffers - 0(0 size) used buffers - 65/70 (recycle/alloc) - 5/62 (fetch/transfer)
+10-16 11:05:00.216  2381  3103 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x70f130847ef8 cached: 0/0M, 0/0% in use; allocs: 70, 93% recycled; transfers: 62, 92% unfetched
+10-16 11:05:00.217   343  3481 D SimpleC2Component: Using output block pool with poolID 1 => got 1 - 0
+10-16 11:05:00.217   343  3481 I C2GoldfishVpxDec: created decoder context w 512 h 512
+10-16 11:05:00.227  2381  3480 D CCodecConfig: c2 config diff is   c2::u32 raw.crop.height = 512
+10-16 11:05:00.227  2381  3480 D CCodecConfig:   c2::u32 raw.crop.left = 0
+10-16 11:05:00.227  2381  3480 D CCodecConfig:   c2::u32 raw.crop.top = 0
+10-16 11:05:00.227  2381  3480 D CCodecConfig:   c2::u32 raw.crop.width = 512
+10-16 11:05:00.228  2381  3480 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.228  2381  3480 D CCodecBuffers: [c2.goldfish.vp9.decoder#921:2D-BB-Output] updating image-data
+10-16 11:05:00.228  2381  3480 D CCodecBuffers: [c2.goldfish.vp9.decoder#921:2D-BB-Output] updating stride = 512, width: 512, height: 512
+10-16 11:05:00.228  2381  3480 D CCodecBuffers: [c2.goldfish.vp9.decoder#921:2D-BB-Output] updating vstride = 512
+10-16 11:05:00.414   343  3478 D SimpleC2Component: Using output block pool with poolID 1 => got 1 - 0
+10-16 11:05:00.414   343  3478 I C2GoldfishVpxDec: created decoder context w 512 h 512
+10-16 11:05:00.417  2381  3477 D CCodecConfig: c2 config diff is   c2::u32 raw.crop.height = 512
+10-16 11:05:00.417  2381  3477 D CCodecConfig:   c2::u32 raw.crop.left = 0
+10-16 11:05:00.417  2381  3477 D CCodecConfig:   c2::u32 raw.crop.top = 0
+10-16 11:05:00.417  2381  3477 D CCodecConfig:   c2::u32 raw.crop.width = 512
+10-16 11:05:00.418  2381  3477 W ColorUtils: expected specified color aspects (0:0:0:0)
+10-16 11:05:00.418  2381  3477 D CCodecBuffers: [c2.goldfish.vp9.decoder#128:2D-BB-Output] updating image-data
+10-16 11:05:00.419  2381  3477 D CCodecBuffers: [c2.goldfish.vp9.decoder#128:2D-BB-Output] updating stride = 512, width: 512, height: 512
+10-16 11:05:00.419  2381  3477 D CCodecBuffers: [c2.goldfish.vp9.decoder#128:2D-BB-Output] updating vstride = 512
+10-16 11:05:00.628  2381  2401 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\Q😊 sticker\E']].
+10-16 11:05:00.628  2381  2401 D UiDevice: Searching for node with selector: BySelector [DESC='\Q😊 sticker\E'].
+10-16 11:05:00.856  2381  2444 D EGL_emulation: app_time_stats: avg=94.79ms min=26.92ms max=507.08ms count=11
+10-16 11:05:00.973  2381  2401 D UiDevice: Searching for node with selector: BySelector [DESC='\Q😊 sticker\E'].
+10-16 11:05:01.147  2381  2401 D UiDevice: Searching for node with selector: BySelector [DESC='\Q😊 sticker\E'].
+10-16 11:05:01.875  2381  2444 D EGL_emulation: app_time_stats: avg=48.39ms min=25.78ms max=73.27ms count=21
+10-16 11:05:01.893  2381  3386 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+10-16 11:05:01.940  1406  1580 D androidtc: Initializing SystemTextClassifier, type = System
+10-16 11:05:02.142   504   504 D FlashNotifController: requestStartFlashNotification
+10-16 11:05:02.142   504   504 I FlashNotifController: startFlashNotification: type=1, tag=android
+10-16 11:05:02.142   504   504 D FlashNotifController: Flash notification is disabled
+10-16 11:05:02.149   795   871 D PeopleSpaceWidgetMgr: No app widget ids returned
+10-16 11:05:02.171   795   872 D EGL_emulation: app_time_stats: avg=2106.27ms min=2106.27ms max=2106.27ms count=1
+10-16 11:05:02.173   447  2102 D NuPlayerDriver: NuPlayerDriver(0x72f3ebb4b950) created, clientPid(795)
+10-16 11:05:02.174   134   134 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+10-16 11:05:02.175   447  2102 D MediaPlayerService: OMX service is not available
+10-16 11:05:02.180   795   871 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+10-16 11:05:02.182   447  3486 D GenericSource: FileSource remote
+10-16 11:05:02.185   795   871 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+10-16 11:05:02.193   504   782 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/795 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@102f447 callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+10-16 11:05:02.194   504   782 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+10-16 11:05:02.327  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:02.327  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:02.327  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:02.327  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:02.327  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:02.327  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:02.327  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:02.327  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:02.327  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:02.327  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:02.588   331  2494 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 14658624
+10-16 11:05:02.701   447  3485 I GenericSource: start
+10-16 11:05:02.704   795   795 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+10-16 11:05:02.705   795   795 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+10-16 11:05:02.714   447  3490 D CCodec  : allocate(c2.android.vorbis.decoder)
+10-16 11:05:02.725   447  3490 I CCodec  : setting up 'default' as default (vendor) store
+10-16 11:05:02.726   447  3490 I CCodec  : Created component [c2.android.vorbis.decoder]
+10-16 11:05:02.727   447  3490 D CCodecConfig: read media type: audio/vorbis
+10-16 11:05:02.727   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+10-16 11:05:02.728   447  3490 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+10-16 11:05:02.729   447  3490 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+10-16 11:05:02.730   447  3490 D CCodecConfig: c2 config diff is Dict {
+10-16 11:05:02.730   447  3490 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+10-16 11:05:02.730   447  3490 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+10-16 11:05:02.730   447  3490 D CCodecConfig:   c2::u32 input.delay.value = 0
+10-16 11:05:02.730   447  3490 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+10-16 11:05:02.730   447  3490 D CCodecConfig:   string output.media-type.value = "audio/raw"
+10-16 11:05:02.730   447  3490 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+10-16 11:05:02.730   447  3490 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+10-16 11:05:02.730   447  3490 D CCodecConfig: }
+10-16 11:05:02.731   447  3490 D MediaCodec: flushMediametrics
+10-16 11:05:02.731   447  3490 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+10-16 11:05:02.731   447  3490 D CCodecConfig: no c2 equivalents for durationUs
+10-16 11:05:02.732   447  3490 D CCodecConfig: no c2 equivalents for csd-1
+10-16 11:05:02.732   447  3490 D CCodecConfig: no c2 equivalents for flags
+10-16 11:05:02.732   447  3490 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+10-16 11:05:02.732   447  3490 W Codec2Client: query -- param skipped: index = 1107298332.
+10-16 11:05:02.732   447  3490 D CCodec  : encoding statistics level = 0
+10-16 11:05:02.732   447  3490 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t bitrate = 70000
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t channel-count = 1
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t max-input-size = 32768
+10-16 11:05:02.732   447  3490 D CCodec  :   string mime = "audio/vorbis"
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t sample-rate = 48000
+10-16 11:05:02.732   447  3490 D CCodec  : }
+10-16 11:05:02.732   447  3490 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t channel-count = 1
+10-16 11:05:02.732   447  3490 D CCodec  :   string mime = "audio/raw"
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t sample-rate = 48000
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t channel-mask = 1
+10-16 11:05:02.732   447  3490 D CCodec  :   int32_t android._config-pcm-encoding = 2
+10-16 11:05:02.732   447  3490 D CCodec  : }
+10-16 11:05:02.732   447  3490 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+10-16 11:05:02.733   447  3490 I MediaCodec: MediaCodec will operate in async mode
+10-16 11:05:02.733   447  3489 D MediaCodec: keep callback message for reclaim
+10-16 11:05:02.738   447  3490 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:05:02.738   447  3490 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:05:02.740   454   818 D BufferPoolAccessor2.0: bufferpool2 0x789d4c58d188 : 0(0 size) total buffers - 0(0 size) used buffers - 94/97 (recycle/alloc) - 3/96 (fetch/transfer)
+10-16 11:05:02.740   454   818 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x789d4c58d188 cached: 0/0M, 0/0% in use; allocs: 97, 97% recycled; transfers: 96, 97% unfetched
+10-16 11:05:02.740   447  3490 D CCodecBufferChannel: [c2.android.vorbis.decoder#130] Created input block pool with allocatorID 16 => poolID 47 - OK (0)
+10-16 11:05:02.742   447  2510 D BufferPoolAccessor2.0: bufferpool2 0x72f36bb52c88 : 0(0 size) total buffers - 0(0 size) used buffers - 94/102 (recycle/alloc) - 8/198 (fetch/transfer)
+10-16 11:05:02.742   447  2510 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x72f36bb52c88 cached: 0/0M, 0/0% in use; allocs: 102, 92% recycled; transfers: 198, 96% unfetched
+10-16 11:05:02.742   447  3490 I CCodecBufferChannel: [c2.android.vorbis.decoder#130] Created output block pool with allocatorID 16 => poolID 60 - OK
+10-16 11:05:02.743   447  3490 D CCodecBufferChannel: [c2.android.vorbis.decoder#130] Configured output block pool ids 60 => OK
+10-16 11:05:02.743   454  3491 D SimpleC2Component: Using output block pool with poolID 60 => got 60 - 0
+10-16 11:05:02.764   386   405 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+10-16 11:05:02.765   386   405 D AF::TrackHandle: OpPlayAudio: track:90 usage:5 not muted
+10-16 11:05:02.767   386   405 D audioserver: FGS Logger Transaction failed
+10-16 11:05:02.767   386   405 D audioserver: -129
+10-16 11:05:02.774   447  3488 D AudioTrack: getTimestamp_l(50): device stall time corrected using current time 864292641121
+10-16 11:05:02.864   386   489 D AudioFlinger: mixer(0x7dc95f1c3930) throttle end: throttle time(46)
+10-16 11:05:02.883  2381  2444 D EGL_emulation: app_time_stats: avg=58.42ms min=29.49ms max=94.40ms count=17
+10-16 11:05:03.091  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:03.091  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:03.091  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:03.091  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:03.091  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:03.091  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:03.091  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:03.091  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:03.091  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:03.091  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:03.863  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:03.864  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:03.864  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:03.864  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:03.864  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:03.864  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:03.864  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:03.864  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:03.864  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:03.864  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:03.902  2381  2444 D EGL_emulation: app_time_stats: avg=56.56ms min=37.39ms max=90.84ms count=18
+10-16 11:05:04.142   447  3490 D CCodecBufferChannel: [c2.android.vorbis.decoder#130] buffers after EOS ignored (0 us)
+10-16 11:05:04.143   447  3490 D CCodecBufferChannel: [c2.android.vorbis.decoder#130] buffers after EOS ignored (0 us)
+10-16 11:05:04.145   447  3490 D CCodecBufferChannel: [c2.android.vorbis.decoder#130] buffers after EOS ignored (0 us)
+10-16 11:05:04.146   447  3488 D AudioTrack: stop(50): called with 82980 frames delivered
+10-16 11:05:04.155   386   489 D AudioFlinger: mixer(0x7dc95f1c3930) throttle end: throttle time(2)
+10-16 11:05:04.336   386   489 D AudioFlinger: mixer(0x7dc95f1c3930) throttle end: throttle time(3)
+10-16 11:05:04.499  2381  3476 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#128] MediaCodec discarded an unknown buffer
+10-16 11:05:04.499  2381  3476 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#128] MediaCodec discarded an unknown buffer
+10-16 11:05:04.499  2381  3476 D CCodecBufferChannel: [c2.goldfish.vp9.decoder#128] MediaCodec discarded an unknown buffer
+10-16 11:05:04.500  2381  3476 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:04.505  2381  3476 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:05:04.505  2381  3476 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:05:04.506  2381  3479 I CCodecConfig: query failed after returning 11 values (BAD_INDEX)
+10-16 11:05:04.510  2381  3479 W Codec2Client: query -- param skipped: index = 1342179345.
+10-16 11:05:04.510  2381  3479 W Codec2Client: query -- param skipped: index = 2415921170.
+10-16 11:05:04.602   504   782 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/795 clientId=android.media.AudioManager@102f447
+10-16 11:05:04.602   795  3483 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+10-16 11:05:04.602   795  3483 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+10-16 11:05:04.602   447  2102 D NuPlayerDriver: reset(0x72f3ebb4b950) at state 6
+10-16 11:05:04.621  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:04.621  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:04.621  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:04.621  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:04.621  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:04.621  2368  2377 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+10-16 11:05:04.622  2368  2377 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+10-16 11:05:04.622  2368  2377 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+10-16 11:05:04.622  2368  2377 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+10-16 11:05:04.622  2368  2377 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+10-16 11:05:04.651   447  3485 D NuPlayerDriver: notifyResetComplete(0x72f3ebb4b950)
+10-16 11:05:04.651   447  3490 D MediaCodec: flushMediametrics
+10-16 11:05:04.652   447  3494 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:05:04.652   454   841 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:05:04.652   454   841 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+10-16 11:05:04.653   447  2102 W AMessage: failed to post message as target looper for handler 0 is gone.
+10-16 11:05:04.654   446  2521 D AudioAnalytics: gc(1700, 2000): log size:1700 item map size:36, item map items:1700
+10-16 11:05:04.662   386   489 D audioserver: FGS Logger Transaction failed
+10-16 11:05:04.662   386   489 D audioserver: -129
+10-16 11:05:04.687   386   489 D audioserver: FGS Logger Transaction failed
+10-16 11:05:04.687   386   489 D audioserver: -129
+10-16 11:05:04.926  2381  2444 D EGL_emulation: app_time_stats: avg=53.74ms min=36.88ms max=81.48ms count=19
+10-16 11:05:05.019  2476  2488 I AbstractFileContentProvider: file '/storage/emulated/0/googletest/test_outputfiles/46-video-sticker.png': found
+10-16 11:05:05.180   454   793 D BufferPoolAccessor2.0: evictor expired: 2, evicted: 0
+10-16 11:05:05.183  2381  2401 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 1
+10-16 11:05:05.211  2381  2401 D UiDevice: Setting orientation to natural.
+10-16 11:05:05.217  2381  2401 D UiDevice: Waiting 2000ms for Condition[displayRotation=0, displayId=0].
+10-16 11:05:05.221  2381  2401 D UiDevice: Unfreezing rotation.
+10-16 11:05:05.225  2381  2401 I TestRunner: finished: aVideoStickerPlays(com.telegramyou.app.SmokeTest)
