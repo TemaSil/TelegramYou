@@ -25,7 +25,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
@@ -34,7 +33,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import com.telegramyou.app.ui.theme.avatarColor
 import java.io.File
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -82,7 +80,16 @@ fun AvatarBubble(
     )
     // Always through typingShape, so stopping has somewhere to animate from.
     val outline = typingShape(seed, typing, shape)
-    val base = if (savedMessages) MaterialTheme.colorScheme.primary else avatarColor(seed)
+    // One of the theme's tonal containers, flat, with its own colour for the
+    // initials (2.3.2): the wallpaper's colours, as Contacts and Messages
+    // draw a person without a photo. It was a fixed palette of bright hues
+    // fading into themselves, with white initials — loud, and the same on
+    // every phone whatever its colours.
+    val (base, onBase) = if (savedMessages) {
+        MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
+    } else {
+        avatarTones(seed)
+    }
     val initials = avatarInitials(title)
 
     // Two boxes, and the outer one deliberately does not clip. The avatar's
@@ -125,9 +132,7 @@ fun AvatarBubble(
                     } else Modifier
                 )
                 .clip(outline)
-                .background(
-                    Brush.linearGradient(listOf(base, base.copy(alpha = 0.75f)))
-                )
+                .background(base)
                 .then(
                     if (onClick != null) {
                         // No `indication = null`. The scale below is extra, not a
@@ -152,7 +157,7 @@ fun AvatarBubble(
             } else {
                 Text(
                     text = initials,
-                    color = Color.White,
+                    color = onBase,
                     fontWeight = FontWeight.Bold,
                     fontSize = (size.value / 3.2f).sp
                 )
@@ -191,3 +196,19 @@ fun AvatarBubble(
 /** The story ring's stroke, and the gap between it and the picture. */
 private val RING_WIDTH = 2.5.dp
 private val RING_GAP = 2.dp
+
+/**
+ * The tonal container an avatar without a photo is drawn on, and the colour
+ * of its initials, chosen by [seed] so a chat keeps its own: primary,
+ * secondary and tertiary, each the theme's container and on-container pair.
+ */
+@Composable
+internal fun avatarTones(seed: Long): Pair<Color, Color> {
+    val scheme = MaterialTheme.colorScheme
+    val tones = listOf(
+        scheme.primaryContainer to scheme.onPrimaryContainer,
+        scheme.secondaryContainer to scheme.onSecondaryContainer,
+        scheme.tertiaryContainer to scheme.onTertiaryContainer
+    )
+    return tones[Math.floorMod(seed, tones.size.toLong()).toInt()]
+}
