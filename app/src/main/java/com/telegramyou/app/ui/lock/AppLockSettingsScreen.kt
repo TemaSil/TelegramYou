@@ -61,7 +61,7 @@ fun AppLockSettingsScreen(
     onAutoLockChange: (AutoLock) -> Unit,
     onHideInRecentsChange: (Boolean) -> Unit,
     /**
-     * Whether a PIN is this one (2.3.2): asked before the lock is turned
+     * Whether a PIN is this one (2.4): asked before the lock is turned
      * off or its PIN changed, which anyone holding the unlocked phone could
      * otherwise do. Slow on purpose; called off the main thread.
      */
@@ -269,7 +269,7 @@ private enum class PinCheck(val title: String) {
 
 /**
  * The current PIN, on the lock's own keypad, before the lock is turned off
- * or given a new PIN (2.3.2). Checked as its last digit goes in; a wrong one
+ * or given a new PIN (2.4). Checked as its last digit goes in; a wrong one
  * is said and cleared.
  */
 @Composable

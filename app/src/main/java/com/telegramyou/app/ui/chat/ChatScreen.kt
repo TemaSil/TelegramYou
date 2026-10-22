@@ -191,7 +191,7 @@ fun ChatScreen(
     /** The tray above the composer (2.0): a photo taken out, or one moved. */
     onAttachmentRemoved: (Int) -> Unit = {},
     onAttachmentMoved: (Int, Int) -> Unit = { _, _ -> },
-    /** Mute or Unmute, and Join, in a channel this account only reads (2.3.2). */
+    /** Mute or Unmute, and Join, in a channel this account only reads (2.4). */
     onChannelMuteToggle: () -> Unit = {},
     onChannelJoin: () -> Unit = {},
     onReplyTo: (ChatMessage) -> Unit,
@@ -680,7 +680,7 @@ fun ChatScreen(
     // The date picker a day separator opens (2.0).
     var datePicking by remember { mutableStateOf(false) }
     // A channel this account only reads has Mute or Join where the composer
-    // is (2.3.2), as the official client has: a field that could send
+    // is (2.4), as the official client has: a field that could send
     // nothing would be a control that does nothing. Unknown — the chat still
     // loading — keeps the composer.
     val canPost = state.detail?.chat?.canPost != false

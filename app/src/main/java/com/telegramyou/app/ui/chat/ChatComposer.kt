@@ -1176,7 +1176,7 @@ data class SendChoices(
 }
 
 /**
- * The foot of a channel this account does not post in (2.3.2), in the
+ * The foot of a channel this account does not post in (2.4), in the
  * composer's place and of its size: Mute or Unmute when subscribed, as the
  * official client has it, and Join when not in it — a channel found, or
  * one left.

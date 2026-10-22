@@ -442,7 +442,7 @@ fun sortedTopics(topics: List<ForumTopic>): List<ForumTopic> =
     }
 
 /**
- * Where this account stands in a channel (2.3.2), which decides what is at
+ * Where this account stands in a channel (2.4), which decides what is at
  * the foot of it: the composer, a Mute/Unmute button, or Join.
  */
 enum class ChannelStanding {

@@ -55,12 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.3.1 · 16 October 2026
+## Latest: 2.4 · 22 October 2026
 
-The emoji and plus panels slide up from the bottom as the keyboard does.
-2.3 before it brought more than one account: up to three on a phone,
-switched in place from the Profile tab — the others stay signed in and
-running, so switching back is instant. See the [changelog](CHANGELOG.md).
+Channels you only read have Mute and Unmute where the message field was,
+and Join where you are not in them. People without a photo are drawn in
+the wallpaper's colours rather than bright gradients, and the app lock
+has a Pixel's keypad — and asks for its PIN before it can be turned off.
+See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

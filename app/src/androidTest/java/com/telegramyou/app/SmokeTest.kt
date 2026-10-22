@@ -2345,7 +2345,7 @@ class SmokeTest {
         scrollChatsTo(By.text("TelegramYou News"))
         tap(By.text("TelegramYou News"))
         waitFor(By.text("3 comments"), "the comments under the post")
-        // Read, not written in (2.3.2): no composer in a channel this
+        // Read, not written in (2.4): no composer in a channel this
         // account does not post to, but Mute or Unmute in its place — its
         // comments below still have one. Muted in the demo; unmuted and
         // muted again, so it is left as it was found.
@@ -3512,7 +3512,7 @@ class SmokeTest {
         scrollDownTo(By.text("App lock"))
         tap(By.text("App lock"))
         waitFor(By.text("Change PIN"), "the lock settings again")
-        // Off only with the PIN (2.3.2): a wrong one is refused, the right
+        // Off only with the PIN (2.4): a wrong one is refused, the right
         // one turns the lock off.
         tap(By.text("Lock with a PIN"))
         waitFor(By.text("Enter your PIN to turn the lock off"), "the PIN asked before turning off")

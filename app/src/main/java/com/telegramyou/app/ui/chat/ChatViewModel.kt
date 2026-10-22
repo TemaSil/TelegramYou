@@ -680,7 +680,7 @@ class ChatViewModel(
 
     /**
      * Mute or Unmute at the foot of a channel this account only reads
-     * (2.3.2): drawn changed at once, then sent.
+     * (2.4): drawn changed at once, then sent.
      */
     fun onChannelMuteToggle() {
         val chat = _uiState.value.detail?.chat ?: return
@@ -695,7 +695,7 @@ class ChatViewModel(
         }
     }
 
-    /** Join, at the foot of a channel this account is not in (2.3.2). */
+    /** Join, at the foot of a channel this account is not in (2.4). */
     fun onChannelJoin() {
         viewModelScope.launch {
             val joined = attempt("Could not join the channel") { repository.joinChat(chatId) }

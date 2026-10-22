@@ -81,7 +81,7 @@ fun AvatarBubble(
     // Always through typingShape, so stopping has somewhere to animate from.
     val outline = typingShape(seed, typing, shape)
     // One of the theme's tonal containers, flat, with its own colour for the
-    // initials (2.3.2): the wallpaper's colours, as Contacts and Messages
+    // initials (2.4): the wallpaper's colours, as Contacts and Messages
     // draw a person without a photo. It was a fixed palette of bright hues
     // fading into themselves, with white initials — loud, and the same on
     // every phone whatever its colours.

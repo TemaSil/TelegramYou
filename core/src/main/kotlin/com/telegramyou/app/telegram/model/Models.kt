@@ -115,7 +115,7 @@ data class ChatPreview(
     val photoPath: String? = null,
     val isChannel: Boolean = false,
     /**
-     * Where this account stands, for a channel (2.3.2): posting there, only
+     * Where this account stands, for a channel (2.4): posting there, only
      * reading, or not in it — which decides whether its foot is the
      * composer, Mute/Unmute, or Join. Posting for every other kind of chat.
      * See channelStanding.

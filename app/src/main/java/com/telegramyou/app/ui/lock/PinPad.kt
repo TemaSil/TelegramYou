@@ -51,7 +51,7 @@ import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.motion.LocalReduceMotion
 
 /**
- * A PIN's dots and keypad, after the lock screen of a Pixel (2.3.2): round
+ * A PIN's dots and keypad, after the lock screen of a Pixel (2.4): round
  * tonal keys that turn into a rounded square and light up under the finger,
  * and a dot for each digit that arrives as one of Material's shapes and
  * settles into a circle. The lock in front of the app and the PIN asked

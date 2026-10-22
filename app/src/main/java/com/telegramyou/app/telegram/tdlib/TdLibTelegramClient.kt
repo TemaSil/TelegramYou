@@ -4163,7 +4163,7 @@ class TdLibTelegramClient(
                 if (before?.optBoolean("is_forum") != group.optBoolean("is_forum")) requestPublishChats()
                 // So does this account's own standing in it — made an admin
                 // of a channel, or arriving after the chat — which decides
-                // whether it has a composer (2.3.2).
+                // whether it has a composer (2.4).
                 else if (before?.optJSONObject("status")?.toString() != group.optJSONObject("status")?.toString()) requestPublishChats()
             }
             "updateChatAction" -> {
@@ -5043,7 +5043,7 @@ class TdLibTelegramClient(
     }
 
     /**
-     * Where this account stands in [chat] if it is a channel (2.3.2), by its
+     * Where this account stands in [chat] if it is a channel (2.4), by its
      * own member status in the supergroup behind it; see channelStanding.
      */
     private fun standingIn(chat: JSONObject): com.telegramyou.app.telegram.model.ChannelStanding {

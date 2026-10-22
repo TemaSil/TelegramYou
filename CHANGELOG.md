@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.4
+
+- **Channels you only read** have Mute or Unmute where the message field was, as in the official app; a field that could send nothing is gone. A channel you are not in — found in search, or one you left — has Join. The owner, and admins allowed to post, still have the field.
+- **Avatars without a photo** are drawn in the theme's tonal containers — primary, secondary or tertiary, flat — with matching initials, so they take the wallpaper's colours. They were bright fixed hues fading into themselves.
+- **The app lock's keypad is the Pixel's**: round keys that turn into rounded squares under your finger, and dots that arrive as Material shapes and settle into circles.
+- **Turning the lock off, or changing the PIN, asks for the PIN first.** Anyone holding the unlocked phone could switch it off before.
+
 ## 2.3.1
 
 - **The panels slide up like the keyboard.** Opened from the bottom of the screen, the emoji panel and the plus panel rise on the keyboard's own curve, the message field riding on them, and go back down when closed. Switching from the keyboard to a panel, or back, stays as it was — the panel waits under the keyboard — and the plus and emoji panels still swap in place.

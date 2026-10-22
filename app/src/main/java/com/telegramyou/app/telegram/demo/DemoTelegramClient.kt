@@ -2513,7 +2513,7 @@ class DemoTelegramClient(
         ),
         ChatPreview(
             4, "TelegramYou News", "M3 Expressive build notes", "Mon",
-            // Subscribed, not posting: Mute where the composer is (2.3.2).
+            // Subscribed, not posting: Mute where the composer is (2.4).
             isChannel = true, channelStanding = ChannelStanding.Reads, isMuted = true, avatarColor = 44,
             folderIds = setOf(FOLDER_NEWS)
         ),
