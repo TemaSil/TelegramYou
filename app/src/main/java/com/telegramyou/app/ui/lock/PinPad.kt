@@ -92,15 +92,23 @@ internal fun PinPad(
             ) {
                 // Delete left of 0 and the fingerprint right of it, as the
                 // Pixel's own keypad has them.
-                Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) {
-                    IconButton(onClick = onBackspace, enabled = typed.isNotEmpty()) {
-                        Icon(Symbols.Backspace, contentDescription = "Delete digit")
-                    }
-                }
+                PinIconKey(Symbols.Backspace, "Delete digit", enabled = typed.isNotEmpty(), onClick = onBackspace)
                 PinKey('0', enabled) { onDigit('0') }
                 Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) { extraKey() }
             }
         }
+    }
+}
+
+/**
+ * Delete, or the fingerprint: a plain icon on a key's whole footprint, its
+ * glyph sized to read beside the digits — a stock icon button's 24 dp was
+ * lost next to 80 dp keys.
+ */
+@Composable
+internal fun PinIconKey(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, enabled: Boolean = true, onClick: () -> Unit) {
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(KEY_SIZE)) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(PIN_ICON))
     }
 }
 
@@ -186,6 +194,7 @@ private class MorphShape(private val morph: Morph, private val progress: Float) 
 
 private val KEY_SIZE = 80.dp
 private val KEY_GAP = 16.dp
+private val PIN_ICON = 32.dp
 /** Pressed, a key's corners as a percentage of its side: a squircle. */
 private const val PRESSED_CORNER = 30
 private val DOT_ROOM = 24.dp

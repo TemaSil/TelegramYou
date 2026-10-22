@@ -146,9 +146,7 @@ fun AppLockScreen(
                 onBackspace = { typed = typed.dropLast(1) },
                 extraKey = {
                     if (biometric) {
-                        IconButton(onClick = { askBiometric(context, onBiometricUnlock) }) {
-                            Icon(Symbols.Fingerprint, contentDescription = "Unlock with fingerprint")
-                        }
+                        PinIconKey(Symbols.Fingerprint, "Unlock with fingerprint") { askBiometric(context, onBiometricUnlock) }
                     }
                 }
             )
