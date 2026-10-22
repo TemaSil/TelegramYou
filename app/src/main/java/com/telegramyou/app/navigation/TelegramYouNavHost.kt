@@ -796,7 +796,8 @@ fun TelegramYouNavHost(
                 onDisable = store::disable,
                 onBiometricChange = store::setBiometric,
                 onAutoLockChange = store::setAutoLock,
-                onHideInRecentsChange = store::setHideInRecents
+                onHideInRecentsChange = store::setHideInRecents,
+                tryPin = store::tryUnlock
             )
         }
         composable(Route.Blocked.PATTERN) {

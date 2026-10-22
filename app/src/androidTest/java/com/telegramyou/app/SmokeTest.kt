@@ -3507,7 +3507,15 @@ class SmokeTest {
         scrollDownTo(By.text("App lock"))
         tap(By.text("App lock"))
         waitFor(By.text("Change PIN"), "the lock settings again")
+        // Off only with the PIN (2.3.2): a wrong one is refused, the right
+        // one turns the lock off.
         tap(By.text("Lock with a PIN"))
+        waitFor(By.text("Enter your PIN to turn the lock off"), "the PIN asked before turning off")
+        "9999".forEach { digit -> tap(By.desc("Digit $digit")) }
+        waitFor(By.text("Wrong PIN, try again"), "a wrong PIN refused")
+        assertTrue("a wrong PIN turned the lock off", device.hasObject(By.desc("0 of 4 digits")))
+        screenshot("62b-app-lock-check")
+        "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
         assertTrue(
             "the lock did not turn off",
             device.wait(Until.gone(By.text("Change PIN")), STEP_TIMEOUT)

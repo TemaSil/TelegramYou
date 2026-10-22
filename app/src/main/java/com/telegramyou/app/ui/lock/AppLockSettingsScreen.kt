@@ -41,6 +41,9 @@ import com.telegramyou.app.settings.AutoLock
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.settings.SettingsGroup
 import com.telegramyou.app.ui.settings.settingsBackground
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 
 /**
  * Settings → Privacy and security → App lock. Off, it offers one switch,
@@ -56,9 +59,17 @@ fun AppLockSettingsScreen(
     onDisable: () -> Unit,
     onBiometricChange: (Boolean) -> Unit,
     onAutoLockChange: (AutoLock) -> Unit,
-    onHideInRecentsChange: (Boolean) -> Unit
+    onHideInRecentsChange: (Boolean) -> Unit,
+    /**
+     * Whether a PIN is this one (2.3.2): asked before the lock is turned
+     * off or its PIN changed, which anyone holding the unlocked phone could
+     * otherwise do. Slow on purpose; called off the main thread.
+     */
+    tryPin: (String) -> Boolean = { true }
 ) {
     var settingPin by remember { mutableStateOf(false) }
+    // What the current PIN, once typed, goes on to: off, or a new one.
+    var checking by remember { mutableStateOf<PinCheck?>(null) }
     var choosingAutoLock by remember { mutableStateOf(false) }
     val biometricHere = biometricAvailable(LocalContext.current)
 
@@ -69,6 +80,21 @@ fun AppLockSettingsScreen(
             onSet = { pin ->
                 settingPin = false
                 onPinSet(pin)
+            }
+        )
+    }
+    checking?.let { purpose ->
+        PinCheckDialog(
+            pinLength = settings.pinLength,
+            purpose = purpose,
+            tryPin = tryPin,
+            onDismiss = { checking = null },
+            onPassed = {
+                checking = null
+                when (purpose) {
+                    PinCheck.TurnOff -> onDisable()
+                    PinCheck.Change -> settingPin = true
+                }
             }
         )
     }
@@ -112,10 +138,10 @@ fun AppLockSettingsScreen(
                 switch(
                     title = "Lock with a PIN",
                     checked = settings.enabled,
-                    onChange = { on -> if (on) settingPin = true else onDisable() }
+                    onChange = { on -> if (on) settingPin = true else checking = PinCheck.TurnOff }
                 )
                 if (settings.enabled) {
-                    item(title = "Change PIN", onClick = { settingPin = true })
+                    item(title = "Change PIN", onClick = { checking = PinCheck.Change })
                 }
             }
             if (settings.enabled) {
@@ -233,4 +259,76 @@ private fun AutoLockDialog(selected: AutoLock, onDismiss: () -> Unit, onSelect: 
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } }
     )
+}
+
+/** What the current PIN is asked for. */
+private enum class PinCheck(val title: String) {
+    TurnOff("Enter your PIN to turn the lock off"),
+    Change("Enter your current PIN")
+}
+
+/**
+ * The current PIN, on the lock's own keypad, before the lock is turned off
+ * or given a new PIN (2.3.2). Checked as its last digit goes in; a wrong one
+ * is said and cleared.
+ */
+@Composable
+private fun PinCheckDialog(
+    pinLength: Int,
+    purpose: PinCheck,
+    tryPin: (String) -> Boolean,
+    onDismiss: () -> Unit,
+    onPassed: () -> Unit
+) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var typed by remember { mutableStateOf("") }
+    var wrong by remember { mutableStateOf(false) }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                Text(
+                    if (wrong) "Wrong PIN, try again" else purpose.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (wrong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 28.dp))
+                PinPad(
+                    pinLength = pinLength,
+                    typed = typed,
+                    enabled = true,
+                    onDigit = { digit ->
+                        if (typed.length < pinLength) {
+                            typed += digit
+                            wrong = false
+                            if (typed.length == pinLength) {
+                                val attempt = typed
+                                scope.launch {
+                                    val right = withContext(Dispatchers.Default) { tryPin(attempt) }
+                                    if (right) onPassed() else {
+                                        typed = ""
+                                        wrong = true
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    onBackspace = { typed = typed.dropLast(1) }
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 24.dp))
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            }
+        }
+    }
 }

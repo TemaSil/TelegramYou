@@ -48,9 +48,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The lock in front of the app: its mark, a dot for each digit typed, a
- * keypad of stock tonal buttons, and the fingerprint where the phone has
- * one — asked for by the platform's own prompt the moment this appears, as
+ * The lock in front of the app: its mark, and the Pixel's PIN pad (see
+ * PinPad) — a dot for each digit typed, round tonal keys that morph under
+ * the finger — and the fingerprint where the phone has one — asked for by the platform's own prompt the moment this appears, as
  * the system's own lock screen does.
  *
  * [tryPin] is slow on purpose (PBKDF2), so it runs off the main thread;
@@ -137,65 +137,22 @@ fun AppLockScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(Modifier.height(20.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.semantics { contentDescription = "${typed.length} of ${settings.pinLength} digits" }
-            ) {
-                repeat(settings.pinLength) { index ->
-                    Box(
-                        Modifier
-                            .size(14.dp)
-                            .background(
-                                if (index < typed.length) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceContainerHighest,
-                                CircleShape
-                            )
-                    )
-                }
-            }
-            Spacer(Modifier.height(40.dp))
-            val rows = listOf("123", "456", "789")
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                rows.forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                        row.forEach { digit -> Key(digit, enabled = !resting) { type(digit) } }
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) {
-                        if (biometric) {
-                            IconButton(onClick = { askBiometric(context, onBiometricUnlock) }) {
-                                Icon(Symbols.Fingerprint, contentDescription = "Unlock with fingerprint")
-                            }
-                        }
-                    }
-                    Key('0', enabled = !resting) { type('0') }
-                    Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) {
-                        IconButton(onClick = { typed = typed.dropLast(1) }, enabled = typed.isNotEmpty()) {
-                            Icon(Symbols.Backspace, contentDescription = "Delete digit")
+            Spacer(Modifier.height(28.dp))
+            PinPad(
+                pinLength = settings.pinLength,
+                typed = typed,
+                enabled = !resting,
+                onDigit = ::type,
+                onBackspace = { typed = typed.dropLast(1) },
+                extraKey = {
+                    if (biometric) {
+                        IconButton(onClick = { askBiometric(context, onBiometricUnlock) }) {
+                            Icon(Symbols.Fingerprint, contentDescription = "Unlock with fingerprint")
                         }
                     }
                 }
-            }
+            )
         }
-    }
-}
-
-@Composable
-private fun Key(digit: Char, enabled: Boolean, onClick: () -> Unit) {
-    FilledTonalButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = CircleShape,
-        modifier = Modifier
-            .size(KEY_SIZE)
-            .semantics { contentDescription = "Digit $digit" }
-    ) {
-        Text(digit.toString(), style = MaterialTheme.typography.headlineSmall)
     }
 }
 
@@ -229,6 +186,5 @@ private fun askBiometric(context: Context, onUnlocked: () -> Unit) {
     )
 }
 
-private val KEY_SIZE = 72.dp
 private const val MAX_WRONG = 5
 private const val REST_MILLIS = 30_000L
