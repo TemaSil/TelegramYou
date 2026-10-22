@@ -1,6 +1,7 @@
 package com.telegramyou.app.update
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -39,5 +40,13 @@ class WhatsNewTest {
         assertNotNull("whats-new.md must have a # title and - lines", notes)
         assertTrue("at most $WHATS_NEW_MAX_ITEMS lines", notes!!.items.size <= WHATS_NEW_MAX_ITEMS)
         assertTrue("one short sentence a line", notes.items.all { it.length <= 90 })
+        // The card already says "What's new in 2.4" over it: the title says
+        // what the update is, not the app's name and version again (the
+        // owner's word, 22 October 2026).
+        assertFalse(
+            "the title repeats the app and version: \"${notes.title}\"",
+            notes.title.startsWith("TelegramYou") || notes.title.any(Char::isDigit)
+        )
+        assertTrue("a short title", notes.title.length <= 60)
     }
 }

@@ -432,6 +432,12 @@ The owner's rules, both given after a first version got them wrong:
   owner's word, 2 October 2026, "по ситуации". `WhatsNewTest` fails the
   build past six. Walls of text go unread. The voice stays upbeat and
   casual, English until the languages arrive.
+- **The title says what the update is**, in a few words — "Videos and music
+  play right away", "Quieter channels, calmer avatars, a Pixel-style lock" —
+  never "TelegramYou 2.4". The card already reads "What's new in 2.4" over
+  it, and the name and version under that were the same thing twice (the
+  owner's word, 22 October 2026, after every release from 2.0 to 2.4 did
+  it). `WhatsNewTest` fails a title with the app's name or a digit in it.
 
 ## Who checks what
 
