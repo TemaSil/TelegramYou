@@ -58,7 +58,8 @@ wallpaper.
 ## Latest: 2.4.1 · 22 October 2026
 
 The app lock's keypad laid out as a Pixel's — Delete left of 0, the
-fingerprint right of it, both larger — and a PIN chosen on it too. 2.4 before it brought Mute and Join
+fingerprint right of it, both larger — a PIN chosen on it too, and the app zooming open
+once it is right. 2.4 before it brought Mute and Join
 in channels you only read, avatars in flat Material colours, the
 Pixel-style keypad itself, and the PIN asked before the lock can be
 turned off. See the [changelog](CHANGELOG.md).

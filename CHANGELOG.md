@@ -13,6 +13,7 @@ README.md.
 
 - **The lock's keypad, laid out as a Pixel's**: Delete left of 0, the fingerprint right of it, both at a key's full size with larger icons — the 24 dp ones were lost beside the keys.
 - **A PIN is chosen on the lock's own keypad**, full screen as a Pixel sets one — a dot per digit, Continue, then repeated — rather than in a text field in a dialog.
+- **Unlocking zooms the app open**: the lock grows and fades past the viewer while the app rises out of the depth beneath it, as the launcher opens an app. Locking stays instant, and Less motion unlocks at once.
 - **What's new says what the update is** in its title, rather than the app's name and version under a heading that already gives them.
 
 ## 2.4

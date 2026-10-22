@@ -6,6 +6,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.snapshotFlow
 import android.content.res.Configuration
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.LaunchedEffect
 import android.view.WindowManager
@@ -192,7 +196,32 @@ open class MainActivity : ComponentActivity() {
                         // Behind the lock the app stays composed but says
                         // nothing: without this, TalkBack could read the
                         // chats straight through it.
-                        Box(if (locked) Modifier.clearAndSetSemantics {} else Modifier) {
+                        // Unlocking, along Z (2.4.1): the lock flies past the
+                        // viewer, growing as it fades, while the app comes up
+                        // out of the depth beneath it, as Android's own
+                        // launcher opens an app. Locking is instant — the
+                        // chats are never seen on the way in — and Less
+                        // motion unlocks at once too.
+                        val still = LocalReduceMotion.current
+                        var lockShown by androidx.compose.runtime.remember { mutableStateOf(locked) }
+                        val opened = androidx.compose.runtime.remember { Animatable(if (locked) 0f else 1f) }
+                        LaunchedEffect(locked) {
+                            if (locked) {
+                                opened.snapTo(0f)
+                                lockShown = true
+                            } else if (lockShown) {
+                                if (!still) opened.animateTo(1f, tween(UNLOCK_MILLIS, easing = EmphasizedDecelerate))
+                                opened.snapTo(1f)
+                                lockShown = false
+                            }
+                        }
+                        Box(
+                            (if (locked) Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {
+                                val depth = 1f - opened.value
+                                scaleX = 1f - UNLOCK_DEPTH * depth
+                                scaleY = 1f - UNLOCK_DEPTH * depth
+                            }
+                        ) {
                         CompositionLocalProvider(androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner provides owner) {
                         androidx.compose.runtime.key(repository) {
                         TelegramYouNavHost(
@@ -220,12 +249,21 @@ open class MainActivity : ComponentActivity() {
                         // Over everything, the app still composed beneath:
                         // unlocking puts back exactly the screen that was
                         // left, as the system's own lock screen does.
-                        if (locked) {
-                            AppLockScreen(
-                                settings = lockSettings,
-                                tryPin = app.appLock::tryUnlock,
-                                onBiometricUnlock = app.appLock::unlockWithBiometric
-                            )
+                        if (locked || lockShown) {
+                            Box(
+                                Modifier.graphicsLayer {
+                                    val gone = opened.value
+                                    scaleX = 1f + UNLOCK_PASS * gone
+                                    scaleY = 1f + UNLOCK_PASS * gone
+                                    alpha = 1f - gone
+                                }
+                            ) {
+                                AppLockScreen(
+                                    settings = lockSettings,
+                                    tryPin = app.appLock::tryUnlock,
+                                    onBiometricUnlock = app.appLock::unlockWithBiometric
+                                )
+                            }
                         }
                         // What Recents shows of the app: nothing, while the
                         // lock is on and asked to hide it. Android 13 has a
@@ -368,3 +406,11 @@ class AccountViewModelStores : androidx.lifecycle.ViewModel() {
         stores.clear()
     }
 }
+
+/** How long the unlock takes, and Material's emphasized decelerate it runs on. */
+private const val UNLOCK_MILLIS = 450
+private val EmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
+/** How far back the app starts, as a share of its size. */
+private const val UNLOCK_DEPTH = 0.08f
+/** How much the lock grows as it passes the viewer. */
+private const val UNLOCK_PASS = 0.12f

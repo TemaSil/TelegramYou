@@ -3508,6 +3508,11 @@ class SmokeTest {
         screenshot("62-app-lock")
         "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
         waitFor(By.text("Material Design"), "the chat list, unlocked")
+        // The lock zooms away over the app before it lets taps through.
+        assertTrue(
+            "the lock stayed over the app after unlocking",
+            device.wait(Until.gone(By.desc("Digit 1")), STEP_TIMEOUT)
+        )
 
         tap(By.text("Settings"))
         scrollSettingsTo(By.text("Privacy"))
