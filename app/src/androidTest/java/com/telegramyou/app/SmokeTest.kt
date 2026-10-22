@@ -2345,6 +2345,12 @@ class SmokeTest {
         scrollChatsTo(By.text("TelegramYou News"))
         tap(By.text("TelegramYou News"))
         waitFor(By.text("3 comments"), "the comments under the post")
+        // Read, not written in (2.3.2): no composer in a channel this
+        // account does not post to — its comments below still have one.
+        assertFalse(
+            "a channel this account only reads has a composer",
+            device.hasObject(By.clazz("android.widget.EditText"))
+        )
         tap(By.text("3 comments"))
         waitFor(By.text("Finally, comments!"), "the comments in their thread")
         waitFor(By.text("Comments"), "the thread's header")

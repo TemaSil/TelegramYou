@@ -501,11 +501,11 @@ class DemoTelegramClient(
     private val publicChats = listOf(
         ChatPreview(
             PUBLIC_CHANNEL_ID, DEMO_PUBLIC_CHANNEL, "Material 3 Expressive, in depth", "",
-            isChannel = true, avatarColor = 131
+            isChannel = true, canPost = false, avatarColor = 131
         ),
         ChatPreview(
             PUBLIC_CHANNEL_ID + 1, "Android Developers", "Compose 1.12 is out", "",
-            isChannel = true, avatarColor = 141
+            isChannel = true, canPost = false, avatarColor = 141
         ),
         ChatPreview(
             PUBLIC_CHANNEL_ID + 2, "Compose Community", "Ask anything about Compose", "",
@@ -2512,7 +2512,8 @@ class DemoTelegramClient(
         ),
         ChatPreview(
             4, "TelegramYou News", "M3 Expressive build notes", "Mon",
-            isChannel = true, isMuted = true, avatarColor = 44,
+            // Subscribed, not posting: no composer (2.3.2).
+            isChannel = true, canPost = false, isMuted = true, avatarColor = 44,
             folderIds = setOf(FOLDER_NEWS)
         ),
         ChatPreview(
@@ -2543,7 +2544,7 @@ class DemoTelegramClient(
         // owner's brother described, a channel of tracks to listen through.
         ChatPreview(
             MUSIC_CHANNEL_ID, DEMO_MUSIC_CHANNEL, "🎵 Morning Light", "Wed",
-            isChannel = true, isMuted = true, avatarColor = 141
+            isChannel = true, canPost = false, isMuted = true, avatarColor = 141
         ),
         // A forum, so topics open offline: a group split into threads.
         ChatPreview(

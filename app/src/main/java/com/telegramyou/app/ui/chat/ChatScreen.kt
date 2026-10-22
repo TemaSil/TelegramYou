@@ -676,7 +676,15 @@ fun ChatScreen(
     var composerHeight by remember { mutableIntStateOf(0) }
     // The date picker a day separator opens (2.0).
     var datePicking by remember { mutableStateOf(false) }
-    val composerRoom = with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
+    // A channel this account only reads has no composer (2.3.2): a field
+    // that could send nothing, left off, and no room kept for it under the
+    // last post. Unknown — the chat still loading — keeps it.
+    val canPost = state.detail?.chat?.canPost != false
+    val composerRoom = if (canPost) {
+        with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
+    } else {
+        0.dp
+    }
     var playerBarHeight by remember { mutableIntStateOf(0) }
     val playerBarPadding = with(LocalDensity.current) { playerBarHeight.toDp() }
     val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
@@ -1647,7 +1655,7 @@ fun ChatScreen(
                             }
                         )
                     }
-                    Box(Modifier.onSizeChanged { composerHeight = it.height }) {
+                    if (canPost) Box(Modifier.onSizeChanged { composerHeight = it.height }) {
                     ComposerBar(
                         placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: "Message",
                         botKeyboardShown = botKeyboard?.let { botKeyboardShown },

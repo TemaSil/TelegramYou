@@ -4156,6 +4156,10 @@ class TdLibTelegramClient(
                 // A group turned into a forum, or back, opens differently:
                 // the list has to learn it, and it often arrives after the chat.
                 if (before?.optBoolean("is_forum") != group.optBoolean("is_forum")) requestPublishChats()
+                // So does this account's own standing in it — made an admin
+                // of a channel, or arriving after the chat — which decides
+                // whether it has a composer (2.3.2).
+                else if (before?.optJSONObject("status")?.toString() != group.optJSONObject("status")?.toString()) requestPublishChats()
             }
             "updateChatAction" -> {
                 val chatId = update.optLong("chat_id")
@@ -5033,6 +5037,21 @@ class TdLibTelegramClient(
         )
     }
 
+    /**
+     * Whether this account writes in [chat] (2.3.2): only a channel can say
+     * no, by its own member status in the supergroup behind it; see
+     * channelCanPost.
+     */
+    private fun canPostIn(chat: JSONObject): Boolean {
+        val type = chat.optJSONObject("type") ?: return true
+        if (type.optString("@type") != "chatTypeSupergroup" || !type.optBoolean("is_channel")) return true
+        val status = supergroups[type.optLong("supergroup_id")]?.optJSONObject("status")
+        return com.telegramyou.app.telegram.model.channelCanPost(
+            statusType = status?.optString("@type"),
+            canPostMessages = status?.optJSONObject("rights")?.optBoolean("can_post_messages") == true
+        )
+    }
+
     private fun toPreview(chat: JSONObject): ChatPreview {
         val id = chat.optLong("id")
         val last = chat.optJSONObject("last_message")
@@ -5066,6 +5085,7 @@ class TdLibTelegramClient(
             // This read the flag off the chat itself, where it never is, so
             // every channel was drawn and filtered as a group.
             isChannel = chat.optJSONObject("type")?.optBoolean("is_channel") == true,
+            canPost = canPostIn(chat),
             isGroup = type == "chatTypeBasicGroup" ||
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
             isBot = isBotChat(chat),

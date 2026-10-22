@@ -114,6 +114,13 @@ data class ChatPreview(
      */
     val photoPath: String? = null,
     val isChannel: Boolean = false,
+    /**
+     * Whether this account can write here. False only for a channel it does
+     * not post in (2.3.2) — a subscriber, or an admin without the right to
+     * post — where the composer is left off: a field that sends nothing
+     * would be a control that does nothing. See channelCanPost.
+     */
+    val canPost: Boolean = true,
     val isGroup: Boolean = false,
     /** A private chat with a bot rather than a person. */
     val isBot: Boolean = false,

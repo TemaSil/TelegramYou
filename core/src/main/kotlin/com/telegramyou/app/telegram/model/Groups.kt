@@ -440,3 +440,18 @@ fun sortedTopics(topics: List<ForumTopic>): List<ForumTopic> =
             else -> 2
         }
     }
+
+/**
+ * Whether this account posts in a channel (2.3.2), from its own member
+ * status there — TDLib's `ChatMemberStatus` type and, for an admin, the
+ * `can_post_messages` right. The owner posts; an admin posts when given the
+ * right; a subscriber, or someone who has left, does not. Unknown — the
+ * channel's details not here yet — counts as able, so an owner is never
+ * left without a field while they arrive.
+ */
+fun channelCanPost(statusType: String?, canPostMessages: Boolean): Boolean = when (statusType) {
+    null -> true
+    "chatMemberStatusCreator" -> true
+    "chatMemberStatusAdministrator" -> canPostMessages
+    else -> false
+}
