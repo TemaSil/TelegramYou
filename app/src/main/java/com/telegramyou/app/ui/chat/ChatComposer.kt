@@ -1,5 +1,9 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.expandHorizontally
@@ -1169,4 +1173,38 @@ data class SendChoices(
     val schedule: (() -> Unit)? = null
 ) {
     val isEmpty: Boolean get() = withoutSound == null && whenOnline == null && asFiles == null && schedule == null
+}
+
+/**
+ * The foot of a channel this account does not post in (2.3.2), in the
+ * composer's place and of its size: Mute or Unmute when subscribed, as the
+ * official client has it, and Join when not in it — a channel found, or
+ * one left.
+ */
+@Composable
+internal fun ChannelFooter(
+    standing: com.telegramyou.app.telegram.model.ChannelStanding,
+    isMuted: Boolean,
+    onMuteToggle: () -> Unit,
+    onJoin: () -> Unit
+) {
+    val modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 12.dp, vertical = COMPOSER_MARGIN)
+        .heightIn(min = 56.dp)
+    if (standing == com.telegramyou.app.telegram.model.ChannelStanding.Outside) {
+        Button(onClick = onJoin, modifier = modifier) {
+            Text("Join channel", style = MaterialTheme.typography.titleMedium)
+        }
+    } else {
+        FilledTonalButton(onClick = onMuteToggle, modifier = modifier) {
+            Icon(
+                if (isMuted) Symbols.Notifications else Symbols.NotificationsOff,
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize)
+            )
+            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+            Text(if (isMuted) "Unmute" else "Mute", style = MaterialTheme.typography.titleMedium)
+        }
+    }
 }

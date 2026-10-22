@@ -442,16 +442,31 @@ fun sortedTopics(topics: List<ForumTopic>): List<ForumTopic> =
     }
 
 /**
- * Whether this account posts in a channel (2.3.2), from its own member
- * status there — TDLib's `ChatMemberStatus` type and, for an admin, the
- * `can_post_messages` right. The owner posts; an admin posts when given the
- * right; a subscriber, or someone who has left, does not. Unknown — the
- * channel's details not here yet — counts as able, so an owner is never
- * left without a field while they arrive.
+ * Where this account stands in a channel (2.3.2), which decides what is at
+ * the foot of it: the composer, a Mute/Unmute button, or Join.
  */
-fun channelCanPost(statusType: String?, canPostMessages: Boolean): Boolean = when (statusType) {
-    null -> true
-    "chatMemberStatusCreator" -> true
-    "chatMemberStatusAdministrator" -> canPostMessages
-    else -> false
+enum class ChannelStanding {
+    /** The owner, or an admin with the right to post: the composer. */
+    Posts,
+    /** Subscribed, without posting: Mute or Unmute in the composer's place. */
+    Reads,
+    /** Not in it — found, or left: Join. */
+    Outside
 }
+
+/**
+ * [ChannelStanding] from this account's own member status in a channel —
+ * TDLib's `ChatMemberStatus` type, the admin's `can_post_messages` right and
+ * `is_member` where the status carries one. Unknown — the channel's details
+ * not here yet — counts as posting, so an owner is never left without a
+ * field while they arrive. Banned is reading: there is nothing to join.
+ */
+fun channelStanding(statusType: String?, canPostMessages: Boolean, isMember: Boolean = true): ChannelStanding =
+    when (statusType) {
+        null -> ChannelStanding.Posts
+        "chatMemberStatusCreator" -> if (isMember) ChannelStanding.Posts else ChannelStanding.Outside
+        "chatMemberStatusAdministrator" -> if (canPostMessages) ChannelStanding.Posts else ChannelStanding.Reads
+        "chatMemberStatusLeft" -> ChannelStanding.Outside
+        "chatMemberStatusRestricted" -> if (isMember) ChannelStanding.Reads else ChannelStanding.Outside
+        else -> ChannelStanding.Reads
+    }

@@ -678,6 +678,39 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Mute or Unmute at the foot of a channel this account only reads
+     * (2.3.2): drawn changed at once, then sent.
+     */
+    fun onChannelMuteToggle() {
+        val chat = _uiState.value.detail?.chat ?: return
+        val muted = !chat.isMuted
+        _uiState.update { state ->
+            state.copy(detail = state.detail?.let { it.copy(chat = it.chat.copy(isMuted = muted)) })
+        }
+        viewModelScope.launch {
+            attempt(if (muted) "Could not mute the channel" else "Could not unmute the channel") {
+                repository.setChatMuted(chatId, muted)
+            }
+        }
+    }
+
+    /** Join, at the foot of a channel this account is not in (2.3.2). */
+    fun onChannelJoin() {
+        viewModelScope.launch {
+            val joined = attempt("Could not join the channel") { repository.joinChat(chatId) }
+            if (joined) {
+                _uiState.update { state ->
+                    state.copy(
+                        detail = state.detail?.let {
+                            it.copy(chat = it.chat.copy(channelStanding = com.telegramyou.app.telegram.model.ChannelStanding.Reads))
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     // ── emoji, GIFs and stickers ─────────────────────────────────────────
 
     /** The tab the panel opened on last, so it comes back where it was left. */

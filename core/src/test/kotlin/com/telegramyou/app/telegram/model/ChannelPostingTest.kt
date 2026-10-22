@@ -1,32 +1,47 @@
 package com.telegramyou.app.telegram.model
 
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ChannelPostingTest {
 
+    private fun standing(type: String?, canPost: Boolean = false, member: Boolean = true) =
+        channelStanding(type, canPost, member)
+
     @Test
     fun `the owner posts`() {
-        assertTrue(channelCanPost("chatMemberStatusCreator", canPostMessages = false))
+        assertEquals(ChannelStanding.Posts, standing("chatMemberStatusCreator"))
+    }
+
+    @Test
+    fun `an owner who left is outside`() {
+        assertEquals(ChannelStanding.Outside, standing("chatMemberStatusCreator", member = false))
     }
 
     @Test
     fun `an admin posts only with the right to`() {
-        assertTrue(channelCanPost("chatMemberStatusAdministrator", canPostMessages = true))
-        assertFalse(channelCanPost("chatMemberStatusAdministrator", canPostMessages = false))
+        assertEquals(ChannelStanding.Posts, standing("chatMemberStatusAdministrator", canPost = true))
+        assertEquals(ChannelStanding.Reads, standing("chatMemberStatusAdministrator", canPost = false))
     }
 
     @Test
-    fun `a subscriber, or someone who left or was banned, does not`() {
-        assertFalse(channelCanPost("chatMemberStatusMember", canPostMessages = false))
-        assertFalse(channelCanPost("chatMemberStatusLeft", canPostMessages = false))
-        assertFalse(channelCanPost("chatMemberStatusBanned", canPostMessages = false))
-        assertFalse(channelCanPost("chatMemberStatusRestricted", canPostMessages = false))
+    fun `a subscriber reads`() {
+        assertEquals(ChannelStanding.Reads, standing("chatMemberStatusMember"))
     }
 
     @Test
-    fun `not known yet counts as able`() {
-        assertTrue(channelCanPost(null, canPostMessages = false))
+    fun `someone who left, or never joined, is outside`() {
+        assertEquals(ChannelStanding.Outside, standing("chatMemberStatusLeft"))
+        assertEquals(ChannelStanding.Outside, standing("chatMemberStatusRestricted", member = false))
+    }
+
+    @Test
+    fun `banned reads, with nothing to join`() {
+        assertEquals(ChannelStanding.Reads, standing("chatMemberStatusBanned"))
+    }
+
+    @Test
+    fun `not known yet counts as posting`() {
+        assertEquals(ChannelStanding.Posts, standing(null))
     }
 }

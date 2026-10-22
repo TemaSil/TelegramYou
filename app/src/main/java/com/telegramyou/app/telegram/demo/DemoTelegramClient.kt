@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.ChannelStanding
 import com.telegramyou.app.notifications.ScopeNotifications
 import com.telegramyou.app.notifications.NotificationScope
 import com.telegramyou.app.telegram.model.CommentThread
@@ -501,11 +502,11 @@ class DemoTelegramClient(
     private val publicChats = listOf(
         ChatPreview(
             PUBLIC_CHANNEL_ID, DEMO_PUBLIC_CHANNEL, "Material 3 Expressive, in depth", "",
-            isChannel = true, canPost = false, avatarColor = 131
+            isChannel = true, channelStanding = ChannelStanding.Outside, avatarColor = 131
         ),
         ChatPreview(
             PUBLIC_CHANNEL_ID + 1, "Android Developers", "Compose 1.12 is out", "",
-            isChannel = true, canPost = false, avatarColor = 141
+            isChannel = true, channelStanding = ChannelStanding.Outside, avatarColor = 141
         ),
         ChatPreview(
             PUBLIC_CHANNEL_ID + 2, "Compose Community", "Ask anything about Compose", "",
@@ -2512,8 +2513,8 @@ class DemoTelegramClient(
         ),
         ChatPreview(
             4, "TelegramYou News", "M3 Expressive build notes", "Mon",
-            // Subscribed, not posting: no composer (2.3.2).
-            isChannel = true, canPost = false, isMuted = true, avatarColor = 44,
+            // Subscribed, not posting: Mute where the composer is (2.3.2).
+            isChannel = true, channelStanding = ChannelStanding.Reads, isMuted = true, avatarColor = 44,
             folderIds = setOf(FOLDER_NEWS)
         ),
         ChatPreview(
@@ -2544,7 +2545,7 @@ class DemoTelegramClient(
         // owner's brother described, a channel of tracks to listen through.
         ChatPreview(
             MUSIC_CHANNEL_ID, DEMO_MUSIC_CHANNEL, "🎵 Morning Light", "Wed",
-            isChannel = true, canPost = false, isMuted = true, avatarColor = 141
+            isChannel = true, channelStanding = ChannelStanding.Reads, isMuted = true, avatarColor = 141
         ),
         // A forum, so topics open offline: a group split into threads.
         ChatPreview(
@@ -2618,6 +2619,15 @@ class DemoTelegramClient(
             joinedChatId = chat.id,
             avatarColor = chat.avatarColor
         )
+    }
+
+    override suspend fun joinChat(chatId: Long) {
+        delay(300)
+        val found = publicChats.firstOrNull { it.id == chatId } ?: return
+        val joined = found.copy(
+            channelStanding = if (found.isChannel) ChannelStanding.Reads else ChannelStanding.Posts
+        )
+        _chats.update { list -> if (list.any { it.id == chatId }) list else listOf(joined) + list }
     }
 
     override suspend fun joinByInviteLink(link: String): Long {

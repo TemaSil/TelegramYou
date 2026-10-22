@@ -1272,6 +1272,8 @@ fun TelegramYouNavHost(
                     onAttachmentCleared = chatViewModel::onAttachmentCleared,
                     onAttachmentRemoved = chatViewModel::onAttachmentRemoved,
                     onAttachmentMoved = chatViewModel::onAttachmentMoved,
+                    onChannelMuteToggle = chatViewModel::onChannelMuteToggle,
+                    onChannelJoin = chatViewModel::onChannelJoin,
                     onReplyTo = chatViewModel::onReplyTo,
                     onEdit = chatViewModel::onEdit,
                     onComposerBannerCancelled = chatViewModel::onComposerBannerCancelled,

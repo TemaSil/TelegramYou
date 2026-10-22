@@ -2346,11 +2346,18 @@ class SmokeTest {
         tap(By.text("TelegramYou News"))
         waitFor(By.text("3 comments"), "the comments under the post")
         // Read, not written in (2.3.2): no composer in a channel this
-        // account does not post to — its comments below still have one.
+        // account does not post to, but Mute or Unmute in its place — its
+        // comments below still have one. Muted in the demo; unmuted and
+        // muted again, so it is left as it was found.
         assertFalse(
             "a channel this account only reads has a composer",
             device.hasObject(By.clazz("android.widget.EditText"))
         )
+        tap(By.text("Unmute"))
+        waitFor(By.text("Mute"), "the channel unmuted")
+        screenshot("102-channel-footer")
+        tap(By.text("Mute"))
+        waitFor(By.text("Unmute"), "the channel muted again")
         tap(By.text("3 comments"))
         waitFor(By.text("Finally, comments!"), "the comments in their thread")
         waitFor(By.text("Comments"), "the thread's header")

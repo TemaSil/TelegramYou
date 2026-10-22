@@ -124,6 +124,12 @@ class FakeTelegramClient(
         return 990L
     }
 
+    val joinedChats = mutableListOf<Long>()
+
+    override suspend fun joinChat(chatId: Long) {
+        joinedChats += chatId
+    }
+
     override suspend fun leaveChat(chatId: Long) {
         leftChats += chatId
         _chats.value = _chats.value.filterNot { it.id == chatId }

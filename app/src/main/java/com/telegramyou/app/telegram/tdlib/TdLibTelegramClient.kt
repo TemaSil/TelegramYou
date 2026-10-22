@@ -1556,6 +1556,11 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun joinChat(chatId: Long) {
+        awaitReady()
+        requireEngine().send(JSONObject().put("@type", "joinChat").put("chat_id", chatId))
+    }
+
     override suspend fun joinByInviteLink(link: String): Long {
         awaitReady()
         val chat = requireEngine().send(
@@ -5038,17 +5043,19 @@ class TdLibTelegramClient(
     }
 
     /**
-     * Whether this account writes in [chat] (2.3.2): only a channel can say
-     * no, by its own member status in the supergroup behind it; see
-     * channelCanPost.
+     * Where this account stands in [chat] if it is a channel (2.3.2), by its
+     * own member status in the supergroup behind it; see channelStanding.
      */
-    private fun canPostIn(chat: JSONObject): Boolean {
-        val type = chat.optJSONObject("type") ?: return true
-        if (type.optString("@type") != "chatTypeSupergroup" || !type.optBoolean("is_channel")) return true
+    private fun standingIn(chat: JSONObject): com.telegramyou.app.telegram.model.ChannelStanding {
+        val type = chat.optJSONObject("type")
+        if (type?.optString("@type") != "chatTypeSupergroup" || !type.optBoolean("is_channel")) {
+            return com.telegramyou.app.telegram.model.ChannelStanding.Posts
+        }
         val status = supergroups[type.optLong("supergroup_id")]?.optJSONObject("status")
-        return com.telegramyou.app.telegram.model.channelCanPost(
+        return com.telegramyou.app.telegram.model.channelStanding(
             statusType = status?.optString("@type"),
-            canPostMessages = status?.optJSONObject("rights")?.optBoolean("can_post_messages") == true
+            canPostMessages = status?.optJSONObject("rights")?.optBoolean("can_post_messages") == true,
+            isMember = status?.optBoolean("is_member", true) ?: true
         )
     }
 
@@ -5085,7 +5092,7 @@ class TdLibTelegramClient(
             // This read the flag off the chat itself, where it never is, so
             // every channel was drawn and filtered as a group.
             isChannel = chat.optJSONObject("type")?.optBoolean("is_channel") == true,
-            canPost = canPostIn(chat),
+            channelStanding = standingIn(chat),
             isGroup = type == "chatTypeBasicGroup" ||
                 (type == "chatTypeSupergroup" && chat.optJSONObject("type")?.optBoolean("is_channel") != true),
             isBot = isBotChat(chat),

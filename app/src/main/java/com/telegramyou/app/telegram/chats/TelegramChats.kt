@@ -265,6 +265,9 @@ interface TelegramChats {
     /** Joins through an invite link and answers with the chat's id. */
     suspend fun joinByInviteLink(link: String): Long
 
+    /** Joins a public chat by its id — a channel found, or one left (2.3.2). */
+    suspend fun joinChat(chatId: Long)
+
     /**
      * The account's own contacts, for starting a conversation.
      *

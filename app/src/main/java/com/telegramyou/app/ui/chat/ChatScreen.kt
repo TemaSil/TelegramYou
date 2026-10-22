@@ -191,6 +191,9 @@ fun ChatScreen(
     /** The tray above the composer (2.0): a photo taken out, or one moved. */
     onAttachmentRemoved: (Int) -> Unit = {},
     onAttachmentMoved: (Int, Int) -> Unit = { _, _ -> },
+    /** Mute or Unmute, and Join, in a channel this account only reads (2.3.2). */
+    onChannelMuteToggle: () -> Unit = {},
+    onChannelJoin: () -> Unit = {},
     onReplyTo: (ChatMessage) -> Unit,
     onEdit: (ChatMessage) -> Unit,
     onComposerBannerCancelled: () -> Unit,
@@ -676,15 +679,12 @@ fun ChatScreen(
     var composerHeight by remember { mutableIntStateOf(0) }
     // The date picker a day separator opens (2.0).
     var datePicking by remember { mutableStateOf(false) }
-    // A channel this account only reads has no composer (2.3.2): a field
-    // that could send nothing, left off, and no room kept for it under the
-    // last post. Unknown — the chat still loading — keeps it.
+    // A channel this account only reads has Mute or Join where the composer
+    // is (2.3.2), as the official client has: a field that could send
+    // nothing would be a control that does nothing. Unknown — the chat still
+    // loading — keeps the composer.
     val canPost = state.detail?.chat?.canPost != false
-    val composerRoom = if (canPost) {
-        with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
-    } else {
-        0.dp
-    }
+    val composerRoom = with(LocalDensity.current) { composerHeight.toDp() }.coerceAtLeast(COMPOSER_ROOM_MIN)
     var playerBarHeight by remember { mutableIntStateOf(0) }
     val playerBarPadding = with(LocalDensity.current) { playerBarHeight.toDp() }
     val botPanelVisible = botKeyboard != null && botKeyboardShown && recordingSince == null
@@ -1655,8 +1655,16 @@ fun ChatScreen(
                             }
                         )
                     }
-                    if (canPost) Box(Modifier.onSizeChanged { composerHeight = it.height }) {
-                    ComposerBar(
+                    Box(Modifier.onSizeChanged { composerHeight = it.height }) {
+                    val channel = state.detail?.chat
+                    if (!canPost && channel != null) {
+                        ChannelFooter(
+                            standing = channel.channelStanding,
+                            isMuted = channel.isMuted,
+                            onMuteToggle = onChannelMuteToggle,
+                            onJoin = onChannelJoin
+                        )
+                    } else ComposerBar(
                         placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: "Message",
                         botKeyboardShown = botKeyboard?.let { botKeyboardShown },
                         onBotKeyboardToggle = {

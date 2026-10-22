@@ -115,12 +115,12 @@ data class ChatPreview(
     val photoPath: String? = null,
     val isChannel: Boolean = false,
     /**
-     * Whether this account can write here. False only for a channel it does
-     * not post in (2.3.2) — a subscriber, or an admin without the right to
-     * post — where the composer is left off: a field that sends nothing
-     * would be a control that does nothing. See channelCanPost.
+     * Where this account stands, for a channel (2.3.2): posting there, only
+     * reading, or not in it — which decides whether its foot is the
+     * composer, Mute/Unmute, or Join. Posting for every other kind of chat.
+     * See channelStanding.
      */
-    val canPost: Boolean = true,
+    val channelStanding: ChannelStanding = ChannelStanding.Posts,
     val isGroup: Boolean = false,
     /** A private chat with a bot rather than a person. */
     val isBot: Boolean = false,
@@ -175,7 +175,10 @@ data class ChatPreview(
      * else's, and in Saved Messages, where there is nobody to read it.
      */
     val lastMessageStatus: LastMessageStatus? = null
-)
+) {
+    /** Whether a message can be written here; see [channelStanding]. */
+    val canPost: Boolean get() = channelStanding == ChannelStanding.Posts
+}
 
 /** The account's own last message in a chat, as the row's ticks show it. */
 enum class LastMessageStatus { Sending, Sent, Read, Failed }
