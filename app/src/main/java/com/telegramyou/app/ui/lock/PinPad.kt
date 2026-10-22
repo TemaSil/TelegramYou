@@ -57,8 +57,8 @@ import com.telegramyou.app.ui.motion.LocalReduceMotion
  * settles into a circle. The lock in front of the app and the PIN asked
  * before the lock is changed or turned off both draw this.
  *
- * [extraKey] stands beside 0 on the left — the fingerprint, where there is
- * one; Delete is on the right.
+ * Delete stands left of 0, and [extraKey] right of it — the fingerprint,
+ * where there is one — as on a Pixel.
  */
 @Composable
 internal fun PinPad(
@@ -90,13 +90,15 @@ internal fun PinPad(
                 horizontalArrangement = Arrangement.spacedBy(KEY_GAP),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) { extraKey() }
-                PinKey('0', enabled) { onDigit('0') }
+                // Delete left of 0 and the fingerprint right of it, as the
+                // Pixel's own keypad has them.
                 Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) {
                     IconButton(onClick = onBackspace, enabled = typed.isNotEmpty()) {
                         Icon(Symbols.Backspace, contentDescription = "Delete digit")
                     }
                 }
+                PinKey('0', enabled) { onDigit('0') }
+                Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) { extraKey() }
             }
         }
     }
