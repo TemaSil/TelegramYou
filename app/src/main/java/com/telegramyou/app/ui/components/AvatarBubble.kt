@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -80,11 +82,10 @@ fun AvatarBubble(
     )
     // Always through typingShape, so stopping has somewhere to animate from.
     val outline = typingShape(seed, typing, shape)
-    // One of the theme's tonal containers, flat, with its own colour for the
-    // initials (2.4): the wallpaper's colours, as Contacts and Messages
-    // draw a person without a photo. It was a fixed palette of bright hues
-    // fading into themselves, with white initials — loud, and the same on
-    // every phone whatever its colours.
+    // The chat's own hue at Material's container tone, flat, with its
+    // on-container colour for the initials (2.4), as Contacts draws a person
+    // without a photo. It was the hue itself, bright, fading into itself,
+    // with white initials.
     val (base, onBase) = if (savedMessages) {
         MaterialTheme.colorScheme.primary to MaterialTheme.colorScheme.onPrimary
     } else {
@@ -198,17 +199,22 @@ private val RING_WIDTH = 2.5.dp
 private val RING_GAP = 2.dp
 
 /**
- * The tonal container an avatar without a photo is drawn on, and the colour
- * of its initials, chosen by [seed] so a chat keeps its own: primary,
- * secondary and tertiary, each the theme's container and on-container pair.
+ * The colours an avatar without a photo is drawn in, chosen by [seed] so a
+ * chat keeps its own hue: that hue's Material container and on-container
+ * pair, light or dark with the theme (see avatarTones in :core) — colourful
+ * enough to tell people apart, flat, in Material's tones.
  */
 @Composable
 internal fun avatarTones(seed: Long): Pair<Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    val tones = listOf(
-        scheme.primaryContainer to scheme.onPrimaryContainer,
-        scheme.secondaryContainer to scheme.onSecondaryContainer,
-        scheme.tertiaryContainer to scheme.onTertiaryContainer
-    )
-    return tones[Math.floorMod(seed, tones.size.toLong()).toInt()]
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val hue = com.telegramyou.app.ui.theme.avatarColor(seed).toArgb()
+    return remember(hue, dark) {
+        val (container, initials) = AVATAR_TONES.getOrPut(hue to dark) {
+            com.telegramyou.app.ui.theme.avatarTones(hue, dark)
+        }
+        Color(container) to Color(initials)
+    }
 }
+
+/** Each hue's pair, worked out once for the process: a scheme per avatar row is not free. */
+private val AVATAR_TONES = java.util.concurrent.ConcurrentHashMap<Pair<Int, Boolean>, Pair<Int, Int>>()

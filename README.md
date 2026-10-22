@@ -59,7 +59,7 @@ wallpaper.
 
 Channels you only read have Mute and Unmute where the message field was,
 and Join where you are not in them. People without a photo are drawn in
-the wallpaper's colours rather than bright gradients, and the app lock
+flat Material colours rather than bright gradients, and the app lock
 has a Pixel's keypad — and asks for its PIN before it can be turned off.
 See the [changelog](CHANGELOG.md).
 

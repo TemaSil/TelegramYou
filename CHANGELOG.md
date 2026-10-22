@@ -12,7 +12,7 @@ README.md.
 ## 2.4
 
 - **Channels you only read** have Mute or Unmute where the message field was, as in the official app; a field that could send nothing is gone. A channel you are not in — found in search, or one you left — has Join. The owner, and admins allowed to post, still have the field.
-- **Avatars without a photo** are drawn in the theme's tonal containers — primary, secondary or tertiary, flat — with matching initials, so they take the wallpaper's colours. They were bright fixed hues fading into themselves.
+- **Avatars without a photo** keep their own colour, so people stay easy to tell apart, but at Material's container tone — flat, with initials in the matching on-container colour, light or dark with the theme. They were bright hues fading into themselves.
 - **The app lock's keypad is the Pixel's**: round keys that turn into rounded squares under your finger, and dots that arrive as Material shapes and settle into circles.
 - **Turning the lock off, or changing the PIN, asks for the PIN first.** Anyone holding the unlocked phone could switch it off before.
 

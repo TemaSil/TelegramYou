@@ -168,3 +168,14 @@ private const val BLACK = 0xFF000000.toInt()
 
 /** Colours the quantizer boils a picture down to before scoring. */
 private const val MAX_COLORS = 128
+
+/**
+ * An avatar's colours without a photo (2.4): the container and on-container
+ * pair of the tonal-spot scheme seeded with [seed] — the hue the chat always
+ * had, at Material's container tone for [dark] or light, flat. As ARGB, the
+ * background first and the initials' colour second.
+ */
+fun avatarTones(seed: Int, dark: Boolean): Pair<Int, Int> {
+    val scheme = schemeFromSeed(seed, dark)
+    return scheme.primaryContainer to scheme.onPrimaryContainer
+}
