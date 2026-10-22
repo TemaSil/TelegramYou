@@ -3491,11 +3491,14 @@ class SmokeTest {
         tap(By.text("App lock"))
         waitFor(By.text("Lock with a PIN"), "the app lock settings")
         tap(By.text("Lock with a PIN"))
-        typeInto("PIN", "1234")
-        tap(By.text("Next"))
+        // Chosen on the lock's own keypad (2.4.1), then repeated.
+        waitFor(By.text("Choose a PIN"), "the PIN keypad")
+        "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
+        waitFor(By.desc("4 digits"), "the four digits as dots")
+        screenshot("61a-app-lock-choose")
+        tap(By.text("Continue"))
         waitFor(By.text("Repeat the PIN"), "the PIN asked again")
-        typeInto("PIN", "1234")
-        tap(By.text("Save"))
+        "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
         waitFor(By.text("Change PIN"), "the lock on")
         screenshot("61-app-lock-settings")
 

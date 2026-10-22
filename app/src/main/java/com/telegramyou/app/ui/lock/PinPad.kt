@@ -62,7 +62,11 @@ import com.telegramyou.app.ui.motion.LocalReduceMotion
  */
 @Composable
 internal fun PinPad(
-    pinLength: Int,
+    /**
+     * How many digits the PIN has, a dot slot each; null while one is being
+     * chosen, when only the digits typed so far have a dot.
+     */
+    pinLength: Int?,
     typed: String,
     enabled: Boolean,
     onDigit: (Char) -> Unit,
@@ -75,9 +79,11 @@ internal fun PinPad(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .height(DOT_ROOM)
-                .semantics { contentDescription = "${typed.length} of $pinLength digits" }
+                .semantics {
+                    contentDescription = if (pinLength != null) "${typed.length} of $pinLength digits" else "${typed.length} digits"
+                }
         ) {
-            repeat(pinLength) { index -> PinDot(filled = index < typed.length, index = index) }
+            repeat(pinLength ?: typed.length) { index -> PinDot(filled = index < typed.length, index = index) }
         }
         Spacer(Modifier.height(40.dp))
         Column(verticalArrangement = Arrangement.spacedBy(KEY_GAP)) {

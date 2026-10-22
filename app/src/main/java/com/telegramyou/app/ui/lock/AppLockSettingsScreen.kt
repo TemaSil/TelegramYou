@@ -7,14 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -32,8 +30,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.settings.AppLock
 import com.telegramyou.app.settings.AppLockSettings
@@ -170,65 +166,86 @@ fun AppLockSettingsScreen(
     }
 }
 
-/** A new PIN, typed twice. */
+/**
+ * A new PIN, typed twice on the lock's own keypad (2.4.1), full screen as
+ * the Pixel sets one — not a text field in a dialog. Chosen at any length
+ * from AppLock.MIN_PIN to MAX_PIN, a dot per digit as it goes in, then
+ * Continue; repeated against that length, checked on its last digit.
+ */
 @Composable
 private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) -> Unit) {
     var first by remember { mutableStateOf<String?>(null) }
-    var pin by remember { mutableStateOf("") }
+    var typed by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
-    val confirming = first != null
-    AlertDialog(
+    val chosen = first
+    androidx.compose.ui.window.Dialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Symbols.Lock, contentDescription = null) },
-        title = {
-            Text(
-                when {
-                    confirming -> "Repeat the PIN"
-                    changing -> "New PIN"
-                    else -> "Choose a PIN"
-                }
-            )
-        },
-        text = {
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { typed ->
-                    pin = typed.filter(Char::isDigit).take(AppLock.MAX_PIN)
-                    error = null
-                },
-                label = { Text("${AppLock.MIN_PIN} to ${AppLock.MAX_PIN} digits") },
-                singleLine = true,
-                isError = error != null,
-                supportingText = error?.let { { Text(it) } },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = "PIN" }
-            )
-        },
-        confirmButton = {
-            TextButton(
-                enabled = AppLock.isValidPin(pin),
-                onClick = {
-                    val chosen = first
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                Text(
                     when {
-                        chosen == null -> {
-                            first = pin
-                            pin = ""
+                        chosen != null -> "Repeat the PIN"
+                        changing -> "New PIN"
+                        else -> "Choose a PIN"
+                    },
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    error ?: if (chosen == null) "${AppLock.MIN_PIN} to ${AppLock.MAX_PIN} digits" else " ",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 24.dp))
+                PinPad(
+                    pinLength = chosen?.length,
+                    typed = typed,
+                    enabled = true,
+                    onDigit = { digit ->
+                        val limit = chosen?.length ?: AppLock.MAX_PIN
+                        if (typed.length < limit) {
+                            typed += digit
+                            error = null
+                            if (chosen != null && typed.length == chosen.length) {
+                                if (typed == chosen) {
+                                    onSet(typed)
+                                } else {
+                                    first = null
+                                    typed = ""
+                                    error = "The two did not match. Start again"
+                                }
+                            }
                         }
-                        chosen == pin -> onSet(pin)
-                        else -> {
-                            first = null
-                            pin = ""
-                            error = "The two did not match. Start again"
-                        }
+                    },
+                    onBackspace = { typed = typed.dropLast(1) }
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 24.dp))
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
+                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    if (chosen == null) {
+                        androidx.compose.material3.Button(
+                            enabled = AppLock.isValidPin(typed),
+                            onClick = {
+                                first = typed
+                                typed = ""
+                            }
+                        ) { Text("Continue") }
                     }
                 }
-            ) { Text(if (confirming) "Save" else "Next") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
+            }
+        }
+    }
 }
 
 /** How long away before it asks again: the four choices, as radio rows. */
