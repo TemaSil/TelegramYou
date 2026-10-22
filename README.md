@@ -55,13 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.4 · 22 October 2026
+## Latest: 2.4.1 · 22 October 2026
 
-Channels you only read have Mute and Unmute where the message field was,
-and Join where you are not in them. People without a photo are drawn in
-flat Material colours rather than bright gradients, and the app lock
-has a Pixel's keypad — and asks for its PIN before it can be turned off.
-See the [changelog](CHANGELOG.md).
+The app lock's keypad laid out as a Pixel's — Delete left of 0, the
+fingerprint right of it, both larger. 2.4 before it brought Mute and Join
+in channels you only read, avatars in flat Material colours, the
+Pixel-style keypad itself, and the PIN asked before the lock can be
+turned off. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

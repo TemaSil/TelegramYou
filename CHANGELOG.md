@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.4.1
+
+- **The lock's keypad, laid out as a Pixel's**: Delete left of 0, the fingerprint right of it, both at a key's full size with larger icons — the 24 dp ones were lost beside the keys.
+- **What's new says what the update is** in its title, rather than the app's name and version under a heading that already gives them.
+
 ## 2.4
 
 - **Channels you only read** have Mute or Unmute where the message field was, as in the official app; a field that could send nothing is gone. A channel you are not in — found in search, or one you left — has Join. The owner, and admins allowed to post, still have the field.
