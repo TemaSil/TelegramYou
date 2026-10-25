@@ -47,6 +47,7 @@ import com.telegramyou.app.telegram.model.IncomingShare
 import com.telegramyou.app.telegram.AppVisibility
 import com.telegramyou.app.telegram.TelegramForegroundService
 import com.telegramyou.app.ui.theme.TelegramYouTheme
+import com.telegramyou.app.ui.theme.ThemeRevealHost
 import com.telegramyou.app.update.LocalAppUpdates
 
 open class MainActivity : ComponentActivity() {
@@ -160,6 +161,9 @@ open class MainActivity : ComponentActivity() {
                 pureBlack = appearance.pureBlack,
                 reduceMotion = appearance.reduceMotion
             ) {
+                // A theme changed from inside the app spreads out of a
+                // circle rather than cutting over; see ThemeReveal.
+                ThemeRevealHost(reduceMotion = appearance.reduceMotion) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two
                     // above, and every screen that draws a person reads it.
@@ -282,6 +286,7 @@ open class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                }
                 }
             }
         }

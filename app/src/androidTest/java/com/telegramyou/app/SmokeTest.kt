@@ -654,6 +654,35 @@ class SmokeTest {
      * Saved Messages is proved by the composer: the menu item and the chat
      * row share a name, and only the conversation has a message field.
      */
+    /**
+     * The theme switched from the chat list's menu and back: the new one
+     * spreads out of a circle over a picture of the old (ThemeReveal), and
+     * the menu then offers the other way round.
+     */
+    @Test
+    fun theThemeSwitchesFromTheMenuAndBack() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+
+        tap(By.desc("More"))
+        val toDark = device.wait(Until.hasObject(By.text("Dark theme")), SHORT_WAIT) == true
+        val first = if (toDark) "Dark theme" else "Light theme"
+        val second = if (toDark) "Light theme" else "Dark theme"
+        tap(By.text(first))
+        // Mid-reveal, if the emulator is quick enough to catch it.
+        screenshot("23a-theme-reveal")
+        waitFor(By.text("Material Design"), "the chat list in the other theme")
+        tap(By.desc("More"))
+        waitFor(By.text(second), "the menu offering the theme back")
+        screenshot("23b-theme-switched")
+        tap(By.text(second))
+        waitFor(By.text("Material Design"), "the chat list back in its theme")
+        tap(By.desc("More"))
+        waitFor(By.text(first), "the menu as it was")
+        device.pressBack()
+    }
+
     @Test
     fun theOverflowMenuOpensSavedMessagesAndProxies() {
         signIn()
