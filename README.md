@@ -55,12 +55,11 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.4.2 · 25 October 2026
+## Latest: 2.4.3 · 25 October 2026
 
-Hide in recent apps now hides the app on every phone, and a change of
-theme spreads out of a circle from where it was asked for instead of
-cutting over. 2.4.1 before it laid the lock's keypad out as a Pixel's,
-chose the PIN on it and zoomed the app open on unlocking. See the
+A change of theme spreads out of the item tapped, in a circle, without
+the menu flickering on its way out; story names keep all their letters.
+2.4.2 before it hid the app from Recents on every phone. See the
 [changelog](CHANGELOG.md).
 
 ## Screenshots

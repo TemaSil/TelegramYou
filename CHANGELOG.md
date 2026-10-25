@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.4.3
+
+- **The theme's circle starts where it was asked for** — the menu item's own icon, or the Appearance segment tapped — and only once the new theme is drawn beneath. It began as the setting was written, a frame or two before the new colours arrived, and on a curve that covered most of the screen at once, so it read as coming from the middle.
+- **No flicker from the menu**: the theme turns after the menu has closed, rather than the menu taking the new colours on its way out.
+- **Story names keep their first and last letters**: the cell's rounded corners clipped a name as wide as the cell.
+
 ## 2.4.2
 
 - **Hide in recent apps hides the app on every phone** (#2). On Android 13 and later it only skipped the snapshot taken on leaving, so the live tile a swipe up shows, and launchers that ignore the call, still showed the chats. It is FLAG_SECURE everywhere now, as the official client does — screenshots are off while it is on, and the switch says so.
