@@ -9,6 +9,11 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.4.2
+
+- **Hide in recent apps hides the app on every phone** (#2). On Android 13 and later it only skipped the snapshot taken on leaving, so the live tile a swipe up shows, and launchers that ignore the call, still showed the chats. It is FLAG_SECURE everywhere now, as the official client does — screenshots are off while it is on, and the switch says so.
+- **A theme change spreads out of a circle** from where it was asked for — the chat list's menu, or the segment tapped in Appearance — over a picture of the old one, rather than every colour cutting over in one frame. Less motion switches at once.
+
 ## 2.4.1
 
 - **The lock's keypad, laid out as a Pixel's**: Delete left of 0, the fingerprint right of it, both at a key's full size with larger icons — the 24 dp ones were lost beside the keys.
