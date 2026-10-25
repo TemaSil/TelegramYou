@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -159,13 +161,25 @@ fun AppearanceScreen(
                     title = "Theme",
                     onClick = {},
                     below = {
+                        // The new theme spreads out of the segment tapped
+                        // (ThemeReveal), from its centre in the window.
+                        val reveal = com.telegramyou.app.ui.theme.LocalThemeReveal.current
+                        val centres = remember { HashMap<ThemeChoice, androidx.compose.ui.geometry.Offset>() }
                         SingleChoiceSegmentedButtonRow(
                             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                         ) {
                             ThemeChoice.entries.forEachIndexed { index, choice ->
                                 SegmentedButton(
                                     selected = settings.theme == choice,
-                                    onClick = { actions.onThemeChange(choice) },
+                                    onClick = {
+                                        val from = centres[choice]
+                                        if (reveal != null && from != null && choice != settings.theme) {
+                                            reveal.switch(from) { actions.onThemeChange(choice) }
+                                        } else {
+                                            actions.onThemeChange(choice)
+                                        }
+                                    },
+                                    modifier = Modifier.onGloballyPositioned { centres[choice] = it.boundsInWindow().center },
                                     shape = SegmentedButtonDefaults.itemShape(
                                         index = index,
                                         count = ThemeChoice.entries.size

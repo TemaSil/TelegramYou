@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.settings.hiddenLeadingTabs
 import com.telegramyou.app.settings.LocalGeekSettings
@@ -881,6 +883,10 @@ private fun HomeTitleBar(
     onOpenArchive: (() -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    // Where the menu was opened from, in the window: the new theme spreads
+    // out of it (ThemeReveal).
+    var menuButton by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val reveal = com.telegramyou.app.ui.theme.LocalThemeReveal.current
     TopAppBar(
         // The overflow: things reached for from the chat list that are not
         // chats — the light, a way round a block, the chat with oneself and
@@ -888,7 +894,10 @@ private fun HomeTitleBar(
         // name the bar exists to carry.
         actions = {
             Box {
-                IconButton(onClick = { menuOpen = true }) {
+                IconButton(
+                    onClick = { menuOpen = true },
+                    modifier = Modifier.onGloballyPositioned { menuButton = it.boundsInWindow().center }
+                ) {
                     Icon(Symbols.MoreVert, contentDescription = "More")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -905,7 +914,12 @@ private fun HomeTitleBar(
                             // A choice, not "follow the system" — it is what
                             // was asked for from here. Settings still offers
                             // System to go back to.
-                            onThemeChange(if (isDark) ThemeChoice.Light else ThemeChoice.Dark)
+                            val choice = if (isDark) ThemeChoice.Light else ThemeChoice.Dark
+                            if (reveal != null) {
+                                reveal.switch(menuButton) { onThemeChange(choice) }
+                            } else {
+                                onThemeChange(choice)
+                            }
                         }
                     )
                     DropdownMenuItem(
