@@ -266,14 +266,16 @@ open class MainActivity : ComponentActivity() {
                             }
                         }
                         // What Recents shows of the app: nothing, while the
-                        // lock is on and asked to hide it. Android 13 has a
-                        // switch for exactly this; before it the only way is
-                        // FLAG_SECURE, which also stops screenshots.
+                        // lock is on and asked to hide it. FLAG_SECURE on
+                        // every version, as the official client does, though
+                        // it stops screenshots too: Android 13's
+                        // setRecentsScreenshotEnabled only skips the snapshot
+                        // taken on leaving, so the live tile a swipe up shows
+                        // still had the chats in it, and some launchers
+                        // ignore it altogether (issue #2).
                         val hide = lockSettings.enabled && lockSettings.hideInRecents
                         LaunchedEffect(hide) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                setRecentsScreenshotEnabled(!hide)
-                            } else if (hide) {
+                            if (hide) {
                                 window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                             } else {
                                 window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)

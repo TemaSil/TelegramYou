@@ -156,7 +156,7 @@ fun AppLockSettingsScreen(
                     )
                     switch(
                         title = "Hide in recent apps",
-                        summary = "Recents shows a blank card instead of your chats",
+                        summary = "Recents shows a blank card instead of your chats. Screenshots are off too",
                         checked = settings.hideInRecents,
                         onChange = onHideInRecentsChange
                     )

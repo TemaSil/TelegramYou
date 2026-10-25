@@ -3500,6 +3500,13 @@ class SmokeTest {
         waitFor(By.text("Repeat the PIN"), "the PIN asked again")
         "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
         waitFor(By.text("Change PIN"), "the lock on")
+        // Hidden from Recents with FLAG_SECURE (issue #2), on by default:
+        // Android 13's own switch left the live tile showing the chats.
+        assertTrue("the lock on did not hide the app from Recents", awaitSecureWindow(true))
+        // Off again, so the screenshots of the lock below are not blank.
+        scrollDownTo(By.text("Hide in recent apps"))
+        tap(By.text("Hide in recent apps"))
+        assertTrue("Hide in recent apps, turned off, still hid the app", awaitSecureWindow(false))
         screenshot("61-app-lock-settings")
 
         device.pressHome()
@@ -4010,5 +4017,29 @@ class SmokeTest {
 
         /** One look at the shade before reopening it and looking again. */
         const val SHADE_POLL = 5_000L
+    }
+
+    /**
+     * Whether the app's window comes to carry FLAG_SECURE ([secure]) within
+     * a step's time — read off the resumed activity itself, the test running
+     * in the app's process; a screenshot cannot tell, since UiAutomation's
+     * may capture secure windows anyway.
+     */
+    private fun awaitSecureWindow(secure: Boolean): Boolean {
+        val until = System.currentTimeMillis() + STEP_TIMEOUT
+        while (System.currentTimeMillis() < until) {
+            var flagged: Boolean? = null
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                val activity = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+                    .getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED)
+                    .firstOrNull()
+                flagged = activity?.window?.attributes?.flags?.let {
+                    it and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0
+                }
+            }
+            if (flagged == secure) return true
+            Thread.sleep(200)
+        }
+        return false
     }
 }
