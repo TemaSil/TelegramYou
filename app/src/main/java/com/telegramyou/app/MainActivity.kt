@@ -163,7 +163,7 @@ open class MainActivity : ComponentActivity() {
             ) {
                 // A theme changed from inside the app spreads out of a
                 // circle rather than cutting over; see ThemeReveal.
-                ThemeRevealHost(reduceMotion = appearance.reduceMotion) {
+                ThemeRevealHost(reduceMotion = appearance.reduceMotion, darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // Shaped avatars are an appearance setting like the two
                     // above, and every screen that draws a person reads it.

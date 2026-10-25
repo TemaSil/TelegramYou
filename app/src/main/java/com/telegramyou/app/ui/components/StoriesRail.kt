@@ -49,7 +49,7 @@ fun StoriesRail(
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(CELL_GAP)
         ) {
             // With a story of this account's up, the add entry says what it
             // does, and "My story" is the one that opens what was posted.
@@ -76,12 +76,14 @@ private fun StoryOrb(story: StoryItem, addLabel: String, onClick: () -> Unit) {
         // The whole cell takes the tap, name included: a finger aimed at the
         // name under a circle is aiming at that story, and only the circle
         // used to answer — the smoke test missed it exactly that way.
+        // The name kept clear of the cell's rounded corners: a name as wide
+        // as the cell lost its first and last letters to them.
         modifier = Modifier
-            .width(72.dp)
+            .width(CELL_WIDTH)
             .alpha(alpha)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp)
+            .padding(horizontal = CELL_INSET, vertical = 2.dp)
     ) {
         if (story.isOwn) {
             // The add entry is a button, not somebody's face: the theme's own
@@ -118,3 +120,12 @@ private fun StoryOrb(story: StoryItem, addLabel: String, onClick: () -> Unit) {
         )
     }
 }
+
+/**
+ * A story's cell: wide enough for a name a little longer than its circle,
+ * set in from the cell's corners; the pitch between circles is what it was
+ * with 72 dp cells 14 dp apart.
+ */
+private val CELL_WIDTH = 80.dp
+private val CELL_INSET = 4.dp
+private val CELL_GAP = 6.dp

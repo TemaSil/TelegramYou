@@ -1,6 +1,6 @@
 package com.telegramyou.app.ui.home
 
-import androidx.compose.ui.layout.boundsInWindow
+import com.telegramyou.app.ui.theme.centreOnScreen
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.settings.hiddenLeadingTabs
@@ -883,9 +883,9 @@ private fun HomeTitleBar(
     onOpenArchive: (() -> Unit)? = null
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    // Where the menu was opened from, in the window: the new theme spreads
-    // out of it (ThemeReveal).
-    var menuButton by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    // The theme item's icon, on the screen: the new theme spreads out of it
+    // (ThemeReveal).
+    var themeIcon by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
     val reveal = com.telegramyou.app.ui.theme.LocalThemeReveal.current
     TopAppBar(
         // The overflow: things reached for from the chat list that are not
@@ -894,10 +894,7 @@ private fun HomeTitleBar(
         // name the bar exists to carry.
         actions = {
             Box {
-                IconButton(
-                    onClick = { menuOpen = true },
-                    modifier = Modifier.onGloballyPositioned { menuButton = it.boundsInWindow().center }
-                ) {
+                IconButton(onClick = { menuOpen = true }) {
                     Icon(Symbols.MoreVert, contentDescription = "More")
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -906,7 +903,8 @@ private fun HomeTitleBar(
                         leadingIcon = {
                             Icon(
                                 if (isDark) Symbols.LightMode else Symbols.DarkMode,
-                                contentDescription = null
+                                contentDescription = null,
+                                modifier = Modifier.onGloballyPositioned { themeIcon = it.centreOnScreen() }
                             )
                         },
                         onClick = {
@@ -916,7 +914,9 @@ private fun HomeTitleBar(
                             // System to go back to.
                             val choice = if (isDark) ThemeChoice.Light else ThemeChoice.Dark
                             if (reveal != null) {
-                                reveal.switch(menuButton) { onThemeChange(choice) }
+                                // After the menu has gone, so that it is neither
+                                // in the picture nor seen turning colour.
+                                reveal.switch(themeIcon, settle = MENU_EXIT_MILLIS) { onThemeChange(choice) }
                             } else {
                                 onThemeChange(choice)
                             }
@@ -1298,3 +1298,6 @@ private const val LOAD_MORE_AHEAD = 8
 private const val FADE_THROUGH_SCALE = 0.92f
 
 /** The Settings title with its bar open, and folded — see HomeScreen's top bar. */
+
+/** A dropdown menu's way out, and a frame to spare, before the theme turns. */
+private const val MENU_EXIT_MILLIS = 120L

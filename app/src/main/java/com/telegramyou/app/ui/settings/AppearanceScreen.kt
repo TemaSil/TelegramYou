@@ -1,6 +1,6 @@
 package com.telegramyou.app.ui.settings
 
-import androidx.compose.ui.layout.boundsInWindow
+import com.telegramyou.app.ui.theme.centreOnScreen
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.os.Build
 import androidx.compose.foundation.BorderStroke
@@ -162,7 +162,7 @@ fun AppearanceScreen(
                     onClick = {},
                     below = {
                         // The new theme spreads out of the segment tapped
-                        // (ThemeReveal), from its centre in the window.
+                        // (ThemeReveal), from its centre on the screen.
                         val reveal = com.telegramyou.app.ui.theme.LocalThemeReveal.current
                         val centres = remember { HashMap<ThemeChoice, androidx.compose.ui.geometry.Offset>() }
                         SingleChoiceSegmentedButtonRow(
@@ -179,7 +179,7 @@ fun AppearanceScreen(
                                             actions.onThemeChange(choice)
                                         }
                                     },
-                                    modifier = Modifier.onGloballyPositioned { centres[choice] = it.boundsInWindow().center },
+                                    modifier = Modifier.onGloballyPositioned { centres[choice] = it.centreOnScreen() },
                                     shape = SegmentedButtonDefaults.itemShape(
                                         index = index,
                                         count = ThemeChoice.entries.size
