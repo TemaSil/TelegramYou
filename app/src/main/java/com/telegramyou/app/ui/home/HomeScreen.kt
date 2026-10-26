@@ -209,7 +209,8 @@ fun HomeScreen(
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
-    onProfilePhotoPicked: (String) -> Unit = {}
+    onProfilePhotoPicked: (String) -> Unit = {},
+    profileLooks: com.telegramyou.app.ui.profile.ProfileLooksActions = com.telegramyou.app.ui.profile.ProfileLooksActions()
 ) {
     // A snackbar rather than a banner inside the form, for both halves of what
     // a save has to say. A refusal comes from the server with its own wording
@@ -434,7 +435,8 @@ fun HomeScreen(
                         onOpenSettings = { onTabSelected(HomeTab.Settings) },
                         accounts = accounts,
                         onSwitchAccount = onSwitchAccount,
-                        onAddAccount = onAddAccount
+                        onAddAccount = onAddAccount,
+                        looks = profileLooks
                     )
                     return@AnimatedContent
                 }

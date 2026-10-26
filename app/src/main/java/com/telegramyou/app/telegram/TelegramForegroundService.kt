@@ -63,6 +63,9 @@ class TelegramForegroundService : Service() {
     /** The one watcher of downloads, for their notification. */
     private var downloads: Job? = null
 
+    /** The one watcher of contacts' birthdays, for theirs. */
+    private var birthdays: Job? = null
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     /**
@@ -99,6 +102,7 @@ class TelegramForegroundService : Service() {
         // posted as many times as the screen had been turned.
         if (arrivals == null) arrivals = observeArrivals()
         if (downloads == null) downloads = observeDownloads()
+        if (birthdays == null) birthdays = observeBirthdays()
         if (intent?.action == ACTION_PAUSE_DOWNLOADS) {
             scope.launch { (application as TelegramYouApp).telegramRepository.setAllDownloadsPaused(true) }
         }
@@ -238,6 +242,63 @@ class TelegramForegroundService : Service() {
             }
         }
     }
+
+    /**
+     * A contact's birthday in the shade, once on the day, as well as on the
+     * chat list's card: the card is only seen by someone who opens the app.
+     * Which were posted is kept, so a restart or the list coming round
+     * again posts nobody twice; yesterday's keys are dropped.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun observeBirthdays(): Job {
+        val app = application as TelegramYouApp
+        val prefs = getSharedPreferences(BIRTHDAY_PREFS, MODE_PRIVATE)
+        return scope.launch {
+            // Looked at again every quarter of an hour as well as when the
+            // list changes: the day turns over at midnight with the same
+            // list, and a notice refused for want of permission is due again
+            // once it is given.
+            val ticks = kotlinx.coroutines.flow.flow {
+                while (true) {
+                    emit(Unit)
+                    kotlinx.coroutines.delay(BIRTHDAY_RECHECK_MS)
+                }
+            }
+            app.accounts.active.flatMapLatest { it.closeBirthdays }
+                .combine(ticks) { people, _ -> people }
+                .collect { people ->
+                val today = java.time.LocalDate.now()
+                val announced = prefs.getStringSet(BIRTHDAY_KEY, emptySet()).orEmpty()
+                    .filter { it.startsWith("$today:") }
+                    .toSet()
+                val due = com.telegramyou.app.telegram.model.birthdaysToAnnounce(people, today, announced)
+                if (due.isEmpty() || !canPost()) return@collect
+                val manager = NotificationManagerCompat.from(this@TelegramForegroundService)
+                due.forEach { person ->
+                    runCatching { manager.notify(birthdayNotificationId(person.userId), birthdayNotification(person)) }
+                }
+                prefs.edit()
+                    .putStringSet(
+                        BIRTHDAY_KEY,
+                        announced + due.map { com.telegramyou.app.telegram.model.birthdayNoticeKey(it.userId, today) }
+                    )
+                    .apply()
+            }
+        }
+    }
+
+    private fun birthdayNotification(person: com.telegramyou.app.telegram.model.BirthdayPerson): Notification =
+        NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_BIRTHDAYS)
+            .setContentTitle(com.telegramyou.app.telegram.model.birthdayNoticeTitle(person))
+            .setContentText("Tap to wish them a happy one")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setCategory(NotificationCompat.CATEGORY_EVENT)
+            .setAutoCancel(true)
+            .setContentIntent(openChatIntent(person.chatId))
+            .build()
+
+    /** Apart from the chats' own ids, which are their chat ids folded. */
+    private fun birthdayNotificationId(userId: Long): Int = BIRTHDAY_NOTIFICATION_BASE + (userId % 100_000).toInt()
 
     private fun downloadsNotification(text: String, percent: Int): Notification {
         val open = PendingIntent.getActivity(
@@ -448,6 +509,12 @@ class TelegramForegroundService : Service() {
         const val EXTRA_OPEN_DOWNLOADS = "com.telegramyou.app.EXTRA_OPEN_DOWNLOADS"
         private const val ACTION_PAUSE_DOWNLOADS = "com.telegramyou.app.PAUSE_DOWNLOADS"
         private const val DOWNLOADS_NOTIFICATION_ID = 43
+
+        /** Birthdays' notifications, far from the small ids above and from most chats'. */
+        private const val BIRTHDAY_NOTIFICATION_BASE = 0x5B1D0000
+        private const val BIRTHDAY_PREFS = "birthday-notices"
+        private const val BIRTHDAY_KEY = "announced"
+        private const val BIRTHDAY_RECHECK_MS = 15 * 60 * 1000L
 
         private const val ONGOING_NOTIFICATION_ID = 42
         private const val MAX_LINES_PER_CHAT = 6

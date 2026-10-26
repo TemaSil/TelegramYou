@@ -593,6 +593,7 @@ fun TelegramYouNavHost(
                 onProfileSave = homeViewModel::saveProfile,
                 onProfileErrorShown = homeViewModel::onProfileErrorShown,
                 onProfilePhotoPicked = homeViewModel::onProfilePhotoPicked,
+                profileLooks = homeViewModel.profileLooks,
                 onComposeOpen = homeViewModel::onComposeOpen,
                 onNewGroup = { navController.navigateTo(Route.NewGroup) },
                 onNewChannel = { navController.navigateTo(Route.NewChannel) },

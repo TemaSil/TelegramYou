@@ -85,3 +85,17 @@ private fun birthdayTitle(people: List<BirthdayPerson>, day: String): String {
 
 /** The key a dismissed card is remembered by: one day's, so tomorrow's still shows. */
 fun birthdayCardKey(today: LocalDate): String = "birthdays-$today"
+
+/**
+ * Today's birthdays not yet announced in the shade, so each person is
+ * announced once on their day however often the list comes round;
+ * [announced] holds the [birthdayNoticeKey]s already posted.
+ */
+fun birthdaysToAnnounce(people: List<BirthdayPerson>, today: LocalDate, announced: Set<String>): List<BirthdayPerson> =
+    people.filter { it.birthdate.fallsOn(today) && birthdayNoticeKey(it.userId, today) !in announced }
+
+/** One person's notice on one day; see [birthdaysToAnnounce]. */
+fun birthdayNoticeKey(userId: Long, today: LocalDate): String = "$today:$userId"
+
+/** The notice's own words, one person's: the card's, for them alone. */
+fun birthdayNoticeTitle(person: BirthdayPerson): String = "It's ${firstNameOf(person.name)}'s birthday today"

@@ -104,7 +104,9 @@ fun ProfileContent(
     /** The accounts on this phone (2.3); null where there is no switching. */
     accounts: com.telegramyou.app.telegram.accounts.Accounts? = null,
     onSwitchAccount: (Int) -> Unit = {},
-    onAddAccount: () -> Unit = {}
+    onAddAccount: () -> Unit = {},
+    /** The birthday, the profile colour and the emoji status; see ProfileLooksActions. */
+    looks: ProfileLooksActions = ProfileLooksActions()
 ) {
     if (me == null) {
         // Before the client has answered. Not an error and not an empty
@@ -115,6 +117,11 @@ fun ProfileContent(
         return
     }
     var editing by rememberSaveable { mutableStateOf(false) }
+    var editingBirthday by rememberSaveable { mutableStateOf(false) }
+    var choosingColor by rememberSaveable { mutableStateOf(false) }
+    var choosingStatus by rememberSaveable { mutableStateOf(false) }
+    // What a non-Premium account tapped that Telegram keeps for Premium.
+    var premiumFor by rememberSaveable { mutableStateOf<String?>(null) }
     var showingQr by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     val copy = rememberTextCopier()
@@ -138,6 +145,39 @@ fun ProfileContent(
             onDismiss = { editing = false }
         )
     }
+    if (editingBirthday) {
+        BirthdayDialog(
+            current = me.birthdate,
+            onSave = { birthdate ->
+                editingBirthday = false
+                looks.onBirthdateChange(birthdate)
+            },
+            onDismiss = { editingBirthday = false }
+        )
+    }
+    if (choosingColor) {
+        ProfileColorDialog(
+            current = me.profileColor,
+            choices = looks.colorChoices,
+            onPick = { id ->
+                choosingColor = false
+                looks.onProfileColorChange(id)
+            },
+            onDismiss = { choosingColor = false }
+        )
+    }
+    if (choosingStatus) {
+        EmojiStatusDialog(
+            currentId = me.emojiStatusId,
+            choices = looks.statusChoices,
+            onPick = { id ->
+                choosingStatus = false
+                looks.onEmojiStatusChange(id)
+            },
+            onDismiss = { choosingStatus = false }
+        )
+    }
+    premiumFor?.let { what -> PremiumNeededDialog(what) { premiumFor = null } }
     if (showingQr) {
         ProfileQr(
             me = me,
@@ -298,14 +338,35 @@ fun ProfileContent(
                     leading = { SettingsIcon(Symbols.Info) },
                     onClick = { editing = true }
                 )
-            me.birthdate?.let { birthdate ->
-                item(
-                    title = birthdate.line(java.time.LocalDate.now()),
+            item(
+                    title = me.birthdate?.line(java.time.LocalDate.now()) ?: "Add your birthday",
                     summary = "Birthday",
                     leading = { SettingsIcon(Symbols.Cake) },
-                    onClick = {}
+                    onClick = { editingBirthday = true }
                 )
-            }
+        }
+        // How the profile looks to others, which Telegram keeps for Premium.
+        SettingsGroup {
+            item(
+                    title = "Profile colour",
+                    summary = if (me.isPremium) {
+                        if (me.profileColor != null) "Your profile's card" else "None"
+                    } else {
+                        "Telegram Premium"
+                    },
+                    leading = { SettingsIcon(Symbols.Palette) },
+                    onClick = { if (me.isPremium) choosingColor = true else premiumFor = "a profile colour" }
+                )
+            item(
+                    title = "Emoji status",
+                    summary = if (me.isPremium) {
+                        if (me.emojiStatusId != null) "After your name" else "None"
+                    } else {
+                        "Telegram Premium"
+                    },
+                    leading = { SettingsIcon(Symbols.AddReaction) },
+                    onClick = { if (me.isPremium) choosingStatus = true else premiumFor = "an emoji status" }
+                )
         }
         if (me.isPremium) {
             SettingsGroup {

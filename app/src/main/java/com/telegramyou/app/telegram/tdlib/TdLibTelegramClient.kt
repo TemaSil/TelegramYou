@@ -88,6 +88,7 @@ import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.Birthdate
 import com.telegramyou.app.telegram.model.BirthdayPerson
 import com.telegramyou.app.telegram.model.ProfileColor
+import com.telegramyou.app.telegram.model.ProfileColorChoice
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.SharedMediaKind
@@ -192,6 +193,9 @@ class TdLibTelegramClient(
      * TelegramUser.profileColor.
      */
     private val profileColors = ConcurrentHashMap<Int, ProfileColor>()
+
+    /** The profile colours this account may choose from, in Telegram's order. */
+    @Volatile private var availableProfileColorIds: List<Int> = emptyList()
 
     private val _closeBirthdays = MutableStateFlow<List<BirthdayPerson>>(emptyList())
     override val closeBirthdays: StateFlow<List<BirthdayPerson>> = _closeBirthdays.asStateFlow()
@@ -4088,6 +4092,82 @@ class TdLibTelegramClient(
         )
     }
 
+    override suspend fun setBirthdate(birthdate: Birthdate?) {
+        awaitReady()
+        val request = JSONObject().put("@type", "setBirthdate")
+        // Absent is TDLib's null: the birthday taken off.
+        if (birthdate != null) {
+            request.put(
+                "birthdate",
+                JSONObject().put("@type", "birthdate")
+                    .put("day", birthdate.day)
+                    .put("month", birthdate.month)
+                    .put("year", birthdate.year ?: 0)
+            )
+        }
+        requireEngine().send(request)
+        refreshMe()
+    }
+
+    override suspend fun profileColorChoices(): List<ProfileColorChoice> {
+        awaitReady()
+        val ids = availableProfileColorIds.ifEmpty { profileColors.keys.sorted() }
+        return ids.mapNotNull { id -> profileColors[id]?.let { ProfileColorChoice(id, it) } }
+    }
+
+    override suspend fun setProfileColor(colorId: Int?) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject().put("@type", "setProfileAccentColor")
+                .put("profile_accent_color_id", colorId ?: -1)
+                .put("profile_background_custom_emoji_id", 0)
+        )
+        refreshMe()
+    }
+
+    override suspend fun emojiStatusChoices(): List<Long> {
+        awaitReady()
+        val ids = LinkedHashSet<Long>()
+        for (method in listOf("getRecentEmojiStatuses", "getDefaultEmojiStatuses")) {
+            val answer = try {
+                requireEngine().send(JSONObject().put("@type", method))
+            } catch (e: Throwable) {
+                Log.w(TAG, "$method: ${e.message}")
+                continue
+            }
+            // emojiStatusCustomEmojis carries bare ids; emojiStatuses, the
+            // older answer, whole statuses with the id inside.
+            answer.optJSONArray("custom_emoji_ids")?.let { list ->
+                for (i in 0 until list.length()) list.optLong(i).takeIf { it != 0L }?.let(ids::add)
+            }
+            answer.optJSONArray("emoji_statuses")?.let { list ->
+                for (i in 0 until list.length()) {
+                    val status = list.optJSONObject(i) ?: continue
+                    emojiStatusIdOf(JSONObject().put("emoji_status", status))?.let(ids::add)
+                }
+            }
+        }
+        return ids.take(MAX_STATUS_CHOICES)
+    }
+
+    override suspend fun setEmojiStatus(customEmojiId: Long?) {
+        awaitReady()
+        val request = JSONObject().put("@type", "setEmojiStatus")
+        if (customEmojiId != null) {
+            request.put(
+                "emoji_status",
+                JSONObject().put("@type", "emojiStatus")
+                    .put(
+                        "type",
+                        JSONObject().put("@type", "emojiStatusTypeCustomEmoji").put("custom_emoji_id", customEmojiId)
+                    )
+                    .put("expiration_date", 0)
+            )
+        }
+        requireEngine().send(request)
+        refreshMe()
+    }
+
     override suspend fun refreshMe() {
         awaitReady()
         val me = fetchMe() ?: return
@@ -4174,6 +4254,9 @@ class TdLibTelegramClient(
                     val light = firstPaletteColor(color.optJSONObject("light_theme_colors")) ?: continue
                     val dark = firstPaletteColor(color.optJSONObject("dark_theme_colors")) ?: light
                     profileColors[color.optInt("id")] = ProfileColor(light, dark)
+                }
+                update.optJSONArray("available_accent_color_ids")?.let { ids ->
+                    availableProfileColorIds = (0 until ids.length()).map { ids.optInt(it) }
                 }
                 // Our own profile was read before the colours arrived.
                 if (_authState.value.me != null) scope.launch { runCatching { refreshMe() } }
@@ -5742,6 +5825,9 @@ internal fun JSONObject.optInt64(key: String): Long =
 
 /** How many messages after the day before's last are looked through for a date's first. */
 private const val FIRST_FROM_PAGE = 20
+
+/** How many custom emoji the status picker offers. */
+private const val MAX_STATUS_CHOICES = 48
 
 /** A day, in the seconds TDLib's dates are in. */
 private const val DAY_SECONDS = 24 * 60 * 60L

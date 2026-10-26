@@ -52,6 +52,9 @@ data class TelegramUser(
 /** A profile's colour, for each theme; see TelegramUser.profileColor. */
 data class ProfileColor(val light: Int, val dark: Int)
 
+/** One of the colours Telegram offers for a profile, by its id. */
+data class ProfileColorChoice(val id: Int, val color: ProfileColor)
+
 enum class AuthState {
     Bootstrapping,
     WaitPhoneNumber,

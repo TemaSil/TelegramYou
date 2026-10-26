@@ -252,6 +252,14 @@ class TelegramYouApp : Application() {
         ).apply {
             description = getString(R.string.notification_channel_downloads_desc)
         }
+        // Default: a birthday is worth a sound, once a day at most.
+        val birthdays = NotificationChannel(
+            CHANNEL_BIRTHDAYS,
+            getString(R.string.notification_channel_birthdays_name),
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = getString(R.string.notification_channel_birthdays_desc)
+        }
         val manager = getSystemService(NotificationManager::class.java)
         // The channel it replaces, which was LOW: a channel's importance
         // cannot be lowered by the app once made, so it is a new channel.
@@ -260,6 +268,7 @@ class TelegramYouApp : Application() {
         manager.createNotificationChannel(sync)
         messages.forEach(manager::createNotificationChannel)
         manager.createNotificationChannel(downloads)
+        manager.createNotificationChannel(birthdays)
     }
 
     companion object {
@@ -277,5 +286,6 @@ class TelegramYouApp : Application() {
             com.telegramyou.app.notifications.NotificationScope.Channels -> "telegram_messages_channels"
         }
         const val CHANNEL_DOWNLOADS = "telegram_downloads"
+        const val CHANNEL_BIRTHDAYS = "telegram_birthdays"
     }
 }

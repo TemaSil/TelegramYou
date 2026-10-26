@@ -65,4 +65,17 @@ class BirthdaysTest {
         assertEquals("birthdays-2026-10-26", birthdayCardKey(today))
         assertTrue(birthdayCardKey(today) != birthdayCardKey(today.plusDays(1)))
     }
+
+    @Test
+    fun eachBirthdayIsAnnouncedOnceOnItsDay() {
+        val lina = BirthdayPerson(11, 2, "Lina Park", Birthdate(26, 10))
+        val artem = BirthdayPerson(12, 5, "Artem S", Birthdate(27, 10))
+        assertEquals(listOf(lina), birthdaysToAnnounce(listOf(lina, artem), today, emptySet()))
+        val announced = setOf(birthdayNoticeKey(lina.userId, today))
+        assertEquals(emptyList<BirthdayPerson>(), birthdaysToAnnounce(listOf(lina, artem), today, announced))
+        // Next year's is another day's notice.
+        val nextYear = today.plusYears(1)
+        assertEquals(listOf(lina), birthdaysToAnnounce(listOf(lina), nextYear, announced))
+        assertEquals("It's Lina's birthday today", birthdayNoticeTitle(lina))
+    }
 }

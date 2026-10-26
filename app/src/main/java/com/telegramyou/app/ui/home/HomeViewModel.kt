@@ -620,6 +620,24 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * The birthday, the profile colour and the emoji status, for the
+     * profile page; each refusal comes back as the screen's error.
+     */
+    val profileLooks = com.telegramyou.app.ui.profile.ProfileLooksActions(
+        onBirthdateChange = { birthdate ->
+            viewModelScope.launch { attempt("Could not change your birthday") { repository.setBirthdate(birthdate) } }
+        },
+        colorChoices = { repository.profileColorChoices() },
+        onProfileColorChange = { id ->
+            viewModelScope.launch { attempt("Could not change the colour") { repository.setProfileColor(id) } }
+        },
+        statusChoices = { repository.emojiStatusChoices() },
+        onEmojiStatusChange = { id ->
+            viewModelScope.launch { attempt("Could not change the status") { repository.setEmojiStatus(id) } }
+        }
+    )
+
     /** Called once the screen has shown the failure, so it is not shown twice. */
     fun onProfileErrorShown() {
         profileEditing.update { it.copy(errorMessage = null) }

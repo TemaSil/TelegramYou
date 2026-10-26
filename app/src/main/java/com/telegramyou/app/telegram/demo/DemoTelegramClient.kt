@@ -86,6 +86,7 @@ import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.Birthdate
 import com.telegramyou.app.telegram.model.BirthdayPerson
 import com.telegramyou.app.telegram.model.ProfileColor
+import com.telegramyou.app.telegram.model.ProfileColorChoice
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.ButtonAction
@@ -2429,6 +2430,27 @@ class DemoTelegramClient(
         updateMe { it.copy(bio = bio) }
     }
 
+    override suspend fun setBirthdate(birthdate: Birthdate?) {
+        delay(200)
+        updateMe { it.copy(birthdate = birthdate) }
+    }
+
+    override suspend fun profileColorChoices(): List<ProfileColorChoice> = DEMO_PROFILE_COLORS
+
+    override suspend fun setProfileColor(colorId: Int?) {
+        delay(200)
+        updateMe { me -> me.copy(profileColor = DEMO_PROFILE_COLORS.firstOrNull { it.id == colorId }?.color) }
+    }
+
+    /** The demo's custom-emoji set, the unicorn first, as the status picker's choices. */
+    override suspend fun emojiStatusChoices(): List<Long> =
+        DEMO_EMOJI_SET_EMOJI.split(' ').indices.map { index -> DEMO_CUSTOM_EMOJI + index }
+
+    override suspend fun setEmojiStatus(customEmojiId: Long?) {
+        delay(200)
+        updateMe { it.copy(emojiStatusId = customEmojiId) }
+    }
+
     override suspend fun setProfilePhoto(uri: String) {
         delay(300)
         // The picked image itself: Coil reads a content Uri as readily as a
@@ -3370,6 +3392,18 @@ private const val DEMO_PERSON_BASE = 2000L
 /** Two of Telegram's profile colours, their first palette entries. */
 private val DEMO_PROFILE_VIOLET = ProfileColor(0xFF8E6CD8.toInt(), 0xFFB79CF5.toInt())
 private val DEMO_PROFILE_BLUE = ProfileColor(0xFF3D72ED.toInt(), 0xFF6FA3FF.toInt())
+
+/** Telegram's eight profile colours, as the demo offers them. */
+private val DEMO_PROFILE_COLORS = listOf(
+    ProfileColor(0xFFBA5650.toInt(), 0xFFFF7A70.toInt()),
+    ProfileColor(0xFFC27C3E.toInt(), 0xFFFFA960.toInt()),
+    DEMO_PROFILE_VIOLET,
+    ProfileColor(0xFF56A64D.toInt(), 0xFF84D27A.toInt()),
+    ProfileColor(0xFF46A3B0.toInt(), 0xFF6FD6E4.toInt()),
+    DEMO_PROFILE_BLUE,
+    ProfileColor(0xFFC15C93.toInt(), 0xFFF27DBC.toInt()),
+    ProfileColor(0xFF7A7F8C.toInt(), 0xFFA3A9B8.toInt())
+).mapIndexed { index, color -> ProfileColorChoice(index, color) }
 
 /** User ids for contacts added in the demo. */
 private const val DEMO_ADDED_BASE = 3000L

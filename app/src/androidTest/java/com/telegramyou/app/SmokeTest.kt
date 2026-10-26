@@ -3178,10 +3178,45 @@ class SmokeTest {
             device.wait(Until.gone(By.text("It's Lina's birthday today")), STEP_TIMEOUT)
         )
 
+        // Announced in the shade too, once: the service keeps who it posted.
+        val notices = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSharedPreferences("birthday-notices", android.content.Context.MODE_PRIVATE)
+        val linaToday = "${java.time.LocalDate.now()}:11"
+        val deadline = System.currentTimeMillis() + STEP_TIMEOUT
+        while (System.currentTimeMillis() < deadline &&
+            linaToday !in notices.getStringSet("announced", emptySet()).orEmpty()
+        ) {
+            Thread.sleep(250)
+        }
+        assertTrue(
+            "Lina's birthday was never posted to the shade",
+            linaToday in notices.getStringSet("announced", emptySet()).orEmpty()
+        )
+
+        // Your own: the birthday kept without its year, a colour and a
+        // status chosen — the demo's account is a Premium one.
         tap(By.text("Profile"))
         waitFor(By.text("Set photo"), "the profile")
-        scrollDownTo(By.text("Birthday"))
-        assertTrue("no birthday on your profile", device.hasObject(By.textStartsWith("14 March 1994")))
+        scrollDownTo(By.textStartsWith("14 March 1994"))
+        tap(By.textStartsWith("14 March 1994"))
+        waitFor(By.text("Show year"), "the birthday picker")
+        screenshot("42b-birthday-picker")
+        tap(By.text("Show year"))
+        tap(By.text("Save"))
+        waitFor(By.text("14 March"), "the birthday without its year")
+
+        scrollDownTo(By.text("Profile colour"))
+        tap(By.text("Profile colour"))
+        waitFor(By.desc("Colour 1"), "the profile colours")
+        tap(By.desc("Colour 1"))
+        assertTrue("the colours stayed open", device.wait(Until.gone(By.desc("Colour 1")), STEP_TIMEOUT))
+
+        tap(By.text("Emoji status"))
+        waitFor(By.descStartsWith("Status "), "the emoji statuses")
+        screenshot("42c-emoji-status")
+        tap(By.descStartsWith("Status "))
+        assertTrue("the statuses stayed open", device.wait(Until.gone(By.text("Done")), STEP_TIMEOUT))
+        assertTrue("no emoji status on your profile", device.hasObject(By.text("After your name")))
     }
 
     /**

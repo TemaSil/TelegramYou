@@ -39,6 +39,27 @@ interface TelegramProfile {
     suspend fun setProfilePhoto(uri: String)
 
     /**
+     * The birthday shown on this account's profile, with or without its
+     * year; null takes it off. Open to every account.
+     */
+    suspend fun setBirthdate(birthdate: com.telegramyou.app.telegram.model.Birthdate?) {}
+
+    /** The colours a profile can take, in Telegram's order. Premium only to set. */
+    suspend fun profileColorChoices(): List<com.telegramyou.app.telegram.model.ProfileColorChoice> = emptyList()
+
+    /** This account's profile colour, by its id; null for none. Premium only. */
+    suspend fun setProfileColor(colorId: Int?) {}
+
+    /**
+     * Custom emoji to choose a status from — Telegram's defaults and the
+     * ones used lately — by id. Premium only to set.
+     */
+    suspend fun emojiStatusChoices(): List<Long> = emptyList()
+
+    /** This account's emoji status, a custom emoji by id; null clears it. */
+    suspend fun setEmojiStatus(customEmojiId: Long?) {}
+
+    /**
      * Re-reads the signed-in account and publishes it.
      *
      * Called after a save so that what the screen shows is what the server
