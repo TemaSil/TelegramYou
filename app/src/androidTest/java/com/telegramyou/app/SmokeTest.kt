@@ -82,8 +82,29 @@ class SmokeTest {
         // Dark, on the owner's word: the screenshots on the front page are
         // taken from these runs, and the app follows the system's theme.
         device.executeShellCommand("cmd uimode night yes")
+        // The notification permission before the app starts, not only at
+        // sign-in: the service that posts a birthday looks the moment it
+        // starts, and a permission given after that waited a quarter hour.
+        if (Build.VERSION.SDK_INT >= 33) {
+            val app = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+            device.executeShellCommand("pm grant $app android.permission.POST_NOTIFICATIONS")
+        }
+        // The demo's Lina has her birthday every day, and its card over the
+        // chat list moved every row down — far enough to put the group under
+        // the bottom bar. Put away for today in every test but the one about
+        // it, so the list is the list the rest were written against.
+        setBirthdayCardHidden(true)
         device.pressHome()
         launchApp()
+    }
+
+    /** The chat list's birthday card put away for today, or given back. */
+    private fun setBirthdayCardHidden(hidden: Boolean) {
+        val prefs = InstrumentationRegistry.getInstrumentation().targetContext
+            .getSharedPreferences("birthday-card", android.content.Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            if (hidden) putString("dismissed", "birthdays-${java.time.LocalDate.now()}") else clear()
+        }.commit()
     }
 
     /** Left as it was found, for whatever runs on this emulator next. */
@@ -3156,6 +3177,11 @@ class SmokeTest {
      */
     @Test
     fun aContactsBirthdayIsOnTheListAndTheirProfile() {
+        // The card given back, and the app started again to read it: the
+        // chat list's state holder went with the task.
+        setBirthdayCardHidden(false)
+        device.pressHome()
+        launchApp()
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
@@ -3182,7 +3208,7 @@ class SmokeTest {
         val notices = InstrumentationRegistry.getInstrumentation().targetContext
             .getSharedPreferences("birthday-notices", android.content.Context.MODE_PRIVATE)
         val linaToday = "${java.time.LocalDate.now()}:11"
-        val deadline = System.currentTimeMillis() + STEP_TIMEOUT
+        val deadline = System.currentTimeMillis() + LAUNCH_TIMEOUT
         while (System.currentTimeMillis() < deadline &&
             linaToday !in notices.getStringSet("announced", emptySet()).orEmpty()
         ) {
