@@ -170,13 +170,13 @@ fun TelegramYouNavHost(
     // Only the auth state is read here, and only to decide where to send the
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
-    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val factoryContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val viewModelFactory = remember(repository) {
         telegramViewModelFactory(
             repository,
             queryHistory ?: InMemoryQueryHistory(),
             voice,
-            com.telegramyou.app.ui.home.PrefsBirthdayDismissals(appContext)
+            com.telegramyou.app.ui.home.PrefsBirthdayDismissals(factoryContext)
         )
     }
     val geekSettings = LocalGeekSettings.current
