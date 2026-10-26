@@ -293,6 +293,10 @@ class TelegramForegroundService : Service() {
             .setContentText("Tap to wish them a happy one")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
+            // A group of its own: left ungrouped, Android bundled it with a
+            // chat's notification under the app's name, which folded the chat
+            // and hid its Reply.
+            .setGroup(BIRTHDAY_GROUP)
             .setAutoCancel(true)
             .setContentIntent(openChatIntent(person.chatId))
             .build()
@@ -514,6 +518,7 @@ class TelegramForegroundService : Service() {
         private const val BIRTHDAY_NOTIFICATION_BASE = 0x5B1D0000
         private const val BIRTHDAY_PREFS = "birthday-notices"
         private const val BIRTHDAY_KEY = "announced"
+        private const val BIRTHDAY_GROUP = "com.telegramyou.app.BIRTHDAYS"
         private const val BIRTHDAY_RECHECK_MS = 15 * 60 * 1000L
 
         private const val ONGOING_NOTIFICATION_ID = 42

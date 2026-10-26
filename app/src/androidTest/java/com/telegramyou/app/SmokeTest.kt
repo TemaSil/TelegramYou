@@ -3237,6 +3237,7 @@ class SmokeTest {
         tap(By.desc("Colour 1"))
         assertTrue("the colours stayed open", device.wait(Until.gone(By.desc("Colour 1")), STEP_TIMEOUT))
 
+        scrollDownTo(By.text("Emoji status"))
         tap(By.text("Emoji status"))
         waitFor(By.descStartsWith("Status "), "the emoji statuses")
         screenshot("42c-emoji-status")
