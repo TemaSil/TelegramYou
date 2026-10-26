@@ -46,6 +46,15 @@ fun LazyListScope.personRows(profile: PersonProfile, onCopy: (what: String, text
             DetailRow(Symbols.Info, "Bio", bio, onClick = null)
         }
     }
+    // Their birthday where they show it, with their age when the year is
+    // there too; on the day itself the row says so.
+    user.birthdate?.let { birthdate ->
+        item(key = "person-birthday") {
+            val today = java.time.LocalDate.now()
+            val label = if (birthdate.fallsOn(today)) "Birthday · today" else "Birthday"
+            DetailRow(Symbols.Cake, label, birthdate.line(today), onClick = null)
+        }
+    }
     // Last and quiet, as the forks show it: the number Telegram knows them
     // by, which a bot or a support chat asks for and nothing else in the
     // app says. Copied on a tap like the rest.

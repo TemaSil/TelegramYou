@@ -268,6 +268,13 @@ fun ChatInfoScreen(
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item {
+                // On the person's own profile colour where they chose one,
+                // their emoji status after their name.
+                val profileColor = person?.user?.profileColor
+                com.telegramyou.app.ui.people.ProfileHeader(
+                    color = profileColor,
+                    modifier = Modifier.padding(vertical = if (profileColor != null) 12.dp else 0.dp)
+                ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -282,9 +289,11 @@ fun ChatInfoScreen(
                         shape = personShape(chat?.avatarColor ?: 1),
                         photoPath = chat?.photoPath
                     )
-                    Text(
-                        chat?.title ?: "Chat",
-                        style = MaterialTheme.typography.headlineSmall
+                    com.telegramyou.app.ui.people.NameWithStatus(
+                        name = chat?.title ?: "Chat",
+                        emojiStatusId = person?.user?.emojiStatusId,
+                        style = MaterialTheme.typography.headlineSmall,
+                        statusSize = 28.dp
                     )
                     // The same line the conversation's header carries — how
                     // many members, or when someone was last seen — so this
@@ -293,9 +302,14 @@ fun ChatInfoScreen(
                         Text(
                             label,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (profileColor != null) {
+                                androidx.compose.material3.LocalContentColor.current.copy(alpha = 0.8f)
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
                         )
                     }
+                }
                 }
             }
 

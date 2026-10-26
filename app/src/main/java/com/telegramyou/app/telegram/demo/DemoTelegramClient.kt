@@ -83,6 +83,9 @@ import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.Birthdate
+import com.telegramyou.app.telegram.model.BirthdayPerson
+import com.telegramyou.app.telegram.model.ProfileColor
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.ButtonAction
@@ -106,6 +109,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -216,7 +223,12 @@ class DemoTelegramClient(
 
     /** Who is signed in to this demo account; see [accountId]. */
     private fun demoMe(phone: String = ""): TelegramUser = when (accountId) {
-        0 -> TelegramUser(id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", phoneNumber = phone, isPremium = true)
+        0 -> TelegramUser(
+            id = 1, firstName = "You", lastName = "Expressive", username = "telegramyou", phoneNumber = phone, isPremium = true,
+            emojiStatusId = DEMO_CUSTOM_EMOJI,
+            profileColor = DEMO_PROFILE_BLUE,
+            birthdate = Birthdate(14, 3, 1994)
+        )
         else -> TelegramUser(
             id = 1_000L + accountId,
             firstName = DEMO_OTHER_NAMES[(accountId - 1) % DEMO_OTHER_NAMES.size],
@@ -661,8 +673,42 @@ class DemoTelegramClient(
             username = base.username ?: if (first == "Mom") null
             else listOf(first, base.lastName).filter { it.isNotBlank() }.joinToString("_").lowercase(),
             phoneNumber = base.phoneNumber ?: ("1555010" + (base.id % 10000).toString().padStart(4, '0')),
-            bio = base.bio.ifBlank { demoBios[first].orEmpty() }
+            bio = base.bio.ifBlank { demoBios[first].orEmpty() },
+            // Lina has everything a profile can show: a status, a colour,
+            // and her birthday today, so the chat list's card is always
+            // there to look at; Artem's is tomorrow.
+            emojiStatusId = base.emojiStatusId ?: DEMO_CUSTOM_EMOJI.takeIf { first == "Lina" },
+            profileColor = base.profileColor ?: DEMO_PROFILE_VIOLET.takeIf { first == "Lina" },
+            birthdate = base.birthdate ?: demoBirthdate(first)
         )
+    }
+
+    private fun demoBirthdate(first: String): Birthdate? {
+        val today = java.time.LocalDate.now()
+        return when (first) {
+            "Lina" -> Birthdate(today.dayOfMonth, today.monthValue, 1998)
+            "Artem" -> today.plusDays(1).let { Birthdate(it.dayOfMonth, it.monthValue) }
+            else -> null
+        }
+    }
+
+    /** Lina's birthday today and Artem's tomorrow, as TDLib would announce them. */
+    override val closeBirthdays: StateFlow<List<BirthdayPerson>> by lazy {
+        _chats.map { chats ->
+            val people = demoPeople()
+            listOf(11L, 12L).mapNotNull { id ->
+                val user = people[id]?.first ?: return@mapNotNull null
+                val chat = chats.firstOrNull { it.title == user.displayName } ?: return@mapNotNull null
+                BirthdayPerson(
+                    userId = id,
+                    chatId = chat.id,
+                    name = user.displayName,
+                    birthdate = user.birthdate ?: return@mapNotNull null,
+                    avatarColor = chat.avatarColor,
+                    photoPath = chat.photoPath
+                )
+            }
+        }.distinctUntilChanged().stateIn(scope, SharingStarted.Eagerly, emptyList())
     }
 
     /** Everyone the demo knows of, by user id. */
@@ -3320,6 +3366,10 @@ const val DEMO_ARCHIVE_FIRST_LINE = "Kickoff: first sketches of the floating com
 
 /** User ids for demo people known only from a private chat: this plus the chat id. */
 private const val DEMO_PERSON_BASE = 2000L
+
+/** Two of Telegram's profile colours, their first palette entries. */
+private val DEMO_PROFILE_VIOLET = ProfileColor(0xFF8E6CD8.toInt(), 0xFFB79CF5.toInt())
+private val DEMO_PROFILE_BLUE = ProfileColor(0xFF3D72ED.toInt(), 0xFF6FA3FF.toInt())
 
 /** User ids for contacts added in the demo. */
 private const val DEMO_ADDED_BASE = 3000L

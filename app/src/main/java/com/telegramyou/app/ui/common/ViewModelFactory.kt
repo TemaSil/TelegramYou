@@ -42,11 +42,13 @@ fun telegramViewModelFactory(
     repository: TelegramRepository,
     queryHistory: QueryHistory = InMemoryQueryHistory(),
     /** The app's voice messages; chats make their own where none is given. */
-    voice: com.telegramyou.app.music.VoicePlayback? = null
+    voice: com.telegramyou.app.music.VoicePlayback? = null,
+    /** Which day's birthday card was put away; this device's. */
+    birthdayDismissals: com.telegramyou.app.ui.home.BirthdayDismissals = com.telegramyou.app.ui.home.InMemoryBirthdayDismissals()
 ): ViewModelProvider.Factory =
     viewModelFactory {
         initializer { AuthViewModel(repository) }
-        initializer { HomeViewModel(repository, queryHistory) }
+        initializer { HomeViewModel(repository, queryHistory, birthdayDismissals) }
         initializer {
             if (voice != null) ChatViewModel(repository, createSavedStateHandle(), voice)
             else ChatViewModel(repository, createSavedStateHandle())

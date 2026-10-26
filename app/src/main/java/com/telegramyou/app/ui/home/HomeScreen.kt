@@ -169,6 +169,8 @@ fun HomeScreen(
     /** Delete or leave a chat, by what it is; see chatRemovalOf. */
     onDeleteChat: (Long, Boolean) -> Unit = { _, _ -> },
     onOpenArchive: () -> Unit,
+    /** The birthday card put away until tomorrow. */
+    onBirthdayCardDismissed: () -> Unit = {},
     onFolderSelected: (Int?) -> Unit,
     onThemeChange: (ThemeChoice) -> Unit,
     onProfileDraftChange: (ProfileDraft) -> Unit,
@@ -621,6 +623,8 @@ fun HomeScreen(
                                     chats = chats,
                                     onNearEnd = { onListEndReached(folderId) },
                                     archiveSummary = if (isAll) state.archiveSummary else null,
+                                    birthdayCard = if (isAll) state.birthdayCard else null,
+                                    onBirthdayCardDismissed = onBirthdayCardDismissed,
                                     shapedAvatars = settings.shapedAvatars,
                                     // A sideways drag is the pager's where there
                                     // is one; see ChatListRow.
@@ -750,6 +754,8 @@ private fun ChatListPage(
     onPinnedChange: (Long, Boolean) -> Unit,
     onMarkRead: (Long) -> Unit,
     onArchivedChange: (Long, Boolean) -> Unit,
+    birthdayCard: com.telegramyou.app.telegram.model.BirthdayCard? = null,
+    onBirthdayCardDismissed: () -> Unit = {},
     onClearHistory: (ChatPreview) -> Unit,
     onRemove: (ChatPreview) -> Unit,
     /** The mini player's height, when it floats over the foot of the list. */
@@ -808,6 +814,19 @@ private fun ChatListPage(
         // Above the chats and below the stories, which is where
         // Telegram puts it — and absent entirely when the archive
         // is empty, which the summary being null already says.
+        // Contacts' birthdays, first of all, as the official client puts
+        // them: a tap writes to them, the cross puts it away for the day.
+        birthdayCard?.let { card ->
+            item(key = "birthday-card") {
+                BirthdayCardRow(
+                    card = card,
+                    onClick = { onOpenChat(card.people.first().chatId) },
+                    onDismiss = onBirthdayCardDismissed,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                Spacer(Modifier.height(12.dp))
+            }
+        }
         archiveSummary?.let { summary ->
             item(key = "archive-entry") {
                 ArchiveEntryRow(
@@ -1285,6 +1304,57 @@ private fun ArchiveEntryRow(
         },
         supportingContent = { Text(summary) },
         content = { Text("Archived", fontWeight = FontWeight.Bold) }
+    )
+}
+
+/**
+ * Contacts' birthdays over the chat list: a cake on the tertiary container —
+ * the role Material keeps for an accent that stands apart from the rest —
+ * who it is, and a cross that puts it away until tomorrow.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BirthdayCardRow(
+    card: com.telegramyou.app.telegram.model.BirthdayCard,
+    onClick: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.segmentedShapes(index = 0, count = 1),
+        modifier = modifier,
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        leadingContent = {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(MaterialTheme.colorScheme.tertiary, CircleShape)
+            ) {
+                Icon(Symbols.Cake, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiary)
+            }
+        },
+        supportingContent = {
+            Text(
+                if (card.isToday) "Tap to wish them a happy one" else "Tap to write to them",
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        },
+        trailingContent = {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    Symbols.Close,
+                    contentDescription = "Hide birthdays",
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        },
+        content = {
+            Text(card.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+        }
     )
 }
 

@@ -191,8 +191,13 @@ fun ProfileContent(
             }
         }
 
+        // On this account's own profile colour, when it has one, with its
+        // emoji status after the name — what others see on it.
+        com.telegramyou.app.ui.people.ProfileHeader(color = me.profileColor) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = if (me.profileColor != null) 20.dp else 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             AvatarBubble(
@@ -205,8 +210,23 @@ fun ProfileContent(
             Spacer(Modifier.height(16.dp))
             // The account's name, not the draft's: what Telegram currently
             // thinks you are called, so it changing is the proof of a save.
-            Text(me.displayName, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold)
-            Text("online", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            com.telegramyou.app.ui.people.NameWithStatus(
+                name = me.displayName,
+                emojiStatusId = me.emojiStatusId,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                statusSize = 32.dp
+            )
+            Text(
+                "online",
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (me.profileColor != null) {
+                    androidx.compose.material3.LocalContentColor.current
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
+        }
         }
         Spacer(Modifier.height(20.dp))
 
@@ -278,6 +298,14 @@ fun ProfileContent(
                     leading = { SettingsIcon(Symbols.Info) },
                     onClick = { editing = true }
                 )
+            me.birthdate?.let { birthdate ->
+                item(
+                    title = birthdate.line(java.time.LocalDate.now()),
+                    summary = "Birthday",
+                    leading = { SettingsIcon(Symbols.Cake) },
+                    onClick = {}
+                )
+            }
         }
         if (me.isPremium) {
             SettingsGroup {

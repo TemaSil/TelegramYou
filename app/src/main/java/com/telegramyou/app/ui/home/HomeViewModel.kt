@@ -42,6 +42,11 @@ import kotlinx.coroutines.launch
 data class HomeUiState(
     val me: TelegramUser? = null,
     /**
+     * Contacts' birthdays today — or tomorrow, with none today — for the
+     * card over the chat list; null with none, or once put away for the day.
+     */
+    val birthdayCard: com.telegramyou.app.telegram.model.BirthdayCard? = null,
+    /**
      * The main list: everything not in the archive, under the chosen folder.
      *
      * Filtered here rather than in the screen so that there is one answer to
@@ -197,8 +202,18 @@ data class SearchState(
 class HomeViewModel(
     private val repository: TelegramRepository,
     /** What was typed into search before; this device's, not the account's. */
-    private val queryHistory: QueryHistory = InMemoryQueryHistory()
+    private val queryHistory: QueryHistory = InMemoryQueryHistory(),
+    private val birthdayDismissals: BirthdayDismissals = InMemoryBirthdayDismissals()
 ) : ViewModel() {
+
+    /** Bumped when the birthday card is put away, so the state reads it again. */
+    private val birthdaysDismissed = MutableStateFlow(0)
+
+    private val birthdayCard = combine(repository.closeBirthdays, birthdaysDismissed) { people, _ ->
+        val today = java.time.LocalDate.now()
+        if (birthdayDismissals.isDismissed(com.telegramyou.app.telegram.model.birthdayCardKey(today))) null
+        else com.telegramyou.app.telegram.model.birthdayCard(people, today)
+    }
 
     /** Set here rather than in the screen, so a rotation mid-refresh keeps it. */
     private val refreshing = MutableStateFlow(false)
@@ -274,6 +289,8 @@ class HomeViewModel(
         home.copy(compose = composeState)
     }.combine(failure) { home, message ->
         home.copy(errorMessage = message)
+    }.combine(birthdayCard) { home, card ->
+        home.copy(birthdayCard = card)
     // On the main thread, on purpose. Moved to a background dispatcher once,
     // as an optimisation, the folder a swipe chose came back late — and the
     // pager, which follows the chosen folder as well as setting it, was
@@ -294,6 +311,12 @@ class HomeViewModel(
      * else on the screen mean the same under any folder, and a tap that reset
      * them would be a tap that undid work.
      */
+    /** The birthday card put away until tomorrow. */
+    fun onBirthdayCardDismissed() {
+        birthdayDismissals.dismiss(com.telegramyou.app.telegram.model.birthdayCardKey(java.time.LocalDate.now()))
+        birthdaysDismissed.value++
+    }
+
     fun onFolderSelected(folderId: Int?) {
         folderSelection.value = folderId
     }

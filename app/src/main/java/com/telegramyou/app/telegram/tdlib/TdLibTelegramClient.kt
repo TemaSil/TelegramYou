@@ -85,6 +85,9 @@ import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.PersonProfile
+import com.telegramyou.app.telegram.model.Birthdate
+import com.telegramyou.app.telegram.model.BirthdayPerson
+import com.telegramyou.app.telegram.model.ProfileColor
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.SharedMediaKind
@@ -182,6 +185,16 @@ class TdLibTelegramClient(
      */
     private val positions = ChatPositions()
     private val usersById = ConcurrentHashMap<Long, JSONObject>()
+
+    /**
+     * Telegram's profile colours by id, the first of each palette for a
+     * light and a dark theme, from updateProfileAccentColors; see
+     * TelegramUser.profileColor.
+     */
+    private val profileColors = ConcurrentHashMap<Int, ProfileColor>()
+
+    private val _closeBirthdays = MutableStateFlow<List<BirthdayPerson>>(emptyList())
+    override val closeBirthdays: StateFlow<List<BirthdayPerson>> = _closeBirthdays.asStateFlow()
 
     /**
      * Basic groups and supergroups by their own ids, as TDLib announces them.
@@ -1640,7 +1653,10 @@ class TdLibTelegramClient(
             null
         }
         return PersonProfile(
-            user = mapUser(raw).copy(bio = full?.optJSONObject("bio")?.optString("text").orEmpty()),
+            user = mapUser(raw).copy(
+                bio = full?.optJSONObject("bio")?.optString("text").orEmpty(),
+                birthdate = birthdateOf(full?.optJSONObject("birthdate"))
+            ),
             isContact = raw.optBoolean("is_contact"),
             // A BlockList object when blocked, absent when not.
             isBlocked = full?.optJSONObject("block_list") != null,
@@ -4151,6 +4167,22 @@ class TdLibTelegramClient(
                 val user = update.optJSONObject("user") ?: return
                 usersById[user.optLong("id")] = user
             }
+            "updateProfileAccentColors" -> {
+                val colors = update.optJSONArray("colors") ?: return
+                for (i in 0 until colors.length()) {
+                    val color = colors.optJSONObject(i) ?: continue
+                    val light = firstPaletteColor(color.optJSONObject("light_theme_colors")) ?: continue
+                    val dark = firstPaletteColor(color.optJSONObject("dark_theme_colors")) ?: light
+                    profileColors[color.optInt("id")] = ProfileColor(light, dark)
+                }
+                // Our own profile was read before the colours arrived.
+                if (_authState.value.me != null) scope.launch { runCatching { refreshMe() } }
+            }
+            "updateContactCloseBirthdays" -> {
+                val people = update.optJSONArray("close_birthday_users") ?: return
+                val list = (0 until people.length()).mapNotNull { people.optJSONObject(it) }
+                scope.launch { _closeBirthdays.value = list.mapNotNull { closeBirthdayOf(it) } }
+            }
             "updateBasicGroup" -> {
                 val group = update.optJSONObject("basic_group") ?: return
                 basicGroups[group.optLong("id")] = group
@@ -4666,7 +4698,11 @@ class TdLibTelegramClient(
         return try {
             val user = requireEngine().send(JSONObject().put("@type", "getMe"))
             usersById[user.optLong("id")] = user
-            mapUser(user).copy(bio = fetchBio(user.optLong("id")))
+            val full = fetchFullInfo(user.optLong("id"))
+            mapUser(user).copy(
+                bio = full?.optJSONObject("bio")?.optString("text").orEmpty(),
+                birthdate = birthdateOf(full?.optJSONObject("birthdate"))
+            )
         } catch (_: Throwable) {
             null
         }
@@ -4682,14 +4718,10 @@ class TdLibTelegramClient(
      * empty bio, rather than showing nothing because one extra call did not
      * answer.
      */
-    private suspend fun fetchBio(userId: Long): String = try {
-        requireEngine()
-            .send(JSONObject().put("@type", "getUserFullInfo").put("user_id", userId))
-            .optJSONObject("bio")
-            ?.optString("text")
-            .orEmpty()
+    private suspend fun fetchFullInfo(userId: Long): JSONObject? = try {
+        requireEngine().send(JSONObject().put("@type", "getUserFullInfo").put("user_id", userId))
     } catch (_: Throwable) {
-        ""
+        null
     }
 
     /**
@@ -5423,6 +5455,64 @@ class TdLibTelegramClient(
         }
     }
 
+    /** A palette's first colour as opaque ARGB; TDLib sends RGB. */
+    private fun firstPaletteColor(colors: JSONObject?): Int? =
+        colors?.optJSONArray("palette_colors")?.takeIf { it.length() > 0 }?.optInt(0)?.let { it or 0xFF000000.toInt() }
+
+    /**
+     * The custom emoji after somebody's name. TDLib has sent it two ways —
+     * the id straight on emojiStatus, and lately inside a type, where a
+     * collectible gift's status names its model's emoji — and a status
+     * past its expiry is no status.
+     */
+    private fun emojiStatusIdOf(user: JSONObject): Long? {
+        val status = user.optJSONObject("emoji_status") ?: return null
+        val expires = status.optLong("expiration_date")
+        if (expires > 0 && expires < System.currentTimeMillis() / 1000) return null
+        val type = status.optJSONObject("type")
+        val id = when {
+            type == null -> status.optLong("custom_emoji_id")
+            type.has("custom_emoji_id") -> type.optLong("custom_emoji_id")
+            else -> type.optLong("model_custom_emoji_id")
+        }
+        return id.takeIf { it != 0L }
+    }
+
+    /** A birthdate object, or null for none. */
+    private fun birthdateOf(raw: JSONObject?): Birthdate? {
+        raw ?: return null
+        val day = raw.optInt("day")
+        val month = raw.optInt("month")
+        if (day !in 1..31 || month !in 1..12) return null
+        return Birthdate(day, month, raw.optInt("year").takeIf { it > 0 })
+    }
+
+    /**
+     * One of updateContactCloseBirthdays' people, with the chat to write to
+     * them in — a private chat's id is its person's, made here if this
+     * account has never written to them.
+     */
+    private suspend fun closeBirthdayOf(raw: JSONObject): BirthdayPerson? {
+        val userId = raw.optLong("user_id").takeIf { it != 0L } ?: return null
+        val birthdate = birthdateOf(raw.optJSONObject("birthdate")) ?: return null
+        val user = userObject(userId)?.let(::mapUser) ?: return null
+        val chatId = try {
+            requireEngine()
+                .send(JSONObject().put("@type", "createPrivateChat").put("user_id", userId).put("force", false))
+                .optLong("id")
+        } catch (_: Throwable) {
+            userId
+        }
+        return BirthdayPerson(
+            userId = userId,
+            chatId = chatId,
+            name = user.displayName,
+            birthdate = birthdate,
+            avatarColor = user.avatarColor,
+            photoPath = user.photoPath
+        )
+    }
+
     private fun mapUser(user: JSONObject): TelegramUser =
         TelegramUser(
             id = user.optLong("id"),
@@ -5437,7 +5527,9 @@ class TdLibTelegramClient(
             phoneNumber = user.optString("phone_number").ifBlank { null },
             avatarColor = user.optLong("id"),
             isPremium = user.optBoolean("is_premium"),
-            photoPath = photoPath(user.optJSONObject("profile_photo")?.optJSONObject("small"))
+            photoPath = photoPath(user.optJSONObject("profile_photo")?.optJSONObject("small")),
+            emojiStatusId = emojiStatusIdOf(user),
+            profileColor = user.optInt("profile_accent_color_id", -1).takeIf { it >= 0 }?.let { profileColors[it] }
         )
 
     /**

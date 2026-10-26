@@ -170,8 +170,14 @@ fun TelegramYouNavHost(
     // Only the auth state is read here, and only to decide where to send the
     // person. Everything else a screen needs it asks its own state holder for.
     val auth by repository.observeAuth().collectAsStateWithLifecycle()
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
     val viewModelFactory = remember(repository) {
-        telegramViewModelFactory(repository, queryHistory ?: InMemoryQueryHistory(), voice)
+        telegramViewModelFactory(
+            repository,
+            queryHistory ?: InMemoryQueryHistory(),
+            voice,
+            com.telegramyou.app.ui.home.PrefsBirthdayDismissals(appContext)
+        )
     }
     val geekSettings = LocalGeekSettings.current
 
@@ -394,8 +400,29 @@ fun TelegramYouNavHost(
             animationSpec = spring()
         )
     }
+    // Files and custom emoji for every screen, not only the conversation,
+    // which provides its own: an emoji status on a profile is a custom
+    // emoji, drawn as its sticker.
+    val fileLoader: suspend (Int) -> String? = remember(repository) {
+        { id -> runCatching { repository.downloadFile(id) }.getOrNull() }
+    }
+    val customEmojiLoader: suspend (Long) -> com.telegramyou.app.telegram.model.StickerContent? = remember(repository) {
+        { id ->
+            try {
+                repository.customEmoji(listOf(id))[id]
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+        }
+    }
     SharedTransitionLayout {
-    CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+    CompositionLocalProvider(
+        LocalSharedTransitionScope provides this,
+        LocalFileLoader provides fileLoader,
+        LocalCustomEmojiLoader provides customEmojiLoader
+    ) {
     NavHost(
         navController = navController,
         startDestination = Route.Auth.PATTERN,
@@ -515,6 +542,7 @@ fun TelegramYouNavHost(
                 settings = appearanceSettings,
                 onRefresh = homeViewModel::refresh,
                 onOpenChat = openChat,
+                onBirthdayCardDismissed = homeViewModel::onBirthdayCardDismissed,
                 // "My story" makes one; every other circle is watched.
                 onOpenStory = { story ->
                     navController.navigateTo(if (story.isOwn) Route.NewStory else Route.Story(story.id))

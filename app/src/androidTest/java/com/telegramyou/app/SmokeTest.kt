@@ -3149,6 +3149,42 @@ class SmokeTest {
     }
 
     /**
+     * A contact's birthday: the card over the chat list names Lina, whose
+     * birthday the demo keeps on today; a tap writes to her, and her info
+     * shows the day with her emoji status and profile colour. The cross
+     * puts the card away. Your own profile shows yours.
+     */
+    @Test
+    fun aContactsBirthdayIsOnTheListAndTheirProfile() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        waitFor(By.text("It's Lina's birthday today"), "the birthday card")
+        screenshot("03b-birthday-card")
+        tap(By.text("It's Lina's birthday today"))
+        waitFor(By.desc("GIF"), "Lina's chat, from the card")
+        awaitNoHeadsUp()
+        tapTopmost(By.text("Lina Park"))
+        waitFor(By.text("Mobile"), "Lina's info")
+        assertTrue("no emoji status on Lina's profile", device.hasObject(By.desc("Emoji status")))
+        assertTrue("no profile colour on Lina's profile", device.hasObject(By.desc("Profile colour")))
+        scrollDownTo(By.text("Birthday · today"))
+        screenshot("48b-birthday-profile")
+
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.desc("Hide birthdays"))
+        assertTrue(
+            "the birthday card stayed after the cross",
+            device.wait(Until.gone(By.text("It's Lina's birthday today")), STEP_TIMEOUT)
+        )
+
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the profile")
+        scrollDownTo(By.text("Birthday"))
+        assertTrue("no birthday on your profile", device.hasObject(By.textStartsWith("14 March 1994")))
+    }
+
+    /**
      * Other people. A group member tapped opens their profile; a private
      * chat's info says who the person is — number, username, bio — and
      * blocks them; Settings → Privacy → Blocked users lists them and gives

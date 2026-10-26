@@ -21,7 +21,19 @@ data class TelegramUser(
      */
     val bio: String = "",
     /** Their profile picture on this device, once downloaded; see ChatPreview. */
-    val photoPath: String? = null
+    val photoPath: String? = null,
+    /**
+     * The custom emoji shown after their name — a Premium emoji status —
+     * by its id, or null for none or one that has run out.
+     */
+    val emojiStatusId: Long? = null,
+    /**
+     * The colour they chose for their profile, as ARGB for a light and a
+     * dark theme: the first of Telegram's palette for it. Null for none.
+     */
+    val profileColor: ProfileColor? = null,
+    /** Their birthday, where they show it; from userFullInfo, like [bio]. */
+    val birthdate: Birthdate? = null
 ) {
     val displayName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
@@ -36,6 +48,9 @@ data class TelegramUser(
             .joinToString("")
             .ifBlank { "?" }
 }
+
+/** A profile's colour, for each theme; see TelegramUser.profileColor. */
+data class ProfileColor(val light: Int, val dark: Int)
 
 enum class AuthState {
     Bootstrapping,

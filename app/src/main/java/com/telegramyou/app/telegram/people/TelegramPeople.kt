@@ -1,5 +1,6 @@
 package com.telegramyou.app.telegram.people
 
+import com.telegramyou.app.telegram.model.BirthdayPerson
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.TelegramUser
 
@@ -36,4 +37,14 @@ interface TelegramPeople {
      * when the number is not on Telegram — which is an answer, not a failure.
      */
     suspend fun addContact(phone: String, firstName: String, lastName: String): Long?
+
+    /**
+     * Contacts whose birthdays are close — yesterday, today, tomorrow — as
+     * Telegram announces them, for the chat list's card. Empty by default:
+     * a backend that has no birthdays has nobody to celebrate.
+     */
+    val closeBirthdays: kotlinx.coroutines.flow.StateFlow<List<BirthdayPerson>>
+        get() = NO_BIRTHDAYS
 }
+
+private val NO_BIRTHDAYS = kotlinx.coroutines.flow.MutableStateFlow<List<BirthdayPerson>>(emptyList())
