@@ -1,4 +1,5 @@
-# A smoother switch to dark
-- The new theme spreads in a circle right from the button you tapped
-- No more flicker from the menu as it closes
-- Names under stories no longer lose their first and last letters
+# Statuses, colours and birthdays
+- Profiles show emoji statuses, profile colours and birthdays
+- Set your own birthday, and with Premium your colour and status, from Profile
+- Friends' birthdays pop up over your chats, so you never miss one
+- A notification on the day too, once, which you can switch off in Android

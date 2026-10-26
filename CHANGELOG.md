@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.5
+
+- **Profiles show an emoji status, a profile colour and a birthday.** The status is the custom emoji after the name; the colour tints the top of the profile as a flat Material card worked out from it, not Telegram's gradient; the birthday has its own row, with the age where the year is shown.
+- **Set your own** from the Profile tab: your birthday on the date picker, with or without the year, and — with Telegram Premium — your profile colour and emoji status. Without Premium the rows say so.
+- **Contacts' birthdays**, as the official client shows them: a card over the chat list for today's, or tomorrow's when there are none today, which opens the chat or goes away for the day; and a notification on the day, once, on a channel of its own.
+- Custom emoji and files load on every screen now, not only inside a conversation.
+
 ## 2.4.3
 
 - **The theme's circle starts where it was asked for** — the menu item's own icon, or the Appearance segment tapped — and only once the new theme is drawn beneath. It began as the setting was written, a frame or two before the new colours arrived, and on a curve that covered most of the screen at once, so it read as coming from the middle.

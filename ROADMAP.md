@@ -120,7 +120,11 @@ By how soon they would notice, not by how hard it is.
       side; the button on a voice message, the text under it.
 - [ ] **Stickers looked after** — a pack opened from a sticker, added and
       removed, the packs reordered, trending ones.
-- [ ] **Emoji status, profile colour, birthday** on profiles.
+- [x] **Emoji status, profile colour, birthday** on profiles (2.5) — shown
+      on a person's info and your own profile, the colour as a flat tonal
+      card rather than Telegram's gradient; your own set from the profile
+      (the colour and the status are Premium's). Contacts' birthdays as a
+      card over the chat list and, once on the day, a notification.
 - [ ] **Saved Messages by chat** and its tags; **shared folder links**.
 - [x] **More than one account** (2.3) — up to three, as the official app
       holds. A TDLib instance per account, each with its own database

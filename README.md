@@ -55,12 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.4.3 · 25 October 2026
+## Latest: 2.5 · 26 October 2026
 
-A change of theme spreads out of the item tapped, in a circle, without
-the menu flickering on its way out; story names keep all their letters.
-2.4.2 before it hid the app from Recents on every phone. See the
-[changelog](CHANGELOG.md).
+Profiles show an emoji status, a profile colour and a birthday — your own
+set from the Profile tab — and contacts' birthdays come up over the chat
+list and as a notification on the day. 2.4.3 before it spread a change
+of theme out of the item tapped. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 
