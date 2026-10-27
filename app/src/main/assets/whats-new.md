@@ -1,5 +1,6 @@
-# Statuses, colours and birthdays
-- Profiles show emoji statuses, profile colours and birthdays
-- Set your own birthday, and with Premium your colour and status, from Profile
-- Friends' birthdays pop up over your chats, so you never miss one
-- A notification on the day too, once, which you can switch off in Android
+# Every account, in Russian too, and stickers kept
+- Messages to every account you're signed in to now notify, not just the one in use
+- A tap on one switches to that account and opens the chat
+- TelegramYou speaks Russian: pick it in Android's settings for the app
+- Tap a sticker to see its whole pack, and add or remove it right there
+- Settings → Stickers: reorder your packs and add trending ones

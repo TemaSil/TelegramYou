@@ -2149,6 +2149,10 @@ class SmokeTest {
         try {
             instrumentation.runOnMainSync { locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru") }
             waitFor(By.text("Чаты"), "the bar in Russian")
+            // Worded on the screen, so they follow the language too, where
+            // kept in the view model they stayed English.
+            waitFor(By.text("Все"), "the All tab in Russian")
+            waitFor(By.textStartsWith("2 чата"), "the archive's line in Russian")
             screenshot("120-russian-chats")
             tap(By.text("Настройки"))
             waitFor(By.text("Оформление"), "the settings in Russian")
@@ -2186,48 +2190,75 @@ class SmokeTest {
         // Out of the app, and the second account's chat asked to speak.
         device.pressHome()
         device.waitForIdle(IDLE_TIMEOUT)
-        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
-        val fromSecond = By.text("Robin Material")
-        val deadline = System.currentTimeMillis() + NOTIFICATION_TIMEOUT
-        var seen = false
-        while (!seen && System.currentTimeMillis() < deadline) {
-            app.demoClientFor(1)?.speakNow()
-            device.openNotification()
-            seen = device.wait(Until.hasObject(fromSecond), SHADE_POLL)
-            if (!seen) {
-                // Bundled by Android under the app's name: opened up.
-                device.findObjects(By.res("android:id/expand_button")).forEach { runCatching { it.click() } }
-                seen = device.wait(Until.hasObject(fromSecond), SHORT_WAIT)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val app = instrumentation.targetContext.applicationContext as TelegramYouApp
+        try {
+            // Read off the app's own notifications rather than found in the
+            // shade by its words: Android bundles the app's cards there, and
+            // shows the account's name only on one opened up.
+            val manager = app.getSystemService(android.app.NotificationManager::class.java)
+            fun fromSecond() = manager.activeNotifications.firstOrNull {
+                it.notification.extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT)?.toString() == "Robin Material"
             }
+            val deadline = System.currentTimeMillis() + NOTIFICATION_TIMEOUT
+            var posted = fromSecond()
+            while (posted == null && System.currentTimeMillis() < deadline) {
+                app.demoClientFor(1)?.speakNow()
+                Thread.sleep(SHADE_POLL)
+                posted = fromSecond()
+            }
+            if (posted == null) {
+                device.openNotification()
+                screenshot("failed-waiting-for-the-second-account")
+                fail("no notification for the account not in use ever arrived")
+            }
+            device.openNotification()
+            device.waitForIdle(IDLE_TIMEOUT)
+            screenshot("08-notification-other-account")
+            device.pressBack()
+            // Its own tap: the intent the card opens, sent as the shade would.
+            val automation = instrumentation.uiAutomation
+            automation.adoptShellPermissionIdentity("android.permission.START_ACTIVITIES_FROM_BACKGROUND")
+            try {
+                val options = if (Build.VERSION.SDK_INT >= 34) {
+                    android.app.ActivityOptions.makeBasic()
+                        .setPendingIntentBackgroundActivityStartMode(
+                            android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                        )
+                        .toBundle()
+                } else {
+                    null
+                }
+                posted!!.notification.contentIntent.send(app, 0, null, null, null, null, options)
+            } finally {
+                automation.dropShellPermissionIdentity()
+            }
+            // Its pinned message: what is at the bottom depends on how much
+            // the chat has said, and its GIF had scrolled away by then.
+            waitFor(By.text("Welcome to TelegramYou"), "the chat, opened from the other account's notification")
+            awaitNoHeadsUp()
+            device.pressBack()
+            waitFor(By.text("Material Design"), "the chat list")
+            tap(By.text("Profile"))
+            waitFor(By.text("Robin Material"), "the second account, switched to by the tap")
+            assertTrue("the tap did not switch accounts", device.hasObject(By.text("@material1")))
+        } finally {
+            // Whatever happened above, the second account goes, so the next
+            // test finds one: a second left behind failed two more after it.
+            if (app.accounts.activeId != 1) {
+                instrumentation.runOnMainSync { app.accounts.switchTo(1) }
+            }
+            launchApp()
+            waitFor(By.text("Material Design"), "the second account's chats")
+            tap(By.text("Settings"))
+            waitFor(By.text("Appearance"), "the settings")
+            val logOut = By.text("Log out")
+            scrollDownTo(logOut)
+            tap(logOut)
+            waitFor(By.text("Log out of Telegram?"), "the log-out question")
+            device.findObjects(logOut).maxByOrNull { it.visibleBounds.centerX() }!!.click()
+            waitFor(By.text("Material Design"), "the first account's chats after signing out of the second")
         }
-        if (!seen) {
-            screenshot("failed-waiting-for-the-second-account")
-            fail("no notification for the account not in use ever arrived")
-        }
-        screenshot("08-notification-other-account")
-        // The chat's name in that notification, not the account's name in
-        // its header: a tap on the header opens the notification up instead.
-        val card = device.findObject(
-            By.res("android:id/status_bar_latest_event_content").hasDescendant(fromSecond, 6)
-        )
-        (card?.findObject(By.textContains(NOTIFYING_CHAT)) ?: device.findObject(fromSecond)).click()
-        waitFor(By.desc("GIF"), "the chat, opened from the other account's notification")
-        awaitNoHeadsUp()
-        device.pressBack()
-        waitFor(By.text("Material Design"), "the chat list")
-        tap(By.text("Profile"))
-        waitFor(By.text("Robin Material"), "the second account, switched to by the tap")
-        assertTrue("the tap did not switch accounts", device.hasObject(By.text("@material1")))
-
-        // Signed out of, so the next test finds one account.
-        tap(By.text("Settings"))
-        waitFor(By.text("Appearance"), "the settings")
-        val logOut = By.text("Log out")
-        scrollDownTo(logOut)
-        tap(logOut)
-        waitFor(By.text("Log out of Telegram?"), "the log-out question")
-        device.findObjects(logOut).maxByOrNull { it.visibleBounds.centerX() }!!.click()
-        waitFor(By.text("Material Design"), "the first account's chats after signing out of the second")
     }
 
     @Test

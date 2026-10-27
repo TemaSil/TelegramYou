@@ -55,12 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.5 · 26 October 2026
+## Latest: 2.6 · 27 October 2026
 
-Profiles show an emoji status, a profile colour and a birthday — your own
-set from the Profile tab — and contacts' birthdays come up over the chat
-list and as a notification on the day. 2.4.3 before it spread a change
-of theme out of the item tapped. See the [changelog](CHANGELOG.md).
+Every account you are signed in to notifies now, and a tap switches to it;
+the app speaks Russian, chosen in Android's per-app language settings; and
+a sticker opens its pack, with your packs reordered and trending ones added
+from Settings → Stickers. 2.5 before it brought emoji statuses, profile
+colours and birthdays. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 
