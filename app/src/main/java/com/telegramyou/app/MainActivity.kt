@@ -112,6 +112,7 @@ open class MainActivity : ComponentActivity() {
         }
         val app = application as TelegramYouApp
         if (savedInstanceState == null) holdFirstFrame(app)
+        switchToAccountOf(intent)
         pendingChatId = intent.chatIdExtra()
         pendingDownloads = intent.opensDownloads()
         // Not again after a rotation: the intent is still this one, and its
@@ -351,9 +352,22 @@ open class MainActivity : ComponentActivity() {
         // reopen the chat from the intent this activity was first launched
         // with.
         setIntent(intent)
+        switchToAccountOf(intent)
         pendingChatId = intent.chatIdExtra()
         pendingDownloads = intent.opensDownloads()
         takeShare(intent)
+    }
+
+    /**
+     * A notification from another of the phone's accounts (2.6) switches to
+     * that account before its chat is opened; the graph is built again on it
+     * and opens the chat once that account is ready.
+     */
+    private fun switchToAccountOf(intent: Intent) {
+        if (intent.chatIdExtra() == null) return
+        val accountId = intent.getIntExtra(TelegramForegroundService.EXTRA_ACCOUNT_ID, -1).takeIf { it >= 0 } ?: return
+        val accounts = (application as TelegramYouApp).accounts
+        if (accountId != accounts.activeId) accounts.switchTo(accountId)
     }
 
     override fun onStart() {

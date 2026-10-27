@@ -45,6 +45,12 @@ class TelegramYouApp : Application() {
     var demoClient: DemoTelegramClient? = null
         private set
 
+    /** Every account's demo client by account id, for the test of notices from them all (2.6). */
+    private val demoClients = java.util.concurrent.ConcurrentHashMap<Int, DemoTelegramClient>()
+
+    /** The demo client of [accountId], where it has been opened; null in a live build. */
+    fun demoClientFor(accountId: Int): DemoTelegramClient? = demoClients[accountId]
+
     /** Settings → For geeks. */
     lateinit var geeks: GeekStore
         private set
@@ -124,7 +130,10 @@ class TelegramYouApp : Application() {
         accounts = com.telegramyou.app.telegram.accounts.AccountManager(
             context = this,
             makeClient = { accountId ->
-                makeClient(accountId).also { if (firstDemo == null) firstDemo = it as? DemoTelegramClient }
+                makeClient(accountId).also { client ->
+                    if (firstDemo == null) firstDemo = client as? DemoTelegramClient
+                    (client as? DemoTelegramClient)?.let { demoClients[accountId] = it }
+                }
             },
             // The one geek setting that is TDLib's, given to each account
             // as it opens; see below for its changes.
@@ -137,6 +146,9 @@ class TelegramYouApp : Application() {
         )
         // The first demo client, which the UI test asks to speak.
         demoClient = if (BuildConfig.DEMO_ALLOWED) firstDemo else null
+        // Every signed-in account open, not only the one in use, so each
+        // notifies of its own messages (2.6).
+        accounts.openSignedIn()
         // Switching accounts (2.3): the music and a voice message playing
         // were the last account's, and stop; the shade's conversations and
         // the shortcuts that name them were its too.
@@ -149,11 +161,10 @@ class TelegramYouApp : Application() {
                 previous = now
                 music.stop()
                 voice.stop()
+                // The shortcuts name the last account's chats — a share
+                // through one would go to a chat of the wrong account — but
+                // its notifications stay: every account notifies now (2.6).
                 com.telegramyou.app.notifications.ConversationShortcuts.clear(this@TelegramYouApp)
-                val shade = androidx.core.app.NotificationManagerCompat.from(this@TelegramYouApp)
-                com.telegramyou.app.notifications.PostedNotifications.clearAll().forEach { chatId ->
-                    shade.cancel(com.telegramyou.app.notifications.PostedNotifications.notificationId(chatId))
-                }
             }
         }
         // The home screen's widgets, redrawn as what they show changes (2.1).

@@ -130,13 +130,22 @@ class TelegramForegroundService : Service() {
         super.onDestroy()
     }
 
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observeArrivals(): Job {
         val app = application as TelegramYouApp
         return scope.launch {
-            // The account in use's arrivals, followed across a switch (2.3);
-            // the others' are not announced yet.
-            app.accounts.active.collectLatest { repository ->
-            repository.incomingMessages.collect { message ->
+            // Every open account's arrivals (2.6), not only the one in use:
+            // the others are signed in and running, and a message to one of
+            // them is as much a message as any. Followed as accounts are
+            // added and taken off.
+            app.accounts.open.flatMapLatest { open ->
+                kotlinx.coroutines.flow.merge(
+                    *open.map { (accountId, repository) ->
+                        repository.incomingMessages.map { message -> Triple(accountId, repository, message) }
+                    }.toTypedArray()
+                )
+            }.collect { (accountId, repository, message) ->
+                val inUse = accountId == app.accounts.activeId
                 // Not from the list: the list may not hold it yet, and a muted
                 // chat it did not hold notified as if it were not (2.1.3).
                 val chat = repository.knownChat(message.chatId)
@@ -150,7 +159,7 @@ class TelegramForegroundService : Service() {
                     isOutgoing = message.isOutgoing,
                     isChatMuted = chat?.isMuted == true,
                     showPreview = chat?.notifications?.showPreview ?: true,
-                    sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, chat, message.senderId),
+                    sound = (chat?.notifications?.sound ?: true) && !silencedStranger(app, repository, chat, message.senderId),
                     // A chat not in the list is one being looked at without
                     // having joined — a channel, as a rule — so it counts.
                     isGroupOrChannel = chat == null || chat.isGroup || chat.isChannel,
@@ -158,34 +167,49 @@ class TelegramForegroundService : Service() {
                         isGroup = chat?.isGroup == true,
                         isChannel = chat?.isChannel == true,
                         inList = chat != null
-                    )
+                    ),
+                    accountId = accountId
                 )
                 val decision = decideNotification(
                     notifiable,
                     NotificationContext(
-                        openChatId = AppVisibility.openChatId,
+                        // The chat on screen is the account in use's: the
+                        // same id in another account is another chat.
+                        openChatId = if (inUse) AppVisibility.openChatId else null,
                         isAppInForeground = AppVisibility.isInForeground,
-                        alreadyNotified = PostedNotifications.shownMessageIds(),
-                        recentlyOpened = AppVisibility.recentlyOpened(
-                            System.currentTimeMillis(),
-                            com.telegramyou.app.notifications.CAUGHT_UP_AFTER_MILLIS
-                        )
+                        alreadyNotified = PostedNotifications.shownMessageIds(accountId),
+                        recentlyOpened = if (inUse) {
+                            AppVisibility.recentlyOpened(
+                                System.currentTimeMillis(),
+                                com.telegramyou.app.notifications.CAUGHT_UP_AFTER_MILLIS
+                            )
+                        } else {
+                            emptySet()
+                        }
                     )
                 )
                 if (decision is NotificationDecision.Notify) {
                     // The chat as a conversation first, so the notification
                     // can name it: that is what files it under Conversations
-                    // in the shade (2.1).
-                    if (chat != null) {
+                    // in the shade (2.1). The account in use's only: a
+                    // shortcut opens the app as it stands, on that account.
+                    if (chat != null && inUse) {
                         ConversationShortcuts.publish(this@TelegramForegroundService, chat)
                         conversations[chat.id] = ConversationShortcuts.icon(this@TelegramForegroundService, chat)
                     }
-                    post(decision.message)
+                    post(decision.message, inUse = inUse, accountName = accountLabel(app, accountId))
                 }
-            }
             }
         }
     }
+
+    /**
+     * Which account a notification is for, said under it once there is more
+     * than one signed in — the official client's "to …" — and nothing when
+     * there is only the one.
+     */
+    private fun accountLabel(app: TelegramYouApp, accountId: Int): String? =
+        if (app.accounts.accounts.value.slots.count { it.isSignedIn } > 1) app.accounts.nameOf(accountId) else null
 
     /**
      * Settings → For geeks → Silence people not in contacts (1.8, after
@@ -193,11 +217,16 @@ class TelegramForegroundService : Service() {
      * still reaches the shade, without a sound. Bots are left as they are —
      * nobody adds a bot to contacts, and one that was started was asked for.
      */
-    private suspend fun silencedStranger(app: TelegramYouApp, chat: ChatPreview?, senderId: Long?): Boolean {
+    private suspend fun silencedStranger(
+        app: TelegramYouApp,
+        repository: com.telegramyou.app.telegram.TelegramRepository,
+        chat: ChatPreview?,
+        senderId: Long?
+    ): Boolean {
         if (!app.geeks.settings.value.silenceNonContacts) return false
         if (chat == null || chat.isGroup || chat.isChannel) return false
         val sender = senderId ?: return false
-        val person = runCatching { app.telegramRepository.person(sender) }.getOrNull() ?: return false
+        val person = runCatching { repository.person(sender) }.getOrNull() ?: return false
         return !person.isContact && !person.isBot
     }
 
@@ -264,9 +293,23 @@ class TelegramForegroundService : Service() {
                     kotlinx.coroutines.delay(BIRTHDAY_RECHECK_MS)
                 }
             }
-            app.accounts.active.flatMapLatest { it.closeBirthdays }
+            // Every open account's contacts (2.6), each birthday with the
+            // account it is in, so its tap opens the chat there.
+            app.accounts.open.flatMapLatest { open ->
+                if (open.isEmpty()) {
+                    kotlinx.coroutines.flow.flowOf(emptyList<Pair<Int, com.telegramyou.app.telegram.model.BirthdayPerson>>())
+                } else {
+                    kotlinx.coroutines.flow.combine(
+                        open.map { (accountId, repository) ->
+                            repository.closeBirthdays.map { people -> people.map { accountId to it } }
+                        }
+                    ) { lists -> lists.toList().flatten() }
+                }
+            }
                 .combine(ticks) { people, _ -> people }
-                .collect { people ->
+                .collect { withAccounts ->
+                val people = withAccounts.map { it.second }
+                val accountOf = withAccounts.associate { (accountId, person) -> person.userId to accountId }
                 val today = java.time.LocalDate.now()
                 val announced = prefs.getStringSet(BIRTHDAY_KEY, emptySet()).orEmpty()
                     .filter { it.startsWith("$today:") }
@@ -275,7 +318,12 @@ class TelegramForegroundService : Service() {
                 if (due.isEmpty() || !canPost()) return@collect
                 val manager = NotificationManagerCompat.from(this@TelegramForegroundService)
                 due.forEach { person ->
-                    runCatching { manager.notify(birthdayNotificationId(person.userId), birthdayNotification(person)) }
+                    runCatching {
+                        manager.notify(
+                            birthdayNotificationId(person.userId),
+                            birthdayNotification(person, accountOf[person.userId] ?: 0)
+                        )
+                    }
                 }
                 prefs.edit()
                     .putStringSet(
@@ -287,7 +335,7 @@ class TelegramForegroundService : Service() {
         }
     }
 
-    private fun birthdayNotification(person: com.telegramyou.app.telegram.model.BirthdayPerson): Notification =
+    private fun birthdayNotification(person: com.telegramyou.app.telegram.model.BirthdayPerson, accountId: Int): Notification =
         NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_BIRTHDAYS)
             .setContentTitle(com.telegramyou.app.telegram.model.birthdayNoticeTitle(person))
             .setContentText("Tap to wish them a happy one")
@@ -298,7 +346,7 @@ class TelegramForegroundService : Service() {
             // and hid its Reply.
             .setGroup(BIRTHDAY_GROUP)
             .setAutoCancel(true)
-            .setContentIntent(openChatIntent(person.chatId))
+            .setContentIntent(openChatIntent(person.chatId, accountId))
             .build()
 
     /** Apart from the chats' own ids, which are their chat ids folded. */
@@ -334,15 +382,15 @@ class TelegramForegroundService : Service() {
             .build()
     }
 
-    private fun post(message: NotifiableMessage) {
+    private fun post(message: NotifiableMessage, inUse: Boolean = true, accountName: String? = null) {
         // Null when it is already on show: nothing new to post.
         val forChat = PostedNotifications.add(message, MAX_LINES_PER_CHAT) ?: return
         if (!canPost()) return
         val manager = NotificationManagerCompat.from(this)
         groupForShade(forChat).forEach { entry ->
             manager.notify(
-                PostedNotifications.notificationId(entry.chatId),
-                conversationNotification(entry.messages)
+                PostedNotifications.notificationId(entry.chatId, message.accountId),
+                conversationNotification(entry.messages, inUse, accountName)
             )
         }
     }
@@ -355,8 +403,13 @@ class TelegramForegroundService : Service() {
     private fun canPost(): Boolean =
         NotificationManagerCompat.from(this).areNotificationsEnabled()
 
-    private fun conversationNotification(messages: List<NotifiableMessage>): Notification {
+    private fun conversationNotification(
+        messages: List<NotifiableMessage>,
+        inUse: Boolean = true,
+        accountName: String? = null
+    ): Notification {
         val latest = messages.last()
+        val account = latest.accountId
         val me = Person.Builder().setName(getString(R.string.app_name)).build()
         val style = NotificationCompat.MessagingStyle(me)
             .setConversationTitle(latest.chatTitle)
@@ -380,7 +433,7 @@ class TelegramForegroundService : Service() {
                 // Tied to the chat's conversation shortcut when it has one
                 // (2.1): the shade then shows it among Conversations, with the
                 // chat's picture, and it can be made a priority one.
-                conversations[latest.chatId]?.let { icon ->
+                conversations[latest.chatId]?.takeIf { inUse }?.let { icon ->
                     val id = conversationId(latest.chatId)
                     setShortcutId(id)
                     setLocusId(LocusIdCompat(id))
@@ -390,13 +443,15 @@ class TelegramForegroundService : Service() {
                     setBubbleMetadata(bubble(latest.chatId, icon))
                 }
             }
+            // Which account, under the chat's name, with more than one.
+            .apply { accountName?.let(::setSubText) }
             .setAutoCancel(true)
-            .setContentIntent(openChatIntent(latest.chatId))
+            .setContentIntent(openChatIntent(latest.chatId, account))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             // The chat's own "no sound": still posted, still in the shade,
             // just not heard.
             .setSilent(!latest.sound)
-            .addAction(replyAction(latest.chatId))
+            .addAction(replyAction(latest.chatId, account))
             .build()
     }
 
@@ -412,17 +467,18 @@ class TelegramForegroundService : Service() {
      * Android Auto know this action is the reply one rather than a button
      * that happens to be first.
      */
-    private fun replyAction(chatId: Long): NotificationCompat.Action {
+    private fun replyAction(chatId: Long, accountId: Int = 0): NotificationCompat.Action {
         val remoteInput = RemoteInput.Builder(NotificationReplyReceiver.KEY_REPLY)
             .setLabel(getString(R.string.notification_reply_hint))
             .build()
         val intent = Intent(this, NotificationReplyReceiver::class.java)
             .putExtra(NotificationReplyReceiver.EXTRA_CHAT_ID, chatId)
+            .putExtra(EXTRA_ACCOUNT_ID, accountId)
         val pending = PendingIntent.getBroadcast(
             this,
             // Per chat, like the open intent: one shared request code would
             // have every reply land in whichever chat was notified first.
-            PostedNotifications.notificationId(chatId),
+            PostedNotifications.notificationId(chatId, accountId),
             intent,
             // MUTABLE, and it has to be: the system writes the typed text
             // into this intent before delivering it. An immutable one arrives
@@ -468,17 +524,19 @@ class TelegramForegroundService : Service() {
      * spelling of `chat/{chatId}` in a manifest would be one more place for
      * the two to drift apart.
      */
-    private fun openChatIntent(chatId: Long): PendingIntent {
+    private fun openChatIntent(chatId: Long, accountId: Int = 0): PendingIntent {
         val intent = Intent(this, MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             .putExtra(EXTRA_CHAT_ID, chatId)
+            // Which account it is in (2.6): the app switches to it first.
+            .putExtra(EXTRA_ACCOUNT_ID, accountId)
         return PendingIntent.getActivity(
             this,
             // A request code per chat: one shared code would have every
             // notification reuse the first chat's extras, however
             // FLAG_UPDATE_CURRENT is spelled.
-            PostedNotifications.notificationId(chatId),
+            PostedNotifications.notificationId(chatId, accountId),
             intent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
@@ -506,6 +564,9 @@ class TelegramForegroundService : Service() {
 
     companion object {
         const val EXTRA_CHAT_ID = "com.telegramyou.app.EXTRA_CHAT_ID"
+
+        /** The account a notification's chat is in (2.6); absent means the one in use. */
+        const val EXTRA_ACCOUNT_ID = "com.telegramyou.app.EXTRA_ACCOUNT_ID"
 
         /** How tall a chat's bubble opens: room for a few messages and the composer. */
         private const val BUBBLE_HEIGHT_DP = 600

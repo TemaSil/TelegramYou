@@ -36,7 +36,12 @@ data class NotifiableMessage(
      */
     val isGroupOrChannel: Boolean = false,
     /** Which kind of chat it is from — which of Android's channels it goes to (2.1). */
-    val scope: NotificationScope = NotificationScope.PrivateChats
+    val scope: NotificationScope = NotificationScope.PrivateChats,
+    /**
+     * Which of the phone's accounts it came to (2.6): every signed-in
+     * account notifies, and the same chat can be in two of them.
+     */
+    val accountId: Int = 0
 )
 
 /** What the app knows about itself at the moment the message lands. */

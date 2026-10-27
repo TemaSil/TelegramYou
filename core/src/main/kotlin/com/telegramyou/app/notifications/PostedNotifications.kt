@@ -19,7 +19,8 @@ package com.telegramyou.app.notifications
  */
 object PostedNotifications {
 
-    private val byChat = mutableMapOf<Long, MutableList<NotifiableMessage>>()
+    /** By account and chat (2.6): the same chat can be in two accounts. */
+    private val byChat = mutableMapOf<Pair<Int, Long>, MutableList<NotifiableMessage>>()
 
     /**
      * Adds a message to a chat's entry and answers with what to draw — or
@@ -31,7 +32,7 @@ object PostedNotifications {
      */
     @Synchronized
     fun add(message: NotifiableMessage, maxLines: Int): List<NotifiableMessage>? {
-        val lines = byChat.getOrPut(message.chatId) { mutableListOf() }
+        val lines = byChat.getOrPut(message.accountId to message.chatId) { mutableListOf() }
         // Already there: the same message offered twice — a repeated update
         // from the server, or two collectors racing, which is what a service
         // started twice used to have. Checking here, under the same lock as
@@ -43,10 +44,10 @@ object PostedNotifications {
         return lines.toList()
     }
 
-    /** Every message id currently on show, so none is announced twice. */
+    /** Every message id one account has on show, so none is announced twice. */
     @Synchronized
-    fun shownMessageIds(): Set<Long> =
-        byChat.values.flatten().map { it.messageId }.toSet()
+    fun shownMessageIds(accountId: Int = 0): Set<Long> =
+        byChat.filterKeys { it.first == accountId }.values.flatten().map { it.messageId }.toSet()
 
     /**
      * Forgets a chat, because it has been read.
@@ -63,22 +64,29 @@ object PostedNotifications {
      * is where the difference is least likely to be. Folding both halves in,
      * the way `Long.hashCode` does, keeps all of it in play.
      */
-    fun notificationId(chatId: Long): Int = (chatId xor (chatId ushr 32)).toInt()
+    fun notificationId(chatId: Long, accountId: Int = 0): Int =
+        // Another account's chat moved off by a large odd multiple, so the
+        // same chat in two accounts is two notifications; the first account
+        // keeps the ids it always had.
+        (chatId xor (chatId ushr 32)).toInt() + accountId * ACCOUNT_STRIDE
 
     @Synchronized
-    fun clear(chatId: Long) {
-        byChat.remove(chatId)
+    fun clear(chatId: Long, accountId: Int = 0) {
+        byChat.remove(accountId to chatId)
     }
 
     /**
-     * Forgets every chat, and answers with the ones that were on show, so
-     * their notifications can be taken down: the account they belong to has
-     * just been switched away from (2.3).
+     * Forgets one account's chats, and answers with the ones that were on
+     * show, so their notifications can be taken down: the account has left
+     * the phone. Switching away from one no longer does this (2.6) — every
+     * signed-in account notifies.
      */
     @Synchronized
-    fun clearAll(): Set<Long> {
-        val shown = byChat.keys.toSet()
-        byChat.clear()
-        return shown
+    fun clearAccount(accountId: Int): Set<Long> {
+        val shown = byChat.keys.filter { it.first == accountId }
+        shown.forEach(byChat::remove)
+        return shown.map { it.second }.toSet()
     }
+
+    private const val ACCOUNT_STRIDE = 0x3B9ACA07
 }

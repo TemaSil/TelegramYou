@@ -51,4 +51,24 @@ class PostedNotificationsTest {
             PostedNotifications.notificationId(b)
         )
     }
+
+    @Test
+    fun `the same chat in two accounts is two notifications`() {
+        val first = PostedNotifications.add(message(chatId = 103, id = 1), maxLines = 6)
+        val second = PostedNotifications.add(message(chatId = 103, id = 1).copy(accountId = 1), maxLines = 6)
+
+        // Not a repeat: the other account has its own entry for the chat.
+        assertEquals(listOf(1L), first?.map { it.messageId })
+        assertEquals(listOf(1L), second?.map { it.messageId })
+        assertNotEquals(PostedNotifications.notificationId(103), PostedNotifications.notificationId(103, accountId = 1))
+        // And the first account's ids are the ones it always had.
+        assertEquals(PostedNotifications.notificationId(103), PostedNotifications.notificationId(103, accountId = 0))
+        assertEquals(setOf(1L), PostedNotifications.shownMessageIds(accountId = 1))
+
+        assertEquals(setOf(103L), PostedNotifications.clearAccount(1))
+        assertEquals(emptySet<Long>(), PostedNotifications.shownMessageIds(accountId = 1))
+        // The first account's entry is still there after the second leaves.
+        assertNull(PostedNotifications.add(message(chatId = 103, id = 1), maxLines = 6))
+        PostedNotifications.clear(103)
+    }
 }

@@ -2086,6 +2086,82 @@ class SmokeTest {
      * at the end so the tests after this one, in the same process, are on
      * the first account as they expect.
      */
+    /**
+     * Every account notifies (2.6): with a second account signed in and the
+     * first in use, a message to the second reaches the shade under its
+     * name, and the tap switches to it and opens the chat. The second is
+     * signed out of at the end, so later tests find one account.
+     */
+    @Test
+    fun theAccountNotInUseNotifiesToo() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the profile")
+        scrollDownTo(By.text("Add account"))
+        tap(By.text("Add account"))
+        waitFor(By.text("Your phone"), "the new account's sign-in")
+        type("+15550100100")
+        tap(By.text("Continue"))
+        waitFor(By.text("Enter code"), "the second account's code screen")
+        type("12345")
+        waitFor(By.text("Material Design"), "the second account's chats")
+        awaitNoHeadsUp()
+        // Back on the first: the second is the one not in use.
+        tap(By.text("Profile"))
+        waitFor(By.text("Robin Material"), "the second account's profile")
+        scrollDownTo(By.text("You Expressive"))
+        tap(By.text("You Expressive"))
+        waitFor(By.text("Material Design"), "the first account's chats")
+
+        // Out of the app, and the second account's chat asked to speak.
+        device.pressHome()
+        device.waitForIdle(IDLE_TIMEOUT)
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
+        val fromSecond = By.text("Robin Material")
+        val deadline = System.currentTimeMillis() + NOTIFICATION_TIMEOUT
+        var seen = false
+        while (!seen && System.currentTimeMillis() < deadline) {
+            app.demoClientFor(1)?.speakNow()
+            device.openNotification()
+            seen = device.wait(Until.hasObject(fromSecond), SHADE_POLL)
+            if (!seen) {
+                // Bundled by Android under the app's name: opened up.
+                device.findObjects(By.res("android:id/expand_button")).forEach { runCatching { it.click() } }
+                seen = device.wait(Until.hasObject(fromSecond), SHORT_WAIT)
+            }
+        }
+        if (!seen) {
+            screenshot("failed-waiting-for-the-second-account")
+            fail("no notification for the account not in use ever arrived")
+        }
+        screenshot("08-notification-other-account")
+        // The chat's name in that notification, not the account's name in
+        // its header: a tap on the header opens the notification up instead.
+        val card = device.findObject(
+            By.res("android:id/status_bar_latest_event_content").hasDescendant(fromSecond, 6)
+        )
+        (card?.findObject(By.textContains(NOTIFYING_CHAT)) ?: device.findObject(fromSecond)).click()
+        waitFor(By.desc("GIF"), "the chat, opened from the other account's notification")
+        awaitNoHeadsUp()
+        device.pressBack()
+        waitFor(By.text("Material Design"), "the chat list")
+        tap(By.text("Profile"))
+        waitFor(By.text("Robin Material"), "the second account, switched to by the tap")
+        assertTrue("the tap did not switch accounts", device.hasObject(By.text("@material1")))
+
+        // Signed out of, so the next test finds one account.
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        val logOut = By.text("Log out")
+        scrollDownTo(logOut)
+        tap(logOut)
+        waitFor(By.text("Log out of Telegram?"), "the log-out question")
+        device.findObjects(logOut).maxByOrNull { it.visibleBounds.centerX() }!!.click()
+        waitFor(By.text("Material Design"), "the first account's chats after signing out of the second")
+    }
+
     @Test
     fun aSecondAccountIsAddedSwitchedToAndSignedOutOf() {
         signIn()

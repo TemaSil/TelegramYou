@@ -50,6 +50,15 @@ class AccountManager(
 
     private val repositories = HashMap<Int, TelegramRepository>()
 
+    private val _open = MutableStateFlow<Map<Int, TelegramRepository>>(emptyMap())
+
+    /**
+     * Every account's repository made so far, by account id (2.6): what the
+     * notification service listens to, so an account not in use still
+     * announces its messages.
+     */
+    val open: StateFlow<Map<Int, TelegramRepository>> = _open.asStateFlow()
+
     private val _active = MutableStateFlow(repositoryFor(_accounts.value.activeId))
 
     /** The account in use's repository, replaced as accounts are switched. */
@@ -57,6 +66,21 @@ class AccountManager(
 
     /** The account in use's repository, now. */
     val current: TelegramRepository get() = _active.value
+
+    /**
+     * Opens every account that is signed in, not only the one in use, so
+     * each receives its messages as it would on its own (2.6) — what the
+     * official client does with its accounts. Called once, at start.
+     */
+    fun openSignedIn() {
+        _accounts.value.slots.filter { it.isSignedIn }.forEach { repositoryFor(it.id) }
+    }
+
+    /** The id of the account in use. */
+    val activeId: Int get() = _accounts.value.activeId
+
+    /** An account's name for a notification's line, or null for one unnamed. */
+    fun nameOf(id: Int): String? = _accounts.value.slots.firstOrNull { it.id == id }?.name?.ifBlank { null }
 
     /** A repository already made for [id], without making one. */
     fun repositoryIfOpen(id: Int): TelegramRepository? = repositories[id]
@@ -95,6 +119,13 @@ class AccountManager(
         val after = before.removed(id)
         save(after)
         val repository = repositories.remove(id)
+        _open.value = repositories.toMap()
+        // Its notifications go with it: a tap on one would open an account
+        // that is not on the phone any more.
+        val shade = androidx.core.app.NotificationManagerCompat.from(appContext)
+        com.telegramyou.app.notifications.PostedNotifications.clearAccount(id).forEach { chatId ->
+            shade.cancel(com.telegramyou.app.notifications.PostedNotifications.notificationId(chatId, id))
+        }
         if (after.activeId != before.activeId || repository === _active.value) {
             _active.value = repositoryFor(after.activeId)
         }
@@ -121,7 +152,7 @@ class AccountManager(
             repository.start()
             onCreated(repository)
             watch(id, repository)
-        }
+        }.also { _open.value = repositories.toMap() }
     }
 
     /**

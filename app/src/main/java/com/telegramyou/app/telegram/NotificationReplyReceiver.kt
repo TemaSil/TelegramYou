@@ -40,6 +40,10 @@ class NotificationReplyReceiver : BroadcastReceiver() {
         if (text.isBlank()) return
 
         val app = context.applicationContext as TelegramYouApp
+        // From the account the message came to (2.6), which need not be the
+        // one on screen; one that has left the phone since takes no reply.
+        val accountId = intent.getIntExtra(TelegramForegroundService.EXTRA_ACCOUNT_ID, app.accounts.activeId)
+        val repository = app.accounts.repositoryIfOpen(accountId) ?: return
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
@@ -47,16 +51,16 @@ class NotificationReplyReceiver : BroadcastReceiver() {
                 // killed, and a client still signing in after a cold start
                 // could keep this waiting indefinitely.
                 withTimeout(REPLY_TIMEOUT_MS) {
-                    app.telegramRepository.sendMessage(chatId = chatId, text = text)
+                    repository.sendMessage(chatId = chatId, text = text)
                 }
                 // Taken down only once the message is away. A notification
                 // that vanishes on tap and a message that never sent is the
                 // pair of events nobody can tell apart afterwards.
                 NotificationManagerCompat.from(context)
-                    .cancel(PostedNotifications.notificationId(chatId))
+                    .cancel(PostedNotifications.notificationId(chatId, accountId))
                 // Answered means read: the next message from this chat opens
                 // a fresh entry rather than re-listing what was replied to.
-                PostedNotifications.clear(chatId)
+                PostedNotifications.clear(chatId, accountId)
             } catch (e: Exception) {
                 // Refused, or timed out. The notification stays, which is
                 // the one sign left that the reply did not go — an exception

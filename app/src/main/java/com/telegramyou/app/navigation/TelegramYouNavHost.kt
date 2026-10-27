@@ -1227,9 +1227,11 @@ fun TelegramYouNavHost(
                 AppVisibility.openChatId = openChat
                 // What the shade holds for this chat is being read right now.
                 openChat?.let { id ->
+                    // This account's notification for it, not another's (2.6).
+                    val account = accounts?.activeId ?: 0
                     NotificationManagerCompat.from(context)
-                        .cancel(PostedNotifications.notificationId(id))
-                    PostedNotifications.clear(id)
+                        .cancel(PostedNotifications.notificationId(id, account))
+                    PostedNotifications.clear(id, account)
                 }
                 onDispose { AppVisibility.openChatId = null }
             }
