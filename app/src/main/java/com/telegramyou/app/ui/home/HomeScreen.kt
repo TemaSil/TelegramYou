@@ -527,6 +527,9 @@ fun HomeScreen(
             // folders to be in instead. The tabs, their counts and their pages
             // are three lists in step, so all three move by the same amount.
             val geeks = LocalGeekSettings.current
+            // Worded here rather than kept from the view model, which outlives
+            // a change of language: the archive's line stayed English after it.
+            val archiveLine = archiveSummary(state.archivedChats, { true }, { it.unreadCount })
             val skipped = hiddenLeadingTabs(state.folderTabs.map { it.id }, geeks.hideAllChatsTab)
             val tabs = state.folderTabs.drop(skipped)
             val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
@@ -580,7 +583,7 @@ fun HomeScreen(
                             onOpenContacts = onOpenContacts,
                             onOpenMyMusic = onOpenMyMusic,
                             onOpenDownloads = onOpenDownloads,
-                            onOpenArchive = if (skipped > 0 && state.archiveSummary != null) onOpenArchive else null
+                            onOpenArchive = if (skipped > 0 && archiveLine != null) onOpenArchive else null
                         )
                         // Stories first, then the folders: the tabs choose what
                         // the list below shows, so they sit against it, and the
@@ -616,7 +619,7 @@ fun HomeScreen(
                     // Settings → For geeks → Pull down for the archive, as
                     // Nekogram does it: the pull that otherwise refreshes
                     // opens the archive instead, while there is one.
-                    val pullOpensArchive = geeks.openArchiveOnPull && state.archiveSummary != null
+                    val pullOpensArchive = geeks.openArchiveOnPull && archiveLine != null
                     PullToRefreshBox(
                         isRefreshing = state.isRefreshing && !pullOpensArchive,
                         onRefresh = if (pullOpensArchive) onOpenArchive else onRefresh,
@@ -628,7 +631,7 @@ fun HomeScreen(
                                 ChatListPage(
                                     chats = chats,
                                     onNearEnd = { onListEndReached(folderId) },
-                                    archiveSummary = if (isAll) state.archiveSummary else null,
+                                    archiveSummary = if (isAll) archiveLine else null,
                                     birthdayCard = if (isAll) state.birthdayCard else null,
                                     onBirthdayCardDismissed = onBirthdayCardDismissed,
                                     shapedAvatars = settings.shapedAvatars,
@@ -1090,7 +1093,9 @@ private fun FolderTabs(
                 onClick = { onSelected(index) },
                 text = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(folder.title)
+                        // All is ours, not a folder's name: in the language
+                        // of the moment, not the one the list was made in.
+                        Text(if (folder.id == null) tr("All", "Все") else folder.title)
                         if (count > 0) {
                             Spacer(Modifier.width(6.dp))
                             // Material's own badge rather than a number in

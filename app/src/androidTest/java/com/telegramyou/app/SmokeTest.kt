@@ -2149,6 +2149,10 @@ class SmokeTest {
         try {
             instrumentation.runOnMainSync { locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru") }
             waitFor(By.text("Чаты"), "the bar in Russian")
+            // Worded on the screen, so they follow the language too, where
+            // kept in the view model they stayed English.
+            waitFor(By.text("Все"), "the All tab in Russian")
+            waitFor(By.textStartsWith("2 чата"), "the archive's line in Russian")
             screenshot("120-russian-chats")
             tap(By.text("Настройки"))
             waitFor(By.text("Оформление"), "the settings in Russian")
