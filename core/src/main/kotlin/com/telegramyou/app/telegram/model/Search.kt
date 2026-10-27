@@ -23,9 +23,9 @@ enum class SearchScope(private val labelEn: String, private val labelRu: String)
     Channels("Channels", "Каналы"),
     Groups("Groups", "Группы"),
     Bots("Bots", "Боты");
+
     /** Read each time, in the language in use. */
     val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
-
 
     /** Whether [chat] belongs under this tab. */
     fun admits(chat: ChatPreview): Boolean = when (this) {

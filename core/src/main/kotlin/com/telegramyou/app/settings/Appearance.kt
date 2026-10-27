@@ -137,9 +137,9 @@ enum class AppIcon(private val labelEn: String, private val labelRu: String, val
     Orange("Orange", "Оранжевая", 0xFFFF8A00.toInt()),
     Amber("Amber", "Янтарная", 0xFFFFC107.toInt()),
     Green("Green", "Зелёная", 0xFF4CAF50.toInt());
+
     /** Read each time, in the language in use. */
     val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
-
 
     /** The alias's class name, relative to the app's namespace. */
     val alias: String get() = "Launcher$name"

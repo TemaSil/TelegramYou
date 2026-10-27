@@ -412,6 +412,29 @@ glyphs at all, which is what Material 3's rules for icons need.
   when Symbols calls it something else — `Phone` is `call` there) and run
   it from the repository root; do not edit `Symbols.kt` by hand.
 
+## Two languages
+
+**English and Russian, since 2.6.** Every line a person reads is written
+where it is used as a pair — `tr("Profile colour", "Цвет профиля")`, from
+`com.telegramyou.app.i18n` in `:core` — and a count goes through
+`counted(n, "member", "members", "участник", "участника", "участников")`,
+which knows Russian's three forms. **A new line of text goes in as a pair,
+never English alone**: nothing else will catch it, and it shows up in
+English on a Russian phone.
+
+- The language is the process's locale: the phone's, or on Android 13 the
+  one picked for this app (Settings → Language opens Android's page for it).
+- A label fixed at start — an enum's, a top-level list — has to be read
+  each time (`val label get() = tr(…)`), or it keeps the language the app
+  started in.
+- What the system reads — notification channels, widgets — stays in
+  `strings.xml` and `values-ru`; `TranslationsTest` keeps the two level.
+- Words that are data, not text, stay as they are: a caption-less photo's
+  `"Photo"` marker is compared against, and translating it breaks the
+  bubble.
+- Tests run in English whatever the machine speaks (both modules set the
+  test JVM's language). The demo's chats are content and stay English.
+
 ## What's new
 
 Settings → App update shows **one** card: what the incoming update brings, or

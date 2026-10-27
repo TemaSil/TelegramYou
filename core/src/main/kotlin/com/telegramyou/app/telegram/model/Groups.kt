@@ -63,9 +63,9 @@ enum class AdminRight(private val labelEn: String, private val labelRu: String) 
     PinMessages("Pin messages", "Закрепление сообщений"),
     ManageTopics("Manage topics", "Управление темами"),
     PromoteMembers("Add new admins", "Назначение админов");
+
     /** Read each time, in the language in use. */
     val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
-
 
     fun isOn(rights: AdminRights): Boolean = when (this) {
         ChangeInfo -> rights.changeInfo
@@ -169,9 +169,9 @@ enum class GroupPermission(private val labelEn: String, private val labelRu: Str
     PinMessages("Pin messages", "Закрепление сообщений"),
     ChangeInfo("Change group info", "Изменение профиля группы"),
     CreateTopics("Create topics", "Создание тем");
+
     /** Read each time, in the language in use. */
     val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
-
 
     fun isOn(permissions: GroupPermissions): Boolean = when (this) {
         SendMessages -> permissions.sendMessages
@@ -322,9 +322,9 @@ enum class LinkExpiry(private val labelEn: String, private val labelRu: String, 
     Day("1 day", "1 день", 86_400),
     Week("1 week", "1 неделя", 604_800),
     Never("Never", "Бессрочно", 0);
+
     /** Read each time, in the language in use. */
     val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
-
 
     /** Epoch seconds a link made at [nowSeconds] stops working; 0 for never. */
     fun from(nowSeconds: Long): Long = if (seconds == 0L) 0 else nowSeconds + seconds
