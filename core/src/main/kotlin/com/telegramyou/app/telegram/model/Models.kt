@@ -499,6 +499,12 @@ data class ChatMessage(
      */
     val waveform: List<Int> = emptyList(),
     /**
+     * What a voice message says, as Telegram wrote it down (2.7) — once
+     * someone has asked for it; Telegram keeps it with the message after.
+     * Null until then.
+     */
+    val transcript: String? = null,
+    /**
      * A photo's file on this device, once it is here.
      *
      * Null while it is still only on Telegram's servers, which is the normal

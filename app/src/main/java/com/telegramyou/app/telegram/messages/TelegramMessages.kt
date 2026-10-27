@@ -317,6 +317,14 @@ interface TelegramMessages {
      */
     suspend fun translateMessage(chatId: Long, messageId: Long, toLanguage: String): String? = null
 
+    /**
+     * A voice message's words, written down by Telegram (2.7) — Premium's
+     * on Telegram's side, with a few free tries a week for everyone else.
+     * Null where the backend has nothing to give; a refusal throws, with
+     * Telegram's reason.
+     */
+    suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? = null
+
     /** Whether [streamFile] works here: a video or a track plays as it downloads. */
     val canStream: Boolean get() = false
 

@@ -269,6 +269,10 @@ data class ChatUiState(
      * chat's Translate messages is on (2.0); see AutoTranslate.
      */
     val translations: Map<Long, String> = emptyMap(),
+    /** Voice messages shown written down (2.7), by id; see onTranscribe. */
+    val transcripts: Map<Long, String> = emptyMap(),
+    /** Voice messages Telegram is writing down right now. */
+    val transcribing: Set<Long> = emptySet(),
     /** An inline bot's answers to what is typed after its name (2.0); null when none is being asked. */
     val inline: InlinePanel? = null,
     /** A bot's Mini App, while it is open (2.0). */
@@ -1381,6 +1385,41 @@ class ChatViewModel(
                     // A failure has said so through the notice already.
                     done -> state.copy(translation = null, notice = tr("Nothing to translate", "Нечего переводить"))
                     else -> state.copy(translation = null)
+                }
+            }
+        }
+    }
+
+    /**
+     * A voice message written down (2.7), or the words put away again. The
+     * words are Telegram's — asked for once, then kept with the message —
+     * and a refusal (Premium's, past the free tries) comes back as a notice.
+     */
+    fun onTranscribe(message: ChatMessage) {
+        val id = message.id
+        val state = _uiState.value
+        when {
+            id in state.transcribing -> return
+            id in state.transcripts -> {
+                _uiState.update { it.copy(transcripts = it.transcripts - id) }
+                return
+            }
+        }
+        message.transcript?.let { known ->
+            _uiState.update { it.copy(transcripts = it.transcripts + (id to known)) }
+            return
+        }
+        _uiState.update { it.copy(transcribing = it.transcribing + id) }
+        viewModelScope.launch {
+            val heard = runCatching { repository.recognizeSpeech(message.chatId, id) }
+            _uiState.update { now ->
+                val text = heard.getOrNull()
+                val done = now.copy(transcribing = now.transcribing - id)
+                when {
+                    text != null -> done.copy(transcripts = done.transcripts + (id to text))
+                    heard.isFailure && heard.exceptionOrNull()?.message.orEmpty().contains("PREMIUM", ignoreCase = true) ->
+                        done.copy(notice = tr("Voice to text needs Telegram Premium", "Расшифровка голосовых — в Telegram Premium"))
+                    else -> done.copy(notice = tr("Could not write it down", "Не удалось расшифровать"))
                 }
             }
         }

@@ -2930,6 +2930,29 @@ class SmokeTest {
     }
 
     /**
+     * Voice to text (2.7): a voice message written down from its own
+     * button, the words under it, and put away by the same button.
+     */
+    @Test
+    fun aVoiceMessageIsWrittenDown() {
+        signIn()
+        waitFor(By.text("Lina Park"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        scrollBackTo(By.desc("Voice to text"), "a voice message's Voice to text")
+        tapTopmost(By.desc("Voice to text"))
+        // Whichever of Lina's two was topmost: both are written down in the demo.
+        val words = By.text(java.util.regex.Pattern.compile(".*(tram just stopped|ten minutes late).*"))
+        waitFor(words, "the voice message written down")
+        screenshot("125-voice-to-text")
+        tap(By.desc("Hide text"))
+        assertTrue(
+            "the words stayed after Hide text",
+            device.wait(Until.gone(words), STEP_TIMEOUT)
+        )
+    }
+
+    /**
      * The download manager, from the chat list's menu: a finished file and a
      * paused one, as the demo seeds them; the paused one resumed and paused
      * again from its row, the whole queue from the bar, and a finished file

@@ -173,6 +173,10 @@ internal fun MessageBubble(
     onContentOpened: () -> Unit = {},
     /** A sticker message tapped: its set's sheet (2.6). */
     onStickerOpened: () -> Unit = {},
+    /** A voice message's words, while shown (2.7). */
+    transcript: String? = null,
+    transcribing: Boolean = false,
+    onTranscribe: (() -> Unit)? = null,
     /** Settings → For geeks → More in a message's menu; see MessageExtra. */
     onExtra: (MessageExtra) -> Unit = {},
     /** Its text in the phone's language; see TranslationDialog. */
@@ -716,7 +720,10 @@ internal fun MessageBubble(
                             outgoing = outgoing,
                             onToggle = onVoiceToggled,
                             progress = voiceProgress,
-                            onSeek = onVoiceSeek
+                            onSeek = onVoiceSeek,
+                            transcript = transcript,
+                            transcribing = transcribing,
+                            onTranscribe = onTranscribe
                         )
                     }
                     else -> if (jumbo > 0) {

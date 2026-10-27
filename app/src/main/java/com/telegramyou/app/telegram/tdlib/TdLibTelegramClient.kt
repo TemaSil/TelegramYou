@@ -987,6 +987,39 @@ class TdLibTelegramClient(
         return translated.optString("text").takeIf { it.isNotBlank() }
     }
 
+    /**
+     * Asked for, then read back off the message: the words arrive as the
+     * voice note's speech_recognition_result changing, pending (with what
+     * is heard so far) until it is text or an error.
+     */
+    override suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? {
+        awaitReady()
+        val engine = requireEngine()
+        engine.send(
+            JSONObject()
+                .put("@type", "recognizeSpeech")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+        )
+        repeat(SPEECH_POLLS) {
+            val message = engine.send(
+                JSONObject().put("@type", "getMessage").put("chat_id", chatId).put("message_id", messageId)
+            )
+            val result = message.optJSONObject("content")
+                ?.optJSONObject("voice_note")
+                ?.optJSONObject("speech_recognition_result")
+            when (result?.optString("@type")) {
+                "speechRecognitionResultText" -> return result.optString("text").takeIf { it.isNotBlank() }
+                "speechRecognitionResultError" -> throw TdLibException(
+                    result.optJSONObject("error")?.optInt("code") ?: 400,
+                    result.optJSONObject("error")?.optString("message").orEmpty()
+                )
+            }
+            delay(SPEECH_POLL_MS)
+        }
+        return null
+    }
+
     override suspend fun deleteDownloadedFile(fileId: Int) {
         awaitReady()
         requireEngine().send(JSONObject().put("@type", "deleteFile").put("file_id", fileId))
@@ -5481,6 +5514,11 @@ class TdLibTelegramClient(
                 ?.optString("path")
                 ?.takeIf { it.isNotBlank() },
             waveform = parseWaveform(content),
+            transcript = content?.optJSONObject("voice_note")
+                ?.optJSONObject("speech_recognition_result")
+                ?.takeIf { it.optString("@type") == "speechRecognitionResultText" }
+                ?.optString("text")
+                ?.takeIf { it.isNotBlank() },
             photoFileId = largestPhotoSize(content)?.optJSONObject("photo")?.optInt("id")
                 ?.takeIf { it != 0 },
             photoPath = largestPhotoSize(content)
@@ -5894,6 +5932,10 @@ private const val FIRST_FROM_PAGE = 20
 
 /** How many trending sticker sets the Stickers screen offers. */
 private const val TRENDING_SETS = 20
+
+/** How long a voice message is waited on to be written down: half a minute. */
+private const val SPEECH_POLLS = 60
+private const val SPEECH_POLL_MS = 500L
 
 /** How many custom emoji the status picker offers. */
 private const val MAX_STATUS_CHOICES = 48

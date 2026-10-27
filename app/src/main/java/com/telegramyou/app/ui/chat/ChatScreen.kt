@@ -255,6 +255,7 @@ fun ChatScreen(
     /** A contact found by the forward sheet's search, with no chat yet. */
     onForwardToContact: (TelegramUser) -> Unit = {},
     onVoiceToggled: (ChatMessage) -> Unit,
+    onTranscribe: (ChatMessage) -> Unit = {},
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
     onDocumentOpened: (ChatMessage) -> Unit = {},
@@ -1320,6 +1321,9 @@ fun ChatScreen(
                                 onForward = { onForwardOne(message) },
                                 onContentOpened = { onContentOpened(message) },
                                 onStickerOpened = { message.sticker?.setId?.let(onStickerSetOpened) },
+                                transcript = state.transcripts[message.id],
+                                transcribing = message.id in state.transcribing,
+                                onTranscribe = { onTranscribe(message) },
                                 onExtra = { extra -> onMessageExtra(message, extra) },
                                 onTranslate = { onTranslate(message, translationLanguage()) },
                                 onOpenComments = { onOpenComments(message) },

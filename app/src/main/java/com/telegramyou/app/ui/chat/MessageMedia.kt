@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.i18n.tr
+import androidx.compose.animation.AnimatedVisibility
 
 import androidx.compose.animation.core.animate
 import kotlinx.coroutines.withContext
@@ -32,6 +33,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -835,10 +837,14 @@ internal fun VoiceMessage(
     outgoing: Boolean,
     onToggle: () -> Unit,
     progress: Float,
-    onSeek: (Float) -> Unit
+    onSeek: (Float) -> Unit,
+    transcript: String? = null,
+    transcribing: Boolean = false,
+    onTranscribe: (() -> Unit)? = null
 ) {
     val tint = if (outgoing) MaterialTheme.colorScheme.onPrimary
     else MaterialTheme.colorScheme.primary
+    Column {
     Row(verticalAlignment = Alignment.CenterVertically) {
         when (state) {
             VoiceState.Loading -> CircularProgressIndicator(
@@ -874,6 +880,42 @@ internal fun VoiceMessage(
             color = if (outgoing) MaterialTheme.colorScheme.onPrimary
             else MaterialTheme.colorScheme.onSurface
         )
+        // Voice to text (2.7): Telegram writes it down, the words open under
+        // the row, and the same button puts them away.
+        if (onTranscribe != null) {
+            Spacer(Modifier.width(4.dp))
+            if (transcribing) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    color = tint,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .padding(6.dp)
+                )
+            } else {
+                IconButton(onClick = onTranscribe, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        if (transcript != null) Symbols.SpeechToTextFilled else Symbols.SpeechToText,
+                        contentDescription = if (transcript != null) tr("Hide text", "Скрыть текст")
+                        else tr("Voice to text", "Расшифровать"),
+                        tint = tint,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+    AnimatedVisibility(visible = transcript != null) {
+        Text(
+            transcript.orEmpty(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier
+                .widthIn(max = 260.dp)
+                .padding(top = 6.dp)
+        )
+    }
     }
 }
 

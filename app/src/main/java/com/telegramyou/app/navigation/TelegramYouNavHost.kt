@@ -1381,6 +1381,7 @@ fun TelegramYouNavHost(
                             navController.navigateTo(chatRoute(to))
                         }
                     },
+                    onTranscribe = chatViewModel::onTranscribe,
                     // A track goes to the music player, with this chat's music
                     // as its queue; a voice note plays in the chat.
                     onVoiceToggled = { message ->

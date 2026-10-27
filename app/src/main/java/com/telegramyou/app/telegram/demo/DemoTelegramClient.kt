@@ -1677,6 +1677,18 @@ class DemoTelegramClient(
         return text?.takeIf { it.isNotBlank() }?.let { "[$toLanguage] $it" }
     }
 
+    // Lina's voice messages say what the demo has her say; anything else
+    // recorded offline is answered with a line saying so.
+    override suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? {
+        delay(900)
+        val bucket = chatMessages[chatId] ?: return null
+        val index = bucket.indexOfFirst { it.id == messageId }
+        if (index == -1) return null
+        val text = DEMO_TRANSCRIPTS[messageId] ?: "A voice message recorded in the demo."
+        bucket[index] = bucket[index].copy(transcript = text)
+        return text
+    }
+
     override suspend fun forwardMessages(
         fromChatId: Long,
         messageIds: List<Long>,
@@ -3298,6 +3310,12 @@ private val DEMO_AUDIO_SECONDS = 12
 private val DEMO_MUSIC_ALBUM_ID = 4_040L
 
 /** The shape drawn for the demo's voice messages, in Telegram's 5-bit levels. */
+/** What Lina's two voice messages say, written down. */
+private val DEMO_TRANSCRIPTS = mapOf(
+    903L to "Hey, running ten minutes late — grab us a table by the window?",
+    904L to "Actually make it fifteen, the tram just stopped."
+)
+
 private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)
 
 /** A small text file in Design Circle, so a file can be opened offline. */
