@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.6
+
+- **Notifications from every account**, not only the one in use. Each account's chats have notifications of their own; with more than one signed in, the card names the account, and a tap — or Reply — goes to that account first. Switching accounts no longer clears the shade.
+- **Russian.** Every screen speaks it, with Russian plurals; it is chosen in Android's own per-app language settings (Settings → Language opens them), as for any app on Android 13 and later, and follows the phone's language before that.
+- **Stickers looked after.** A tap on a sticker opens its whole pack, to add or remove; Settings → Stickers lists your packs to reorder or remove, and Telegram's trending packs to add.
+
 ## 2.5
 
 - **Profiles show an emoji status, a profile colour and a birthday.** The status is the custom emoji after the name; the colour tints the top of the profile as a flat Material card worked out from it, not Telegram's gradient; the birthday has its own row, with the age where the year is shown.

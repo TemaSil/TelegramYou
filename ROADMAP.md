@@ -118,8 +118,8 @@ By how soon they would notice, not by how hard it is.
       Schedule. Drawing on a photo, as the official app has, is not done.
 - [ ] **Voice to text** — TDLib's `recognizeSpeech`, Premium on Telegram's
       side; the button on a voice message, the text under it.
-- [ ] **Stickers looked after** — a pack opened from a sticker, added and
-      removed, the packs reordered, trending ones.
+- [x] **Stickers looked after** (2.6) — a pack opened from a sticker, added
+      and removed, the packs reordered, trending ones (Settings → Stickers).
 - [x] **Emoji status, profile colour, birthday** on profiles (2.5) — shown
       on a person's info and your own profile, the colour as a flat tonal
       card rather than Telegram's gradient; your own set from the profile
@@ -134,9 +134,9 @@ By how soon they would notice, not by how hard it is.
       service and the widgets follow it. Switched, added and given up from
       the Profile tab and the sign-in screen; signing out of one with
       others left takes it off the phone.
-- [ ] **Notifications from every account**, not only the one in use — the
-      other accounts are open already; their arrivals need notification ids
-      of their own and a tap that switches to the account before the chat.
+- [x] **Notifications from every account** (2.6), not only the one in use —
+      each account's notifications have ids of their own, name the account
+      when there are several, and a tap switches to it before the chat.
 - [ ] **Secret chats** — end-to-end, one device; TDLib carries them, the
       screens are the work.
 - [ ] **Channel statistics and boosts**, for admins.
@@ -144,9 +144,9 @@ By how soon they would notice, not by how hard it is.
 - [x] **"Typing…" sent** (2.2) — `sendChatAction` as the field changes,
       "recording a voice message" or "a video message" while one is held,
       paced by OwnActivityPacer.
-- [ ] **Russian** — with Android 13's per-app language, chosen in the
-      system's settings like any other app's. Asked about for 2.0 and not
-      yet answered.
+- [x] **Russian** (2.6) — with Android 13's per-app language, chosen in
+      the system's settings like any other app's; every line a
+      `tr("English", "Русский")` pair.
 
 Done in 2.0, from this list as it stood on 7 October: replies that lost
 their quote and quoting part of a message, when it was read, a link to a
