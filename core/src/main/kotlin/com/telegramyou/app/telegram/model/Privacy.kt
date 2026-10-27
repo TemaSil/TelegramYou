@@ -8,35 +8,51 @@ package com.telegramyou.app.telegram.model
  */
 enum class PrivacySetting(
     val tdType: String,
-    val title: String,
-    val question: String,
+    private val words: Pair<Pair<String, String>, Pair<String, String>>,
     val audiences: List<PrivacyAudience> = PrivacyAudience.entries
 ) {
-    PhoneNumber("userPrivacySettingShowPhoneNumber", "Phone number", "Who can see my phone number"),
+    PhoneNumber(
+        "userPrivacySettingShowPhoneNumber",
+        ("Phone number" to "Номер телефона") to ("Who can see my phone number" to "Кто видит мой номер")
+    ),
     FindByNumber(
-        "userPrivacySettingAllowFindingByPhoneNumber", "Find me by my number",
-        "Who can find me by my number",
+        "userPrivacySettingAllowFindingByPhoneNumber",
+        ("Find me by my number" to "Поиск по номеру") to ("Who can find me by my number" to "Кто может найти меня по номеру"),
         listOf(PrivacyAudience.Everybody, PrivacyAudience.Contacts)
     ),
-    LastSeen("userPrivacySettingShowStatus", "Last seen and online", "Who can see when I was last online"),
-    ProfilePhoto("userPrivacySettingShowProfilePhoto", "Profile photo", "Who can see my profile photo"),
-    Bio("userPrivacySettingShowBio", "Bio", "Who can see my bio"),
+    LastSeen(
+        "userPrivacySettingShowStatus",
+        ("Last seen and online" to "Время захода") to ("Who can see when I was last online" to "Кто видит, когда я был(а) в сети")
+    ),
+    ProfilePhoto(
+        "userPrivacySettingShowProfilePhoto",
+        ("Profile photo" to "Фото профиля") to ("Who can see my profile photo" to "Кто видит моё фото")
+    ),
+    Bio("userPrivacySettingShowBio", ("Bio" to "О себе") to ("Who can see my bio" to "Кто видит «О себе»")),
     Forwards(
-        "userPrivacySettingShowLinkInForwardedMessages", "Forwarded messages",
-        "Who can link to my account when forwarding my messages"
+        "userPrivacySettingShowLinkInForwardedMessages",
+        ("Forwarded messages" to "Пересылка сообщений") to
+            ("Who can link to my account when forwarding my messages" to "Кто может ссылаться на мой аккаунт при пересылке"),
     ),
-    Calls("userPrivacySettingAllowCalls", "Calls", "Who can call me"),
+    Calls("userPrivacySettingAllowCalls", ("Calls" to "Звонки") to ("Who can call me" to "Кто может мне звонить")),
     Invites(
-        "userPrivacySettingAllowChatInvites", "Groups and channels",
-        "Who can add me to groups and channels",
+        "userPrivacySettingAllowChatInvites",
+        ("Groups and channels" to "Группы и каналы") to ("Who can add me to groups and channels" to "Кто может добавлять меня в группы и каналы"),
         listOf(PrivacyAudience.Everybody, PrivacyAudience.Contacts)
-    )
+    );
+
+    /** The row's name and its dialog's question, in the language in use. */
+    val title: String get() = com.telegramyou.app.i18n.tr(words.first.first, words.first.second)
+    val question: String get() = com.telegramyou.app.i18n.tr(words.second.first, words.second.second)
 }
 
-enum class PrivacyAudience(val label: String) {
-    Everybody("Everybody"),
-    Contacts("My contacts"),
-    Nobody("Nobody")
+enum class PrivacyAudience(private val labelEn: String, private val labelRu: String) {
+    Everybody("Everybody", "Все"),
+    Contacts("My contacts", "Мои контакты"),
+    Nobody("Nobody", "Никто");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**

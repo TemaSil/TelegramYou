@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.newchat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -107,7 +109,7 @@ class NewChatViewModel(
                     isWorking = false,
                     openChatId = result.getOrNull(),
                     errorMessage = result.exceptionOrNull()?.message
-                        ?: if (result.isFailure) "Could not create it" else null
+                        ?: if (result.isFailure) tr("Could not create it", "Не удалось создать") else null
                 )
             }
         }
@@ -129,7 +131,7 @@ class NewChatViewModel(
                 preview = null,
                 isCheckingLink = canonical != null,
                 linkProblem = if (canonical == null && text.isNotBlank()) {
-                    "Not an invite link — they look like t.me/+…"
+                    tr("Not an invite link — they look like t.me/+…", "Это не ссылка-приглашение — они выглядят как t.me/+…")
                 } else {
                     null
                 }
@@ -144,7 +146,7 @@ class NewChatViewModel(
                     preview = preview,
                     isCheckingLink = false,
                     linkProblem = if (preview == null) {
-                        "This link has expired or does not lead anywhere"
+                        tr("This link has expired or does not lead anywhere", "Ссылка устарела или никуда не ведёт")
                     } else {
                         null
                     }
@@ -168,7 +170,7 @@ class NewChatViewModel(
                     isWorking = false,
                     openChatId = result.getOrNull(),
                     errorMessage = result.exceptionOrNull()?.message
-                        ?: if (result.isFailure) "Could not join" else null
+                        ?: if (result.isFailure) tr("Could not join", "Не удалось вступить") else null
                 )
             }
         }

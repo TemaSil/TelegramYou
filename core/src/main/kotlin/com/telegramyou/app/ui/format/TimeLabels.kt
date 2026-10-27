@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.format
 
+import com.telegramyou.app.i18n.isRussian
+import com.telegramyou.app.i18n.ruForm
+import com.telegramyou.app.i18n.tr
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -32,7 +35,7 @@ fun chatListTimeLabel(
     val daysAgo = ChronoUnit.DAYS.between(day, today)
     return when {
         daysAgo <= 0L -> moment.format(DateTimeFormatter.ofPattern("HH:mm", locale))
-        daysAgo == 1L -> "Yesterday"
+        daysAgo == 1L -> tr("Yesterday", "Вчера", locale)
         daysAgo < 7L -> moment.format(DateTimeFormatter.ofPattern("EEE", locale))
         day.year == today.year -> moment.format(DateTimeFormatter.ofPattern("d MMM", locale))
         else -> moment.format(DateTimeFormatter.ofPattern("dd.MM.yy", locale))
@@ -72,13 +75,13 @@ fun presenceLabel(
     locale: Locale = Locale.getDefault()
 ): String = when (presence) {
     is Presence.Online ->
-        if (presence.isOnline(nowSeconds)) "online"
+        if (presence.isOnline(nowSeconds)) tr("online", "в сети", locale)
         else lastSeenAt(presence.expiresAt, nowSeconds, zone, locale)
     is Presence.Offline -> lastSeenAt(presence.wasOnlineAt, nowSeconds, zone, locale)
-    Presence.Recently -> "last seen recently"
-    Presence.WithinWeek -> "last seen within a week"
-    Presence.WithinMonth -> "last seen within a month"
-    Presence.Unknown -> "last seen a long time ago"
+    Presence.Recently -> tr("last seen recently", "был(а) недавно", locale)
+    Presence.WithinWeek -> tr("last seen within a week", "был(а) на этой неделе", locale)
+    Presence.WithinMonth -> tr("last seen within a month", "был(а) в этом месяце", locale)
+    Presence.Unknown -> tr("last seen a long time ago", "был(а) давно", locale)
 }
 
 private fun lastSeenAt(
@@ -88,18 +91,22 @@ private fun lastSeenAt(
     locale: Locale
 ): String {
     val ago = nowSeconds - epochSeconds
-    if (ago < 60) return "last seen just now"
+    if (ago < 60) return tr("last seen just now", "был(а) только что", locale)
     if (ago < 3_600) {
         val minutes = ago / 60
-        return "last seen $minutes minute${if (minutes == 1L) "" else "s"} ago"
+        return if (isRussian(locale)) {
+            "был(а) $minutes ${ruForm(minutes, "минуту", "минуты", "минут")} назад"
+        } else {
+            "last seen $minutes minute${if (minutes == 1L) "" else "s"} ago"
+        }
     }
     val moment = Instant.ofEpochSecond(epochSeconds).atZone(zone)
     val today: LocalDate = Instant.ofEpochSecond(nowSeconds).atZone(zone).toLocalDate()
     val time = moment.format(DateTimeFormatter.ofPattern("HH:mm", locale))
     return when (ChronoUnit.DAYS.between(moment.toLocalDate(), today)) {
-        0L -> "last seen at $time"
-        1L -> "last seen yesterday at $time"
-        else -> "last seen " + chatListTimeLabel(epochSeconds, nowSeconds, zone, locale)
+        0L -> tr("last seen at $time", "был(а) в $time", locale)
+        1L -> tr("last seen yesterday at $time", "был(а) вчера в $time", locale)
+        else -> tr("last seen ", "был(а) ", locale) + chatListTimeLabel(epochSeconds, nowSeconds, zone, locale)
     }
 }
 
@@ -110,8 +117,10 @@ private fun lastSeenAt(
  * and the header then names the kind of chat instead of claiming it is empty.
  */
 fun memberCountLabel(count: Int, isChannel: Boolean, locale: Locale = Locale.getDefault()): String {
-    if (count <= 0) return if (isChannel) "channel" else "group"
+    if (count <= 0) return if (isChannel) tr("channel", "канал", locale) else tr("group", "группа", locale)
     val noun = when {
+        isRussian(locale) && isChannel -> ruForm(count.toLong(), "подписчик", "подписчика", "подписчиков")
+        isRussian(locale) -> ruForm(count.toLong(), "участник", "участника", "участников")
         isChannel -> if (count == 1) "subscriber" else "subscribers"
         else -> if (count == 1) "member" else "members"
     }
@@ -126,8 +135,8 @@ fun storyAgeLabel(postedSeconds: Long, nowSeconds: Long): String {
     if (postedSeconds <= 0) return ""
     val minutes = (nowSeconds - postedSeconds).coerceAtLeast(0) / 60
     return when {
-        minutes < 1 -> "just now"
-        minutes < 60 -> "${minutes}m"
-        else -> "${minutes / 60}h"
+        minutes < 1 -> tr("just now", "только что")
+        minutes < 60 -> tr("${minutes}m", "$minutes мин")
+        else -> tr("${minutes / 60}h", "${minutes / 60} ч")
     }
 }

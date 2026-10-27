@@ -1,5 +1,8 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+import com.telegramyou.app.i18n.counted
+
 /**
  * Splits chats into the groups the list draws, in the order it draws them.
  *
@@ -46,9 +49,8 @@ fun <T> archiveSummary(
     if (archived.isEmpty()) return null
     val unread = archived.count { unreadCount(it) > 0 }
     return when {
-        unread == 0 -> "${archived.size} chat${plural(archived.size)}"
-        else -> "${archived.size} chat${plural(archived.size)}, $unread unread"
+        unread == 0 -> counted(archived.size, "chat", "chats", "чат", "чата", "чатов")
+        else -> counted(archived.size, "chat", "chats", "чат", "чата", "чатов") + tr(", $unread unread", ", непрочитанных: $unread")
     }
 }
 
-private fun plural(count: Int) = if (count == 1) "" else "s"

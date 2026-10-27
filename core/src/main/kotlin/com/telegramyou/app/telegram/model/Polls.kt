@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.tr
+
 /**
  * One answer in a poll, with how the vote stands on it.
  *
@@ -58,17 +62,20 @@ data class PollContent(
     /** "Anonymous poll", "Quiz", "Poll is closed" — the line under the question. */
     val kindLabel: String
         get() = when {
-            isClosed -> "Final results"
-            isQuiz -> if (isAnonymous) "Anonymous quiz" else "Quiz"
-            else -> if (isAnonymous) "Anonymous poll" else "Public poll"
+            isClosed -> tr("Final results", "Итоги")
+            isQuiz -> if (isAnonymous) tr("Anonymous quiz", "Анонимная викторина") else tr("Quiz", "Викторина")
+            else -> if (isAnonymous) tr("Anonymous poll", "Анонимный опрос") else tr("Public poll", "Открытый опрос")
         }
 
     /** "No votes yet", "1 vote", "12 votes". */
     val votersLabel: String
         get() = when (totalVoters) {
-            0 -> if (isQuiz) "No answers yet" else "No votes yet"
-            1 -> if (isQuiz) "1 answer" else "1 vote"
-            else -> "$totalVoters ${if (isQuiz) "answers" else "votes"}"
+            0 -> if (isQuiz) tr("No answers yet", "Ответов пока нет") else tr("No votes yet", "Голосов пока нет")
+            else -> if (isQuiz) {
+                counted(totalVoters, "answer", "answers", "ответ", "ответа", "ответов")
+            } else {
+                counted(totalVoters, "vote", "votes", "голос", "голоса", "голосов")
+            }
         }
 
     /**

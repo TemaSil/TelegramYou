@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.OutlinedButton
@@ -146,15 +148,15 @@ fun ChatInfoScreen(
         AlertDialog(
             onDismissRequest = { confirmingRenew = false },
             icon = { Icon(Symbols.Link, contentDescription = null) },
-            title = { Text("Revoke the link?") },
-            text = { Text("The link stops working for anyone who has it, and a new one takes its place.") },
+            title = { Text(tr("Revoke the link?", "Отозвать ссылку?")) },
+            text = { Text(tr("The link stops working for anyone who has it, and a new one takes its place.", "Ссылка перестанет работать у всех, у кого она есть, а её место займёт новая.")) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingRenew = false
                     onRenewInviteLink()
-                }) { Text("Revoke link") }
+                }) { Text(tr("Revoke link", "Отозвать")) }
             },
-            dismissButton = { TextButton(onClick = { confirmingRenew = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { confirmingRenew = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -203,17 +205,22 @@ fun ChatInfoScreen(
         AlertDialog(
             onDismissRequest = { confirmingDeleteMine = false },
             icon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
-            title = { Text("Delete all your messages?") },
+            title = { Text(tr("Delete all your messages?", "Удалить все ваши сообщения?")) },
             text = {
-                Text("Everything you have sent in ${chat?.title ?: "this group"} goes, for everyone. It cannot be undone.")
+                Text(
+                    tr(
+                        "Everything you have sent in ${chat?.title ?: "this group"} goes, for everyone. It cannot be undone.",
+                        "Всё, что вы отправили в ${chat?.title ?: "эту группу"}, удалится у всех. Это не отменить."
+                    )
+                )
             },
             confirmButton = {
                 TextButton(onClick = {
                     confirmingDeleteMine = false
                     onDeleteAllMine()
-                }) { Text("Delete all") }
+                }) { Text(tr("Delete all", "Удалить всё")) }
             },
-            dismissButton = { TextButton(onClick = { confirmingDeleteMine = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { confirmingDeleteMine = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
     if (confirmingBlock && person != null) {
@@ -230,15 +237,15 @@ fun ChatInfoScreen(
     if (confirmingLeave) {
         AlertDialog(
             onDismissRequest = onLeaveDismissed,
-            title = { Text("Leave ${chat?.title ?: "this chat"}?") },
+            title = { Text(tr("Leave ${chat?.title ?: "this chat"}?", "Покинуть ${chat?.title ?: "этот чат"}?")) },
             text = {
-                Text("You will stop receiving messages from it. You can be added back.")
+                Text(tr("You will stop receiving messages from it. You can be added back.", "Сообщения отсюда перестанут приходить. Вас смогут добавить снова."))
             },
             confirmButton = {
-                TextButton(onClick = onLeaveConfirmed) { Text("Leave") }
+                TextButton(onClick = onLeaveConfirmed) { Text(tr("Leave", "Покинуть")) }
             },
             dismissButton = {
-                TextButton(onClick = onLeaveDismissed) { Text("Cancel") }
+                TextButton(onClick = onLeaveDismissed) { Text(tr("Cancel", "Отмена")) }
             }
         )
     }
@@ -247,12 +254,12 @@ fun ChatInfoScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Info") },
+                title = { Text(tr("Info", "Информация")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Symbols.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = tr("Back", "Назад")
                         )
                     }
                 }
@@ -283,14 +290,14 @@ fun ChatInfoScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     AvatarBubble(
-                        title = chat?.title ?: "Chat",
+                        title = chat?.title ?: tr("Chat", "Чат"),
                         seed = chat?.avatarColor ?: 1,
                         size = 96.dp,
                         shape = personShape(chat?.avatarColor ?: 1),
                         photoPath = chat?.photoPath
                     )
                     com.telegramyou.app.ui.people.NameWithStatus(
-                        name = chat?.title ?: "Chat",
+                        name = chat?.title ?: tr("Chat", "Чат"),
                         emojiStatusId = person?.user?.emojiStatusId,
                         style = MaterialTheme.typography.headlineSmall,
                         statusSize = 28.dp
@@ -318,7 +325,7 @@ fun ChatInfoScreen(
             person?.let { profile ->
                 personRows(profile) { what, text ->
                     copyToClipboard(text)
-                    scope.launch { snackbarHostState.showSnackbar("$what copied") }
+                    scope.launch { snackbarHostState.showSnackbar(tr("$what copied", "$what: скопировано")) }
                 }
             }
 
@@ -326,7 +333,7 @@ fun ChatInfoScreen(
                 item(key = "invite") {
                     ListItem(
                         headlineContent = { Text(link) },
-                        overlineContent = { Text("Invite link") },
+                        overlineContent = { Text(tr("Invite link", "Ссылка-приглашение")) },
                         leadingContent = {
                             Icon(Symbols.Link, contentDescription = null)
                         },
@@ -339,7 +346,7 @@ fun ChatInfoScreen(
                         modifier = Modifier.clickable {
                             copyToClipboard(link)
                             scope.launch {
-                                snackbarHostState.showSnackbar("Invite link copied")
+                                snackbarHostState.showSnackbar(tr("Invite link copied", "Ссылка-приглашение скопирована"))
                             }
                         }
                     )
@@ -353,9 +360,9 @@ fun ChatInfoScreen(
                     ) {
                         FilledTonalButton(onClick = {
                             val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
-                            context.startActivity(Intent.createChooser(send, "Share invite link"))
-                        }) { Text("Share") }
-                        OutlinedButton(onClick = { confirmingRenew = true }) { Text("Revoke") }
+                            context.startActivity(Intent.createChooser(send, tr("Share invite link", "Поделиться ссылкой-приглашением")))
+                        }) { Text(tr("Share", "Поделиться")) }
+                        OutlinedButton(onClick = { confirmingRenew = true }) { Text(tr("Revoke", "Отозвать")) }
                     }
                 }
             } ?: run {
@@ -364,7 +371,7 @@ fun ChatInfoScreen(
                 if (chat != null && (chat.isGroup || chat.isChannel)) {
                     item(key = "invite-create") {
                         ListItem(
-                            headlineContent = { Text("Create invite link") },
+                            headlineContent = { Text(tr("Create invite link", "Создать ссылку-приглашение")) },
                             leadingContent = { Icon(Symbols.Link, contentDescription = null) },
                             modifier = Modifier.clickable(onClick = onRenewInviteLink)
                         )
@@ -383,9 +390,9 @@ fun ChatInfoScreen(
                     // Into the phone's language, by Telegram's translator —
                     // the one the menu's Translate already uses.
                     ListItem(
-                        headlineContent = { Text("Translate messages") },
+                        headlineContent = { Text(tr("Translate messages", "Переводить сообщения")) },
                         supportingContent = {
-                            Text("Show what comes in here in ${phoneLanguageName()}")
+                            Text(tr("Show what comes in here in ${phoneLanguageName()}", "Показывать входящие на языке телефона"))
                         },
                         leadingContent = { Icon(Symbols.Translate, contentDescription = null) },
                         trailingContent = { Switch(checked = autoTranslate, onCheckedChange = null) },
@@ -404,8 +411,8 @@ fun ChatInfoScreen(
             if (chat != null) {
                 item(key = "media") {
                     ListItem(
-                        headlineContent = { Text("Shared media") },
-                        supportingContent = { Text("Photos, files, music, voice and links") },
+                        headlineContent = { Text(tr("Shared media", "Медиа")) },
+                        supportingContent = { Text(tr("Photos, files, music, voice and links", "Фото, файлы, музыка, голосовые и ссылки")) },
                         leadingContent = { Icon(Symbols.PhotoLibrary, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = onOpenMedia)
                     )
@@ -419,7 +426,7 @@ fun ChatInfoScreen(
             if (management?.isForum == true) {
                 item(key = "topics") {
                     ListItem(
-                        headlineContent = { Text("Topics") },
+                        headlineContent = { Text(tr("Topics", "Темы")) },
                         leadingContent = { Icon(Symbols.Forum, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = onOpenTopics)
                     )
@@ -428,8 +435,8 @@ fun ChatInfoScreen(
             if (management?.rights?.canRestrictMembers == true) {
                 item(key = "permissions") {
                     ListItem(
-                        headlineContent = { Text("Permissions") },
-                        supportingContent = { Text("What members can do") },
+                        headlineContent = { Text(tr("Permissions", "Разрешения")) },
+                        supportingContent = { Text(tr("What members can do", "Что могут участники")) },
                         leadingContent = { Icon(Symbols.AdminPanelSettings, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = onOpenPermissions)
                     )
@@ -439,8 +446,8 @@ fun ChatInfoScreen(
             if (management?.rights?.canInviteUsers == true && waiting.isNotEmpty()) {
                 item(key = "join-requests") {
                     ListItem(
-                        headlineContent = { Text("Join requests") },
-                        supportingContent = { Text("People asking to join through a link") },
+                        headlineContent = { Text(tr("Join requests", "Заявки на вступление")) },
+                        supportingContent = { Text(tr("People asking to join through a link", "Кто просится вступить по ссылке")) },
                         leadingContent = { Icon(Symbols.PersonAdd, contentDescription = null) },
                         trailingContent = {
                             Badge(
@@ -455,8 +462,8 @@ fun ChatInfoScreen(
             if (management?.rights?.canInviteUsers == true) {
                 item(key = "invite-links") {
                     ListItem(
-                        headlineContent = { Text("Invite links") },
-                        supportingContent = { Text("Links with a name, a time limit or a number of people") },
+                        headlineContent = { Text(tr("Invite links", "Ссылки-приглашения")) },
+                        supportingContent = { Text(tr("Links with a name, a time limit or a number of people", "Ссылки с названием, сроком или лимитом людей")) },
                         leadingContent = { Icon(Symbols.Link, contentDescription = null) },
                         modifier = Modifier.clickable(onClick = onOpenInviteLinks)
                     )
@@ -486,7 +493,7 @@ fun ChatInfoScreen(
             if (chat?.isGroup == true) {
                 item(key = "delete-mine") {
                     ListItem(
-                        headlineContent = { Text("Delete all my messages") },
+                        headlineContent = { Text(tr("Delete all my messages", "Удалить все мои сообщения")) },
                         leadingContent = { Icon(Symbols.DeleteSweep, contentDescription = null) },
                         colors = ListItemDefaults.colors(
                             headlineColor = MaterialTheme.colorScheme.error,
@@ -499,7 +506,11 @@ fun ChatInfoScreen(
             if (chat?.isGroup == true || chat?.isChannel == true) {
                 item(key = "leave") {
                     ListItem(
-                        headlineContent = { Text("Leave ${if (chat.isChannel) "channel" else "group"}") },
+                        headlineContent = {
+                            Text(
+                                if (chat.isChannel) tr("Leave channel", "Покинуть канал") else tr("Leave group", "Покинуть группу")
+                            )
+                        },
                         leadingContent = {
                             Icon(
                                 Symbols.Logout,
@@ -525,7 +536,7 @@ fun ChatInfoScreen(
                 val management = group?.management
                 item(key = "members-heading") {
                     Text(
-                        "Members",
+                        tr("Members", "Участники"),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
@@ -539,7 +550,7 @@ fun ChatInfoScreen(
                         OutlinedTextField(
                             value = group?.memberQuery.orEmpty(),
                             onValueChange = onMemberQuery,
-                            placeholder = { Text("Search members") },
+                            placeholder = { Text(tr("Search members", "Поиск участников")) },
                             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
                             singleLine = true,
                             modifier = Modifier
@@ -560,7 +571,7 @@ fun ChatInfoScreen(
                 if (shown.isEmpty()) {
                     item(key = "members-none") {
                         Text(
-                            "Nobody by that name",
+                            tr("Nobody by that name", "Никого с таким именем"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp)
@@ -584,7 +595,7 @@ fun ChatInfoScreen(
             if (members.isNotEmpty()) {
                 item(key = "members-heading") {
                     Text(
-                        "Members",
+                        tr("Members", "Участники"),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
@@ -629,13 +640,13 @@ private fun NotificationSettingsSection(
     var choosing by remember { mutableStateOf(false) }
     Column {
         Text(
-            "Notifications",
+            tr("Notifications", "Уведомления"),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
         )
         ListItem(
-            headlineContent = { Text("Notifications") },
+            headlineContent = { Text(tr("Notifications", "Уведомления")) },
             supportingContent = { Text(notificationStatusLabel(settings, now, ZoneId.systemDefault())) },
             leadingContent = {
                 Icon(
@@ -654,7 +665,7 @@ private fun NotificationSettingsSection(
         )
         Box {
             ListItem(
-                headlineContent = { Text("Mute for…") },
+                headlineContent = { Text(tr("Mute for…", "Без звука на…")) },
                 leadingContent = { Icon(Symbols.Snooze, contentDescription = null) },
                 modifier = Modifier.clickable { choosing = true }
             )
@@ -671,8 +682,8 @@ private fun NotificationSettingsSection(
             }
         }
         ListItem(
-            headlineContent = { Text("Message preview") },
-            supportingContent = { Text("Show what the message says in the notification") },
+            headlineContent = { Text(tr("Message preview", "Текст в уведомлении")) },
+            supportingContent = { Text(tr("Show what the message says in the notification", "Показывать текст сообщения в уведомлении")) },
             leadingContent = { Icon(Symbols.Visibility, contentDescription = null) },
             trailingContent = {
                 Switch(
@@ -682,7 +693,7 @@ private fun NotificationSettingsSection(
             }
         )
         ListItem(
-            headlineContent = { Text("Sound") },
+            headlineContent = { Text(tr("Sound", "Звук")) },
             leadingContent = { Icon(Symbols.VolumeUp, contentDescription = null) },
             trailingContent = {
                 Switch(

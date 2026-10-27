@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.lock
 
+import com.telegramyou.app.i18n.tr
+
 import android.app.Activity
 import android.content.Context
 import android.hardware.biometrics.BiometricManager
@@ -70,7 +72,7 @@ fun AppLockScreen(
     var wrong by remember { mutableIntStateOf(0) }
     var restingUntil by remember { mutableLongStateOf(0L) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    var message by remember { mutableStateOf("Enter your PIN") }
+    var message by remember { mutableStateOf(tr("Enter your PIN", "Введите PIN")) }
     val biometric = settings.biometric && biometricAvailable(context)
 
     BackHandler { (context as? Activity)?.moveTaskToBack(true) }
@@ -100,9 +102,9 @@ fun AppLockScreen(
                     if (wrong >= MAX_WRONG) {
                         wrong = 0
                         restingUntil = System.currentTimeMillis() + REST_MILLIS
-                        message = "Too many tries. Wait a moment"
+                        message = tr("Too many tries. Wait a moment", "Слишком много попыток. Подождите")
                     } else {
-                        message = "Wrong PIN, try again"
+                        message = tr("Wrong PIN, try again", "Неверный PIN, попробуйте ещё")
                     }
                 }
             }
@@ -133,7 +135,7 @@ fun AppLockScreen(
             }
             Spacer(Modifier.height(24.dp))
             Text(
-                if (resting) "Try again in ${((restingUntil - now) / 1000) + 1} s" else message,
+                if (resting) tr("Try again in ${((restingUntil - now) / 1000) + 1} s", "Снова через ${((restingUntil - now) / 1000) + 1} с") else message,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -146,7 +148,7 @@ fun AppLockScreen(
                 onBackspace = { typed = typed.dropLast(1) },
                 extraKey = {
                     if (biometric) {
-                        PinIconKey(Symbols.Fingerprint, "Unlock with fingerprint") { askBiometric(context, onBiometricUnlock) }
+                        PinIconKey(Symbols.Fingerprint, tr("Unlock with fingerprint", "Разблокировать отпечатком")) { askBiometric(context, onBiometricUnlock) }
                     }
                 }
             )
@@ -170,8 +172,8 @@ private fun askBiometric(context: Context, onUnlocked: () -> Unit) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
     val executor = context.mainExecutor
     val prompt = BiometricPrompt.Builder(context)
-        .setTitle("Unlock TelegramYou")
-        .setNegativeButton("Use PIN", executor) { _, _ -> }
+        .setTitle(tr("Unlock TelegramYou", "Разблокировка TelegramYou"))
+        .setNegativeButton(tr("Use PIN", "Ввести PIN"), executor) { _, _ -> }
         .build()
     prompt.authenticate(
         CancellationSignal(),

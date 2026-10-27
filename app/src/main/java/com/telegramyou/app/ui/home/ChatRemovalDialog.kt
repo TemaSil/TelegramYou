@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,20 +56,20 @@ fun ChatRemovalDialog(
 
     val clearing = pending is PendingRemoval.Clear
     val title = when {
-        clearing -> "Clear history?"
-        removal.leaves -> "Leave ${chat.title}?"
-        else -> "Delete the chat with $name?"
+        clearing -> tr("Clear history?", "Очистить историю?")
+        removal.leaves -> tr("Leave ${chat.title}?", "Покинуть ${chat.title}?")
+        else -> tr("Delete the chat with $name?", "Удалить чат с $name?")
     }
     val body = when {
-        clearing && chat.isSavedMessages -> "Everything saved here will be deleted."
-        clearing -> "Every message with $name will be deleted. The chat stays in your list."
-        removal.leaves -> "You will stop receiving its messages. You can join again later."
-        else -> "The chat and its messages will be removed from your list."
+        clearing && chat.isSavedMessages -> tr("Everything saved here will be deleted.", "Всё сохранённое здесь будет удалено.")
+        clearing -> tr("Every message with $name will be deleted. The chat stays in your list.", "Все сообщения с $name будут удалены. Чат останется в списке.")
+        removal.leaves -> tr("You will stop receiving its messages. You can join again later.", "Вы перестанете получать сообщения. Вернуться можно будет позже.")
+        else -> tr("The chat and its messages will be removed from your list.", "Чат и его сообщения пропадут из списка.")
     }
     val confirm = when {
-        clearing -> "Clear"
-        removal.leaves -> "Leave"
-        else -> "Delete"
+        clearing -> tr("Clear", "Очистить")
+        removal.leaves -> tr("Leave", "Покинуть")
+        else -> tr("Delete", "Удалить")
     }
 
     AlertDialog(
@@ -91,7 +93,7 @@ fun ChatRemovalDialog(
                         // and the words answer to one tap target.
                         Checkbox(checked = forEveryone, onCheckedChange = null)
                         Text(
-                            if (clearing) "Also clear for $name" else "Also delete for $name",
+                            if (clearing) tr("Also clear for $name", "Также очистить для $name") else tr("Also delete for $name", "Также удалить для $name"),
                             modifier = Modifier.padding(start = 12.dp)
                         )
                     }
@@ -105,7 +107,7 @@ fun ChatRemovalDialog(
             ) { Text(confirm) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
         }
     )
 }

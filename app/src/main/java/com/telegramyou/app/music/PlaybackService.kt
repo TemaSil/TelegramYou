@@ -1,5 +1,7 @@
 package com.telegramyou.app.music
 
+import com.telegramyou.app.i18n.tr
+
 import android.app.PendingIntent
 import android.content.Intent
 import androidx.annotation.OptIn
@@ -68,7 +70,7 @@ class PlaybackService : MediaSessionService() {
     @OptIn(UnstableApi::class)
     private fun orderButtons(shuffled: Boolean, repeat: RepeatMode): List<CommandButton> = listOf(
         CommandButton.Builder(if (shuffled) CommandButton.ICON_SHUFFLE_ON else CommandButton.ICON_SHUFFLE_OFF)
-            .setDisplayName(if (shuffled) "Shuffle on" else "Shuffle off")
+            .setDisplayName(if (shuffled) tr("Shuffle on", "Перемешивание вкл.") else tr("Shuffle off", "Перемешивание выкл."))
             .setPlayerCommand(Player.COMMAND_SET_SHUFFLE_MODE, !shuffled)
             .build(),
         CommandButton.Builder(

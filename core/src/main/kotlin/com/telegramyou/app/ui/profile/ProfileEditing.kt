@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.TelegramUser
 
 /**
@@ -56,23 +58,23 @@ fun validateProfile(draft: ProfileDraft): List<ProfileProblem> {
 
     val first = draft.firstName.trim()
     if (first.isEmpty()) {
-        problems += ProfileProblem(ProfileField.FirstName, "A first name is required")
+        problems += ProfileProblem(ProfileField.FirstName, tr("A first name is required", "Нужно имя"))
     } else if (first.length > MAX_NAME_LENGTH) {
         problems += ProfileProblem(
             ProfileField.FirstName,
-            "At most $MAX_NAME_LENGTH characters"
+            tr("At most $MAX_NAME_LENGTH characters", "Не больше $MAX_NAME_LENGTH символов")
         )
     }
 
     if (draft.lastName.trim().length > MAX_NAME_LENGTH) {
         problems += ProfileProblem(
             ProfileField.LastName,
-            "At most $MAX_NAME_LENGTH characters"
+            tr("At most $MAX_NAME_LENGTH characters", "Не больше $MAX_NAME_LENGTH символов")
         )
     }
 
     if (draft.bio.trim().length > MAX_BIO_LENGTH) {
-        problems += ProfileProblem(ProfileField.Bio, "At most $MAX_BIO_LENGTH characters")
+        problems += ProfileProblem(ProfileField.Bio, tr("At most $MAX_BIO_LENGTH characters", "Не больше $MAX_BIO_LENGTH символов"))
     }
 
     usernameProblem(draft.username.trim())?.let { problems += it }
@@ -92,22 +94,22 @@ private fun usernameProblem(username: String): ProfileProblem? {
     fun problem(message: String) = ProfileProblem(ProfileField.Username, message)
 
     if (username.length < MIN_USERNAME_LENGTH) {
-        return problem("At least $MIN_USERNAME_LENGTH characters")
+        return problem(tr("At least $MIN_USERNAME_LENGTH characters", "Не меньше $MIN_USERNAME_LENGTH символов"))
     }
     if (username.length > MAX_USERNAME_LENGTH) {
-        return problem("At most $MAX_USERNAME_LENGTH characters")
+        return problem(tr("At most $MAX_USERNAME_LENGTH characters", "Не больше $MAX_USERNAME_LENGTH символов"))
     }
     if (!username.first().isAsciiLetter()) {
-        return problem("Must start with a letter")
+        return problem(tr("Must start with a letter", "Должно начинаться с буквы"))
     }
     if (username.last() == '_') {
-        return problem("Cannot end with an underscore")
+        return problem(tr("Cannot end with an underscore", "Не может заканчиваться подчёркиванием"))
     }
     if (username.contains("__")) {
-        return problem("Cannot contain two underscores in a row")
+        return problem(tr("Cannot contain two underscores in a row", "Не может содержать два подчёркивания подряд"))
     }
     if (!username.all { it.isAsciiLetter() || it.isAsciiDigit() || it == '_' }) {
-        return problem("Letters, digits and underscores only")
+        return problem(tr("Letters, digits and underscores only", "Только буквы, цифры и подчёркивания"))
     }
     return null
 }

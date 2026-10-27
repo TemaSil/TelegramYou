@@ -1,5 +1,7 @@
 package com.telegramyou.app.update
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * A version as this project writes them: "1.1", "1.1.5", "1.2" — set by hand
  * in `app/build.gradle.kts` when the owner says the app has moved on.
@@ -97,8 +99,8 @@ fun isUpdate(release: Release, installed: AppVersion, installedBuild: Int? = nul
 /** "64.7 MB" — how big the download is, for the button that starts it. */
 fun sizeLabel(bytes: Long): String = when {
     bytes <= 0 -> ""
-    bytes < 1_000_000 -> "${(bytes + 999) / 1000} KB"
-    else -> "%.1f MB".format(java.util.Locale.ROOT, bytes / 1_000_000.0)
+    bytes < 1_000_000 -> "${(bytes + 999) / 1000} " + tr("KB", "КБ")
+    else -> "%.1f ".format(java.util.Locale.ROOT, bytes / 1_000_000.0) + tr("MB", "МБ")
 }
 
 /** The file every green build of main is published as. */

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -253,7 +255,7 @@ fun MediaGallery(
                     onClick = close,
                     modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(Symbols.Close, contentDescription = "Close")
+                    Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"))
                 }
                 if (items.size > 1) {
                     Surface(
@@ -263,7 +265,7 @@ fun MediaGallery(
                         modifier = Modifier.align(Alignment.Center)
                     ) {
                         Text(
-                            "${pager.currentPage + 1} of ${items.size}",
+                            tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )

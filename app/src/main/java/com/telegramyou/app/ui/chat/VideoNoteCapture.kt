@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.camera.compose.CameraXViewfinder
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -102,7 +104,7 @@ internal fun VideoNoteCapture(
                         awaitFirstDown(requireUnconsumed = false).consume()
                     }
                 }
-                .semantics { contentDescription = "Recording a video message" }
+                .semantics { contentDescription = tr("Recording a video message", "Запись видеосообщения") }
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.size(RING)) {
@@ -147,7 +149,7 @@ internal fun VideoNoteCapture(
                 }
                 if (!locked) {
                     Text(
-                        "Lift to send · slide up to lock · aside to cancel",
+                        tr("Lift to send · slide up to lock · aside to cancel", "Отпустите — отправить · вверх — закрепить · в сторону — отмена"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.inverseOnSurface,
                         modifier = Modifier.padding(top = 8.dp)
@@ -163,18 +165,18 @@ internal fun VideoNoteCapture(
                         modifier = Modifier.padding(top = 24.dp)
                     ) {
                         FilledTonalIconButton(onClick = onDelete, modifier = Modifier.size(56.dp)) {
-                            Icon(Symbols.Delete, contentDescription = "Delete video message")
+                            Icon(Symbols.Delete, contentDescription = tr("Delete video message", "Удалить видеосообщение"))
                         }
                         if (recorder.canFlip) {
                             FilledTonalIconButton(onClick = { recorder.flip() }, modifier = Modifier.size(56.dp)) {
-                                Icon(Symbols.SwitchCamera, contentDescription = "Switch camera")
+                                Icon(Symbols.SwitchCamera, contentDescription = tr("Switch camera", "Сменить камеру"))
                             }
                         }
                         FilledTonalIconButton(onClick = onStop, modifier = Modifier.size(56.dp)) {
-                            Icon(Symbols.Stop, contentDescription = "Stop and watch")
+                            Icon(Symbols.Stop, contentDescription = tr("Stop and watch", "Остановить и посмотреть"))
                         }
                         FilledIconButton(onClick = onSend, modifier = Modifier.size(72.dp)) {
-                            Icon(Symbols.SendFilled, contentDescription = "Send video message")
+                            Icon(Symbols.SendFilled, contentDescription = tr("Send video message", "Отправить видеосообщение"))
                         }
                     }
                 }
@@ -216,7 +218,7 @@ internal fun VideoNotePreview(
                         awaitFirstDown(requireUnconsumed = false).consume()
                     }
                 }
-                .semantics { contentDescription = "Video message preview" }
+                .semantics { contentDescription = tr("Video message preview", "Просмотр видеосообщения") }
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
@@ -246,10 +248,10 @@ internal fun VideoNotePreview(
                     modifier = Modifier.padding(top = 24.dp)
                 ) {
                     FilledTonalIconButton(onClick = onDelete, modifier = Modifier.size(56.dp)) {
-                        Icon(Symbols.Delete, contentDescription = "Delete video message")
+                        Icon(Symbols.Delete, contentDescription = tr("Delete video message", "Удалить видеосообщение"))
                     }
                     FilledIconButton(onClick = onSend, modifier = Modifier.size(72.dp)) {
-                        Icon(Symbols.SendFilled, contentDescription = "Send video message")
+                        Icon(Symbols.SendFilled, contentDescription = tr("Send video message", "Отправить видеосообщение"))
                     }
                 }
             }

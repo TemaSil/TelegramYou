@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.theme.centreOnScreen
 import androidx.compose.ui.layout.onGloballyPositioned
 import com.telegramyou.app.ui.icons.Symbols
@@ -263,7 +265,7 @@ fun HomeScreen(
     // acknowledgements, and a flag would only fire for the first.
     LaunchedEffect(state.profile.savedCount) {
         if (state.profile.savedCount > 0) {
-            snackbarHostState.showSnackbar("Profile saved")
+            snackbarHostState.showSnackbar(tr("Profile saved", "Профиль сохранён"))
         }
     }
 
@@ -308,7 +310,7 @@ fun HomeScreen(
                         val glyph = if (tab == entry) entry.selectedIcon else entry.icon
                         if (entry == HomeTab.Settings && updateWaiting) {
                             BadgedBox(badge = { Badge() }) {
-                                Icon(glyph, contentDescription = "${entry.label}, update available")
+                                Icon(glyph, contentDescription = tr("${entry.label}, update available", "${entry.label}, есть обновление"))
                             }
                         } else {
                             Icon(glyph, contentDescription = entry.label)
@@ -359,7 +361,7 @@ fun HomeScreen(
                 // Named large, as Settings is, over its field — asked for
                 // again in 1.6.7 so the three pages of the bar match.
                 HomeTab.Search -> LargeTopAppBar(
-                    title = { LargeTitle("Search", searchBar.state.collapsedFraction) },
+                    title = { LargeTitle(tr("Search", "Поиск"), searchBar.state.collapsedFraction) },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = settingsBackground(),
                         scrolledContainerColor = settingsBackground()
@@ -374,7 +376,7 @@ fun HomeScreen(
                         // folded bar's size as the groups scroll up. One
                         // lambda draws both of the bar's title slots, so
                         // following the fold keeps them the same size.
-                        LargeTitle("Settings", settingsBar.state.collapsedFraction)
+                        LargeTitle(tr("Settings", "Настройки"), settingsBar.state.collapsedFraction)
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = settingsBackground(),
@@ -916,11 +918,11 @@ private fun HomeTitleBar(
         actions = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Symbols.MoreVert, contentDescription = "More")
+                    Icon(Symbols.MoreVert, contentDescription = tr("More", "Ещё"))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text(if (isDark) "Light theme" else "Dark theme") },
+                        text = { Text(if (isDark) tr("Light theme", "Светлая тема") else tr("Dark theme", "Тёмная тема")) },
                         leadingIcon = {
                             Icon(
                                 if (isDark) Symbols.LightMode else Symbols.DarkMode,
@@ -944,7 +946,7 @@ private fun HomeTitleBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Proxy") },
+                        text = { Text(tr("Proxy", "Прокси")) },
                         leadingIcon = { Icon(Symbols.VpnKey, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -952,7 +954,7 @@ private fun HomeTitleBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Contacts") },
+                        text = { Text(tr("Contacts", "Контакты")) },
                         leadingIcon = { Icon(Symbols.Contacts, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -960,7 +962,7 @@ private fun HomeTitleBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Saved Messages") },
+                        text = { Text(tr("Saved Messages", "Избранное")) },
                         leadingIcon = { Icon(Symbols.BookmarkFilled, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -968,7 +970,7 @@ private fun HomeTitleBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("My music") },
+                        text = { Text(tr("My music", "Моя музыка")) },
                         leadingIcon = { Icon(Symbols.LibraryMusic, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -978,7 +980,7 @@ private fun HomeTitleBar(
                     // Here, not only in search as the official client has it:
                     // the complaint about Telegram's is that nobody finds it.
                     DropdownMenuItem(
-                        text = { Text("Downloads") },
+                        text = { Text(tr("Downloads", "Загрузки")) },
                         leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -990,7 +992,7 @@ private fun HomeTitleBar(
                     // no way in at all until 1.6.10.
                     onOpenArchive?.let { open ->
                         DropdownMenuItem(
-                            text = { Text("Archived chats") },
+                            text = { Text(tr("Archived chats", "Архив")) },
                             leadingIcon = { Icon(Symbols.Archive, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -1141,10 +1143,10 @@ private fun ComposeFabMenu(
     var expanded by rememberSaveable { mutableStateOf(false) }
     BackHandler(expanded) { expanded = false }
     val items = listOf(
-        Triple(Symbols.Edit, "New message", onNewMessage),
-        Triple(Symbols.Group, "New group", onNewGroup),
-        Triple(Symbols.Campaign, "New channel", onNewChannel),
-        Triple(Symbols.Link, "Join with a link", onJoinLink)
+        Triple(Symbols.Edit, tr("New message", "Новое сообщение"), onNewMessage),
+        Triple(Symbols.Group, tr("New group", "Новая группа"), onNewGroup),
+        Triple(Symbols.Campaign, tr("New channel", "Новый канал"), onNewChannel),
+        Triple(Symbols.Link, tr("Join with a link", "Вступить по ссылке"), onJoinLink)
     )
     FloatingActionButtonMenu(
         expanded = expanded,
@@ -1154,10 +1156,10 @@ private fun ComposeFabMenu(
                 onCheckedChange = { expanded = it },
                 modifier = Modifier.semantics {
                     traversalIndex = -1f
-                    stateDescription = if (expanded) "Expanded" else "Collapsed"
+                    stateDescription = if (expanded) tr("Expanded", "Развёрнуто") else tr("Collapsed", "Свёрнуто")
                     // "Compose" still, so it is found by the name it has
                     // always had.
-                    contentDescription = "Compose"
+                    contentDescription = tr("Compose", "Написать")
                 }
             ) {
                 val icon by remember {
@@ -1210,7 +1212,7 @@ private fun ContactPickerSheet(
         // and the difference reads as pale slabs with seams between them.
         val sheetRow = ListItemDefaults.colors(containerColor = Color.Transparent)
         Text(
-            "New message",
+            tr("New message", "Новое сообщение"),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp)
         )
@@ -1231,9 +1233,9 @@ private fun ContactPickerSheet(
             }
             compose.contacts.isEmpty() -> {
                 ListItem(
-                    headlineContent = { Text("No contacts") },
+                    headlineContent = { Text(tr("No contacts", "Нет контактов")) },
                     supportingContent = {
-                        Text("Nobody in this account's contact list to write to yet")
+                        Text(tr("Nobody in this account's contact list to write to yet", "В контактах этого аккаунта пока никого нет"))
                     },
                     colors = sheetRow
                 )
@@ -1305,7 +1307,7 @@ private fun ArchiveEntryRow(
             }
         },
         supportingContent = { Text(summary) },
-        content = { Text("Archived", fontWeight = FontWeight.Bold) }
+        content = { Text(tr("Archived", "Архив"), fontWeight = FontWeight.Bold) }
     )
 }
 
@@ -1341,7 +1343,7 @@ private fun BirthdayCardRow(
         },
         supportingContent = {
             Text(
-                if (card.isToday) "Tap to wish them a happy one" else "Tap to write to them",
+                if (card.isToday) tr("Tap to wish them a happy one", "Нажмите, чтобы поздравить") else tr("Tap to write to them", "Нажмите, чтобы написать"),
                 color = MaterialTheme.colorScheme.onTertiaryContainer
             )
         },
@@ -1349,7 +1351,7 @@ private fun BirthdayCardRow(
             IconButton(onClick = onDismiss) {
                 Icon(
                     Symbols.Close,
-                    contentDescription = "Hide birthdays",
+                    contentDescription = tr("Hide birthdays", "Скрыть дни рождения"),
                     tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }

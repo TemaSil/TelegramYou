@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -494,7 +496,7 @@ class HomeViewModel(
      * first.
      */
     fun logout() {
-        viewModelScope.launch { attempt("Could not sign out") { repository.logout() } }
+        viewModelScope.launch { attempt(tr("Could not sign out", "Не удалось выйти")) { repository.logout() } }
     }
 
     /**
@@ -527,7 +529,7 @@ class HomeViewModel(
      */
     fun onMutedChange(chatId: Long, muted: Boolean) {
         viewModelScope.launch {
-            attempt(if (muted) "Could not mute" else "Could not unmute") {
+            attempt(if (muted) tr("Could not mute", "Не удалось выключить звук") else tr("Could not unmute", "Не удалось включить звук")) {
                 repository.setChatMuted(chatId, muted)
             }
         }
@@ -606,7 +608,7 @@ class HomeViewModel(
                         isSaving = false,
                         // The server's own words. A sentence invented here
                         // would have to guess which of the three calls failed.
-                        errorMessage = e.message ?: "Could not save your profile"
+                        errorMessage = e.message ?: tr("Could not save your profile", "Не удалось сохранить профиль")
                     )
                 }
             }
@@ -616,7 +618,7 @@ class HomeViewModel(
     /** A new profile photo, picked from the gallery. */
     fun onProfilePhotoPicked(uri: String) {
         viewModelScope.launch {
-            attempt("Could not change the photo") { repository.setProfilePhoto(uri) }
+            attempt(tr("Could not change the photo", "Не удалось сменить фото")) { repository.setProfilePhoto(uri) }
         }
     }
 
@@ -626,15 +628,15 @@ class HomeViewModel(
      */
     val profileLooks = com.telegramyou.app.ui.profile.ProfileLooksActions(
         onBirthdateChange = { birthdate ->
-            viewModelScope.launch { attempt("Could not change your birthday") { repository.setBirthdate(birthdate) } }
+            viewModelScope.launch { attempt(tr("Could not change your birthday", "Не удалось изменить день рождения")) { repository.setBirthdate(birthdate) } }
         },
         colorChoices = { repository.profileColorChoices() },
         onProfileColorChange = { id ->
-            viewModelScope.launch { attempt("Could not change the colour") { repository.setProfileColor(id) } }
+            viewModelScope.launch { attempt(tr("Could not change the colour", "Не удалось сменить цвет")) { repository.setProfileColor(id) } }
         },
         statusChoices = { repository.emojiStatusChoices() },
         onEmojiStatusChange = { id ->
-            viewModelScope.launch { attempt("Could not change the status") { repository.setEmojiStatus(id) } }
+            viewModelScope.launch { attempt(tr("Could not change the status", "Не удалось сменить статус")) { repository.setEmojiStatus(id) } }
         }
     )
 
@@ -652,7 +654,7 @@ class HomeViewModel(
      */
     fun onPinnedChange(chatId: Long, pinned: Boolean) {
         viewModelScope.launch {
-            attempt(if (pinned) "Could not pin" else "Could not unpin") {
+            attempt(if (pinned) tr("Could not pin", "Не удалось закрепить") else tr("Could not unpin", "Не удалось открепить")) {
                 repository.setChatPinned(chatId, pinned)
             }
         }
@@ -661,7 +663,7 @@ class HomeViewModel(
     /** Clears a chat's unread badge without opening it. */
     fun onMarkRead(chatId: Long) {
         viewModelScope.launch {
-            attempt("Could not mark as read") { repository.markChatRead(chatId) }
+            attempt(tr("Could not mark as read", "Не удалось отметить прочитанным")) { repository.markChatRead(chatId) }
         }
     }
 
@@ -678,7 +680,7 @@ class HomeViewModel(
         compose.value = ComposeState(sheetOpen = true, isLoading = true)
         viewModelScope.launch {
             var list = emptyList<TelegramUser>()
-            attempt("Could not load contacts") { list = repository.contacts() }
+            attempt(tr("Could not load contacts", "Не удалось загрузить контакты")) { list = repository.contacts() }
             compose.update { it.copy(contacts = list, isLoading = false) }
         }
     }
@@ -698,7 +700,7 @@ class HomeViewModel(
         viewModelScope.launch {
             compose.update { it.copy(isLoading = true) }
             var chatId: Long? = null
-            attempt("Could not open the chat") { chatId = repository.openPrivateChat(userId) }
+            attempt(tr("Could not open the chat", "Не удалось открыть чат")) { chatId = repository.openPrivateChat(userId) }
             compose.value = if (chatId != null) {
                 ComposeState(openChatId = chatId)
             } else {
@@ -731,7 +733,7 @@ class HomeViewModel(
      */
     fun onArchivedChange(chatId: Long, archived: Boolean) {
         viewModelScope.launch {
-            attempt(if (archived) "Could not archive" else "Could not unarchive") {
+            attempt(if (archived) tr("Could not archive", "Не удалось архивировать") else tr("Could not unarchive", "Не удалось вернуть из архива")) {
                 repository.setChatArchived(chatId, archived)
             }
         }
@@ -743,7 +745,7 @@ class HomeViewModel(
      */
     fun onClearHistory(chatId: Long, forEveryone: Boolean) {
         viewModelScope.launch {
-            attempt("Could not clear the history") { repository.clearHistory(chatId, forEveryone) }
+            attempt(tr("Could not clear the history", "Не удалось очистить историю")) { repository.clearHistory(chatId, forEveryone) }
         }
     }
 
@@ -754,7 +756,7 @@ class HomeViewModel(
      */
     fun onDeleteChat(chatId: Long, forEveryone: Boolean) {
         viewModelScope.launch {
-            attempt("Could not delete the chat") { repository.deleteChat(chatId, forEveryone) }
+            attempt(tr("Could not delete the chat", "Не удалось удалить чат")) { repository.deleteChat(chatId, forEveryone) }
         }
     }
 
@@ -774,7 +776,7 @@ class HomeViewModel(
         loadingMore = true
         viewModelScope.launch {
             var more = false
-            attempt("Could not load more chats") { more = repository.loadMoreChats(folderId) }
+            attempt(tr("Could not load more chats", "Не удалось загрузить чаты")) { more = repository.loadMoreChats(folderId) }
             if (!more) exhaustedLists += folderId
             loadingMore = false
         }
@@ -787,7 +789,7 @@ class HomeViewModel(
         viewModelScope.launch {
             refreshing.value = true
             try {
-                attempt("Could not refresh") { repository.refreshChats() }
+                attempt(tr("Could not refresh", "Не удалось обновить")) { repository.refreshChats() }
             } finally {
                 refreshing.value = false
             }

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.newchat
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * Making a group or a channel, and getting into one somebody else made.
  *
@@ -27,7 +29,7 @@ const val MAX_CHAT_DESCRIPTION = 255
  * button waits without the field shouting.
  */
 fun titleProblem(title: String): String? =
-    if (title.trim().length > MAX_CHAT_TITLE) "At most $MAX_CHAT_TITLE characters" else null
+    if (title.trim().length > MAX_CHAT_TITLE) tr("At most $MAX_CHAT_TITLE characters", "Не больше $MAX_CHAT_TITLE символов") else null
 
 /**
  * Whether the create button does anything.

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.SendOptions
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.combine
@@ -355,7 +357,7 @@ class ChatViewModel(
             // Comments keep no draft of their own here: the group's draft is
             // the group's, and a thread's is not worth a request per pause —
             // draftRestored stays false, which keeps the saving off.
-            _uiState.update { it.copy(topicName = "Comments") }
+            _uiState.update { it.copy(topicName = tr("Comments", "Комментарии")) }
             viewModelScope.launch {
                 val post = runCatching { repository.commentPost(chatId, threadId) }.getOrNull().orEmpty()
                 if (post.isNotEmpty()) _uiState.update { it.copy(threadPost = post) }
@@ -373,7 +375,7 @@ class ChatViewModel(
                 draftRestored = true
                 _uiState.update {
                     it.copy(
-                        topicName = topic?.name ?: "Topic",
+                        topicName = topic?.name ?: tr("Topic", "Тема"),
                         draft = if (it.draft.isEmpty()) draft else it.draft
                     )
                 }
@@ -487,7 +489,7 @@ class ChatViewModel(
             // Said as well as drawn: the bubble's mark is easy to miss, and
             // what the server said is the only clue to what went wrong.
             is MessageUpdate.SendFailed -> patched.copy(
-                errorMessage = failureText("Could not send", update.error),
+                errorMessage = failureText(tr("Could not send", "Не удалось отправить"), update.error),
                 selection = patched.selection.retaining(patched.messages)
             )
             // The bar follows: a message pinned now is the one it shows,
@@ -608,7 +610,7 @@ class ChatViewModel(
     fun onCustomEmojiPicked(sticker: StickerContent) {
         if (sticker.customEmojiId == 0L) return
         if (repository.authState.value.me?.isPremium != true) {
-            _uiState.update { it.copy(notice = "Custom emoji need Telegram Premium") }
+            _uiState.update { it.copy(notice = tr("Custom emoji need Telegram Premium", "Для своих эмодзи нужен Telegram Premium")) }
             return
         }
         val emoji = sticker.emoji.ifBlank { "🙂" }
@@ -630,7 +632,7 @@ class ChatViewModel(
         if (setId == null) return
         viewModelScope.launch {
             var emoji = emptyList<StickerContent>()
-            attempt("Could not load the emoji") { emoji = repository.stickerSet(setId) }
+            attempt(tr("Could not load the emoji", "Не удалось загрузить эмодзи")) { emoji = repository.stickerSet(setId) }
             _uiState.update { state ->
                 val current = state.customEmoji
                 if (current?.selected != setId) state
@@ -672,7 +674,7 @@ class ChatViewModel(
             )
         }
         viewModelScope.launch {
-            attempt("Could not change the notifications") {
+            attempt(tr("Could not change the notifications", "Не удалось изменить уведомления")) {
                 repository.setChatNotifications(chatId, settings)
             }
         }
@@ -689,7 +691,7 @@ class ChatViewModel(
             state.copy(detail = state.detail?.let { it.copy(chat = it.chat.copy(isMuted = muted)) })
         }
         viewModelScope.launch {
-            attempt(if (muted) "Could not mute the channel" else "Could not unmute the channel") {
+            attempt(if (muted) tr("Could not mute the channel", "Не удалось выключить звук канала") else tr("Could not unmute the channel", "Не удалось включить звук канала")) {
                 repository.setChatMuted(chatId, muted)
             }
         }
@@ -698,7 +700,7 @@ class ChatViewModel(
     /** Join, at the foot of a channel this account is not in (2.4). */
     fun onChannelJoin() {
         viewModelScope.launch {
-            val joined = attempt("Could not join the channel") { repository.joinChat(chatId) }
+            val joined = attempt(tr("Could not join the channel", "Не удалось вступить в канал")) { repository.joinChat(chatId) }
             if (joined) {
                 _uiState.update { state ->
                     state.copy(
@@ -746,7 +748,7 @@ class ChatViewModel(
         viewModelScope.launch {
             var sets = emptyList<StickerSetPreview>()
             var recent = emptyList<StickerContent>()
-            attempt("Could not load stickers") {
+            attempt(tr("Could not load stickers", "Не удалось загрузить стикеры")) {
                 sets = repository.stickerSets()
                 recent = repository.recentStickers()
             }
@@ -771,7 +773,7 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             var stickers = emptyList<StickerContent>()
-            attempt("Could not load stickers") {
+            attempt(tr("Could not load stickers", "Не удалось загрузить стикеры")) {
                 stickers = if (setId == RECENT_STICKERS) {
                     repository.recentStickers()
                 } else {
@@ -796,7 +798,7 @@ class ChatViewModel(
         val answering = _uiState.value.replyTo
         _uiState.update { it.copy(replyTo = null) }
         viewModelScope.launch {
-            attempt("Could not send the sticker") {
+            attempt(tr("Could not send the sticker", "Не удалось отправить стикер")) {
                 repository.sendSticker(chatId, sticker, answering?.id)
             }
         }
@@ -808,13 +810,13 @@ class ChatViewModel(
      */
     fun onStickerImage(path: String?) {
         if (path == null) {
-            _uiState.update { it.copy(errorMessage = "This sticker cannot be sent as an image") }
+            _uiState.update { it.copy(errorMessage = tr("This sticker cannot be sent as an image", "Этот стикер нельзя отправить картинкой")) }
             return
         }
         val answering = _uiState.value.replyTo
         _uiState.update { it.copy(replyTo = null) }
         viewModelScope.launch {
-            attempt("Could not send the image") {
+            attempt(tr("Could not send the image", "Не удалось отправить картинку")) {
                 repository.sendMessage(chatId, "", AttachmentDraft.Photos(listOf("file://$path")), answering?.id)
             }
         }
@@ -838,7 +840,7 @@ class ChatViewModel(
             delay(pause)
             _uiState.update { it.copy(gifPicker = it.gifPicker?.copy(isLoading = true)) }
             var gifs = emptyList<GifItem>()
-            attempt("Could not load GIFs") {
+            attempt(tr("Could not load GIFs", "Не удалось загрузить GIF")) {
                 gifs = if (query.isBlank()) repository.savedGifs() else repository.searchGifs(query)
             }
             _uiState.update { state ->
@@ -874,7 +876,7 @@ class ChatViewModel(
         val answering = _uiState.value.replyTo
         _uiState.update { it.copy(replyTo = null) }
         viewModelScope.launch {
-            attempt("Could not send the GIF") {
+            attempt(tr("Could not send the GIF", "Не удалось отправить GIF")) {
                 repository.sendGif(chatId, gif, answering?.id)
             }
         }
@@ -984,11 +986,11 @@ class ChatViewModel(
 
         viewModelScope.launch {
             val sent = if (amending != null) {
-                attempt("Could not save the edit") {
+                attempt(tr("Could not save the edit", "Не удалось сохранить изменение")) {
                     repository.editMessage(chatId, amending.id, text)
                 }
             } else {
-                attempt("Could not send") {
+                attempt(tr("Could not send", "Не удалось отправить")) {
                     repository.sendMessage(chatId, text, attachment, answering?.id, picked = withEmoji, quote = quoting, options = options)
                 }
             }
@@ -1052,7 +1054,7 @@ class ChatViewModel(
             }
         }
         viewModelScope.launch {
-            val done = attempt("Could not react") {
+            val done = attempt(tr("Could not react", "Не удалось поставить реакцию")) {
                 repository.toggleReaction(chatId, message.id, emoji)
             }
             // Toggling is its own inverse, so a refusal is undone by drawing
@@ -1105,7 +1107,7 @@ class ChatViewModel(
             state.mapMessage(message.id) { it.copy(poll = before.withVote(chosen)) }
         }
         viewModelScope.launch {
-            val done = attempt(if (chosen.isEmpty()) "Could not retract the vote" else "Could not vote") {
+            val done = attempt(if (chosen.isEmpty()) tr("Could not retract the vote", "Не удалось отозвать голос") else tr("Could not vote", "Не удалось проголосовать")) {
                 repository.votePoll(chatId, message.id, chosen.sorted())
             }
             if (!done) _uiState.update { state ->
@@ -1121,7 +1123,7 @@ class ChatViewModel(
     fun onBotButton(message: ChatMessage, button: InlineButton) {
         when (val action = button.action) {
             is ButtonAction.Callback -> viewModelScope.launch {
-                attempt("The bot did not answer") {
+                attempt(tr("The bot did not answer", "Бот не ответил")) {
                     val answer = repository.pressButton(chatId, message.id, action.data)
                     if (answer != null) _uiState.update { it.copy(botAnswer = answer) }
                 }
@@ -1137,7 +1139,7 @@ class ChatViewModel(
         if (text.isBlank()) return
         onJumpToLatest()
         viewModelScope.launch {
-            attempt("Could not send") { repository.sendMessage(chatId, text) }
+            attempt(tr("Could not send", "Не удалось отправить")) { repository.sendMessage(chatId, text) }
         }
     }
 
@@ -1148,7 +1150,7 @@ class ChatViewModel(
         val pin = !message.isPinned
         applyUpdate(MessageUpdate.PinChanged(chatId, message.id, pin))
         viewModelScope.launch {
-            val done = attempt(if (pin) "Could not pin" else "Could not unpin") {
+            val done = attempt(if (pin) tr("Could not pin", "Не удалось закрепить") else tr("Could not unpin", "Не удалось открепить")) {
                 repository.setMessagePinned(chatId, message.id, pin)
             }
             if (!done) applyUpdate(MessageUpdate.PinChanged(chatId, message.id, !pin))
@@ -1170,7 +1172,7 @@ class ChatViewModel(
         _uiState.update { it.copy(pollDraft = null) }
         onJumpToLatest()
         viewModelScope.launch {
-            val sent = attempt("Could not send the poll") { repository.sendPoll(chatId, draft) }
+            val sent = attempt(tr("Could not send the poll", "Не удалось отправить опрос")) { repository.sendPoll(chatId, draft) }
             if (!sent) _uiState.update { it.copy(pollDraft = draft) }
         }
     }
@@ -1187,17 +1189,17 @@ class ChatViewModel(
         val text = state.draft
         if (text.isBlank() || state.pendingAttachment != null || state.editing != null) return
         if (!isValidSchedule(sendAt, nowSeconds)) {
-            _uiState.update { it.copy(errorMessage = "Pick a time in the future") }
+            _uiState.update { it.copy(errorMessage = tr("Pick a time in the future", "Выберите время в будущем")) }
             return
         }
         val answering = state.replyTo
         _uiState.update { it.copy(draft = "", replyTo = null) }
         viewModelScope.launch {
-            val done = attempt("Could not schedule") {
+            val done = attempt(tr("Could not schedule", "Не удалось запланировать")) {
                 repository.sendMessage(chatId, text, replyToId = answering?.id, sendAt = sendAt)
             }
             _uiState.update {
-                if (done) it.copy(notice = "Scheduled for ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}")
+                if (done) it.copy(notice = tr("Scheduled for ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}", "Запланировано на ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}"))
                 else if (it.draft.isEmpty()) it.copy(draft = text, replyTo = answering)
                 else it
             }
@@ -1221,7 +1223,7 @@ class ChatViewModel(
     fun onScheduledSendNow(message: ChatMessage) {
         _uiState.update { state -> state.copy(scheduled = state.scheduled?.filterNot { it.id == message.id }) }
         viewModelScope.launch {
-            attempt("Could not send") { repository.sendScheduledNow(chatId, message.id) }
+            attempt(tr("Could not send", "Не удалось отправить")) { repository.sendScheduledNow(chatId, message.id) }
             refreshScheduled()
         }
     }
@@ -1229,7 +1231,7 @@ class ChatViewModel(
     fun onScheduledDelete(message: ChatMessage) {
         _uiState.update { state -> state.copy(scheduled = state.scheduled?.filterNot { it.id == message.id }) }
         viewModelScope.launch {
-            attempt("Could not delete") { repository.deleteMessage(chatId, message.id, forEveryone = true) }
+            attempt(tr("Could not delete", "Не удалось удалить")) { repository.deleteMessage(chatId, message.id, forEveryone = true) }
             refreshScheduled()
         }
     }
@@ -1242,13 +1244,13 @@ class ChatViewModel(
     fun onContactAdd(contact: ContactContent) {
         viewModelScope.launch {
             var added: Long? = null
-            val done = attempt("Could not add the contact") {
+            val done = attempt(tr("Could not add the contact", "Не удалось добавить контакт")) {
                 added = repository.addContact(contact.phoneNumber, contact.firstName, contact.lastName)
             }
             if (done) {
                 val name = contact.displayName.ifBlank { contact.phoneNumber }
                 _uiState.update {
-                    it.copy(notice = if (added != null) "$name added to contacts" else "$name is not on Telegram")
+                    it.copy(notice = if (added != null) tr("$name added to contacts", "$name в контактах") else tr("$name is not on Telegram", "$name нет в Telegram"))
                 }
             }
         }
@@ -1259,7 +1261,7 @@ class ChatViewModel(
         val answering = _uiState.value.replyTo
         _uiState.update { it.copy(replyTo = null) }
         viewModelScope.launch {
-            attempt("Could not send the location") {
+            attempt(tr("Could not send the location", "Не удалось отправить геопозицию")) {
                 repository.sendLocation(chatId, latitude, longitude, accuracyMeters, answering?.id)
             }
         }
@@ -1270,7 +1272,7 @@ class ChatViewModel(
         _uiState.update { it.copy(attachmentSheetOpen = false, contactPicker = emptyList()) }
         viewModelScope.launch {
             var contacts = emptyList<TelegramUser>()
-            attempt("Could not load contacts") { contacts = repository.contacts() }
+            attempt(tr("Could not load contacts", "Не удалось загрузить контакты")) { contacts = repository.contacts() }
             _uiState.update { state -> if (state.contactPicker == null) state else state.copy(contactPicker = contacts) }
         }
     }
@@ -1282,7 +1284,7 @@ class ChatViewModel(
         val answering = _uiState.value.replyTo
         _uiState.update { it.copy(contactPicker = null, replyTo = null) }
         viewModelScope.launch {
-            attempt("Could not send the contact") {
+            attempt(tr("Could not send the contact", "Не удалось отправить контакт")) {
                 repository.sendContact(
                     chatId,
                     ContactContent(
@@ -1305,7 +1307,7 @@ class ChatViewModel(
     fun onRenewInviteLink() {
         viewModelScope.launch {
             var link: String? = null
-            val done = attempt("Could not make an invite link") { link = repository.renewInviteLink(chatId) }
+            val done = attempt(tr("Could not make an invite link", "Не удалось создать ссылку-приглашение")) { link = repository.renewInviteLink(chatId) }
             if (done && link != null) _uiState.update { it.copy(inviteLink = link) }
         }
     }
@@ -1320,7 +1322,7 @@ class ChatViewModel(
         _uiState.update { it.copy(translation = Translation(message.id, language)) }
         viewModelScope.launch {
             var translated: String? = null
-            val done = attempt("Could not translate it") {
+            val done = attempt(tr("Could not translate it", "Не удалось перевести")) {
                 translated = repository.translateMessage(message.chatId, message.id, language)
             }
             _uiState.update { state ->
@@ -1329,7 +1331,7 @@ class ChatViewModel(
                 when {
                     done && text != null -> state.copy(translation = open.copy(text = text))
                     // A failure has said so through the notice already.
-                    done -> state.copy(translation = null, notice = "Nothing to translate")
+                    done -> state.copy(translation = null, notice = tr("Nothing to translate", "Нечего переводить"))
                     else -> state.copy(translation = null)
                 }
             }
@@ -1344,7 +1346,7 @@ class ChatViewModel(
         viewModelScope.launch {
             val thread = runCatching { repository.commentThread(message.chatId, message.id) }.getOrNull()
             if (thread == null) {
-                _uiState.update { it.copy(notice = "Comments could not be opened") }
+                _uiState.update { it.copy(notice = tr("Comments could not be opened", "Не удалось открыть комментарии")) }
             } else {
                 open(thread)
             }
@@ -1444,7 +1446,7 @@ class ChatViewModel(
         _uiState.update { it.copy(draft = "", replyTo = null, inline = null) }
         onJumpToLatest()
         viewModelScope.launch {
-            attempt("Could not send") {
+            attempt(tr("Could not send", "Не удалось отправить")) {
                 repository.sendInlineResult(chatId, panel.queryId, result.id, answering?.id)
             }
         }
@@ -1466,7 +1468,7 @@ class ChatViewModel(
             if (session == null) {
                 fallback(url)
             } else {
-                _uiState.update { it.copy(webApp = OpenWebApp(session, message.senderName?.ifBlank { null } ?: "Mini App")) }
+                _uiState.update { it.copy(webApp = OpenWebApp(session, message.senderName?.ifBlank { null } ?: tr("Mini App", "Мини-приложение"))) }
             }
         }
     }
@@ -1512,11 +1514,11 @@ class ChatViewModel(
                         launch {
                             val original = runCatching { repository.repliedMessage(chatId, id) }.getOrNull()
                             val quote = if (original == null) {
-                                FetchedQuote(sender = null, text = "Deleted message")
+                                FetchedQuote(sender = null, text = tr("Deleted message", "Удалённое сообщение"))
                             } else {
                                 FetchedQuote(
-                                    sender = if (original.isOutgoing) "You" else original.senderName,
-                                    text = original.text.ifBlank { "Attachment" }
+                                    sender = if (original.isOutgoing) tr("You", "Вы") else original.senderName,
+                                    text = original.text.ifBlank { tr("Attachment", "Вложение") }
                                 )
                             }
                             _uiState.update { it.copy(fetchedQuotes = it.fetchedQuotes + (id to quote)) }
@@ -1560,7 +1562,7 @@ class ChatViewModel(
                             throw e
                         } catch (_: Exception) {
                             AutoTranslate.set(chatId, false)
-                            _uiState.update { it.copy(notice = "Telegram would not translate this chat") }
+                            _uiState.update { it.copy(notice = tr("Telegram would not translate this chat", "Telegram не стал переводить этот чат")) }
                             return@collect
                         }
                         if (text != null && text != message.text) {
@@ -1601,21 +1603,21 @@ class ChatViewModel(
     fun onMessageExtra(message: ChatMessage, extra: MessageExtra) {
         viewModelScope.launch {
             when (extra) {
-                MessageExtra.Repeat -> attempt("Could not repeat it") {
+                MessageExtra.Repeat -> attempt(tr("Could not repeat it", "Не удалось повторить")) {
                     repository.forwardMessages(chatId, listOf(message.id), chatId, true)
                 }
                 MessageExtra.SaveToSavedMessages -> {
                     val me = repository.observeAuth().value.me ?: return@launch
-                    val done = attempt("Could not save it") {
+                    val done = attempt(tr("Could not save it", "Не удалось сохранить")) {
                         val saved = repository.openPrivateChat(me.id)
                         repository.forwardMessages(chatId, listOf(message.id), saved, false)
                     }
-                    if (done) _uiState.update { it.copy(notice = "Saved to Saved Messages") }
+                    if (done) _uiState.update { it.copy(notice = tr("Saved to Saved Messages", "Сохранено в Избранное")) }
                 }
                 MessageExtra.DeleteFile -> {
                     val fileId = message.downloadedFileId() ?: return@launch
-                    val done = attempt("Could not delete the file") { repository.deleteDownloadedFile(fileId) }
-                    if (done) _uiState.update { it.copy(notice = "Deleted from this phone") }
+                    val done = attempt(tr("Could not delete the file", "Не удалось удалить файл")) { repository.deleteDownloadedFile(fileId) }
+                    if (done) _uiState.update { it.copy(notice = tr("Deleted from this phone", "Удалено с этого телефона")) }
                 }
             }
         }
@@ -1629,8 +1631,8 @@ class ChatViewModel(
     fun onSaveGif(message: ChatMessage) {
         val video = message.video ?: return
         viewModelScope.launch {
-            val done = attempt("Could not add the GIF") { repository.saveGif(video) }
-            if (done) _uiState.update { it.copy(notice = "Added to GIFs", gifPicker = null) }
+            val done = attempt(tr("Could not add the GIF", "Не удалось добавить GIF")) { repository.saveGif(video) }
+            if (done) _uiState.update { it.copy(notice = tr("Added to GIFs", "Добавлено в GIF"), gifPicker = null) }
         }
     }
 
@@ -1916,7 +1918,7 @@ class ChatViewModel(
                     fileToOpen = path?.let { FileToOpen(it, message.mimeType, message.fileName) },
                     // Paused or cancelled in Downloads is not a failure.
                     errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
-                        "Could not download ${message.fileName ?: "the file"}"
+                        tr("Could not download ${message.fileName ?: "the file"}", "Не удалось скачать ${message.fileName ?: "файл"}")
                     } else {
                         kept.errorMessage
                     }
@@ -1928,7 +1930,7 @@ class ChatViewModel(
     fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }
 
     fun onFileRefused(name: String?) = _uiState.update {
-        it.copy(fileToOpen = null, errorMessage = "No app on this phone opens ${name ?: "this file"}")
+        it.copy(fileToOpen = null, errorMessage = tr("No app on this phone opens ${name ?: "this file"}", "На этом телефоне нет приложения, которое откроет ${name ?: "этот файл"}"))
     }
 
     fun onVideoOpened(message: ChatMessage) {
@@ -2122,7 +2124,7 @@ class ChatViewModel(
         }
         viewModelScope.launch {
             var sentTo: Long? = null
-            attempt("Could not forward") {
+            attempt(tr("Could not forward", "Не удалось переслать")) {
                 val to = target()
                 repository.forwardMessages(chatId, ids, to, withoutQuote)
                 sentTo = to
@@ -2162,7 +2164,7 @@ class ChatViewModel(
     private fun delete(ids: List<Long>, forEveryone: Boolean) {
         applyUpdate(MessageUpdate.Deleted(chatId, ids.toSet()))
         viewModelScope.launch {
-            val done = attempt("Could not delete") {
+            val done = attempt(tr("Could not delete", "Не удалось удалить")) {
                 ids.forEach { repository.deleteMessage(chatId, it, forEveryone) }
             }
             if (!done) reload()
@@ -2204,7 +2206,7 @@ class ChatViewModel(
     fun loadPerson() {
         viewModelScope.launch {
             var person: PersonProfile? = null
-            attempt("Could not load the profile") { person = repository.personInChat(chatId) }
+            attempt(tr("Could not load the profile", "Не удалось загрузить профиль")) { person = repository.personInChat(chatId) }
             _uiState.update { it.copy(person = person) }
         }
     }
@@ -2213,7 +2215,7 @@ class ChatViewModel(
     fun onBlockedChange(blocked: Boolean) {
         val person = _uiState.value.person ?: return
         viewModelScope.launch {
-            val done = attempt(if (blocked) "Could not block" else "Could not unblock") {
+            val done = attempt(if (blocked) tr("Could not block", "Не удалось заблокировать") else tr("Could not unblock", "Не удалось разблокировать")) {
                 repository.setBlocked(person.user.id, blocked)
             }
             if (done) _uiState.update { it.copy(person = it.person?.copy(isBlocked = blocked)) }
@@ -2230,7 +2232,7 @@ class ChatViewModel(
 
     fun onLeaveConfirmed() {
         viewModelScope.launch {
-            val left = attempt("Could not leave") { repository.leaveChat(chatId) }
+            val left = attempt(tr("Could not leave", "Не удалось выйти")) { repository.leaveChat(chatId) }
             _uiState.update { it.copy(confirmingLeave = false, hasLeft = left) }
         }
     }
@@ -2242,14 +2244,14 @@ class ChatViewModel(
     fun onDeleteAllMine() {
         viewModelScope.launch {
             var count = 0
-            val done = attempt("Could not delete your messages") {
+            val done = attempt(tr("Could not delete your messages", "Не удалось удалить ваши сообщения")) {
                 count = repository.deleteAllMyMessages(chatId)
             }
             if (done) {
                 val said = when (count) {
-                    0 -> "You have no messages here"
-                    1 -> "1 message deleted"
-                    else -> "$count messages deleted"
+                    0 -> tr("You have no messages here", "Здесь нет ваших сообщений")
+                    1 -> tr("1 message deleted", "1 сообщение удалено")
+                    else -> tr("$count messages deleted", "Удалено ${com.telegramyou.app.i18n.counted(count, "", "", "сообщение", "сообщения", "сообщений")}")
                 }
                 _uiState.update { it.copy(notice = said) }
             }
@@ -2294,7 +2296,7 @@ class ChatViewModel(
         _uiState.update { it.copy(isLoadingOlder = true) }
         viewModelScope.launch {
             var older = emptyList<ChatMessage>()
-            val done = attempt("Could not load older messages") {
+            val done = attempt(tr("Could not load older messages", "Не удалось загрузить старые сообщения")) {
                 older = repository.loadOlderMessages(chatId, oldest.id)
             }
             if (!done) {
@@ -2324,10 +2326,10 @@ class ChatViewModel(
         viewModelScope.launch {
             val link = runCatching { repository.messageLink(message.chatId, message.id) }.getOrNull()
             if (link == null) {
-                _uiState.update { it.copy(notice = "This chat has no links to its messages") }
+                _uiState.update { it.copy(notice = tr("This chat has no links to its messages", "У этого чата нет ссылок на сообщения")) }
             } else {
                 copy(link)
-                _uiState.update { it.copy(notice = "Link copied") }
+                _uiState.update { it.copy(notice = tr("Link copied", "Ссылка скопирована")) }
             }
         }
     }
@@ -2347,11 +2349,11 @@ class ChatViewModel(
             val next = runCatching { repository.report(chatId, flow.messageIds, optionId, text) }
             next.onSuccess { step ->
                 _uiState.update {
-                    if (step is ReportStep.Done) it.copy(report = null, notice = "Reported. Thank you")
+                    if (step is ReportStep.Done) it.copy(report = null, notice = tr("Reported. Thank you", "Жалоба отправлена. Спасибо"))
                     else it.copy(report = flow.copy(step = step))
                 }
             }.onFailure { error ->
-                _uiState.update { it.copy(report = null, notice = error.message ?: "Could not report") }
+                _uiState.update { it.copy(report = null, notice = error.message ?: tr("Could not report", "Не удалось пожаловаться")) }
             }
         }
     }
@@ -2365,7 +2367,7 @@ class ChatViewModel(
         viewModelScope.launch {
             val id = runCatching { repository.firstMessageFrom(chatId, dayStart) }.getOrNull()
             if (id == null) {
-                _uiState.update { it.copy(notice = "Nothing was sent that day or after") }
+                _uiState.update { it.copy(notice = tr("Nothing was sent that day or after", "В этот день и позже ничего не отправлялось")) }
             } else {
                 onJumpToMessage(id)
             }
@@ -2388,7 +2390,7 @@ class ChatViewModel(
         jumpJob?.cancel()
         jumpJob = viewModelScope.launch {
             var around = emptyList<ChatMessage>()
-            val done = attempt("Could not open that message") {
+            val done = attempt(tr("Could not open that message", "Не удалось открыть это сообщение")) {
                 around = repository.loadMessagesAround(chatId, messageId)
             }
             if (!done || around.none { it.id == messageId }) return@launch
@@ -2438,7 +2440,7 @@ class ChatViewModel(
         _uiState.update { it.copy(isLoadingNewer = true) }
         viewModelScope.launch {
             var newer = emptyList<ChatMessage>()
-            val done = attempt("Could not load newer messages") {
+            val done = attempt(tr("Could not load newer messages", "Не удалось загрузить новые сообщения")) {
                 newer = repository.loadNewerMessages(chatId, newest.id)
             }
             _uiState.update { current ->
@@ -2513,7 +2515,7 @@ class ChatViewModel(
         viewModelScope.launch {
             lateinit var detail: ChatDetail
             var reactions = emptyList<String>()
-            val opened = attempt("Could not open the chat") {
+            val opened = attempt(tr("Could not open the chat", "Не удалось открыть чат")) {
                 detail = repository.openChat(chatId)
                 // Asked for once per load rather than per tap: a chat's
                 // permitted reactions do not change while it is open, and

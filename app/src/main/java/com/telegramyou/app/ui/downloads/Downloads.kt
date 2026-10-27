@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.downloads
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.components.withoutBottom
 import android.content.Context
 import android.os.Build
@@ -160,7 +162,7 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
     fun onCancel(entry: DownloadEntry) {
         viewModelScope.launch {
             repository.removeDownload(entry.fileId, deleteFile = true)
-            _uiState.update { it.copy(notice = "Cancelled ${entry.name}") }
+            _uiState.update { it.copy(notice = tr("Cancelled ${entry.name}", "Отменено: ${entry.name}")) }
             refreshSoon()
         }
     }
@@ -168,7 +170,7 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
     fun onRemoveFromList(entry: DownloadEntry) {
         viewModelScope.launch {
             repository.removeDownload(entry.fileId, deleteFile = false)
-            _uiState.update { it.copy(notice = "Taken off the list — the file is still on the phone") }
+            _uiState.update { it.copy(notice = tr("Taken off the list — the file is still on the phone", "Убрано из списка — файл остался на телефоне")) }
             refreshSoon()
         }
     }
@@ -176,7 +178,7 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
     fun onDeleteFromPhone(entry: DownloadEntry) {
         viewModelScope.launch {
             repository.removeDownload(entry.fileId, deleteFile = true)
-            _uiState.update { it.copy(notice = "Deleted from the phone · ${formatBytes(entry.sizeBytes)} freed") }
+            _uiState.update { it.copy(notice = tr("Deleted from the phone · ${formatBytes(entry.sizeBytes)} freed", "Удалено с телефона · освобождено ${formatBytes(entry.sizeBytes)}")) }
             refreshSoon()
         }
     }
@@ -186,7 +188,7 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
         viewModelScope.launch {
             repository.clearFinishedDownloads(deleteFiles)
             _uiState.update {
-                it.copy(notice = if (deleteFiles) "Cleared · ${formatBytes(freed)} freed" else "Cleared — the files are still on the phone")
+                it.copy(notice = if (deleteFiles) tr("Cleared · ${formatBytes(freed)} freed", "Очищено · освобождено ${formatBytes(freed)}") else tr("Cleared — the files are still on the phone", "Очищено — файлы остались на телефоне"))
             }
             refreshSoon()
         }
@@ -207,7 +209,7 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
                         when (outcome) {
                             is DownloadOutcome.Done -> it.copy(refetching = null, fileToOpen = FileToOpen(outcome.path, entry.mimeType, entry.name))
                             DownloadOutcome.Stopped -> it.copy(refetching = null)
-                            DownloadOutcome.Failed -> it.copy(refetching = null, notice = "Could not download ${entry.name}")
+                            DownloadOutcome.Failed -> it.copy(refetching = null, notice = tr("Could not download ${entry.name}", "Не удалось скачать ${entry.name}"))
                         }
                     }
                     refresh()
@@ -220,11 +222,11 @@ class DownloadsViewModel(private val repository: TelegramRepository) : ViewModel
     fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }
 
     fun onFileRefused(name: String) = _uiState.update {
-        it.copy(fileToOpen = null, notice = "No app on this phone opens $name")
+        it.copy(fileToOpen = null, notice = tr("No app on this phone opens $name", "На этом телефоне нет приложения, которое откроет $name"))
     }
 
     fun onSaved(name: String, saved: Boolean) = _uiState.update {
-        it.copy(notice = if (saved) "$name is in Downloads/TelegramYou" else "Could not save $name")
+        it.copy(notice = if (saved) tr("$name is in Downloads/TelegramYou", "$name — в Downloads/TelegramYou") else tr("Could not save $name", "Не удалось сохранить $name"))
     }
 
     fun onNoticeShown() = _uiState.update { it.copy(notice = null) }
@@ -278,7 +280,7 @@ fun DownloadsScreen(
     }
     state.fileToOpen?.let { file ->
         LaunchedEffect(file) {
-            val name = file.name ?: "this file"
+            val name = file.name ?: tr("this file", "этот файл")
             if (MediaActions.openFile(context, file.path, file.mime, file.name)) viewModel.onFileOpened()
             else viewModel.onFileRefused(name)
         }
@@ -288,24 +290,24 @@ fun DownloadsScreen(
         bottomBar = { playerBar() },
         topBar = {
             TopAppBar(
-                title = { Text("Downloads") },
+                title = { Text(tr("Downloads", "Загрузки")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                 },
                 actions = {
                     // One button for the whole queue: pause while anything
                     // runs, resume once everything is paused.
                     if (sections.anyRunning) {
-                        IconButton(onClick = viewModel::onPauseAll) { Icon(Symbols.Pause, contentDescription = "Pause all") }
+                        IconButton(onClick = viewModel::onPauseAll) { Icon(Symbols.Pause, contentDescription = tr("Pause all", "Приостановить все")) }
                     } else if (sections.anyPaused) {
-                        IconButton(onClick = viewModel::onResumeAll) { Icon(Symbols.PlayArrow, contentDescription = "Resume all") }
+                        IconButton(onClick = viewModel::onResumeAll) { Icon(Symbols.PlayArrow, contentDescription = tr("Resume all", "Продолжить все")) }
                     }
                     if (sections.finished.isNotEmpty()) {
                         Box {
-                            IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = "More") }
+                            IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = tr("More", "Ещё")) }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Clear finished") },
+                                    text = { Text(tr("Clear finished", "Убрать завершённые")) },
                                     leadingIcon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -333,7 +335,7 @@ fun DownloadsScreen(
                 sections.isEmpty -> EmptyDownloads()
                 else -> LazyColumn(contentPadding = PaddingValues(bottom = 24.dp + padding.calculateBottomPadding())) {
                     if (sections.active.isNotEmpty()) {
-                        item(key = "active-header") { SectionHeader("Downloading") }
+                        item(key = "active-header") { SectionHeader(tr("Downloading", "Скачивается")) }
                         items(sections.active, key = { "a${it.fileId}" }) { entry ->
                             ActiveRow(
                                 entry = entry,
@@ -345,7 +347,7 @@ fun DownloadsScreen(
                         }
                     }
                     if (sections.finished.isNotEmpty()) {
-                        item(key = "done-header") { SectionHeader("Downloaded") }
+                        item(key = "done-header") { SectionHeader(tr("Downloaded", "Скачано")) }
                         items(sections.finished, key = { "d${it.fileId}" }) { raw ->
                             val entry = raw.copy(isSavedToDevice = raw.fileId in savedIds)
                             FinishedRow(
@@ -374,9 +376,14 @@ fun DownloadsScreen(
                         // The thing people most often get wrong about
                         // Telegram's downloads, said once, where they look.
                         Text(
-                            "Downloaded files are kept in Telegram's storage on this phone, where file managers " +
-                                "do not look. Save to Downloads puts a copy in the phone's Downloads folder. " +
-                                "A file cleared from Telegram's storage stays on this list, to download again.",
+                            tr(
+                                "Downloaded files are kept in Telegram's storage on this phone, where file managers " +
+                                    "do not look. Save to Downloads puts a copy in the phone's Downloads folder. " +
+                                    "A file cleared from Telegram's storage stays on this list, to download again.",
+                                "Скачанное хранится в памяти Telegram на этом телефоне, куда файловые менеджеры " +
+                                    "не заглядывают. «Сохранить в Загрузки» кладёт копию в папку Downloads телефона. " +
+                                    "Файл, удалённый из памяти Telegram, остаётся в списке, чтобы скачать его снова."
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
@@ -392,13 +399,17 @@ fun DownloadsScreen(
         AlertDialog(
             onDismissRequest = { clearing = false },
             icon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
-            title = { Text("Clear finished downloads?") },
+            title = { Text(tr("Clear finished downloads?", "Убрать завершённые загрузки?")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val count = sections.finished.size
                     Text(
-                        "Takes ${if (count == 1) "1 file" else "$count files"} off this list. " +
-                            "The files stay on the phone unless you delete them too."
+                        tr(
+                            "Takes ${if (count == 1) "1 file" else "$count files"} off this list. " +
+                                "The files stay on the phone unless you delete them too.",
+                            "Уберёт из списка: ${com.telegramyou.app.i18n.counted(count, "", "", "файл", "файла", "файлов")}. " +
+                                "Сами файлы останутся на телефоне, если не удалить и их."
+                        )
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -407,7 +418,7 @@ fun DownloadsScreen(
                             .clickable { alsoDelete = !alsoDelete }
                     ) {
                         Checkbox(checked = alsoDelete, onCheckedChange = { alsoDelete = it })
-                        Text("Also delete them from the phone (${formatBytes(sections.finishedBytes)})")
+                        Text(tr("Also delete them from the phone (${formatBytes(sections.finishedBytes)})", "Удалить их и с телефона (${formatBytes(sections.finishedBytes)})"))
                     }
                 }
             },
@@ -415,30 +426,35 @@ fun DownloadsScreen(
                 TextButton(onClick = {
                     clearing = false
                     viewModel.onClearFinished(alsoDelete)
-                }) { Text("Clear") }
+                }) { Text(tr("Clear", "Убрать")) }
             },
-            dismissButton = { TextButton(onClick = { clearing = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { clearing = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
     deleting?.let { entry ->
         AlertDialog(
             onDismissRequest = { deleting = null },
             icon = { Icon(Symbols.Delete, contentDescription = null) },
-            title = { Text("Delete from the phone?") },
+            title = { Text(tr("Delete from the phone?", "Удалить с телефона?")) },
             text = {
                 Text(
-                    "${entry.name} goes from this phone and frees ${formatBytes(entry.sizeBytes)}. " +
-                        "It stays in the chat, to download again." +
-                        if (entry.isSavedToDevice) " The copy in Downloads is not touched." else ""
+                    tr(
+                        "${entry.name} goes from this phone and frees ${formatBytes(entry.sizeBytes)}. " +
+                            "It stays in the chat, to download again." +
+                            if (entry.isSavedToDevice) " The copy in Downloads is not touched." else "",
+                        "${entry.name} удалится с телефона и освободит ${formatBytes(entry.sizeBytes)}. " +
+                            "В чате он останется, его можно скачать снова." +
+                            if (entry.isSavedToDevice) " Копию в Загрузках это не затронет." else ""
+                    )
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null
                     viewModel.onDeleteFromPhone(entry)
-                }) { Text("Delete") }
+                }) { Text(tr("Delete", "Удалить")) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { deleting = null }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 }
@@ -469,12 +485,12 @@ private fun EmptyDownloads() {
             modifier = Modifier.size(48.dp)
         )
         Text(
-            "Nothing downloaded yet",
+            tr("Nothing downloaded yet", "Пока ничего не скачано"),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(top = 16.dp)
         )
         Text(
-            "Files, music and videos you download from chats are listed here, and stay listed until you remove them.",
+            tr("Files, music and videos you download from chats are listed here, and stay listed until you remove them.", "Здесь будут файлы, музыка и видео, скачанные из чатов. Они останутся в списке, пока вы их не уберёте."),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -529,11 +545,11 @@ private fun ActiveRow(
         trailingContent = {
             Row {
                 if (state == DownloadState.Paused) {
-                    IconButton(onClick = onResume) { Icon(Symbols.PlayArrow, contentDescription = "Resume ${entry.name}") }
+                    IconButton(onClick = onResume) { Icon(Symbols.PlayArrow, contentDescription = tr("Resume ${entry.name}", "Продолжить ${entry.name}")) }
                 } else {
-                    IconButton(onClick = onPause) { Icon(Symbols.Pause, contentDescription = "Pause ${entry.name}") }
+                    IconButton(onClick = onPause) { Icon(Symbols.Pause, contentDescription = tr("Pause ${entry.name}", "Приостановить ${entry.name}")) }
                 }
-                IconButton(onClick = onCancel) { Icon(Symbols.Close, contentDescription = "Cancel ${entry.name}") }
+                IconButton(onClick = onCancel) { Icon(Symbols.Close, contentDescription = tr("Cancel ${entry.name}", "Отменить ${entry.name}")) }
             }
         }
     )
@@ -570,11 +586,11 @@ private fun FinishedRow(
             } else {
                 Box {
                     IconButton(onClick = { menu = true }) {
-                        Icon(Symbols.MoreVert, contentDescription = "More for ${entry.name}")
+                        Icon(Symbols.MoreVert, contentDescription = tr("More for ${entry.name}", "Ещё для ${entry.name}"))
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
-                            text = { Text("Open chat") },
+                            text = { Text(tr("Open chat", "Открыть чат")) },
                             leadingIcon = { Icon(Symbols.Chat, contentDescription = null) },
                             onClick = {
                                 menu = false
@@ -583,7 +599,7 @@ private fun FinishedRow(
                         )
                         if (here && MediaActions.canSaveToDownloads && !entry.isSavedToDevice) {
                             DropdownMenuItem(
-                                text = { Text("Save to Downloads") },
+                                text = { Text(tr("Save to Downloads", "Сохранить в Загрузки")) },
                                 leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
                                 onClick = {
                                     menu = false
@@ -592,7 +608,7 @@ private fun FinishedRow(
                             )
                         }
                         DropdownMenuItem(
-                            text = { Text("Remove from list") },
+                            text = { Text(tr("Remove from list", "Убрать из списка")) },
                             leadingIcon = { Icon(Symbols.Close, contentDescription = null) },
                             onClick = {
                                 menu = false
@@ -601,7 +617,7 @@ private fun FinishedRow(
                         )
                         if (here) {
                             DropdownMenuItem(
-                                text = { Text("Delete from phone") },
+                                text = { Text(tr("Delete from phone", "Удалить с телефона")) },
                                 leadingIcon = { Icon(Symbols.Delete, contentDescription = null) },
                                 onClick = {
                                     menu = false

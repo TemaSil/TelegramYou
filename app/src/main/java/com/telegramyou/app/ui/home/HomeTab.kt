@@ -21,14 +21,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 // Two icons each, as Material 3 asks of a navigation bar: the outline while
 // the tab is not the one open, and the same glyph filled when it is — the
 // fill is part of how the bar says where you are.
-enum class HomeTab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
-    Chats("Chats", Symbols.Chat, Symbols.ChatFilled),
-    Search("Search", Symbols.Search, Symbols.SearchFilled),
+enum class HomeTab(private val en: String, private val ru: String, val icon: ImageVector, val selectedIcon: ImageVector) {
+    Chats("Chats", "Чаты", Symbols.Chat, Symbols.ChatFilled),
+    Search("Search", "Поиск", Symbols.Search, Symbols.SearchFilled),
     // Only while the music library is on (For geeks → Experiments): it is
     // the library, a tap away rather than behind the chat list's menu.
-    Music("Music", Symbols.LibraryMusic, Symbols.LibraryMusicFilled),
+    Music("Music", "Музыка", Symbols.LibraryMusic, Symbols.LibraryMusicFilled),
     // Settings before Profile, with the profile at the end of the bar the
     // way the official client places it — the owner's call.
-    Settings("Settings", Symbols.Settings, Symbols.SettingsFilled),
-    Profile("Profile", Symbols.Person, Symbols.PersonFilled)
+    Settings("Settings", "Настройки", Symbols.Settings, Symbols.SettingsFilled),
+    Profile("Profile", "Профиль", Symbols.Person, Symbols.PersonFilled);
+
+    /** Read each time, so a language picked for the app is the bar's at once. */
+    val label: String get() = com.telegramyou.app.i18n.tr(en, ru)
 }

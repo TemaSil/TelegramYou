@@ -1,6 +1,7 @@
 package com.telegramyou.app.ui.theme
 
 import com.materialkolor.dynamiccolor.ColorSpec
+import com.telegramyou.app.i18n.tr
 import com.materialkolor.dynamiccolor.MaterialDynamicColors
 import com.materialkolor.hct.Hct
 import com.materialkolor.quantize.QuantizerCelebi
@@ -149,16 +150,18 @@ fun seedFromPixels(pixels: IntArray): Int? {
 object Accents {
     const val TEAL = 0xFF1EE2A8.toInt()
 
-    val all: List<Pair<String, Int>> = listOf(
-        "Teal" to TEAL,
-        "Blue" to 0xFF4285F4.toInt(),
-        "Violet" to 0xFF7C4DFF.toInt(),
-        "Pink" to 0xFFE91E63.toInt(),
-        "Red" to 0xFFE53935.toInt(),
-        "Orange" to 0xFFFF8A00.toInt(),
-        "Amber" to 0xFFFFC107.toInt(),
-        "Green" to 0xFF4CAF50.toInt()
-    )
+    /** Named in the language in use, so read each time. */
+    val all: List<Pair<String, Int>>
+        get() = listOf(
+            tr("Teal", "Бирюзовый") to TEAL,
+            tr("Blue", "Синий") to 0xFF4285F4.toInt(),
+            tr("Violet", "Фиолетовый") to 0xFF7C4DFF.toInt(),
+            tr("Pink", "Розовый") to 0xFFE91E63.toInt(),
+            tr("Red", "Красный") to 0xFFE53935.toInt(),
+            tr("Orange", "Оранжевый") to 0xFFFF8A00.toInt(),
+            tr("Amber", "Янтарный") to 0xFFFFC107.toInt(),
+            tr("Green", "Зелёный") to 0xFF4CAF50.toInt()
+        )
 
     /** The name of [seed] if it is one of the offered accents. */
     fun nameOf(seed: Int): String? = all.firstOrNull { it.second == seed }?.first

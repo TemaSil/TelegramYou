@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -64,7 +66,7 @@ internal fun ContactCard(
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    contact.displayName.ifBlank { "Contact" },
+                    contact.displayName.ifBlank { tr("Contact", "Контакт") },
                     color = color,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -80,9 +82,9 @@ internal fun ContactCard(
         Spacer(Modifier.size(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (contact.isOnTelegram) {
-                FilledTonalButton(onClick = onOpen) { Text("View") }
+                FilledTonalButton(onClick = onOpen) { Text(tr("View", "Открыть")) }
             }
-            FilledTonalButton(onClick = onAdd) { Text("Add") }
+            FilledTonalButton(onClick = onAdd) { Text(tr("Add", "Добавить")) }
         }
     }
 }
@@ -110,7 +112,7 @@ internal fun LocationCard(location: LocationContent, outgoing: Boolean) {
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(
-                    location.title.ifBlank { if (location.isLive) "Live location" else "Location" },
+                    location.title.ifBlank { if (location.isLive) tr("Live location", "Трансляция геопозиции") else tr("Location", "Геопозиция") },
                     color = color,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -131,9 +133,9 @@ internal fun LocationCard(location: LocationContent, outgoing: Boolean) {
                 try {
                     context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(geoUri(location))))
                 } catch (_: ActivityNotFoundException) {
-                    Toast.makeText(context, "No maps app to open it", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, tr("No maps app to open it", "Нет приложения карт, чтобы открыть"), Toast.LENGTH_SHORT).show()
                 }
             }
-        ) { Text("Open in Maps") }
+        ) { Text(tr("Open in Maps", "Открыть в Картах")) }
     }
 }

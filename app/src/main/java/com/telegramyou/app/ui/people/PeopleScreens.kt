@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.people
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -89,7 +91,7 @@ private fun BackBar(title: String, onBack: () -> Unit, containerColor: androidx.
     TopAppBar(
         title = { Text(title) },
         navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+            IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
         },
         colors = if (containerColor != null) {
             TopAppBarDefaults.topAppBarColors(containerColor = containerColor)
@@ -142,7 +144,7 @@ fun PersonScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { BackBar("Info", onBack) }
+        topBar = { BackBar(tr("Info", "Информация"), onBack) }
     ) { padding ->
         if (state.isLoading) {
             Loading(padding)
@@ -150,7 +152,7 @@ fun PersonScreen(
         }
         if (profile == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("This person could not be found", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(tr("This person could not be found", "Не удалось найти этого человека"), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Scaffold
         }
@@ -184,11 +186,11 @@ fun PersonScreen(
             }
             personRows(profile) { what, text ->
                 copyToClipboard(text)
-                scope.launch { snackbarHostState.showSnackbar("$what copied") }
+                scope.launch { snackbarHostState.showSnackbar(tr("$what copied", "$what: скопировано")) }
             }
             item(key = "message") {
                 ListItem(
-                    headlineContent = { Text("Send message") },
+                    headlineContent = { Text(tr("Send message", "Написать")) },
                     leadingContent = { Icon(Symbols.Chat, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = onSendMessage)
                 )
@@ -223,7 +225,7 @@ fun BlockedScreen(
     Scaffold(
         containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { BackBar("Blocked users", onBack, settingsBackground()) }
+        topBar = { BackBar(tr("Blocked users", "Заблокированные"), onBack, settingsBackground()) }
     ) { padding ->
         if (state.isLoading) {
             Loading(padding)
@@ -235,9 +237,9 @@ fun BlockedScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Nobody is blocked", style = MaterialTheme.typography.titleMedium)
+                Text(tr("Nobody is blocked", "Никто не заблокирован"), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Block someone from their profile. They will not be able to message or call you.",
+                    tr("Block someone from their profile. They will not be able to message or call you.", "Заблокировать можно из профиля человека. Он не сможет вам писать и звонить."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -257,7 +259,7 @@ fun BlockedScreen(
                     index = index,
                     count = state.people.size,
                     onClick = { onOpenPerson(user.id) },
-                    trailing = { TextButton(onClick = { onUnblock(user) }) { Text("Unblock") } }
+                    trailing = { TextButton(onClick = { onUnblock(user) }) { Text(tr("Unblock", "Разблокировать")) } }
                 )
             }
         }
@@ -297,16 +299,16 @@ fun ContactsScreen(
     Scaffold(
         containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { BackBar("Contacts", onBack, settingsBackground()) },
+        topBar = { BackBar(tr("Contacts", "Контакты"), onBack, settingsBackground()) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onAddRequested,
                 // Named explicitly: the alpha's extended button publishes an
                 // empty node, which TalkBack reads as "button" and UiAutomator
                 // cannot find — see the same fix on NewChatScreen.
-                modifier = Modifier.semantics { contentDescription = "Add contact" },
+                modifier = Modifier.semantics { contentDescription = tr("Add contact", "Добавить контакт") },
                 icon = { Icon(Symbols.PersonAdd, contentDescription = null) },
-                text = { Text("Add contact") }
+                text = { Text(tr("Add contact", "Добавить контакт")) }
             )
         }
     ) { padding ->
@@ -317,7 +319,7 @@ fun ContactsScreen(
         if (state.contacts.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding).padding(32.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    "No contacts yet. Add someone by their phone number.",
+                    tr("No contacts yet. Add someone by their phone number.", "Контактов пока нет. Добавьте кого-нибудь по номеру телефона."),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
@@ -389,7 +391,7 @@ private fun AddContactDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add contact") },
+        title = { Text(tr("Add contact", "Добавить контакт")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // A plus and digits, as typed — not reformatted under the
@@ -398,7 +400,7 @@ private fun AddContactDialog(
                 OutlinedTextField(
                     value = draft.phone,
                     onValueChange = { text -> onChange { it.copy(phone = PhoneEntry.normalize(text)) } },
-                    label = { Text("Phone number") },
+                    label = { Text(tr("Phone number", "Номер телефона")) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     modifier = Modifier.fillMaxWidth()
@@ -406,7 +408,7 @@ private fun AddContactDialog(
                 OutlinedTextField(
                     value = draft.firstName,
                     onValueChange = { text -> onChange { it.copy(firstName = text) } },
-                    label = { Text("First name") },
+                    label = { Text(tr("First name", "Имя")) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth()
@@ -414,7 +416,7 @@ private fun AddContactDialog(
                 OutlinedTextField(
                     value = draft.lastName,
                     onValueChange = { text -> onChange { it.copy(lastName = text) } },
-                    label = { Text("Last name (optional)") },
+                    label = { Text(tr("Last name (optional)", "Фамилия (необязательно)")) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth()
@@ -423,9 +425,9 @@ private fun AddContactDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirm, enabled = draft.isComplete && !isSaving) {
-                Text(if (isSaving) "Adding…" else "Add")
+                Text(if (isSaving) tr("Adding…", "Добавляем…") else tr("Add", "Добавить"))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }

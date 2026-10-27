@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * What TDLib's files take on this phone, by kind — the Data and storage
  * screen, and what clearing the cache can give back.
@@ -20,16 +22,19 @@ data class StorageSlice(val kind: StorageKind, val bytes: Long, val count: Int)
  * two dozen file types; these are the ones a settings screen can name.
  * [tdTypes] are what clearing a kind asks TDLib to delete.
  */
-enum class StorageKind(val label: String, val tdTypes: List<String>) {
-    Photos("Photos", listOf("fileTypePhoto", "fileTypeThumbnail")),
-    Videos("Videos", listOf("fileTypeVideo", "fileTypeVideoNote", "fileTypeAnimation")),
-    Voice("Voice messages", listOf("fileTypeVoiceNote")),
-    Music("Music", listOf("fileTypeAudio")),
-    Files("Files", listOf("fileTypeDocument")),
-    Stories("Stories", listOf("fileTypePhotoStory", "fileTypeVideoStory")),
-    Stickers("Stickers", listOf("fileTypeSticker")),
-    ProfilePhotos("Profile photos", listOf("fileTypeProfilePhoto")),
-    Other("Other", listOf("fileTypeUnknown", "fileTypeWallpaper", "fileTypeNotificationSound"))
+enum class StorageKind(private val labelEn: String, private val labelRu: String, val tdTypes: List<String>) {
+    Photos("Photos", "Фото", listOf("fileTypePhoto", "fileTypeThumbnail")),
+    Videos("Videos", "Видео", listOf("fileTypeVideo", "fileTypeVideoNote", "fileTypeAnimation")),
+    Voice("Voice messages", "Голосовые", listOf("fileTypeVoiceNote")),
+    Music("Music", "Музыка", listOf("fileTypeAudio")),
+    Files("Files", "Файлы", listOf("fileTypeDocument")),
+    Stories("Stories", "Истории", listOf("fileTypePhotoStory", "fileTypeVideoStory")),
+    Stickers("Stickers", "Стикеры", listOf("fileTypeSticker")),
+    ProfilePhotos("Profile photos", "Фото профилей", listOf("fileTypeProfilePhoto")),
+    Other("Other", "Другое", listOf("fileTypeUnknown", "fileTypeWallpaper", "fileTypeNotificationSound"));
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /** A TDLib file type to its kind; secret and self-destructing files count as other. */
@@ -52,8 +57,8 @@ fun storageSlices(byType: List<Triple<String, Long, Int>>): List<StorageSlice> =
  * settings count: "0 B", "740 KB", "12.4 MB", "1.3 GB".
  */
 fun bytesLabel(bytes: Long): String = when {
-    bytes < 1_000 -> "${bytes.coerceAtLeast(0)} B"
-    bytes < 1_000_000 -> "${(bytes + 999) / 1_000} KB"
-    bytes < 1_000_000_000 -> "%.1f MB".format(java.util.Locale.ROOT, bytes / 1_000_000.0)
-    else -> "%.1f GB".format(java.util.Locale.ROOT, bytes / 1_000_000_000.0)
+    bytes < 1_000 -> "${bytes.coerceAtLeast(0)} " + tr("B", "Б")
+    bytes < 1_000_000 -> "${(bytes + 999) / 1_000} " + tr("KB", "КБ")
+    bytes < 1_000_000_000 -> "%.1f ".format(java.util.Locale.ROOT, bytes / 1_000_000.0) + tr("MB", "МБ")
+    else -> "%.1f ".format(java.util.Locale.ROOT, bytes / 1_000_000_000.0) + tr("GB", "ГБ")
 }

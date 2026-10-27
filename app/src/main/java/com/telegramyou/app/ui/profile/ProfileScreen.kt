@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.components.withoutBottom
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.auth.PhoneEntry
@@ -112,7 +114,7 @@ fun ProfileContent(
         // Before the client has answered. Not an error and not an empty
         // state: the account is on its way.
         Box(modifier.fillMaxSize().padding(contentPadding), contentAlignment = Alignment.Center) {
-            Text("Loading your account…")
+            Text(tr("Loading your account…", "Загружаем аккаунт…"))
         }
         return
     }
@@ -201,16 +203,16 @@ fun ProfileContent(
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
             IconButton(onClick = { showingQr = true }) {
-                Icon(Symbols.QrCode2, contentDescription = "QR code")
+                Icon(Symbols.QrCode2, contentDescription = tr("QR code", "QR-код"))
             }
             Spacer(Modifier.weight(1f))
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Symbols.MoreVert, contentDescription = "More")
+                    Icon(Symbols.MoreVert, contentDescription = tr("More", "Ещё"))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
-                        text = { Text(if (link == null) "Set a username" else "Change username") },
+                        text = { Text(if (link == null) tr("Set a username", "Задать имя пользователя") else tr("Change username", "Сменить имя пользователя")) },
                         leadingIcon = { Icon(Symbols.AlternateEmail, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -219,7 +221,7 @@ fun ProfileContent(
                     )
                     if (link != null) {
                         DropdownMenuItem(
-                            text = { Text("Copy link to profile") },
+                            text = { Text(tr("Copy link to profile", "Скопировать ссылку на профиль")) },
                             leadingIcon = { Icon(Symbols.Link, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -258,7 +260,7 @@ fun ProfileContent(
                 statusSize = 32.dp
             )
             Text(
-                "online",
+                tr("online", "в сети"),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (me.profileColor != null) {
                     androidx.compose.material3.LocalContentColor.current
@@ -279,9 +281,9 @@ fun ProfileContent(
         // weights the row is divided, everything fits, and that path is
         // never taken. See ROADMAP, "ButtonGroup".
         val actions = listOf(
-            Triple("Set photo", Symbols.AddAPhoto, pickPhoto),
-            Triple("Edit", Symbols.Edit, { editing = true }),
-            Triple("Settings", Symbols.Settings, onOpenSettings)
+            Triple(tr("Set photo", "Фото"), Symbols.AddAPhoto, pickPhoto),
+            Triple(tr("Edit", "Изменить"), Symbols.Edit, { editing = true }),
+            Triple(tr("Settings", "Настройки"), Symbols.Settings, onOpenSettings)
         )
         ButtonGroup(
             overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState = menuState) },
@@ -321,26 +323,26 @@ fun ProfileContent(
                         // — with libphonenumber, the formatter the login
                         // screen types through; TDLib sends bare digits.
                         title = PhoneEntry.format(phone),
-                        summary = "Mobile",
+                        summary = tr("Mobile", "Мобильный"),
                         leading = { SettingsIcon(Symbols.Phone) },
                         onClick = { copy(phone) }
                     )
             }
             item(
-                    title = me.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "No username",
-                    summary = if (link != null) "Username · tap to copy the link" else "Username · set one so people can find you",
+                    title = me.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: tr("No username", "Нет имени пользователя"),
+                    summary = if (link != null) tr("Username · tap to copy the link", "Имя пользователя · нажмите, чтобы скопировать ссылку") else tr("Username · set one so people can find you", "Имя пользователя · задайте, чтобы вас находили"),
                     leading = { SettingsIcon(Symbols.AlternateEmail) },
                     onClick = { if (link != null) copy(link) else editing = true }
                 )
             item(
-                    title = me.bio.ifBlank { "Add a few words about yourself" },
-                    summary = "Bio",
+                    title = me.bio.ifBlank { tr("Add a few words about yourself", "Расскажите немного о себе") },
+                    summary = tr("Bio", "О себе"),
                     leading = { SettingsIcon(Symbols.Info) },
                     onClick = { editing = true }
                 )
             item(
-                    title = me.birthdate?.line(java.time.LocalDate.now()) ?: "Add your birthday",
-                    summary = "Birthday",
+                    title = me.birthdate?.line(java.time.LocalDate.now()) ?: tr("Add your birthday", "Добавьте день рождения"),
+                    summary = tr("Birthday", "День рождения"),
                     leading = { SettingsIcon(Symbols.Cake) },
                     onClick = { editingBirthday = true }
                 )
@@ -348,30 +350,30 @@ fun ProfileContent(
         // How the profile looks to others, which Telegram keeps for Premium.
         SettingsGroup {
             item(
-                    title = "Profile colour",
+                    title = tr("Profile colour", "Цвет профиля"),
                     summary = if (me.isPremium) {
-                        if (me.profileColor != null) "Your profile's card" else "None"
+                        if (me.profileColor != null) tr("Your profile's card", "Карточка вашего профиля") else tr("None", "Нет")
                     } else {
-                        "Telegram Premium"
+                        tr("Telegram Premium", "Telegram Premium")
                     },
                     leading = { SettingsIcon(Symbols.Palette) },
-                    onClick = { if (me.isPremium) choosingColor = true else premiumFor = "a profile colour" }
+                    onClick = { if (me.isPremium) choosingColor = true else premiumFor = tr("a profile colour", "цвет профиля") }
                 )
             item(
-                    title = "Emoji status",
+                    title = tr("Emoji status", "Эмодзи-статус"),
                     summary = if (me.isPremium) {
-                        if (me.emojiStatusId != null) "After your name" else "None"
+                        if (me.emojiStatusId != null) tr("After your name", "После вашего имени") else tr("None", "Нет")
                     } else {
-                        "Telegram Premium"
+                        tr("Telegram Premium", "Telegram Premium")
                     },
                     leading = { SettingsIcon(Symbols.AddReaction) },
-                    onClick = { if (me.isPremium) choosingStatus = true else premiumFor = "an emoji status" }
+                    onClick = { if (me.isPremium) choosingStatus = true else premiumFor = tr("an emoji status", "эмодзи-статус") }
                 )
         }
         if (me.isPremium) {
             SettingsGroup {
                 item(
-                        title = "Telegram Premium",
+                        title = tr("Telegram Premium", "Telegram Premium"),
                         leading = { SettingsIcon(Symbols.WorkspacePremium, IconTone.Tertiary) },
                         onClick = {}
                     )
@@ -396,10 +398,10 @@ private fun AccountsGroup(
 ) {
     val others = accounts.others
     if (others.isEmpty() && !accounts.canAdd) return
-    SettingsGroup(title = "Accounts") {
+    SettingsGroup(title = tr("Accounts", "Аккаунты")) {
         others.forEach { slot ->
             item(
-                title = slot.name.ifBlank { "Telegram account" },
+                title = slot.name.ifBlank { tr("Telegram account", "Аккаунт Telegram") },
                 summary = slot.phone.takeIf { it.isNotBlank() }?.let { PhoneEntry.format(it) },
                 leading = {
                     AvatarBubble(
@@ -414,7 +416,7 @@ private fun AccountsGroup(
         }
         if (accounts.canAdd) {
             item(
-                title = "Add account",
+                title = tr("Add account", "Добавить аккаунт"),
                 leading = { SettingsIcon(Symbols.PersonAdd) },
                 onClick = onAdd
             )
@@ -463,9 +465,9 @@ private fun ProfileEditor(
             containerColor = settingsBackground(),
             topBar = {
                 TopAppBar(
-                    title = { Text("Edit profile") },
+                    title = { Text(tr("Edit profile", "Редактировать профиль")) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Close") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть")) }
                     },
                     actions = {
                         if (profile.isSaving) {
@@ -474,7 +476,7 @@ private fun ProfileEditor(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            TextButton(onClick = onSave, enabled = profile.canSave) { Text("Save") }
+                            TextButton(onClick = onSave, enabled = profile.canSave) { Text(tr("Save", "Сохранить")) }
                         }
                     }
                 )
@@ -506,7 +508,7 @@ private fun ProfileEditor(
                 ProfileTextField(
                     value = draft.bio,
                     onValueChange = { onDraftChange(draft.copy(bio = it)) },
-                    label = "Bio",
+                    label = tr("Bio", "О себе"),
                     error = profile.problemFor(ProfileField.Bio),
                     enabled = !profile.isSaving,
                     singleLine = false,
@@ -522,7 +524,7 @@ private fun ProfileEditor(
                     enabled = !profile.isSaving,
                     prefix = "@",
                     counter = if (draft.username.isBlank()) {
-                        "People can find you by username. Leave it empty to have none"
+                        tr("People can find you by username. Leave it empty to have none", "По имени пользователя вас смогут найти. Оставьте пустым, чтобы его не было")
                     } else {
                         null
                     }
@@ -546,9 +548,9 @@ private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             topBar = {
                 TopAppBar(
-                    title = { Text("QR code") },
+                    title = { Text(tr("QR code", "QR-код")) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Close") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть")) }
                     }
                 )
             }
@@ -579,7 +581,7 @@ private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit
                             )
                         } else {
                             Text(
-                                "Set a username, and your QR code will open your profile for anyone who scans it",
+                                tr("Set a username, and your QR code will open your profile for anyone who scans it", "Задайте имя пользователя — и ваш QR-код откроет профиль любому, кто его отсканирует"),
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center
                             )
@@ -599,10 +601,10 @@ private fun ProfileQr(me: TelegramUser, link: String?, onSetUsername: () -> Unit
                     ) {
                         Icon(Symbols.Share, contentDescription = null)
                         Spacer(Modifier.size(8.dp))
-                        Text("Share QR code")
+                        Text(tr("Share QR code", "Поделиться QR-кодом"))
                     }
                 } else {
-                    Button(onClick = onSetUsername, modifier = Modifier.fillMaxWidth()) { Text("Set a username") }
+                    Button(onClick = onSetUsername, modifier = Modifier.fillMaxWidth()) { Text(tr("Set a username", "Задать имя пользователя")) }
                 }
             }
         }

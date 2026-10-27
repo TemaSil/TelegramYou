@@ -1,5 +1,7 @@
 package com.telegramyou.app.widgets
 
+import com.telegramyou.app.i18n.tr
+
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
@@ -141,7 +143,7 @@ class PersonWidget : GlanceAppWidget() {
             if (!preview) {
                 Spacer(GlanceModifier.height(8.dp))
                 Text(
-                    "Choose someone",
+                    tr("Choose someone", "Выберите человека"),
                     style = TextStyle(
                         color = GlanceTheme.colors.onSurface,
                         fontSize = 14.sp,

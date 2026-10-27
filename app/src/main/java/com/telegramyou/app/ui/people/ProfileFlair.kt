@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.people
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -56,7 +58,7 @@ fun NameWithStatus(
             modifier = Modifier.weight(1f, fill = false)
         )
         if (emojiStatusId != null) {
-            Box(Modifier.semantics { contentDescription = "Emoji status" }) {
+            Box(Modifier.semantics { contentDescription = tr("Emoji status", "Эмодзи-статус") }) {
                 ReactionGlyph(customReactionKey(emojiStatusId), size = statusSize)
             }
         }
@@ -87,7 +89,7 @@ fun ProfileHeader(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .semantics { contentDescription = "Profile colour" }
+            .semantics { contentDescription = tr("Profile colour", "Цвет профиля") }
     ) {
         Box(contentAlignment = Alignment.Center) { content() }
     }

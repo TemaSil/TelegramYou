@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -44,10 +46,10 @@ fun NotificationsScreen(
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("Notifications") },
+                title = { Text(tr("Notifications", "Уведомления")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -65,18 +67,18 @@ fun NotificationsScreen(
                 val current = settings[scope] ?: ScopeNotifications()
                 SettingsGroup(scope.label) {
                     switch(
-                        title = "Notifications",
+                        title = tr("Notifications", "Уведомления"),
                         summary = current.summaryFor(scope),
                         checked = current.enabled
                     ) { on -> onChange(scope, current.copy(enabled = on)) }
                     switch(
-                        title = "Message preview",
-                        summary = "Show what the message says in the notification",
+                        title = tr("Message preview", "Текст в уведомлении"),
+                        summary = tr("Show what the message says in the notification", "Показывать текст сообщения в уведомлении"),
                         checked = current.showPreview,
                         enabled = current.enabled
                     ) { on -> onChange(scope, current.copy(showPreview = on)) }
                     switch(
-                        title = "Sound",
+                        title = tr("Sound", "Звук"),
                         checked = current.sound,
                         enabled = current.enabled
                     ) { on -> onChange(scope, current.copy(sound = on)) }
@@ -84,8 +86,8 @@ fun NotificationsScreen(
                     // of its own there (2.1), with the tone, the vibration
                     // and Do Not Disturb.
                     link(
-                        title = "More in Android's settings",
-                        summary = "Tone, vibration, and what reaches you in Do Not Disturb",
+                        title = tr("More in Android's settings", "Ещё в настройках Android"),
+                        summary = tr("Tone, vibration, and what reaches you in Do Not Disturb", "Мелодия, вибрация и что пробивается через «Не беспокоить»"),
                         onClick = { openChannelSettings(context, scope) }
                     )
                 }

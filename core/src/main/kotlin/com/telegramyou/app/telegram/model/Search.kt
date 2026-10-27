@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * The tabs of search, once something has been typed.
  *
@@ -9,18 +11,21 @@ package com.telegramyou.app.telegram.model
  * than names — messages in the chats this account is in, and posts in public
  * channels it may never have opened.
  */
-enum class SearchScope(val label: String) {
+enum class SearchScope(private val labelEn: String, private val labelRu: String) {
     // In this order so the four used most fit across a phone without the
     // tab row scrolling.
-    All("All"),
-    Chats("Chats"),
-    Messages("Messages"),
-    Posts("Posts"),
+    All("All", "Все"),
+    Chats("Chats", "Чаты"),
+    Messages("Messages", "Сообщения"),
+    Posts("Posts", "Публикации"),
     /** Tracks from every chat, by title and performer. */
-    Music("Music"),
-    Channels("Channels"),
-    Groups("Groups"),
-    Bots("Bots");
+    Music("Music", "Музыка"),
+    Channels("Channels", "Каналы"),
+    Groups("Groups", "Группы"),
+    Bots("Bots", "Боты");
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
+
 
     /** Whether [chat] belongs under this tab. */
     fun admits(chat: ChatPreview): Boolean = when (this) {
@@ -84,11 +89,11 @@ data class PostSearch(
     /** "3 free searches left today", "… next in 3 hours" — see durationLabel. */
     val limitLabel: String?
         get() = when {
-            limitReached -> "Free searches used up for today" +
-                (nextFreeInSeconds.takeIf { it > 0 }?.let { " — next in ${durationLabel(it)}" } ?: "")
+            limitReached -> tr("Free searches used up for today", "Бесплатные поиски на сегодня закончились") +
+                (nextFreeInSeconds.takeIf { it > 0 }?.let { tr(" — next in ${durationLabel(it)}", " — следующий через ${durationLabel(it)}") } ?: "")
             freeLeft == null -> null
-            freeLeft == 1 -> "1 free search left today"
-            else -> "$freeLeft free searches left today"
+            freeLeft == 1 -> tr("1 free search left today", "Сегодня остался 1 бесплатный поиск")
+            else -> tr("$freeLeft free searches left today", "Бесплатных поисков на сегодня: $freeLeft")
         }
 }
 

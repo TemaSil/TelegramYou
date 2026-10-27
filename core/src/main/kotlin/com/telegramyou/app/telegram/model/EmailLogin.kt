@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.tr
+
 /**
  * Giving up on the login email, when the code went there and the mailbox is
  * gone. Telegram lets the account fall back to a code by SMS, after a wait
@@ -16,9 +20,9 @@ sealed interface EmailReset {
 /** What the reset button says, which is also what it will do. */
 fun emailResetLabel(reset: EmailReset): String = when (reset) {
     is EmailReset.Available ->
-        if (reset.waitSeconds <= 0) "Reset email" else "Reset email (takes ${durationLabel(reset.waitSeconds)})"
+        if (reset.waitSeconds <= 0) tr("Reset email", "Сбросить почту") else tr("Reset email (takes ${durationLabel(reset.waitSeconds)})", "Сбросить почту (займёт ${durationLabel(reset.waitSeconds)})")
     is EmailReset.Pending ->
-        if (reset.resetInSeconds <= 0) "Reset email now" else "Email resets in ${durationLabel(reset.resetInSeconds)}"
+        if (reset.resetInSeconds <= 0) tr("Reset email now", "Сбросить почту сейчас") else tr("Email resets in ${durationLabel(reset.resetInSeconds)}", "Почта сбросится через ${durationLabel(reset.resetInSeconds)}")
 }
 
 /**
@@ -27,12 +31,11 @@ fun emailResetLabel(reset: EmailReset): String = when (reset) {
  * the seventh reads as a broken promise.
  */
 fun durationLabel(seconds: Int): String {
-    val (amount, unit) = when {
-        seconds >= DAY -> ceilDiv(seconds, DAY) to "day"
-        seconds >= HOUR -> ceilDiv(seconds, HOUR) to "hour"
-        else -> ceilDiv(seconds.coerceAtLeast(1), MINUTE) to "minute"
+    return when {
+        seconds >= DAY -> counted(ceilDiv(seconds, DAY), "day", "days", "день", "дня", "дней")
+        seconds >= HOUR -> counted(ceilDiv(seconds, HOUR), "hour", "hours", "час", "часа", "часов")
+        else -> counted(ceilDiv(seconds.coerceAtLeast(1), MINUTE), "minute", "minutes", "минуту", "минуты", "минут")
     }
-    return if (amount == 1) "1 $unit" else "$amount ${unit}s"
 }
 
 /**

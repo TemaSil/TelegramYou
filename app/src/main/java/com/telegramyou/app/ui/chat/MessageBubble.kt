@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.LocalContentColor
 import com.telegramyou.app.telegram.model.ContactContent
@@ -382,7 +384,7 @@ internal fun MessageBubble(
                     // Telegram marks an edited message; hiding it would
                     // let a bubble quietly differ from what was sent.
                     Text(
-                        "edited ",
+                        tr("edited ", "изменено "),
                         style = MaterialTheme.typography.labelSmall,
                         color = footnote
                     )
@@ -408,10 +410,10 @@ internal fun MessageBubble(
                             else -> Symbols.Done
                         },
                         contentDescription = when {
-                            message.sendState == SendState.Failed -> "Not sent"
-                            message.sendState == SendState.Pending -> "Sending"
-                            message.isRead -> "Read"
-                            else -> "Sent"
+                            message.sendState == SendState.Failed -> tr("Not sent", "Не отправлено")
+                            message.sendState == SendState.Pending -> tr("Sending", "Отправляется")
+                            message.isRead -> tr("Read", "Прочитано")
+                            else -> tr("Sent", "Отправлено")
                         },
                         tint = if (message.sendState == SendState.Failed) {
                             MaterialTheme.colorScheme.error
@@ -523,7 +525,7 @@ internal fun MessageBubble(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
                                 .clickable(onClick = onDocumentOpen)
-                                .semantics { contentDescription = "Open ${message.fileName ?: "file"}" }
+                                .semantics { contentDescription = tr("Open ${message.fileName ?: "file"}", "Открыть ${message.fileName ?: "файл"}") }
                         ) {
                             if (documentOpening) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -532,7 +534,7 @@ internal fun MessageBubble(
                             }
                             Spacer(Modifier.width(8.dp))
                             Column {
-                                Text(message.fileName ?: "File", fontWeight = FontWeight.SemiBold)
+                                Text(message.fileName ?: tr("File", "Файл"), fontWeight = FontWeight.SemiBold)
                                 Text(
                                     message.fileSizeLabel ?: "",
                                     style = MaterialTheme.typography.labelSmall,
@@ -581,7 +583,7 @@ internal fun MessageBubble(
                             // Rather than an empty bubble, the caption — which
                             // is what the rest of the app would show anyway.
                             Text(
-                                message.text.ifBlank { "Video" },
+                                message.text.ifBlank { tr("Video", "Видео") },
                                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface
                             )
@@ -636,7 +638,7 @@ internal fun MessageBubble(
                         val note = message.video
                         if (note == null) {
                             Text(
-                                "Video message",
+                                tr("Video message", "Видеосообщение"),
                                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface
                             )
@@ -689,7 +691,7 @@ internal fun MessageBubble(
                                 onSeek = onVoiceSeek
                             )
                         } else {
-                            Text(message.text.ifBlank { "Audio" })
+                            Text(message.text.ifBlank { tr("Audio", "Аудио") })
                         }
                         if (message.text.isNotBlank() && audio != null) {
                             Spacer(Modifier.height(6.dp))
@@ -702,7 +704,7 @@ internal fun MessageBubble(
                     }
                     MessageContentType.Voice -> {
                         VoiceMessage(
-                            label = message.text.ifBlank { "Voice message" },
+                            label = message.text.ifBlank { tr("Voice message", "Голосовое сообщение") },
                             waveform = message.waveform,
                             state = voiceState,
                             outgoing = outgoing,
@@ -824,7 +826,7 @@ internal fun MessageBubble(
                     HorizontalDivider()
                 }
                 DropdownMenuItem(
-                    text = { Text("Reply") },
+                    text = { Text(tr("Reply", "Ответить")) },
                     leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
                     onClick = {
                         onReply()
@@ -835,7 +837,7 @@ internal fun MessageBubble(
                 // in a dialog, and the reply shows those over itself.
                 if (message.text.length > QUOTE_WORTH_IT) {
                     DropdownMenuItem(
-                        text = { Text("Quote") },
+                        text = { Text(tr("Quote", "Цитировать")) },
                         leadingIcon = { Icon(Symbols.FormatQuote, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -849,7 +851,7 @@ internal fun MessageBubble(
                 // work at all.
                 if (message.contentType == MessageContentType.Animation && message.video != null) {
                     DropdownMenuItem(
-                        text = { Text("Add to GIFs") },
+                        text = { Text(tr("Add to GIFs", "Добавить в GIF")) },
                         leadingIcon = { Icon(Symbols.GifBox, contentDescription = null) },
                         onClick = {
                             onSaveGif()
@@ -861,7 +863,7 @@ internal fun MessageBubble(
                 // the queue is otherwise one chat's music.
                 if (message.audio != null) {
                     DropdownMenuItem(
-                        text = { Text("Play next") },
+                        text = { Text(tr("Play next", "Играть следующим")) },
                         leadingIcon = { Icon(Symbols.SkipNext, contentDescription = null) },
                         onClick = {
                             onPlayNext()
@@ -869,7 +871,7 @@ internal fun MessageBubble(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to queue") },
+                        text = { Text(tr("Add to queue", "В очередь")) },
                         leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null) },
                         onClick = {
                             onAddToQueue()
@@ -878,7 +880,7 @@ internal fun MessageBubble(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Forward") },
+                    text = { Text(tr("Forward", "Переслать")) },
                     leadingIcon = { Icon(Symbols.Forward, contentDescription = null) },
                     onClick = {
                         onForward()
@@ -886,7 +888,7 @@ internal fun MessageBubble(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text(if (message.isPinned) "Unpin" else "Pin") },
+                    text = { Text(if (message.isPinned) tr("Unpin", "Открепить") else tr("Pin", "Закрепить")) },
                     leadingIcon = { Icon(Symbols.PushPinFilled, contentDescription = null) },
                     onClick = {
                         onPinToggled()
@@ -894,7 +896,7 @@ internal fun MessageBubble(
                     }
                 )
                 DropdownMenuItem(
-                    text = { Text("Select") },
+                    text = { Text(tr("Select", "Выбрать")) },
                     leadingIcon = {
                         Icon(Symbols.CheckCircleFilled, contentDescription = null)
                     },
@@ -905,7 +907,7 @@ internal fun MessageBubble(
                 )
                 if (quickReactions.isEmpty()) {
                     DropdownMenuItem(
-                        text = { Text("React") },
+                        text = { Text(tr("React", "Реакция")) },
                         leadingIcon = {
                             Icon(Symbols.AddReaction, contentDescription = null)
                         },
@@ -916,7 +918,7 @@ internal fun MessageBubble(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text("Copy") },
+                    text = { Text(tr("Copy", "Копировать")) },
                     leadingIcon = { Icon(Symbols.ContentCopy, contentDescription = null) },
                     onClick = {
                         onCopy()
@@ -925,7 +927,7 @@ internal fun MessageBubble(
                 )
                 if (message.text.isNotBlank()) {
                     DropdownMenuItem(
-                        text = { Text("Translate") },
+                        text = { Text(tr("Translate", "Перевести")) },
                         leadingIcon = { Icon(Symbols.Translate, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -935,7 +937,7 @@ internal fun MessageBubble(
                 }
                 if (onCopyLink != null) {
                     DropdownMenuItem(
-                        text = { Text("Copy link") },
+                        text = { Text(tr("Copy link", "Копировать ссылку")) },
                         leadingIcon = { Icon(Symbols.Link, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -945,7 +947,7 @@ internal fun MessageBubble(
                 }
                 if (onReport != null) {
                     DropdownMenuItem(
-                        text = { Text("Report") },
+                        text = { Text(tr("Report", "Пожаловаться")) },
                         leadingIcon = { Icon(Symbols.ErrorOutline, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -958,7 +960,7 @@ internal fun MessageBubble(
                 val mediaPath = message.photoPath ?: message.video?.path
                 if (geeks.saveMedia && mediaPath != null && MediaActions.canSaveToDownloads) {
                     DropdownMenuItem(
-                        text = { Text("Save to Downloads") },
+                        text = { Text(tr("Save to Downloads", "Сохранить в Загрузки")) },
                         leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -969,7 +971,7 @@ internal fun MessageBubble(
                                 }
                                 Toast.makeText(
                                     context,
-                                    if (saved) "Saved to Downloads" else "Could not save",
+                                    if (saved) tr("Saved to Downloads", "Сохранено в Загрузки") else tr("Could not save", "Не удалось сохранить"),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -979,7 +981,7 @@ internal fun MessageBubble(
                 val photoPath = message.photoPath
                 if (geeks.saveMedia && photoPath != null) {
                     DropdownMenuItem(
-                        text = { Text("Copy photo") },
+                        text = { Text(tr("Copy photo", "Копировать фото")) },
                         leadingIcon = { Icon(Symbols.Image, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -988,7 +990,7 @@ internal fun MessageBubble(
                                     MediaActions.copyPhoto(context, photoPath)
                                 }
                                 if (!copied) {
-                                    Toast.makeText(context, "Could not copy the photo", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, tr("Could not copy the photo", "Не удалось скопировать фото"), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -998,7 +1000,7 @@ internal fun MessageBubble(
                 // Nekogram's menu carries and a stock one does not.
                 if (geeks.messageExtras) {
                     DropdownMenuItem(
-                        text = { Text("Repeat") },
+                        text = { Text(tr("Repeat", "Повторить")) },
                         leadingIcon = { Icon(Symbols.Repeat, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -1006,7 +1008,7 @@ internal fun MessageBubble(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Save to Saved Messages") },
+                        text = { Text(tr("Save to Saved Messages", "Сохранить в Избранное")) },
                         leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -1015,7 +1017,7 @@ internal fun MessageBubble(
                     )
                     if (message.downloadedFileId() != null) {
                         DropdownMenuItem(
-                            text = { Text("Delete from this phone") },
+                            text = { Text(tr("Delete from this phone", "Удалить с этого телефона")) },
                             leadingIcon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -1026,7 +1028,7 @@ internal fun MessageBubble(
                 }
                 if (geeks.messageDetails) {
                     DropdownMenuItem(
-                        text = { Text("Details") },
+                        text = { Text(tr("Details", "Подробности")) },
                         leadingIcon = { Icon(Symbols.Info, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -1036,7 +1038,7 @@ internal fun MessageBubble(
                 }
                 if (message.canBeEdited) {
                     DropdownMenuItem(
-                        text = { Text("Edit") },
+                        text = { Text(tr("Edit", "Изменить")) },
                         leadingIcon = { Icon(Symbols.Edit, contentDescription = null) },
                         onClick = {
                             onEdit()
@@ -1047,7 +1049,7 @@ internal fun MessageBubble(
                 if (message.canBeDeletedForSelf || message.canBeDeletedForEveryone) {
                     DropdownMenuItem(
                         text = {
-                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                            Text(tr("Delete", "Удалить"), color = MaterialTheme.colorScheme.error)
                         },
                         leadingIcon = {
                             Icon(
@@ -1076,16 +1078,16 @@ internal fun MessageBubble(
 internal fun MessageDetailsDialog(message: ChatMessage, onDismiss: () -> Unit) {
     val copy = rememberTextCopier()
     val lines = buildList {
-        add("Sent" to fullDate(message.date))
-        add("Message ID" to message.id.toString())
-        add("Chat ID" to message.chatId.toString())
-        message.senderName?.takeIf { it.isNotBlank() }?.let { add("From" to it) }
-        message.senderId?.let { add("Sender ID" to it.toString()) }
-        if (message.isEdited) add("Edited" to "Yes")
+        add(tr("Sent", "Отправлено") to fullDate(message.date))
+        add(tr("Message ID", "ID сообщения") to message.id.toString())
+        add(tr("Chat ID", "ID чата") to message.chatId.toString())
+        message.senderName?.takeIf { it.isNotBlank() }?.let { add(tr("From", "От") to it) }
+        message.senderId?.let { add(tr("Sender ID", "ID отправителя") to it.toString()) }
+        if (message.isEdited) add(tr("Edited", "Изменено") to tr("Yes", "Да"))
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Message details") },
+        title = { Text(tr("Message details", "Подробности сообщения")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 lines.forEach { (label, value) ->
@@ -1100,9 +1102,9 @@ internal fun MessageDetailsDialog(message: ChatMessage, onDismiss: () -> Unit) {
             TextButton(onClick = {
                 copy(lines.joinToString("\n") { "${it.first}: ${it.second}" })
                 onDismiss()
-            }) { Text("Copy") }
+            }) { Text(tr("Copy", "Копировать")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Close", "Закрыть")) } }
     )
 }
 
@@ -1220,7 +1222,7 @@ private fun QuickReactions(
             )
         }
         IconButton(onClick = onMore, modifier = Modifier.size(40.dp)) {
-            Icon(Symbols.KeyboardArrowDown, contentDescription = "More reactions")
+            Icon(Symbols.KeyboardArrowDown, contentDescription = tr("More reactions", "Ещё реакции"))
         }
     }
 }
@@ -1243,8 +1245,8 @@ internal fun ReactionCell(option: ReactionOption, chosen: Boolean, size: Dp, onC
             .semantics {
                 contentDescription = when {
                     !custom -> option.emoji
-                    option.needsPremium -> "Custom emoji, Premium"
-                    else -> "Custom emoji"
+                    option.needsPremium -> tr("Custom emoji, Premium", "Свои эмодзи, Premium")
+                    else -> tr("Custom emoji", "Свои эмодзи")
                 }
             }
     ) {
@@ -1307,13 +1309,13 @@ internal fun QuotedMessage(sender: String?, text: String?, onTint: Color) {
         Spacer(Modifier.width(8.dp))
         Column {
             Text(
-                sender ?: "Reply",
+                sender ?: tr("Reply", "Ответить"),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = onTint.copy(alpha = 0.9f)
             )
             Text(
-                text ?: "Message",
+                text ?: tr("Message", "Сообщение"),
                 style = MaterialTheme.typography.bodySmall,
                 color = onTint.copy(alpha = 0.7f),
                 maxLines = 1,

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.folders
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -67,7 +69,7 @@ private fun FolderBar(title: String, onBack: () -> Unit, actions: @Composable ()
     TopAppBar(
         title = { Text(title) },
         navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+            IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
         },
         actions = { actions() },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -85,9 +87,8 @@ private fun Snackbars(message: String?, host: SnackbarHostState, onShown: () -> 
 }
 
 private fun chatsLabel(count: Int): String = when (count) {
-    0 -> "No chats"
-    1 -> "1 chat"
-    else -> "$count chats"
+    0 -> tr("No chats", "Нет чатов")
+    else -> com.telegramyou.app.i18n.counted(count, "chat", "chats", "чат", "чата", "чатов")
 }
 
 /**
@@ -115,15 +116,15 @@ fun FoldersScreen(
     Scaffold(
         containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = { FolderBar("Chat folders", onBack) },
+        topBar = { FolderBar(tr("Chat folders", "Папки с чатами"), onBack) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onNewFolder,
                 // Named explicitly: the alpha's extended button publishes an
                 // empty node otherwise — see ContactsScreen.
-                modifier = Modifier.semantics { contentDescription = "New folder" },
+                modifier = Modifier.semantics { contentDescription = tr("New folder", "Новая папка") },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
-                text = { Text("New folder") }
+                text = { Text(tr("New folder", "Новая папка")) }
             )
         }
     ) { padding ->
@@ -136,14 +137,18 @@ fun FoldersScreen(
                 .padding(bottom = 96.dp)
         ) {
             Text(
-                "Folders sort your chats into tabs above the chat list. " +
-                    "A folder takes chats by type, or one by one.",
+                tr(
+                    "Folders sort your chats into tabs above the chat list. " +
+                        "A folder takes chats by type, or one by one.",
+                    "Папки раскладывают чаты по вкладкам над списком. " +
+                        "В папку попадают чаты по типу или по одному."
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
             )
             if (rows.isNotEmpty()) {
-                SettingsGroup("Your folders") {
+                SettingsGroup(tr("Your folders", "Ваши папки")) {
                     rows.forEachIndexed { index, row ->
                         item(
                             title = row.folder.title,
@@ -179,25 +184,25 @@ private fun FolderMenu(
     var open by remember { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }) {
-            Icon(Symbols.MoreVert, contentDescription = "$title options")
+            Icon(Symbols.MoreVert, contentDescription = tr("$title options", "$title: действия"))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             if (canMoveUp) {
                 DropdownMenuItem(
-                    text = { Text("Move up") },
+                    text = { Text(tr("Move up", "Выше")) },
                     leadingIcon = { Icon(Symbols.ArrowUpward, contentDescription = null) },
                     onClick = { open = false; onMoveUp() }
                 )
             }
             if (canMoveDown) {
                 DropdownMenuItem(
-                    text = { Text("Move down") },
+                    text = { Text(tr("Move down", "Ниже")) },
                     leadingIcon = { Icon(Symbols.ArrowDownward, contentDescription = null) },
                     onClick = { open = false; onMoveDown() }
                 )
             }
             DropdownMenuItem(
-                text = { Text("Delete") },
+                text = { Text(tr("Delete", "Удалить")) },
                 leadingIcon = { Icon(Symbols.Delete, contentDescription = null) },
                 onClick = { open = false; onDelete() }
             )
@@ -210,10 +215,10 @@ private fun DeleteFolderDialog(title: String, onDismiss: () -> Unit, onConfirm: 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Delete, contentDescription = null) },
-        title = { Text("Delete $title?") },
-        text = { Text("The folder goes; its chats stay in your chat list.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        title = { Text(tr("Delete $title?", "Удалить $title?")) },
+        text = { Text(tr("The folder goes; its chats stay in your chat list.", "Папка удалится, а её чаты останутся в списке.")) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(tr("Delete", "Удалить")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 
@@ -242,7 +247,7 @@ fun FolderEditScreen(
     Snackbars(state.message, snackbarHostState, onMessageShown)
     if (state.done) LaunchedEffect(Unit) { onBack() }
     if (state.deleteAsked) {
-        DeleteFolderDialog(state.rules.name.ifBlank { "this folder" }, onDeleteDismissed, onDeleteConfirmed)
+        DeleteFolderDialog(state.rules.name.ifBlank { tr("this folder", "эту папку") }, onDeleteDismissed, onDeleteConfirmed)
     }
     if (state.pickerOpen) {
         ChatPicker(
@@ -256,9 +261,9 @@ fun FolderEditScreen(
         containerColor = settingsBackground(),
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            FolderBar(if (state.isNew) "New folder" else "Edit folder", onBack) {
+            FolderBar(if (state.isNew) tr("New folder", "Новая папка") else tr("Edit folder", "Изменить папку"), onBack) {
                 TextButton(onClick = onSave, enabled = state.rules.canSave && !state.isSaving) {
-                    Text("Save")
+                    Text(tr("Save", "Сохранить"))
                 }
             }
         }
@@ -282,13 +287,13 @@ fun FolderEditScreen(
             OutlinedTextField(
                 value = rules.name,
                 onValueChange = onNameChange,
-                label = { Text("Folder name") },
+                label = { Text(tr("Folder name", "Название папки")) },
                 singleLine = true,
                 supportingText = {
                     Row(Modifier.fillMaxWidth()) {
                         Text(
                             if (rules.name.isNotBlank() && !rules.includesSomething) {
-                                "Add chats or choose a type of chat below"
+                                tr("Add chats or choose a type of chat below", "Добавьте чаты или выберите типы чатов ниже")
                             } else {
                                 ""
                             },
@@ -301,11 +306,11 @@ fun FolderEditScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .semantics { contentDescription = "Folder name" }
+                    .semantics { contentDescription = tr("Folder name", "Название папки") }
             )
 
-            SettingsGroup("Chats") {
-                link(title = "Add chats", icon = Symbols.Add, onClick = onPickerOpen)
+            SettingsGroup(tr("Chats", "Чаты")) {
+                link(title = tr("Add chats", "Добавить чаты"), icon = Symbols.Add, onClick = onPickerOpen)
                 state.includedChats.forEach { chat ->
                     item(
                         title = chat.title,
@@ -322,31 +327,31 @@ fun FolderEditScreen(
                         },
                         trailing = {
                             IconButton(onClick = { onChatToggled(chat.id) }) {
-                                Icon(Symbols.Close, contentDescription = "Remove ${chat.title}", tint = removeColor)
+                                Icon(Symbols.Close, contentDescription = tr("Remove ${chat.title}", "Убрать ${chat.title}"), tint = removeColor)
                             }
                         }
                     )
                 }
             }
 
-            SettingsGroup("Chat types") {
-                switch("Contacts", rules.includeContacts) { on -> onRulesChange { it.copy(includeContacts = on) } }
-                switch("Non-contacts", rules.includeNonContacts) { on -> onRulesChange { it.copy(includeNonContacts = on) } }
-                switch("Groups", rules.includeGroups) { on -> onRulesChange { it.copy(includeGroups = on) } }
-                switch("Channels", rules.includeChannels) { on -> onRulesChange { it.copy(includeChannels = on) } }
-                switch("Bots", rules.includeBots) { on -> onRulesChange { it.copy(includeBots = on) } }
+            SettingsGroup(tr("Chat types", "Типы чатов")) {
+                switch(tr("Contacts", "Контакты"), rules.includeContacts) { on -> onRulesChange { it.copy(includeContacts = on) } }
+                switch(tr("Non-contacts", "Не контакты"), rules.includeNonContacts) { on -> onRulesChange { it.copy(includeNonContacts = on) } }
+                switch(tr("Groups", "Группы"), rules.includeGroups) { on -> onRulesChange { it.copy(includeGroups = on) } }
+                switch(tr("Channels", "Каналы"), rules.includeChannels) { on -> onRulesChange { it.copy(includeChannels = on) } }
+                switch(tr("Bots", "Боты"), rules.includeBots) { on -> onRulesChange { it.copy(includeBots = on) } }
             }
 
             // Only what the types let in: a chat added by hand stays.
-            SettingsGroup("Leave out") {
-                switch("Muted", rules.excludeMuted) { on -> onRulesChange { it.copy(excludeMuted = on) } }
-                switch("Read", rules.excludeRead) { on -> onRulesChange { it.copy(excludeRead = on) } }
-                switch("Archived", rules.excludeArchived) { on -> onRulesChange { it.copy(excludeArchived = on) } }
+            SettingsGroup(tr("Leave out", "Исключить")) {
+                switch(tr("Muted", "Без звука"), rules.excludeMuted) { on -> onRulesChange { it.copy(excludeMuted = on) } }
+                switch(tr("Read", "Прочитанные"), rules.excludeRead) { on -> onRulesChange { it.copy(excludeRead = on) } }
+                switch(tr("Archived", "Архивные"), rules.excludeArchived) { on -> onRulesChange { it.copy(excludeArchived = on) } }
             }
 
             if (!state.isNew) {
                 SettingsGroup {
-                    item(title = "Delete folder", titleColor = errorColor, onClick = onDeleteRequested)
+                    item(title = tr("Delete folder", "Удалить папку"), titleColor = errorColor, onClick = onDeleteRequested)
                 }
             }
         }
@@ -373,15 +378,15 @@ private fun ChatPicker(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Choose chats",
+                tr("Choose chats", "Выберите чаты"),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onDismiss) { Text("Done") }
+            TextButton(onClick = onDismiss) { Text(tr("Done", "Готово")) }
         }
         if (chats.isEmpty()) {
             Text(
-                "No chats yet.",
+                tr("No chats yet.", "Чатов пока нет."),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(32.dp)
             )

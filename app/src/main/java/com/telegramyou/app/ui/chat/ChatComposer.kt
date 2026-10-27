@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -187,13 +189,13 @@ internal fun ComposerBanner(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    if (isEditing) "Edit message" else (message.senderName ?: "You"),
+                    if (isEditing) tr("Edit message", "Изменение сообщения") else (message.senderName ?: tr("You", "Вы")),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    message.text.ifBlank { "Attachment" },
+                    message.text.ifBlank { tr("Attachment", "Вложение") },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -203,7 +205,7 @@ internal fun ComposerBanner(
             IconButton(onClick = onCancel) {
                 Icon(
                     Symbols.Close,
-                    contentDescription = if (isEditing) "Cancel edit" else "Cancel reply"
+                    contentDescription = if (isEditing) tr("Cancel edit", "Отменить изменение") else tr("Cancel reply", "Отменить ответ")
                 )
             }
         }
@@ -214,14 +216,17 @@ internal fun ComposerBanner(
 internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
     if (draft == null) return
     val label = when (draft) {
-        is AttachmentDraft.Files -> "${draft.names.size} file(s): ${draft.names.firstOrNull().orEmpty()}"
-        is AttachmentDraft.Photos -> "${draft.uris.size} photo(s)"
+        is AttachmentDraft.Files -> tr(
+            "${draft.names.size} file(s): ${draft.names.firstOrNull().orEmpty()}",
+            "Файлов: ${draft.names.size}: ${draft.names.firstOrNull().orEmpty()}"
+        )
+        is AttachmentDraft.Photos -> tr("${draft.uris.size} photo(s)", "Фото: ${draft.uris.size}")
         // A recording is sent the moment the finger lifts, so this chip is
         // only ever seen for the instant between the two — named anyway,
         // because a `when` over a sealed type is where a new case should
         // announce itself rather than fall into an else.
-        is AttachmentDraft.Voice -> "Voice message ${formatDuration(draft.durationSeconds.toLong())}"
-        is AttachmentDraft.VideoNote -> "Video message ${formatDuration(draft.durationSeconds.toLong())}"
+        is AttachmentDraft.Voice -> tr("Voice message", "Голосовое") + " ${formatDuration(draft.durationSeconds.toLong())}"
+        is AttachmentDraft.VideoNote -> tr("Video message", "Видеосообщение") + " ${formatDuration(draft.durationSeconds.toLong())}"
     }
     // An InputChip, which is the Material component for "one item you have
     // added and can take back". It was a Row painted to look like a chip,
@@ -243,7 +248,7 @@ internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
                 )
             },
             trailingIcon = {
-                Icon(Symbols.Close, contentDescription = "Remove attachment")
+                Icon(Symbols.Close, contentDescription = tr("Remove attachment", "Убрать вложение"))
             }
         )
     }
@@ -318,7 +323,7 @@ internal fun ComposerBar(
     /** Held by the screen, so replying can put the caret in the field. */
     focusRequester: FocusRequester,
     /** The bot's placeholder, when it set one. */
-    placeholder: String = "Message",
+    placeholder: String = tr("Message", "Сообщение"),
     /**
      * Null in a chat with no bot keyboard; otherwise whether it is up, and
      * the field grows a button to raise or lower it.
@@ -375,17 +380,17 @@ internal fun ComposerBar(
             IconButton(onClick = onBotKeyboardToggle) {
                 Icon(
                     if (botKeyboardShown) Symbols.KeyboardHide else Symbols.Keyboard,
-                    contentDescription = if (botKeyboardShown) "Hide bot keyboard" else "Bot keyboard"
+                    contentDescription = if (botKeyboardShown) tr("Hide bot keyboard", "Скрыть клавиатуру бота") else tr("Bot keyboard", "Клавиатура бота")
                 )
             }
         }
         if (expressionsOpen) {
             IconButton(onClick = onKeyboard) {
-                Icon(Symbols.Keyboard, contentDescription = "Keyboard")
+                Icon(Symbols.Keyboard, contentDescription = tr("Keyboard", "Клавиатура"))
             }
         } else {
             IconButton(onClick = onExpressions) {
-                Icon(Symbols.EmojiEmotions, contentDescription = "Emoji, GIFs and stickers")
+                Icon(Symbols.EmojiEmotions, contentDescription = tr("Emoji, GIFs and stickers", "Эмодзи, GIF и стикеры"))
             }
         }
         // Without a capsule, the camera sits at the end of the
@@ -584,7 +589,7 @@ internal fun ComposerBar(
                         )
                         Icon(
                             Symbols.AddCircle,
-                            contentDescription = if (attachOpen) "Close attachments" else "Attach",
+                            contentDescription = if (attachOpen) tr("Close attachments", "Закрыть вложения") else tr("Attach", "Прикрепить"),
                             modifier = Modifier.rotate(turn)
                         )
                     }
@@ -678,7 +683,7 @@ private fun CapsuleComposer(
             ) {
                 Icon(
                     if (attachOpen) Symbols.Close else Symbols.AttachFile,
-                    contentDescription = if (attachOpen) "Close attachments" else "Attach"
+                    contentDescription = if (attachOpen) tr("Close attachments", "Закрыть вложения") else tr("Attach", "Прикрепить")
                 )
             }
             camera()
@@ -748,7 +753,7 @@ private fun CameraButton(
                 }
             }
     ) {
-        Icon(Symbols.PhotoCamera, contentDescription = "Camera, hold for a video message")
+        Icon(Symbols.PhotoCamera, contentDescription = tr("Camera, hold for a video message", "Камера, удерживайте для видеосообщения"))
     }
 }
 
@@ -814,7 +819,7 @@ private fun RecordingRow(
         modifier = modifier
             .height(56.dp)
             .padding(start = 8.dp, end = 4.dp)
-            .semantics { contentDescription = "Recording a voice message" }
+            .semantics { contentDescription = tr("Recording a voice message", "Запись голосового") }
     ) {
         Box(
             Modifier
@@ -830,7 +835,7 @@ private fun RecordingRow(
         )
         Spacer(Modifier.weight(1f))
         if (voice.locked) {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(tr("Cancel", "Отмена")) }
         } else {
             val gone = (-voice.slide.x / cancelReach).coerceIn(0f, 1f)
             Row(
@@ -849,7 +854,7 @@ private fun RecordingRow(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    "Slide to cancel",
+                    tr("Slide to cancel", "Влево — отмена"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -917,7 +922,7 @@ private fun VoiceSendButton(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(Symbols.Lock, contentDescription = "Slide up to lock", modifier = Modifier.size(20.dp))
+                    Icon(Symbols.Lock, contentDescription = tr("Slide up to lock", "Вверх — закрепить"), modifier = Modifier.size(20.dp))
                     Icon(
                         Symbols.KeyboardArrowUp,
                         contentDescription = null,
@@ -1046,9 +1051,9 @@ private fun VoiceSendButton(
                 Icon(
                     if (send) Symbols.SendFilled else Symbols.Mic,
                     contentDescription = when {
-                        voice.locked -> "Send voice message"
-                        sendable -> "Send"
-                        else -> "Hold to record"
+                        voice.locked -> tr("Send voice message", "Отправить голосовое")
+                        sendable -> tr("Send", "Отправить")
+                        else -> tr("Hold to record", "Удерживайте для записи")
                     }
                 )
             }
@@ -1056,28 +1061,28 @@ private fun VoiceSendButton(
         DropdownMenu(expanded = sendMenu, onDismissRequest = { sendMenu = false }) {
             sendChoices.withoutSound?.let { action ->
                 DropdownMenuItem(
-                    text = { Text("Send without sound") },
+                    text = { Text(tr("Send without sound", "Отправить без звука")) },
                     leadingIcon = { Icon(Symbols.NotificationsOff, contentDescription = null) },
                     onClick = { sendMenu = false; action() }
                 )
             }
             sendChoices.whenOnline?.let { action ->
                 DropdownMenuItem(
-                    text = { Text("Send when online") },
+                    text = { Text(tr("Send when online", "Отправить, когда будет в сети")) },
                     leadingIcon = { Icon(Symbols.PersonCheck, contentDescription = null) },
                     onClick = { sendMenu = false; action() }
                 )
             }
             sendChoices.asFiles?.let { action ->
                 DropdownMenuItem(
-                    text = { Text("Send as files") },
+                    text = { Text(tr("Send as files", "Отправить файлами")) },
                     leadingIcon = { Icon(Symbols.Description, contentDescription = null) },
                     onClick = { sendMenu = false; action() }
                 )
             }
             sendChoices.schedule?.let { action ->
                 DropdownMenuItem(
-                    text = { Text("Schedule message") },
+                    text = { Text(tr("Schedule message", "Запланировать")) },
                     leadingIcon = { Icon(Symbols.Schedule, contentDescription = null) },
                     onClick = { sendMenu = false; action() }
                 )
@@ -1194,7 +1199,7 @@ internal fun ChannelFooter(
         .heightIn(min = 56.dp)
     if (standing == com.telegramyou.app.telegram.model.ChannelStanding.Outside) {
         Button(onClick = onJoin, modifier = modifier) {
-            Text("Join channel", style = MaterialTheme.typography.titleMedium)
+            Text(tr("Join channel", "Вступить в канал"), style = MaterialTheme.typography.titleMedium)
         }
     } else {
         FilledTonalButton(onClick = onMuteToggle, modifier = modifier) {
@@ -1204,7 +1209,7 @@ internal fun ChannelFooter(
                 modifier = Modifier.size(ButtonDefaults.IconSize)
             )
             Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Text(if (isMuted) "Unmute" else "Mute", style = MaterialTheme.typography.titleMedium)
+            Text(if (isMuted) tr("Unmute", "Включить звук") else tr("Mute", "Выключить звук"), style = MaterialTheme.typography.titleMedium)
         }
     }
 }

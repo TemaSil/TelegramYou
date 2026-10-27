@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.customEmojiIdOf
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -113,7 +115,7 @@ fun StickerView(
         }
         waiting = false
     }
-    val description = "${sticker.emoji} sticker"
+    val description = tr("${sticker.emoji} sticker", "${sticker.emoji} стикер")
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         val file = path
         // While a video sticker's file is on its way, or if it will not
@@ -139,7 +141,7 @@ fun StickerView(
             sticker.isAnimated -> LottieSticker(file, size, animate, sticker.emoji)
             else -> AsyncImage(
                 model = File(file),
-                contentDescription = "${sticker.emoji} sticker",
+                contentDescription = tr("${sticker.emoji} sticker", "${sticker.emoji} стикер"),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(size)
             )

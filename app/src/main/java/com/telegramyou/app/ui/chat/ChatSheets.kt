@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material3.Surface
 import androidx.compose.ui.semantics.semantics
@@ -138,7 +140,7 @@ internal fun ForwardSheet(
             }
         }
         Text(
-            title ?: if (count == 1) "Forward to…" else "Forward $count messages to…",
+            title ?: if (count == 1) tr("Forward to…", "Переслать в…") else tr("Forward $count messages to…", "Переслать сообщения ($count) в…"),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
@@ -149,7 +151,7 @@ internal fun ForwardSheet(
             onSearch = {},
             expanded = false,
             onExpandedChange = {},
-            placeholder = { Text("Search chats and contacts") },
+            placeholder = { Text(tr("Search chats and contacts", "Поиск чатов и контактов")) },
             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,7 +161,7 @@ internal fun ForwardSheet(
         )
         if (chats.isEmpty() && people.isEmpty()) {
             Text(
-                if (wanted.isEmpty()) "No other chats to forward to." else "Nothing called that",
+                if (wanted.isEmpty()) tr("No other chats to forward to.", "Других чатов для пересылки нет.") else tr("Nothing called that", "Ничего с таким названием"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -190,7 +192,7 @@ internal fun ForwardSheet(
                 if (people.isNotEmpty()) {
                     item(key = "contacts-header") {
                         Text(
-                            "Contacts",
+                            tr("Contacts", "Контакты"),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
@@ -269,15 +271,15 @@ internal fun AttachPanel(
                 .padding(top = 12.dp)
         ) {
             val actions = buildList {
-                add(AttachAction("Gallery", Symbols.PhotoLibrary, onPickPhoto))
-                add(AttachAction("Camera", Symbols.PhotoCamera, onTakePhoto))
-                add(AttachAction("GIFs", Symbols.GifBox, onGifs))
-                add(AttachAction("Stickers", Symbols.Sticker, onStickers))
-                add(AttachAction("Files", Symbols.AttachFile, onPickFile))
-                add(AttachAction("Location", Symbols.LocationOn, onLocation))
-                add(AttachAction("Contacts", Symbols.Person, onContact))
-                if (onPoll != null) add(AttachAction("Poll", Symbols.Poll, onPoll))
-                if (onSchedule != null) add(AttachAction("Schedule send", Symbols.Schedule, onSchedule))
+                add(AttachAction(tr("Gallery", "Галерея"), Symbols.PhotoLibrary, onPickPhoto))
+                add(AttachAction(tr("Camera", "Камера"), Symbols.PhotoCamera, onTakePhoto))
+                add(AttachAction(tr("GIFs", "GIF"), Symbols.GifBox, onGifs))
+                add(AttachAction(tr("Stickers", "Стикеры"), Symbols.Sticker, onStickers))
+                add(AttachAction(tr("Files", "Файлы"), Symbols.AttachFile, onPickFile))
+                add(AttachAction(tr("Location", "Геопозиция"), Symbols.LocationOn, onLocation))
+                add(AttachAction(tr("Contacts", "Контакты"), Symbols.Person, onContact))
+                if (onPoll != null) add(AttachAction(tr("Poll", "Опрос"), Symbols.Poll, onPoll))
+                if (onSchedule != null) add(AttachAction(tr("Schedule send", "Отложить"), Symbols.Schedule, onSchedule))
             }
             actions.chunked(ATTACH_COLUMNS).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp)) {
@@ -338,13 +340,13 @@ internal fun ContactPickerSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Send a contact",
+            tr("Send a contact", "Отправить контакт"),
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
         if (contacts.isEmpty()) {
             Text(
-                "No contacts yet.",
+                tr("No contacts yet.", "Контактов пока нет."),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(24.dp)
             )
@@ -390,7 +392,7 @@ internal fun ChatSearchField(
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("Search in chat") },
+        placeholder = { Text(tr("Search in chat", "Поиск в чате")) },
         singleLine = true,
         modifier = Modifier
             .fillMaxWidth()
@@ -433,7 +435,7 @@ internal fun ChatSearchResults(
                     .padding(top = 32.dp)
             )
             search.isEmpty -> Text(
-                "Nothing in this chat matches “${search.query}”.",
+                tr("Nothing in this chat matches “${search.query}”.", "В этом чате ничего не нашлось по «${search.query}»."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -502,7 +504,7 @@ internal fun SelectionToolbar(
     ) {
         HorizontalFloatingToolbar(expanded = true) {
             IconButton(onClick = onClear) {
-                Icon(Symbols.Close, contentDescription = "Clear selection")
+                Icon(Symbols.Close, contentDescription = tr("Clear selection", "Снять выделение"))
             }
             // Centred on the icons, and as wide at 9 as at 10, so the buttons
             // beside it do not shift as it counts; the number itself rolls
@@ -529,20 +531,20 @@ internal fun SelectionToolbar(
             }
             if (actions.canCopy) {
                 IconButton(onClick = onCopy) {
-                    Icon(Symbols.ContentCopy, contentDescription = "Copy")
+                    Icon(Symbols.ContentCopy, contentDescription = tr("Copy", "Копировать"))
                 }
             }
             // No flag guards this one: anything that can be selected can be
             // sent on, and Telegram refuses at the far end if the target chat
             // does not accept it.
             IconButton(onClick = onForward) {
-                Icon(Symbols.Forward, contentDescription = "Forward")
+                Icon(Symbols.Forward, contentDescription = tr("Forward", "Переслать"))
             }
             if (actions.canDeleteForSelf || actions.canDeleteForEveryone) {
                 IconButton(onClick = onDelete) {
                     Icon(
                         Symbols.Delete,
-                        contentDescription = "Delete",
+                        contentDescription = tr("Delete", "Удалить"),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -568,24 +570,24 @@ internal fun DeleteSelectionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Delete, contentDescription = null) },
-        title = { Text(if (count == 1) "Delete message?" else "Delete $count messages?") },
+        title = { Text(if (count == 1) tr("Delete message?", "Удалить сообщение?") else tr("Delete $count messages?", "Удалить сообщения ($count)?")) },
         text = {
             Text(
                 if (actions.canDeleteForEveryone) {
-                    "This cannot be undone."
+                    tr("This cannot be undone.", "Это не отменить.")
                 } else {
-                    "They will be removed for you. The other side keeps their copies."
+                    tr("They will be removed for you. The other side keeps their copies.", "Они удалятся у вас. У собеседника останутся.")
                 }
             )
         },
         confirmButton = {
             TextButton(onClick = { onDelete(false) }) {
-                Text(if (actions.canDeleteForEveryone) "Delete for me" else "Delete")
+                Text(if (actions.canDeleteForEveryone) tr("Delete for me", "Удалить у меня") else tr("Delete", "Удалить"))
             }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
                 if (actions.canDeleteForEveryone) {
                     TextButton(
                         onClick = { onDelete(true) },
@@ -593,7 +595,7 @@ internal fun DeleteSelectionDialog(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Delete for everyone")
+                        Text(tr("Delete for everyone", "Удалить у всех"))
                     }
                 }
             }
@@ -633,7 +635,7 @@ internal fun ReactionPicker(
             // A chat can forbid reactions outright, and an empty sheet with no
             // explanation reads as a bug rather than a rule.
             Text(
-                "This chat does not allow reactions.",
+                tr("This chat does not allow reactions.", "В этом чате реакции отключены."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -677,31 +679,31 @@ internal fun DeleteMessageDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Delete, contentDescription = null) },
-        title = { Text("Delete message?") },
+        title = { Text(tr("Delete message?", "Удалить сообщение?")) },
         text = {
             Text(
                 if (message.canBeDeletedForEveryone) {
-                    "This cannot be undone."
+                    tr("This cannot be undone.", "Это не отменить.")
                 } else {
-                    "It will be removed for you. The other side keeps their copy."
+                    tr("It will be removed for you. The other side keeps their copy.", "Оно удалится у вас. У собеседника останется.")
                 }
             )
         },
         confirmButton = {
             TextButton(onClick = { onDelete(false) }) {
-                Text(if (message.canBeDeletedForEveryone) "Delete for me" else "Delete")
+                Text(if (message.canBeDeletedForEveryone) tr("Delete for me", "Удалить у меня") else tr("Delete", "Удалить"))
             }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
                 if (message.canBeDeletedForEveryone) {
                     TextButton(
                         onClick = { onDelete(true) },
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         )
-                    ) { Text("Delete for everyone") }
+                    ) { Text(tr("Delete for everyone", "Удалить у всех")) }
                 }
             }
         }

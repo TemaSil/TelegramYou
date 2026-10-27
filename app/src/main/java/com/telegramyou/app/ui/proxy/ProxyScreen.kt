@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.proxy
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -93,10 +95,10 @@ fun ProxyScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Proxy") },
+                title = { Text(tr("Proxy", "Прокси")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 }
             )
@@ -107,9 +109,9 @@ fun ProxyScreen(
                 // Named explicitly: the alpha's extended button publishes an
                 // empty node, which TalkBack reads as "button" and UiAutomator
                 // cannot find — see the same fix on NewChatScreen.
-                modifier = Modifier.semantics { contentDescription = "Add proxy" },
+                modifier = Modifier.semantics { contentDescription = tr("Add proxy", "Добавить прокси") },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
-                text = { Text("Add proxy") }
+                text = { Text(tr("Add proxy", "Добавить прокси")) }
             )
         }
     ) { padding ->
@@ -122,12 +124,12 @@ fun ProxyScreen(
         ) {
             item {
                 ListItem(
-                    headlineContent = { Text("Use proxy") },
+                    headlineContent = { Text(tr("Use proxy", "Использовать прокси")) },
                     supportingContent = {
                         Text(
-                            if (state.proxies.isEmpty()) "Add one to connect through it"
-                            else if (state.isUsingProxy) "Telegram connects through the one chosen below"
-                            else "Telegram connects directly"
+                            if (state.proxies.isEmpty()) tr("Add one to connect through it", "Добавьте прокси, чтобы подключаться через него")
+                            else if (state.isUsingProxy) tr("Telegram connects through the one chosen below", "Telegram подключается через выбранный ниже")
+                            else tr("Telegram connects directly", "Telegram подключается напрямую")
                         )
                     },
                     trailingContent = {
@@ -143,8 +145,12 @@ fun ProxyScreen(
             if (!state.isLoading && state.proxies.isEmpty()) {
                 item {
                     Text(
-                        "No proxies yet. Add one, or paste a link someone shared — " +
-                            "tg://proxy and t.me/socks links fill the form by themselves.",
+                        tr(
+                            "No proxies yet. Add one, or paste a link someone shared — " +
+                                "tg://proxy and t.me/socks links fill the form by themselves.",
+                            "Прокси пока нет. Добавьте свой или вставьте ссылку, которой поделились, — " +
+                                "ссылки tg://proxy и t.me/socks заполняют форму сами."
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -192,9 +198,9 @@ private fun ProxyRow(
     onRemove: () -> Unit
 ) {
     val answer = when (ping) {
-        ProxyPing.Checking -> "checking…"
-        is ProxyPing.Answered -> "${ping.millis} ms"
-        ProxyPing.Silent -> "not answering"
+        ProxyPing.Checking -> tr("checking…", "проверяем…")
+        is ProxyPing.Answered -> tr("${ping.millis} ms", "${ping.millis} мс")
+        ProxyPing.Silent -> tr("not answering", "не отвечает")
     }
     ListItem(
         headlineContent = { Text("${proxy.server}:${proxy.port}", maxLines = 1) },
@@ -211,7 +217,7 @@ private fun ProxyRow(
         leadingContent = { RadioButton(selected = proxy.isEnabled, onClick = null) },
         trailingContent = {
             IconButton(onClick = onRemove) {
-                Icon(Symbols.Delete, contentDescription = "Remove ${proxy.server}")
+                Icon(Symbols.Delete, contentDescription = tr("Remove ${proxy.server}", "Удалить ${proxy.server}"))
             }
         },
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -239,7 +245,7 @@ private fun AddProxySheet(
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Add proxy", style = MaterialTheme.typography.titleLarge)
+        Text(tr("Add proxy", "Добавить прокси"), style = MaterialTheme.typography.titleLarge)
         OutlinedButton(
             onClick = {
                 scope.launch {
@@ -253,7 +259,7 @@ private fun AddProxySheet(
         ) {
             Icon(Symbols.ContentPaste, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Paste a proxy link")
+            Text(tr("Paste a proxy link", "Вставить ссылку на прокси"))
         }
         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             val kinds = ProxyKind.entries
@@ -277,7 +283,7 @@ private fun AddProxySheet(
         OutlinedTextField(
             value = draft.server,
             onValueChange = { value -> onDraftChange { it.copy(server = value) } },
-            label = { Text("Server") },
+            label = { Text(tr("Server", "Сервер")) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             modifier = Modifier.fillMaxWidth()
@@ -285,7 +291,7 @@ private fun AddProxySheet(
         OutlinedTextField(
             value = draft.port,
             onValueChange = { value -> onDraftChange { it.copy(port = value.filter(Char::isDigit).take(5)) } },
-            label = { Text("Port") },
+            label = { Text(tr("Port", "Порт")) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
@@ -294,7 +300,7 @@ private fun AddProxySheet(
             OutlinedTextField(
                 value = draft.secret,
                 onValueChange = { value -> onDraftChange { it.copy(secret = value.trim()) } },
-                label = { Text("Secret") },
+                label = { Text(tr("Secret", "Секрет")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -302,14 +308,14 @@ private fun AddProxySheet(
             OutlinedTextField(
                 value = draft.username,
                 onValueChange = { value -> onDraftChange { it.copy(username = value) } },
-                label = { Text("Username (optional)") },
+                label = { Text(tr("Username (optional)", "Имя пользователя (необязательно)")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = draft.password,
                 onValueChange = { value -> onDraftChange { it.copy(password = value) } },
-                label = { Text("Password (optional)") },
+                label = { Text(tr("Password (optional)", "Пароль (необязательно)")) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -330,7 +336,7 @@ private fun AddProxySheet(
             enabled = draft.problem == null && !isSaving,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Save and connect")
+            Text(tr("Save and connect", "Сохранить и подключиться"))
         }
     }
 }

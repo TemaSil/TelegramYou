@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.groups
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -84,7 +86,7 @@ class GroupViewModel(
         }
     }
 
-    fun loadManagement() = attempt("Could not load the group") {
+    fun loadManagement() = attempt(tr("Could not load the group", "Не удалось загрузить группу")) {
         val management = repository.groupManagement(chatId)
         _uiState.update { it.copy(management = management) }
     }
@@ -106,14 +108,14 @@ class GroupViewModel(
     fun onAdminSaved(rights: AdminRights, title: String) {
         val member = _uiState.value.editingAdmin ?: return
         _uiState.update { it.copy(editingAdmin = null) }
-        attempt("Could not make them an admin") {
+        attempt(tr("Could not make them an admin", "Не удалось назначить админом")) {
             repository.promoteMember(chatId, member.user.id, rights, title)
             val management = repository.groupManagement(chatId)
             val name = member.user.displayName
             _uiState.update {
                 it.copy(
                     management = management ?: it.management,
-                    notice = if (member.role == MemberRole.Admin) "$name's rights are saved" else "$name is an admin now"
+                    notice = if (member.role == MemberRole.Admin) tr("$name's rights are saved", "Права $name сохранены") else tr("$name is an admin now", "$name теперь админ")
                 )
             }
             refreshSearch()
@@ -145,18 +147,18 @@ class GroupViewModel(
         _uiState.update { it.copy(memberResults = found) }
     }
 
-    fun loadJoinRequests() = attempt("Could not load the requests") {
+    fun loadJoinRequests() = attempt(tr("Could not load the requests", "Не удалось загрузить заявки")) {
         val requests = repository.joinRequests(chatId)
         _uiState.update { it.copy(joinRequests = requests) }
     }
 
-    fun onJoinRequest(request: JoinRequest, approve: Boolean) = attempt("Could not answer the request") {
+    fun onJoinRequest(request: JoinRequest, approve: Boolean) = attempt(tr("Could not answer the request", "Не удалось ответить на заявку")) {
         repository.processJoinRequest(chatId, request.user.id, approve)
         val name = request.user.displayName
         _uiState.update {
             it.copy(
                 joinRequests = it.joinRequests?.filter { waiting -> waiting.user.id != request.user.id },
-                notice = if (approve) "$name joined the group" else "$name's request was declined"
+                notice = if (approve) tr("$name joined the group", "$name вступает в группу") else tr("$name's request was declined", "Заявка $name отклонена")
             )
         }
     }
@@ -169,15 +171,15 @@ class GroupViewModel(
 
     fun onRemoveDismissed() = _uiState.update { it.copy(confirmingRemoval = null) }
 
-    private fun perform(member: GroupMember, action: MemberAction) = attempt("Could not do that") {
+    private fun perform(member: GroupMember, action: MemberAction) = attempt(tr("Could not do that", "Не получилось")) {
         repository.applyMemberAction(chatId, member.user.id, action)
         val name = member.user.displayName
         val notice = when (action) {
-            MemberAction.MakeAdmin, MemberAction.EditAdmin -> "$name is an admin now"
-            MemberAction.RemoveAdmin -> "$name is no longer an admin"
-            MemberAction.Restrict -> "$name can't write here now"
-            MemberAction.Unrestrict -> "$name can write again"
-            MemberAction.Remove -> "$name was removed"
+            MemberAction.MakeAdmin, MemberAction.EditAdmin -> tr("$name is an admin now", "$name теперь админ")
+            MemberAction.RemoveAdmin -> tr("$name is no longer an admin", "$name больше не админ")
+            MemberAction.Restrict -> tr("$name can't write here now", "$name больше не может здесь писать")
+            MemberAction.Unrestrict -> tr("$name can write again", "$name снова может писать")
+            MemberAction.Remove -> tr("$name was removed", "$name удалён из группы")
         }
         // Read back rather than guessed: the server may have given the new
         // admin rights of its own, or refused part of it.
@@ -203,31 +205,31 @@ class GroupViewModel(
                 _uiState.update {
                     it.copy(
                         management = it.management?.copy(permissions = current.permissions),
-                        errorMessage = failureText("Could not change that", e.message)
+                        errorMessage = failureText(tr("Could not change that", "Не удалось изменить"), e.message)
                     )
                 }
             }
         }
     }
 
-    fun loadLinks() = attempt("Could not load the links") {
+    fun loadLinks() = attempt(tr("Could not load the links", "Не удалось загрузить ссылки")) {
         val links = repository.inviteLinks(chatId)
         _uiState.update { it.copy(links = links) }
     }
 
-    fun onCreateLink(name: String, expiry: LinkExpiry, limit: LinkLimit, asksFirst: Boolean) = attempt("Could not make the link") {
+    fun onCreateLink(name: String, expiry: LinkExpiry, limit: LinkLimit, asksFirst: Boolean) = attempt(tr("Could not make the link", "Не удалось создать ссылку")) {
         repository.createInviteLink(chatId, name, expiry.from(System.currentTimeMillis() / 1000), limit.count, asksFirst)
         val links = repository.inviteLinks(chatId)
-        _uiState.update { it.copy(links = links, notice = "Link created") }
+        _uiState.update { it.copy(links = links, notice = tr("Link created", "Ссылка создана")) }
     }
 
-    fun onRevokeLink(link: InviteLink) = attempt("Could not revoke the link") {
+    fun onRevokeLink(link: InviteLink) = attempt(tr("Could not revoke the link", "Не удалось отозвать ссылку")) {
         repository.revokeInviteLink(chatId, link.link)
         val links = repository.inviteLinks(chatId)
-        _uiState.update { it.copy(links = links, notice = "Link revoked") }
+        _uiState.update { it.copy(links = links, notice = tr("Link revoked", "Ссылка отозвана")) }
     }
 
-    fun loadTopics() = attempt("Could not load the topics") {
+    fun loadTopics() = attempt(tr("Could not load the topics", "Не удалось загрузить темы")) {
         val topics = sortedTopics(repository.forumTopics(chatId))
         _uiState.update { it.copy(topics = topics) }
         // For the topics' menus: only an admin who may manage them has one.
@@ -240,10 +242,10 @@ class GroupViewModel(
         when (action) {
             TopicAction.Rename -> _uiState.update { it.copy(renamingTopic = topic) }
             TopicAction.Delete -> _uiState.update { it.copy(deletingTopic = topic) }
-            TopicAction.Close, TopicAction.Reopen -> attempt("Could not change the topic") {
+            TopicAction.Close, TopicAction.Reopen -> attempt(tr("Could not change the topic", "Не удалось изменить тему")) {
                 val closing = action == TopicAction.Close
                 repository.setForumTopicClosed(chatId, topic.id, closing)
-                reloadTopics(if (closing) "${topic.name} is closed" else "${topic.name} is open again")
+                reloadTopics(if (closing) tr("${topic.name} is closed", "${topic.name}: тема закрыта") else tr("${topic.name} is open again", "${topic.name}: тема снова открыта"))
             }
         }
     }
@@ -251,18 +253,18 @@ class GroupViewModel(
     fun onTopicRenamed(name: String) {
         val topic = _uiState.value.renamingTopic ?: return
         _uiState.update { it.copy(renamingTopic = null) }
-        attempt("Could not rename the topic") {
+        attempt(tr("Could not rename the topic", "Не удалось переименовать тему")) {
             repository.renameForumTopic(chatId, topic.id, name)
-            reloadTopics("Renamed to ${name.trim()}")
+            reloadTopics(tr("Renamed to ${name.trim()}", "Новое название: ${name.trim()}"))
         }
     }
 
     fun onTopicDeleteConfirmed() {
         val topic = _uiState.value.deletingTopic ?: return
         _uiState.update { it.copy(deletingTopic = null) }
-        attempt("Could not delete the topic") {
+        attempt(tr("Could not delete the topic", "Не удалось удалить тему")) {
             repository.deleteForumTopic(chatId, topic.id)
-            reloadTopics("${topic.name} was deleted")
+            reloadTopics(tr("${topic.name} was deleted", "${topic.name}: тема удалена"))
         }
     }
 
@@ -273,10 +275,10 @@ class GroupViewModel(
         _uiState.update { it.copy(topics = topics, notice = notice) }
     }
 
-    fun onCreateTopic(name: String) = attempt("Could not start the topic") {
+    fun onCreateTopic(name: String) = attempt(tr("Could not start the topic", "Не удалось создать тему")) {
         repository.createForumTopic(chatId, name)
         val topics = sortedTopics(repository.forumTopics(chatId))
-        _uiState.update { it.copy(topics = topics, notice = "Topic started") }
+        _uiState.update { it.copy(topics = topics, notice = tr("Topic started", "Тема создана")) }
     }
 
     fun onNoticeShown() = _uiState.update { it.copy(notice = null) }

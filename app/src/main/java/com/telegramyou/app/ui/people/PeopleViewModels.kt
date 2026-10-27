@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.people
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,7 +65,7 @@ class PersonViewModel(
     init {
         viewModelScope.launch {
             var profile: PersonProfile? = null
-            _uiState.attempt("Could not load the profile", { copy(message = it) }) {
+            _uiState.attempt(tr("Could not load the profile", "Не удалось загрузить профиль"), { copy(message = it) }) {
                 profile = repository.person(userId)
             }
             _uiState.update { it.copy(profile = profile, isLoading = false) }
@@ -73,7 +75,7 @@ class PersonViewModel(
     fun onBlockedChange(blocked: Boolean) {
         viewModelScope.launch {
             val done = _uiState.attempt(
-                if (blocked) "Could not block" else "Could not unblock",
+                if (blocked) tr("Could not block", "Не удалось заблокировать") else tr("Could not unblock", "Не удалось разблокировать"),
                 { copy(message = it) }
             ) { repository.setBlocked(userId, blocked) }
             if (done) _uiState.update { it.copy(profile = it.profile?.copy(isBlocked = blocked)) }
@@ -84,7 +86,7 @@ class PersonViewModel(
     fun onSendMessage() {
         viewModelScope.launch {
             var chatId: Long? = null
-            _uiState.attempt("Could not open the chat", { copy(message = it) }) {
+            _uiState.attempt(tr("Could not open the chat", "Не удалось открыть чат"), { copy(message = it) }) {
                 chatId = repository.openPrivateChat(userId)
             }
             _uiState.update { it.copy(openChatId = chatId) }
@@ -117,7 +119,7 @@ class BlockedViewModel(private val repository: TelegramRepository) : ViewModel()
     fun refresh() {
         viewModelScope.launch {
             var people = emptyList<TelegramUser>()
-            _uiState.attempt("Could not load blocked users", { copy(message = it) }) {
+            _uiState.attempt(tr("Could not load blocked users", "Не удалось загрузить заблокированных"), { copy(message = it) }) {
                 people = repository.blockedPeople()
             }
             _uiState.update { it.copy(people = people, isLoading = false) }
@@ -126,14 +128,14 @@ class BlockedViewModel(private val repository: TelegramRepository) : ViewModel()
 
     fun onUnblock(user: TelegramUser) {
         viewModelScope.launch {
-            val done = _uiState.attempt("Could not unblock", { copy(message = it) }) {
+            val done = _uiState.attempt(tr("Could not unblock", "Не удалось разблокировать"), { copy(message = it) }) {
                 repository.setBlocked(user.id, blocked = false)
             }
             if (done) {
                 _uiState.update { state ->
                     state.copy(
                         people = state.people.filterNot { it.id == user.id },
-                        message = "${firstNameOf(user.displayName)} is unblocked"
+                        message = tr("${firstNameOf(user.displayName)} is unblocked", "${firstNameOf(user.displayName)} разблокирован(а)")
                     )
                 }
             }
@@ -182,7 +184,7 @@ class ContactsViewModel(private val repository: TelegramRepository) : ViewModel(
     private fun reload() {
         viewModelScope.launch {
             var contacts = emptyList<TelegramUser>()
-            _uiState.attempt("Could not load contacts", { copy(message = it) }) {
+            _uiState.attempt(tr("Could not load contacts", "Не удалось загрузить контакты"), { copy(message = it) }) {
                 contacts = repository.contacts()
             }
             _uiState.update { it.copy(contacts = contacts, isLoading = false) }
@@ -192,7 +194,7 @@ class ContactsViewModel(private val repository: TelegramRepository) : ViewModel(
     fun onContactClick(userId: Long) {
         viewModelScope.launch {
             var chatId: Long? = null
-            _uiState.attempt("Could not open the chat", { copy(message = it) }) {
+            _uiState.attempt(tr("Could not open the chat", "Не удалось открыть чат"), { copy(message = it) }) {
                 chatId = repository.openPrivateChat(userId)
             }
             _uiState.update { it.copy(openChatId = chatId) }
@@ -223,14 +225,14 @@ class ContactsViewModel(private val repository: TelegramRepository) : ViewModel(
         _uiState.update { it.copy(isSaving = true) }
         viewModelScope.launch {
             var userId: Long? = null
-            val done = _uiState.attempt("Could not add the contact", { copy(message = it) }) {
+            val done = _uiState.attempt(tr("Could not add the contact", "Не удалось добавить контакт"), { copy(message = it) }) {
                 userId = repository.addContact(draft.phone, draft.firstName, draft.lastName)
             }
             val added = userId
             when {
                 !done -> _uiState.update { it.copy(isSaving = false) }
                 added == null -> _uiState.update {
-                    it.copy(isSaving = false, message = "${draft.phone} is not on Telegram")
+                    it.copy(isSaving = false, message = tr("${draft.phone} is not on Telegram", "${draft.phone} нет в Telegram"))
                 }
                 else -> {
                     _uiState.update { it.copy(draft = null, isSaving = false) }

@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.tr
+
 /**
  * Every track in every chat, laid out the way a music app lays out a
  * library — the owner's experiment for 1.6.4, off by default under For
@@ -59,8 +63,8 @@ data class LibraryTrack(
     val provenance: String
         get() = when {
             fromChannel || message.isOutgoing || track.senderName.isBlank() -> chatTitle
-            track.senderName == chatTitle -> "Sent by ${track.senderName}"
-            else -> "Sent by ${track.senderName} in $chatTitle"
+            track.senderName == chatTitle -> tr("Sent by ${track.senderName}", "Прислал(а) ${track.senderName}")
+            else -> tr("Sent by ${track.senderName} in $chatTitle", "Прислал(а) ${track.senderName} в $chatTitle")
         }
 }
 
@@ -167,7 +171,7 @@ fun buildLibrary(
                 key = "tag:${key.first}:${key.second}",
                 kind = CollectionKind.Album,
                 title = tag.album.trim(),
-                subtitle = listOf("Album", countLabel(ordered.size), owner.takeIf { it.isNotBlank() })
+                subtitle = listOf(tr("Album", "Альбом"), countLabel(ordered.size), owner.takeIf { it.isNotBlank() })
                     .filterNotNull().joinToString(" · "),
                 tracks = ordered
             )
@@ -187,8 +191,8 @@ fun buildLibrary(
             LibraryCollection(
                 key = "album:${key.first}:${key.second}",
                 kind = CollectionKind.Album,
-                title = performers.singleOrNull() ?: chatTitle.ifBlank { "Album" },
-                subtitle = listOf("Album", countLabel(ordered.size), chatTitle.takeIf { performers.size == 1 && it.isNotBlank() })
+                title = performers.singleOrNull() ?: chatTitle.ifBlank { tr("Album", "Альбом") },
+                subtitle = listOf(tr("Album", "Альбом"), countLabel(ordered.size), chatTitle.takeIf { performers.size == 1 && it.isNotBlank() })
                     .filterNotNull().joinToString(" · "),
                 tracks = ordered
             )
@@ -207,7 +211,7 @@ fun buildLibrary(
             LibraryCollection(
                 key = "chat:$chatId",
                 kind = CollectionKind.Playlist,
-                title = chat?.title?.ifBlank { null } ?: "Chat",
+                title = chat?.title?.ifBlank { null } ?: tr("Chat", "Чат"),
                 subtitle = countLabel(tracks.size),
                 tracks = tracks
             )
@@ -226,7 +230,7 @@ fun buildLibrary(
             LibraryCollection(
                 key = "chat:$chatId",
                 kind = CollectionKind.Playlist,
-                title = chats[chatId]?.title?.ifBlank { null } ?: "Saved Messages",
+                title = chats[chatId]?.title?.ifBlank { null } ?: tr("Saved Messages", "Избранное"),
                 subtitle = countLabel(tracks.size),
                 tracks = tracks
             )
@@ -251,6 +255,6 @@ fun buildLibrary(
 /** Forwards and reactions together: each is somebody passing the track on, or answering it. */
 private fun sharedScore(message: ChatMessage): Int = message.forwardCount + message.reactions.sumOf { it.count }
 
-private fun countLabel(count: Int) = if (count == 1) "1 track" else "$count tracks"
+private fun countLabel(count: Int) = counted(count, "track", "tracks", "трек", "трека", "треков")
 
 private const val LATEST = 10

@@ -1,5 +1,7 @@
 package com.telegramyou.app.navigation
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.chat.LocalMediaOrigins
 import com.telegramyou.app.ui.chat.MediaOrigins
 import com.telegramyou.app.ui.lock.AppLockSettingsScreen
@@ -371,7 +373,7 @@ fun TelegramYouNavHost(
         com.telegramyou.app.ui.chat.ForwardSheet(
             targets = shareTargets,
             count = 1,
-            title = "Share to…",
+            title = tr("Share to…", "Поделиться в…"),
             onDismiss = onShareHandled,
             onPick = { chat -> onShareTarget(chat.id) }
         )
@@ -575,7 +577,7 @@ fun TelegramYouNavHost(
                                 found.music.orEmpty(),
                                 found.musicCursor,
                                 query = found.query,
-                                title = "Music: ${found.query}"
+                                title = tr("Music: ${found.query}", "Музыка: ${found.query}")
                             )
                         }
                     }
@@ -797,8 +799,8 @@ fun TelegramYouNavHost(
                 onOpenBlocked = { navController.navigateTo(Route.Blocked) },
                 onOpenAppLock = { navController.navigateTo(Route.AppLock) },
                 appLockSummary = appLock?.settings?.collectAsStateWithLifecycle()?.value?.let { lock ->
-                    if (lock.enabled) "On · ${lock.autoLock.label.replaceFirstChar(Char::lowercase)}" else "Off"
-                } ?: "Off"
+                    if (lock.enabled) tr("On · ${lock.autoLock.label.replaceFirstChar(Char::lowercase)}", "Вкл. · ${lock.autoLock.label.replaceFirstChar(Char::lowercase)}") else tr("Off", "Выкл.")
+                } ?: tr("Off", "Выкл.")
             )
         }
         composable(Route.NewStory.PATTERN) {
@@ -985,7 +987,7 @@ fun TelegramYouNavHost(
             val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
             val media by mediaViewModel.uiState.collectAsStateWithLifecycle()
             ChatMediaScreen(
-                title = state.detail?.chat?.title ?: media.title.ifBlank { "Media" },
+                title = state.detail?.chat?.title ?: media.title.ifBlank { tr("Media", "Медиа") },
                 state = media,
                 onTabShown = mediaViewModel::onTabShown,
                 onNearEnd = mediaViewModel::onNearEnd,

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.StickerFormat
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
@@ -85,7 +87,7 @@ fun StickerTab(
             Tab(
                 selected = state.selected == RECENT_STICKERS,
                 onClick = { onSetSelected(RECENT_STICKERS) },
-                icon = { Icon(Symbols.History, contentDescription = "Recent stickers") }
+                icon = { Icon(Symbols.History, contentDescription = tr("Recent stickers", "Недавние стикеры")) }
             )
             state.sets.forEach { set ->
                 Tab(
@@ -113,9 +115,9 @@ fun StickerTab(
                 state.isLoading -> LoadingIndicator()
                 state.stickers.isEmpty() -> Text(
                     if (state.selected == RECENT_STICKERS) {
-                        "Stickers you send show up here"
+                        tr("Stickers you send show up here", "Здесь будут стикеры, которые вы отправляете")
                     } else {
-                        "This set is empty"
+                        tr("This set is empty", "Этот набор пуст")
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -141,13 +143,13 @@ fun StickerTab(
                                     onClick = { onPick(sticker) },
                                     onLongClick = if (still) ({ menuOpen = true }) else null
                                 )
-                                .semantics { contentDescription = "${sticker.emoji} sticker" }
+                                .semantics { contentDescription = tr("${sticker.emoji} sticker", "${sticker.emoji} стикер") }
                                 .padding(4.dp)
                         ) {
                             StickerView(sticker, size = 64.dp, animate = false)
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Send as image") },
+                                    text = { Text(tr("Send as image", "Отправить картинкой")) },
                                     leadingIcon = { Icon(Symbols.Image, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false

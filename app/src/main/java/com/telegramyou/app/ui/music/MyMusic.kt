@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.music
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.components.withoutBottom
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -151,14 +153,14 @@ fun MyMusicScreen(
         snackbarHost = { SnackbarHost(host) },
         topBar = {
             TopAppBar(
-                title = { Text("My music") },
+                title = { Text(tr("My music", "Моя музыка")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                 },
                 actions = {
                     if (onOpenLibrary != null) {
                         IconButton(onClick = onOpenLibrary) {
-                            Icon(Symbols.LibraryMusic, contentDescription = "Music library")
+                            Icon(Symbols.LibraryMusic, contentDescription = tr("Music library", "Музыкальная библиотека"))
                         }
                     }
                 }
@@ -181,7 +183,7 @@ fun MyMusicScreen(
                 onSearch = {},
                 expanded = false,
                 onExpandedChange = {},
-                placeholder = { Text("Search every chat's music") },
+                placeholder = { Text(tr("Search every chat's music", "Поиск музыки во всех чатах")) },
                 leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -193,7 +195,7 @@ fun MyMusicScreen(
                 !state.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 state.tracks.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        if (state.query.isBlank()) "No music in any chat yet" else "Nothing called that",
+                        if (state.query.isBlank()) tr("No music in any chat yet", "Ни в одном чате пока нет музыки") else tr("Nothing called that", "Ничего с таким названием"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -217,7 +219,7 @@ fun MyMusicScreen(
                                         listOf(
                                             audio.performer,
                                             audio.durationSeconds.takeIf { it > 0 }?.let { formatDuration(it.toLong()) },
-                                            state.chatTitles[message.chatId]?.let { "from $it" }
+                                            state.chatTitles[message.chatId]?.let { tr("from $it", "из $it") }
                                         ).filter { !it.isNullOrBlank() }.joinToString(" · "),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -227,7 +229,7 @@ fun MyMusicScreen(
                                     FilledTonalIconButton(onClick = { onPlay(message) }, modifier = Modifier.size(48.dp)) {
                                         Icon(
                                             if (playing) Symbols.PauseFilled else Symbols.PlayArrowFilled,
-                                            contentDescription = if (playing) "Pause" else "Play ${audio.displayTitle}"
+                                            contentDescription = if (playing) tr("Pause", "Пауза") else tr("Play ${audio.displayTitle}", "Слушать ${audio.displayTitle}")
                                         )
                                     }
                                 },
@@ -235,25 +237,25 @@ fun MyMusicScreen(
                                     var menu by remember { mutableStateOf(false) }
                                     Box {
                                         IconButton(onClick = { menu = true }) {
-                                            Icon(Symbols.MoreVert, contentDescription = "More for ${audio.displayTitle}")
+                                            Icon(Symbols.MoreVert, contentDescription = tr("More for ${audio.displayTitle}", "Ещё для ${audio.displayTitle}"))
                                         }
                                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                                             DropdownMenuItem(
-                                                text = { Text("Play next") },
+                                                text = { Text(tr("Play next", "Играть следующим")) },
                                                 leadingIcon = { Icon(Symbols.SkipNext, contentDescription = null) },
                                                 onClick = {
                                                     menu = false
                                                     onLineUp(message, true)
-                                                    scope.launch { host.showSnackbar("Plays next") }
+                                                    scope.launch { host.showSnackbar(tr("Plays next", "Будет следующим")) }
                                                 }
                                             )
                                             DropdownMenuItem(
-                                                text = { Text("Add to queue") },
+                                                text = { Text(tr("Add to queue", "В очередь")) },
                                                 leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null) },
                                                 onClick = {
                                                     menu = false
                                                     onLineUp(message, false)
-                                                    scope.launch { host.showSnackbar("Added to the queue") }
+                                                    scope.launch { host.showSnackbar(tr("Added to the queue", "Добавлено в очередь")) }
                                                 }
                                             )
                                         }

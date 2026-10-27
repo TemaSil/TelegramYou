@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.music
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
@@ -164,7 +166,7 @@ class LibraryActions(
 /** Saved Messages' tracks on the front page before "All" opens the rest. */
 private const val SAVED_SHOWN = 5
 
-private val LIBRARY_TABS = listOf("For you", "Playlists", "Albums", "Artists", "Tracks")
+private val LIBRARY_TABS get() = listOf(tr("For you", "Для вас"), tr("Playlists", "Плейлисты"), tr("Albums", "Альбомы"), tr("Artists", "Исполнители"), tr("Tracks", "Треки"))
 
 /**
  * The music library, an experiment under For geeks: a music app's layout
@@ -191,7 +193,7 @@ fun MusicLibraryScreen(
     val scope = rememberCoroutineScope()
     val lineUp: (ChatMessage, Boolean) -> Unit = { message, first ->
         actions.onLineUp(message, first)
-        scope.launch { host.showSnackbar(if (first) "Plays next" else "Added to the queue") }
+        scope.launch { host.showSnackbar(if (first) tr("Plays next", "Будет следующим") else tr("Added to the queue", "Добавлено в очередь")) }
     }
     // As a tab, named large like Settings and Search, folding as the page
     // scrolls; as a screen, or with a collection open, the ordinary bar.
@@ -217,12 +219,12 @@ fun MusicLibraryScreen(
     }
     val actionsRow: @Composable RowScope.() -> Unit = {
         if (open == null) {
-            IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = "Search music") }
+            IconButton(onClick = actions.onSearch) { Icon(Symbols.Search, contentDescription = tr("Search music", "Поиск музыки")) }
         }
         if (open == null && !state.library.isEmpty) {
             IconButton(onClick = {
-                actions.onPlay("Music library", state.library.tracks.map { it.message }, null, true)
-            }) { Icon(Symbols.Shuffle, contentDescription = "Shuffle everything") }
+                actions.onPlay(tr("Music library", "Музыкальная библиотека"), state.library.tracks.map { it.message }, null, true)
+            }) { Icon(Symbols.Shuffle, contentDescription = tr("Shuffle everything", "Перемешать всё")) }
         }
     }
     Scaffold(
@@ -231,18 +233,18 @@ fun MusicLibraryScreen(
         topBar = {
             if (large) {
                 LargeTopAppBar(
-                    title = { LargeTitle("Music", largeBar.state.collapsedFraction) },
+                    title = { LargeTitle(tr("Music", "Музыка"), largeBar.state.collapsedFraction) },
                     actions = actionsRow,
                     scrollBehavior = largeBar
                 )
                 return@Scaffold
             }
             TopAppBar(
-                title = { Text(open?.title ?: if (onBack == null) "Music" else "Music library", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                title = { Text(open?.title ?: if (onBack == null) tr("Music", "Музыка") else tr("Music library", "Музыкальная библиотека"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     if (open != null || onBack != null) {
                         IconButton(onClick = { if (open != null) openKey = null else onBack?.invoke() }) {
-                            Icon(Symbols.ArrowBack, contentDescription = "Back")
+                            Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                         }
                     }
                 },
@@ -264,7 +266,7 @@ fun MusicLibraryScreen(
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 state.library.isEmpty -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
-                        "No music in any chat yet",
+                        tr("No music in any chat yet", "Ни в одном чате пока нет музыки"),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -308,10 +310,10 @@ private fun LibraryTabs(
     HorizontalPager(state = pager, verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxSize()) { page ->
         when (page) {
             0 -> ForYou(library, actions, lineUp, onOpen)
-            1 -> CollectionGrid(library.playlists, "No chat has more than one track yet", onOpen)
-            2 -> CollectionGrid(library.albums, "Albums are tracks posted together, and there are none yet", onOpen)
-            3 -> CollectionGrid(library.artists, "No track names its performer yet", onOpen)
-            else -> TrackList(library.tracks, "Music library", actions, lineUp)
+            1 -> CollectionGrid(library.playlists, tr("No chat has more than one track yet", "Пока ни в одном чате нет больше одного трека"), onOpen)
+            2 -> CollectionGrid(library.albums, tr("Albums are tracks posted together, and there are none yet", "Альбомы — это треки, отправленные вместе, и таких пока нет"), onOpen)
+            3 -> CollectionGrid(library.artists, tr("No track names its performer yet", "Пока ни у одного трека не указан исполнитель"), onOpen)
+            else -> TrackList(library.tracks, tr("Music library", "Музыкальная библиотека"), actions, lineUp)
         }
     }
 }
@@ -337,22 +339,22 @@ private fun ForYou(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(end = 8.dp)
             ) {
-                Box(Modifier.weight(1f)) { Header("Saved Messages") }
+                Box(Modifier.weight(1f)) { Header(tr("Saved Messages", "Избранное")) }
                 if (saved != null) {
                     IconButton(onClick = {
                         actions.onPlay(saved.title, saved.tracks.map { it.message }, null, true)
-                    }) { Icon(Symbols.Shuffle, contentDescription = "Shuffle Saved Messages") }
+                    }) { Icon(Symbols.Shuffle, contentDescription = tr("Shuffle Saved Messages", "Перемешать Избранное")) }
                     FilledTonalButton(
                         onClick = { actions.onPlay(saved.title, saved.tracks.map { it.message }, null, false) },
                         modifier = Modifier.padding(top = 12.dp)
-                    ) { Text("Play") }
+                    ) { Text(tr("Play", "Играть")) }
                 }
             }
         }
         if (saved == null) {
             item(key = "saved-none") {
                 Text(
-                    "Forward a track to Saved Messages to keep it here, first in your library.",
+                    tr("Forward a track to Saved Messages to keep it here, first in your library.", "Перешлите трек в Избранное, чтобы он был здесь, первым в библиотеке."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -368,12 +370,12 @@ private fun ForYou(
             if (saved.tracks.size > shown.size) {
                 item(key = "saved-all") {
                     TextButton(onClick = { onOpen(saved) }, modifier = Modifier.padding(horizontal = 8.dp)) {
-                        Text("All ${saved.tracks.size} tracks")
+                        Text(tr("All ${saved.tracks.size} tracks", "Все треки (${saved.tracks.size})"))
                     }
                 }
             }
         }
-        item(key = "latest-header") { Header("Just arrived") }
+        item(key = "latest-header") { Header(tr("Just arrived", "Только что пришло")) }
         item(key = "latest") {
             val latest = library.latest
             val carousel = rememberCarouselState { latest.size }
@@ -393,7 +395,7 @@ private fun ForYou(
                             .height(208.dp)
                             .maskClip(MaterialTheme.shapes.extraLarge)
                             .clickable {
-                                actions.onPlay("Just arrived", latest.map { it.message }, item.message, false)
+                                actions.onPlay(tr("Just arrived", "Только что пришло"), latest.map { it.message }, item.message, false)
                             }
                     ) {
                         Cover(item.track, size = 208, corner = 0)
@@ -426,18 +428,18 @@ private fun ForYou(
         // Only when there is something — an empty heading here would say
         // nothing anyone could act on.
         if (library.mostShared.isNotEmpty()) {
-            item(key = "shared-header") { Header("Most shared") }
+            item(key = "shared-header") { Header(tr("Most shared", "Чаще всего присылают")) }
             items(library.mostShared, key = { "m${it.message.chatId}:${it.message.id}" }) { item ->
                 TrackRow(item, onPlay = {
-                    actions.onPlay("Most shared", library.mostShared.map { it.message }, item.message, false)
+                    actions.onPlay(tr("Most shared", "Чаще всего присылают"), library.mostShared.map { it.message }, item.message, false)
                 }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
             }
         }
-        item(key = "people-header") { Header("From your chats") }
+        item(key = "people-header") { Header(tr("From your chats", "Из ваших чатов")) }
         if (library.fromPeople.isEmpty()) {
             item(key = "people-none") {
                 Text(
-                    "Music people send you in chats and groups shows here.",
+                    tr("Music people send you in chats and groups shows here.", "Здесь будет музыка, которую вам присылают в чатах и группах."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -446,7 +448,7 @@ private fun ForYou(
         }
         items(library.fromPeople, key = { "p${it.message.chatId}:${it.message.id}" }) { item ->
             TrackRow(item, onPlay = {
-                actions.onPlay("From your chats", library.fromPeople.map { it.message }, item.message, false)
+                actions.onPlay(tr("From your chats", "Из ваших чатов"), library.fromPeople.map { it.message }, item.message, false)
             }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
         }
     }
@@ -554,12 +556,12 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
                     Button(onClick = { actions.onPlay(collection.title, messages, null, false) }) {
                         Icon(Symbols.PlayArrowFilled, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Play")
+                        Text(tr("Play", "Играть"))
                     }
                     FilledTonalButton(onClick = { actions.onPlay(collection.title, messages, null, true) }) {
                         Icon(Symbols.Shuffle, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Shuffle")
+                        Text(tr("Shuffle", "Перемешать"))
                     }
                 }
             }
@@ -610,11 +612,11 @@ private fun TrackRow(
         trailingContent = {
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Symbols.MoreVert, contentDescription = "More for ${item.track.title}")
+                    Icon(Symbols.MoreVert, contentDescription = tr("More for ${item.track.title}", "Ещё для ${item.track.title}"))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Play next") },
+                        text = { Text(tr("Play next", "Играть следующим")) },
                         leadingIcon = { Icon(Symbols.SkipNext, contentDescription = null) },
                         onClick = {
                             menu = false
@@ -622,7 +624,7 @@ private fun TrackRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to queue") },
+                        text = { Text(tr("Add to queue", "В очередь")) },
                         leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null) },
                         onClick = {
                             menu = false
@@ -630,7 +632,7 @@ private fun TrackRow(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Open chat") },
+                        text = { Text(tr("Open chat", "Открыть чат")) },
                         leadingIcon = { Icon(Symbols.Chat, contentDescription = null) },
                         onClick = {
                             menu = false

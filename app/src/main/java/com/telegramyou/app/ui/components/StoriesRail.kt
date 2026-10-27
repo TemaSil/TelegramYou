@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.motion.containerTransform
 import com.telegramyou.app.ui.motion.storyContainerKey
 import com.telegramyou.app.ui.motion.StoryContainerShape
@@ -55,7 +57,7 @@ fun StoriesRail(
             // does, and "My story" is the one that opens what was posted.
             val hasMine = stories.any { it.isMine }
             stories.forEach { story ->
-                StoryOrb(story = story, addLabel = if (hasMine) "Add story" else "My story", onClick = { onStoryClick(story) })
+                StoryOrb(story = story, addLabel = if (hasMine) tr("Add story", "Добавить") else tr("My story", "Моя история"), onClick = { onStoryClick(story) })
             }
         }
     }

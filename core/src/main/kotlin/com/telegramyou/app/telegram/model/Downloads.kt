@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.ui.media.formatBytes
 
@@ -74,17 +78,17 @@ fun DownloadEntry.progress(transfer: FileTransfer?): Float? {
 fun DownloadEntry.statusLine(transfer: FileTransfer?): String {
     val total = transfer?.totalBytes?.takeIf { it > 0 } ?: sizeBytes
     val done = transfer?.doneBytes ?: downloadedBytes
-    val ofTotal = if (total > 0) "${formatBytes(done)} of ${formatBytes(total)}" else formatBytes(done)
+    val ofTotal = if (total > 0) tr("${formatBytes(done)} of ${formatBytes(total)}", "${formatBytes(done)} из ${formatBytes(total)}") else formatBytes(done)
     return when (state(transfer)) {
         DownloadState.Downloading -> ofTotal
-        DownloadState.Paused -> "Paused · $ofTotal"
-        DownloadState.Waiting -> if (done > 0) "Waiting for the network · $ofTotal" else "Waiting for the network"
+        DownloadState.Paused -> tr("Paused · $ofTotal", "Пауза · $ofTotal")
+        DownloadState.Waiting -> if (done > 0) tr("Waiting for the network · $ofTotal", "Ждём сеть · $ofTotal") else tr("Waiting for the network", "Ждём сеть")
         DownloadState.Done -> listOf(
             formatBytes(sizeBytes.takeIf { it > 0 } ?: done),
-            chatTitle.takeIf { it.isNotBlank() }?.let { "from $it" },
-            "in Downloads".takeIf { isSavedToDevice }
+            chatTitle.takeIf { it.isNotBlank() }?.let { tr("from $it", "из $it") },
+            tr("in Downloads", "в Загрузках").takeIf { isSavedToDevice }
         ).filterNotNull().joinToString(" · ")
-        DownloadState.Gone -> "Removed from the phone — tap to download again"
+        DownloadState.Gone -> tr("Removed from the phone — tap to download again", "Удалён с телефона — нажмите, чтобы скачать снова")
     }
 }
 
@@ -117,10 +121,10 @@ fun sectionDownloads(entries: List<DownloadEntry>): DownloadSections {
  */
 fun downloadNotificationText(transfers: List<FileTransfer>): String {
     val count = transfers.size
-    val files = if (count == 1) "1 file" else "$count files"
+    val files = counted(count, "file", "files", "файл", "файла", "файлов")
     val total = transfers.sumOf { it.totalBytes.coerceAtLeast(0) }
     val done = transfers.sumOf { it.doneBytes.coerceAtLeast(0) }
-    return if (total > 0) "Downloading $files · ${formatBytes(done)} of ${formatBytes(total)}" else "Downloading $files"
+    return if (total > 0) tr("Downloading $files · ${formatBytes(done)} of ${formatBytes(total)}", "Скачивается $files · ${formatBytes(done)} из ${formatBytes(total)}") else tr("Downloading $files", "Скачивается $files")
 }
 
 /** How a download asked for from a chat ended, for the screen that asked. */

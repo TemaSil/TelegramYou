@@ -1,5 +1,7 @@
 package com.telegramyou.app.update
 
+import com.telegramyou.app.i18n.tr
+
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -26,9 +28,9 @@ fun releasedLabel(
     val days = ChronoUnit.DAYS.between(published, today)
     val pattern = if (published.year == today.year) "d MMMM" else "d MMMM yyyy"
     return when (days) {
-        0L -> "Released today"
-        1L -> "Released yesterday"
-        else -> "Released " + published.format(DateTimeFormatter.ofPattern(pattern, locale))
+        0L -> tr("Released today", "Вышла сегодня")
+        1L -> tr("Released yesterday", "Вышла вчера")
+        else -> tr("Released ", "Вышла ") + published.format(DateTimeFormatter.ofPattern(pattern, locale))
     }
 }
 

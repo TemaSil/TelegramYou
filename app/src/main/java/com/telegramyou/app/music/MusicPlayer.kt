@@ -1,5 +1,7 @@
 package com.telegramyou.app.music
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -250,7 +252,7 @@ class MusicPlayer(
                         }
                         startCurrent()
                     } else {
-                        _state.update { it.copy(notice = "Could not play ${track?.title ?: "the track"}") }
+                        _state.update { it.copy(notice = tr("Could not play ${track?.title ?: "the track"}", "Не удалось включить ${track?.title ?: "трек"}")) }
                         advance(auto = true)
                     }
                 }
@@ -460,7 +462,7 @@ class MusicPlayer(
         loaded: List<ChatMessage>,
         cursor: String?,
         query: String = "",
-        title: String = "My music"
+        title: String = tr("My music", "Моя музыка")
     ) {
         val track = message.asTrack() ?: return
         myMusicCursor = cursor
@@ -508,7 +510,7 @@ class MusicPlayer(
         val track = _state.value.track ?: return
         scope.launch {
             val done = runCatching { repository.toggleReaction(track.chatId, track.messageId, emoji) }.isSuccess
-            _state.update { it.copy(notice = if (done) "Reacted $emoji to ${track.title}" else "Could not react to it") }
+            _state.update { it.copy(notice = if (done) tr("Reacted $emoji to ${track.title}", "Реакция $emoji на ${track.title}") else tr("Could not react to it", "Не удалось поставить реакцию")) }
         }
     }
 
@@ -523,7 +525,7 @@ class MusicPlayer(
         if (body.isEmpty() || track.chatId <= 0) return
         scope.launch {
             val done = runCatching { repository.sendText(track.chatId, body, replyToId = track.messageId) }.isSuccess
-            _state.update { it.copy(notice = if (done) "Replied to ${track.title}" else "Could not send the reply") }
+            _state.update { it.copy(notice = if (done) tr("Replied to ${track.title}", "Ответ на ${track.title} отправлен") else tr("Could not send the reply", "Не удалось отправить ответ")) }
         }
     }
     private var myMusicQuery: String = ""
@@ -631,7 +633,7 @@ class MusicPlayer(
             sleeper = scope.launch {
                 delay(timer.minutes * 60_000L)
                 exo?.pause()
-                _state.update { it.copy(sleep = SleepTimer.Off, notice = "Sleep timer: music stopped") }
+                _state.update { it.copy(sleep = SleepTimer.Off, notice = tr("Sleep timer: music stopped", "Таймер сна: музыка остановлена")) }
             }
         }
     }
@@ -651,7 +653,7 @@ class MusicPlayer(
             }.isSuccess
             _state.update {
                 it.copy(
-                    notice = if (done) "Saved to Saved Messages" else "Could not save it",
+                    notice = if (done) tr("Saved to Saved Messages", "Сохранено в Избранное") else tr("Could not save it", "Не удалось сохранить"),
                     // Offered only from another chat's queue: from Saved
                     // Messages' own, the copy is already where it plays.
                     savedTo = saved.takeIf { done && it != track.chatId }
@@ -674,7 +676,7 @@ class MusicPlayer(
             val first = page.firstOrNull() ?: return@launch
             if (playing != null && first.asTrack()?.fileId == playing.fileId) carryOnFrom = at
             keepPosition()
-            play(first, "Saved Messages", page, complete = page.size < PAGE)
+            play(first, tr("Saved Messages", "Избранное"), page, complete = page.size < PAGE)
         }
     }
 
@@ -710,7 +712,7 @@ class MusicPlayer(
             _state.update {
                 it.copy(
                     offline = null,
-                    notice = if (files.isEmpty()) "All of it is on the phone already" else "${files.size} tracks downloaded"
+                    notice = if (files.isEmpty()) tr("All of it is on the phone already", "Всё уже на телефоне") else tr("${files.size} tracks downloaded", "Скачано треков: ${files.size}")
                 )
             }
         }
@@ -776,7 +778,7 @@ class MusicPlayer(
             }
             if (path == null) {
                 PlayerLog.add("could not fetch ${track.title}; stopped")
-                _state.update { it.copy(isLoading = false, notice = "Could not load ${track.title}") }
+                _state.update { it.copy(isLoading = false, notice = tr("Could not load ${track.title}", "Не удалось загрузить ${track.title}")) }
                 return@launch
             }
             // Kept on the track, so coming back to it does not fetch again —

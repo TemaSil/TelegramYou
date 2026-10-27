@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -365,7 +367,7 @@ fun VideoPage(
                         .statusBarsPadding()
                         .padding(12.dp)
                 ) {
-                    Icon(Symbols.Close, contentDescription = "Close")
+                    Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"))
                 }
             }
 
@@ -386,7 +388,7 @@ fun VideoPage(
                         lastPlaybackSpeed = speed
                     },
                     modifier = Modifier.semantics {
-                        contentDescription = "Playback speed ${playbackSpeedLabel(speed)}"
+                        contentDescription = tr("Playback speed ${playbackSpeedLabel(speed)}", "Скорость ${playbackSpeedLabel(speed)}")
                     }
                 ) {
                     Text(playbackSpeedLabel(speed), style = MaterialTheme.typography.labelLarge)
@@ -394,7 +396,7 @@ fun VideoPage(
                 // Into the small window now, rather than on leaving.
                 if (player != null) {
                     FilledTonalIconButton(onClick = { PictureInPicture.enter(context, pipAspect) }) {
-                        Icon(Symbols.PictureInPictureAlt, contentDescription = "Picture in picture")
+                        Icon(Symbols.PictureInPictureAlt, contentDescription = tr("Picture in picture", "Картинка в картинке"))
                     }
                 }
             }
@@ -422,7 +424,7 @@ fun VideoPage(
                             .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
                             .clickable(
                                 enabled = captionLong || captionOpen,
-                                onClickLabel = if (captionOpen) "Show less" else "Show more"
+                                onClickLabel = if (captionOpen) tr("Show less", "Свернуть") else tr("Show more", "Показать полностью")
                             ) { captionOpen = !captionOpen }
                     )
                 }
@@ -469,7 +471,7 @@ fun VideoPage(
                     ) {
                         Icon(
                             if (isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
-                            contentDescription = if (isPlaying) "Pause" else "Play"
+                            contentDescription = if (isPlaying) tr("Pause", "Пауза") else tr("Play", "Играть")
                         )
                     }
                 }

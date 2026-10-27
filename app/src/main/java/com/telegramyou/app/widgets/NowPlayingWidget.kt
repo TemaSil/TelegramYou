@@ -1,5 +1,7 @@
 package com.telegramyou.app.widgets
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -118,11 +120,11 @@ class NowPlayingWidget : GlanceAppWidget() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = GlanceModifier.fillMaxWidth()
                 ) {
-                    Skip(R.drawable.ic_widget_previous, "Previous", PlayerControl.ACTION_PREVIOUS)
+                    Skip(R.drawable.ic_widget_previous, tr("Previous", "Назад"), PlayerControl.ACTION_PREVIOUS)
                     Spacer(GlanceModifier.width(10.dp))
                     PlayPause(playing)
                     Spacer(GlanceModifier.width(10.dp))
-                    Skip(R.drawable.ic_widget_next, "Next", PlayerControl.ACTION_NEXT)
+                    Skip(R.drawable.ic_widget_next, tr("Next", "Дальше"), PlayerControl.ACTION_NEXT)
                 }
             }
         }
@@ -152,11 +154,11 @@ class NowPlayingWidget : GlanceAppWidget() {
             Spacer(GlanceModifier.width(12.dp))
             Words(playing, titleSize = 15, modifier = GlanceModifier.defaultWeight())
             if (playing.track != null) {
-                Skip(R.drawable.ic_widget_previous, "Previous", PlayerControl.ACTION_PREVIOUS)
+                Skip(R.drawable.ic_widget_previous, tr("Previous", "Назад"), PlayerControl.ACTION_PREVIOUS)
                 Spacer(GlanceModifier.width(4.dp))
                 PlayPause(playing, large = false)
                 Spacer(GlanceModifier.width(4.dp))
-                Skip(R.drawable.ic_widget_next, "Next", PlayerControl.ACTION_NEXT)
+                Skip(R.drawable.ic_widget_next, tr("Next", "Дальше"), PlayerControl.ACTION_NEXT)
             }
         }
     }
@@ -178,12 +180,12 @@ class NowPlayingWidget : GlanceAppWidget() {
         val track = playing.track
         Column(modifier = modifier) {
             Text(
-                track?.title ?: "Nothing playing",
+                track?.title ?: tr("Nothing playing", "Ничего не играет"),
                 maxLines = 1,
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = titleSize.sp, fontWeight = FontWeight.Bold)
             )
             Text(
-                track?.performer?.takeIf { it.isNotBlank() } ?: if (track == null) "Music from your chats" else "",
+                track?.performer?.takeIf { it.isNotBlank() } ?: if (track == null) tr("Music from your chats", "Музыка из ваших чатов") else "",
                 maxLines = 1,
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp)
             )
@@ -238,7 +240,7 @@ class NowPlayingWidget : GlanceAppWidget() {
     @Composable
     private fun PlayPause(playing: NowPlaying, large: Boolean = true) {
         val icon = ImageProvider(if (playing.isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play)
-        val label = if (playing.isPlaying) "Pause" else "Play"
+        val label = if (playing.isPlaying) tr("Pause", "Пауза") else tr("Play", "Играть")
         val toggle = actionRunCallback<PlayerControl>(actionParametersOf(PlayerControl.KEY to PlayerControl.ACTION_TOGGLE))
         if (large) {
             SquareIconButton(

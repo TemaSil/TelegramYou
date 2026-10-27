@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -109,7 +111,7 @@ class SharedMediaViewModel(
             return
         }
         val fileId = message.documentFileId ?: run {
-            _uiState.update { it.copy(errorMessage = "This file is not on the phone yet") }
+            _uiState.update { it.copy(errorMessage = tr("This file is not on the phone yet", "Этого файла ещё нет на телефоне")) }
             return
         }
         if (_uiState.value.openingFileId != null) return
@@ -124,7 +126,7 @@ class SharedMediaViewModel(
                     it.copy(
                         openingFileId = null,
                         errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
-                            "Could not download ${message.fileName ?: "the file"}"
+                            tr("Could not download ${message.fileName ?: "the file"}", "Не удалось скачать ${message.fileName ?: "файл"}")
                         } else {
                             it.errorMessage
                         }
@@ -145,7 +147,7 @@ class SharedMediaViewModel(
     fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }
 
     fun onFileRefused(name: String?) = _uiState.update {
-        it.copy(fileToOpen = null, errorMessage = "No app on this phone opens ${name ?: "this file"}")
+        it.copy(fileToOpen = null, errorMessage = tr("No app on this phone opens ${name ?: "this file"}", "На этом телефоне нет приложения, которое откроет ${name ?: "этот файл"}"))
     }
 
     fun onErrorShown() = _uiState.update { it.copy(errorMessage = null) }

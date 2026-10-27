@@ -158,6 +158,14 @@ android {
     // decision from which components are available to compile against.
     compileSdk = 37
 
+    // The languages the app speaks, listed for Android 13's per-app language
+    // (Settings → Apps → TelegramYou → Language) from the values-* folders,
+    // English being the unqualified one (res/resources.properties). Russian
+    // since 2.6.
+    androidResources {
+        generateLocaleConfig = true
+    }
+
     // One debug key for everybody, tracked in the repository.
     //
     // Without this AGP makes a debug keystore on whatever machine is building,
@@ -284,6 +292,12 @@ android {
     // uncaught one, inside the catch block. Default values instead of throws.
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // English whatever the machine speaks: the tests assert the app's
+        // English words, which are read in the language in use (2.6).
+        unitTests.all { test ->
+            test.systemProperty("user.language", "en")
+            test.systemProperty("user.country", "US")
+        }
     }
 
     buildFeatures {

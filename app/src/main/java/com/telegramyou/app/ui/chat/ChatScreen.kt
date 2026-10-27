@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.SendOptions
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -418,7 +420,7 @@ fun ChatScreen(
         if (answer.showAlert) {
             AlertDialog(
                 onDismissRequest = onBotAnswerShown,
-                confirmButton = { TextButton(onClick = onBotAnswerShown) { Text("OK") } },
+                confirmButton = { TextButton(onClick = onBotAnswerShown) { Text(tr("OK", "OK")) } },
                 text = { Text(answer.text) }
             )
         } else {
@@ -451,7 +453,7 @@ fun ChatScreen(
     }
     if (locationRefused) {
         LaunchedEffect(Unit) {
-            snackbarHostState.showSnackbar("Sending where you are needs location access")
+            snackbarHostState.showSnackbar(tr("Sending where you are needs location access", "Чтобы отправить геопозицию, нужен доступ к местоположению"))
             locationRefused = false
         }
     }
@@ -898,7 +900,7 @@ fun ChatScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 title = {
@@ -1011,7 +1013,7 @@ fun ChatScreen(
                     // opens an empty list.
                     if (detail?.chat?.hasScheduledMessages == true) {
                         IconButton(onClick = onScheduledOpen) {
-                            Icon(Symbols.Schedule, contentDescription = "Scheduled messages")
+                            Icon(Symbols.Schedule, contentDescription = tr("Scheduled messages", "Отложенные сообщения"))
                         }
                     }
                     // Beside search rather than behind an overflow: both are
@@ -1020,16 +1022,16 @@ fun ChatScreen(
                     IconButton(onClick = onOpenMedia) {
                         Icon(
                             Symbols.PhotoLibrary,
-                            contentDescription = "Photos in this chat"
+                            contentDescription = tr("Photos in this chat", "Фото в этом чате")
                         )
                     }
                     IconButton(onClick = { onSearchOpenChange(!state.search.isOpen) }) {
                         Icon(
                             if (state.search.isOpen) Symbols.Close else Symbols.Search,
                             contentDescription = if (state.search.isOpen) {
-                                "Close search"
+                                tr("Close search", "Закрыть поиск")
                             } else {
-                                "Search in chat"
+                                tr("Search in chat", "Поиск в чате")
                             }
                         )
                     }
@@ -1282,11 +1284,11 @@ fun ChatScreen(
                                 onSaveGif = { onSaveGif(message) },
                                 onPlayNext = {
                                     onLineUp(message, true)
-                                    scope.launch { snackbarHostState.showSnackbar("Plays next") }
+                                    scope.launch { snackbarHostState.showSnackbar(tr("Plays next", "Будет следующим")) }
                                 },
                                 onAddToQueue = {
                                     onLineUp(message, false)
-                                    scope.launch { snackbarHostState.showSnackbar("Added to the queue") }
+                                    scope.launch { snackbarHostState.showSnackbar(tr("Added to the queue", "Добавлено в очередь")) }
                                 },
                                 onContactOpen = onContactOpen,
                                 onContactAdd = onContactAdd,
@@ -1359,7 +1361,7 @@ fun ChatScreen(
                                         }
                                         is ButtonAction.CopyText -> {
                                             copyToClipboard(action.text)
-                                            scope.launch { snackbarHostState.showSnackbar("Copied") }
+                                            scope.launch { snackbarHostState.showSnackbar(tr("Copied", "Скопировано")) }
                                         }
                                         else -> onBotButton(message, button)
                                     }
@@ -1500,7 +1502,7 @@ fun ChatScreen(
                             // the wallpaper read as a smudge under it.
                             elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
                         ) {
-                            Icon(Symbols.KeyboardArrowDown, contentDescription = "Jump to latest")
+                            Icon(Symbols.KeyboardArrowDown, contentDescription = tr("Jump to latest", "К последним"))
                         }
                     }
                 }
@@ -1665,7 +1667,7 @@ fun ChatScreen(
                             onJoin = onChannelJoin
                         )
                     } else ComposerBar(
-                        placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: "Message",
+                        placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: tr("Message", "Сообщение"),
                         botKeyboardShown = botKeyboard?.let { botKeyboardShown },
                         onBotKeyboardToggle = {
                             botKeyboardShown = !botKeyboardShown
@@ -1716,7 +1718,7 @@ fun ChatScreen(
                                 videoNoteStart.value = scope.launch {
                                     if (!videoNotes.start(lifecycleOwner)) {
                                         videoNoteSince = null
-                                        snackbarHostState.showSnackbar("The camera could not be opened")
+                                        snackbarHostState.showSnackbar(tr("The camera could not be opened", "Не удалось открыть камеру"))
                                     }
                                 }
                             }
@@ -2025,7 +2027,7 @@ internal fun DaySeparator(date: Long, onClick: (() -> Unit)? = null) {
             modifier = Modifier
                 .clip(MaterialTheme.shapes.large)
                 .clickable(enabled = onClick != null) { onClick?.invoke() }
-                .semantics { if (onClick != null) contentDescription = "$label, go to a date" }
+                .semantics { if (onClick != null) contentDescription = tr("$label, go to a date", "$label, перейти к дате") }
         ) {
             Text(
                 text = label,
@@ -2074,12 +2076,12 @@ internal fun PinnedMessageBar(
             Spacer(Modifier.width(10.dp))
             Column {
                 Text(
-                    "Pinned message",
+                    tr("Pinned message", "Закреплённое сообщение"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    message.text.ifBlank { "Attachment" },
+                    message.text.ifBlank { tr("Attachment", "Вложение") },
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2109,7 +2111,7 @@ internal fun UnreadSeparator() {
             color = MaterialTheme.colorScheme.primaryContainer
         ) {
             Text(
-                text = "Unread messages",
+                text = tr("Unread messages", "Непрочитанные сообщения"),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

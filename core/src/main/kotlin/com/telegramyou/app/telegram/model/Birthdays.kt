@@ -1,5 +1,11 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.isRussian
+
+import com.telegramyou.app.i18n.tr
+
 import java.time.LocalDate
 
 /**
@@ -8,10 +14,11 @@ import java.time.LocalDate
  */
 data class Birthdate(val day: Int, val month: Int, val year: Int? = null) {
 
-    /** "14 March 1994", or "14 March" without a year. */
+    /** "14 March 1994", or "14 March" without a year; "14 марта 1994" in Russian. */
     val label: String
         get() = buildString {
-            append(day).append(' ').append(MONTHS[(month - 1).coerceIn(0, 11)])
+            val months = if (isRussian()) MONTHS_RU else MONTHS
+            append(day).append(' ').append(months[(month - 1).coerceIn(0, 11)])
             year?.let { append(' ').append(it) }
         }
 
@@ -33,13 +40,23 @@ data class Birthdate(val day: Int, val month: Int, val year: Int? = null) {
     /** What a profile's row says: the date, and the age when it is known. */
     fun line(today: LocalDate): String {
         val age = ageOn(today) ?: return label
-        return "$label · $age ${if (age == 1) "year" else "years"} old"
+        return if (isRussian()) {
+            "$label · ${counted(age, "", "", "год", "года", "лет")}"
+        } else {
+            "$label · $age ${if (age == 1) "year" else "years"} old"
+        }
     }
 
     private companion object {
         val MONTHS = listOf(
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
+        )
+
+        /** In the genitive, as a date says them: "14 марта". */
+        val MONTHS_RU = listOf(
+            "января", "февраля", "марта", "апреля", "мая", "июня",
+            "июля", "августа", "сентября", "октября", "ноября", "декабря"
         )
     }
 }
@@ -77,9 +94,15 @@ fun birthdayCard(people: List<BirthdayPerson>, today: LocalDate): BirthdayCard? 
 private fun birthdayTitle(people: List<BirthdayPerson>, day: String): String {
     val names = people.map { firstNameOf(it.name) }
     return when (names.size) {
-        1 -> if (day == "today") "It's ${names[0]}'s birthday today" else "${names[0]}'s birthday is tomorrow"
-        2 -> "${names[0]} and ${names[1]} have birthdays $day"
-        else -> "${names[0]}, ${names[1]} and ${names.size - 2} more have birthdays $day"
+        1 -> if (day == "today") tr("It's ${names[0]}'s birthday today", "Сегодня день рождения: ${names[0]}") else tr("${names[0]}'s birthday is tomorrow", "Завтра день рождения: ${names[0]}")
+        2 -> tr(
+            "${names[0]} and ${names[1]} have birthdays $day",
+            "${if (day == "today") "Сегодня" else "Завтра"} дни рождения: ${names[0]} и ${names[1]}"
+        )
+        else -> tr(
+            "${names[0]}, ${names[1]} and ${names.size - 2} more have birthdays $day",
+            "${if (day == "today") "Сегодня" else "Завтра"} дни рождения: ${names[0]}, ${names[1]} и ещё ${names.size - 2}"
+        )
     }
 }
 
@@ -98,4 +121,4 @@ fun birthdaysToAnnounce(people: List<BirthdayPerson>, today: LocalDate, announce
 fun birthdayNoticeKey(userId: Long, today: LocalDate): String = "$today:$userId"
 
 /** The notice's own words, one person's: the card's, for them alone. */
-fun birthdayNoticeTitle(person: BirthdayPerson): String = "It's ${firstNameOf(person.name)}'s birthday today"
+fun birthdayNoticeTitle(person: BirthdayPerson): String = tr("It's ${firstNameOf(person.name)}'s birthday today", "Сегодня день рождения: ${firstNameOf(person.name)}")

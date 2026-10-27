@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -50,7 +52,7 @@ class PrivacyViewModel(
                 it.copy(
                     rules = loaded,
                     isLoading = false,
-                    message = if (loaded.size < PrivacySetting.entries.size) "Some settings could not be read" else null
+                    message = if (loaded.size < PrivacySetting.entries.size) tr("Some settings could not be read", "Часть настроек не удалось прочитать") else null
                 )
             }
         }
@@ -78,7 +80,7 @@ class PrivacyViewModel(
                 _uiState.update {
                     it.copy(
                         rules = it.rules + (setting to before),
-                        message = failureText("Could not change ${setting.title.lowercase()}", e.message)
+                        message = failureText(tr("Could not change ${setting.title.lowercase()}", "Не удалось изменить: ${setting.title.lowercase()}"), e.message)
                     )
                 }
             }

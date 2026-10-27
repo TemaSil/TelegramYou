@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.StickerContent
 import androidx.compose.runtime.produceState
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -236,7 +238,7 @@ private fun AlbumCell(
         if (path != null) {
             AsyncImage(
                 model = path,
-                contentDescription = "Photo",
+                contentDescription = tr("Photo", "Фото"),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -244,7 +246,7 @@ private fun AlbumCell(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Symbols.Image,
-                    contentDescription = "Photo",
+                    contentDescription = tr("Photo", "Фото"),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(28.dp)
                 )

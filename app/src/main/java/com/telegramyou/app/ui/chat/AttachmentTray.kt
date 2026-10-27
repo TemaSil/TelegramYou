@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -128,7 +130,7 @@ internal fun AttachmentTray(
         ),
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "Attachments, ${items.size}" }
+            .semantics { contentDescription = tr("Attachments, ${items.size}", "Вложения, ${items.size}") }
     ) {
         itemsIndexed(items, key = { _, item -> item.first }) { index, (uri, name) ->
             val lifted = dragging == uri
@@ -205,7 +207,7 @@ internal fun AttachmentTray(
                 if (name == null) {
                     AsyncImage(
                         model = uri,
-                        contentDescription = "Photo ${index + 1}",
+                        contentDescription = tr("Photo ${index + 1}", "Фото ${index + 1}"),
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
@@ -238,7 +240,7 @@ internal fun AttachmentTray(
                         .size(24.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Symbols.VisibilityOff, contentDescription = "Spoiler", modifier = Modifier.size(14.dp))
+                        Icon(Symbols.VisibilityOff, contentDescription = tr("Spoiler", "Спойлер"), modifier = Modifier.size(14.dp))
                     }
                 }
                 // The cross: on the picture, in its corner, small enough
@@ -253,12 +255,12 @@ internal fun AttachmentTray(
                         .padding(4.dp)
                         .size(24.dp)
                         .clip(CircleShape)
-                        .clickable(onClickLabel = "Remove") {
+                        .clickable(onClickLabel = tr("Remove", "Убрать")) {
                             // Nothing on one already leaving, still fading.
                             val at = latest.indexOf(uri)
                             if (at >= 0) onRemove(at)
                         }
-                        .semantics { contentDescription = "Remove attachment" }
+                        .semantics { contentDescription = tr("Remove attachment", "Убрать вложение") }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(Symbols.Close, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -281,7 +283,7 @@ internal fun AttachmentTray(
                         .size(width = tileWidth, height = tileHeight)
                         .clip(MaterialTheme.shapes.large)
                         .clickable(onClick = onAddMore)
-                        .semantics { contentDescription = "Add more" }
+                        .semantics { contentDescription = tr("Add more", "Добавить ещё") }
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(Symbols.Add, contentDescription = null)

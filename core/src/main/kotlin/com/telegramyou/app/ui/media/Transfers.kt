@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.media
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * A file on its way in or out, as a bar and a label.
  *
@@ -39,9 +41,10 @@ fun transferProgress(transfer: FileTransfer): Float? {
  * wrong about the number people expect would be the worse of the two.
  */
 fun formatBytes(bytes: Long): String {
-    if (bytes < 0) return "0 B"
-    if (bytes < 1024) return "$bytes B"
-    val units = listOf("KB", "MB", "GB", "TB")
+    val b = tr("B", "Б")
+    if (bytes < 0) return "0 $b"
+    if (bytes < 1024) return "$bytes $b"
+    val units = listOf(tr("KB", "КБ"), tr("MB", "МБ"), tr("GB", "ГБ"), tr("TB", "ТБ"))
     var value = bytes.toDouble() / 1024
     var unit = 0
     while (value >= 1024 && unit < units.lastIndex) {
@@ -67,7 +70,7 @@ fun formatBytes(bytes: Long): String {
  */
 fun transferLabel(transfer: FileTransfer): String {
     val done = formatBytes(transfer.doneBytes)
-    val verb = if (transfer.isUpload) "Sending" else "Downloading"
+    val verb = if (transfer.isUpload) tr("Sending", "Отправляется") else tr("Downloading", "Скачивается")
     if (transfer.totalBytes <= 0L) return "$verb $done"
-    return "$verb $done of ${formatBytes(transfer.totalBytes)}"
+    return tr("$verb $done of ${formatBytes(transfer.totalBytes)}", "$verb $done из ${formatBytes(transfer.totalBytes)}")
 }

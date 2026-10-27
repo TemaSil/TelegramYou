@@ -1,5 +1,7 @@
 package com.telegramyou.app.widgets
 
+import com.telegramyou.app.i18n.tr
+
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.Intent
@@ -128,19 +130,19 @@ internal fun photoCandidates(chats: List<ChatPreview>): List<ChatPreview> =
     chats.filter { !it.isGroup && !it.isChannel && !it.isBot && !it.isSavedMessages }
 
 /** The shapes on offer, in the order offered, each with the name TalkBack reads. */
-internal val PHOTO_SHAPES: List<Pair<Int, String>> = listOf(
-    5 to "Cookie",
-    1 to "Clover",
-    3 to "Flower",
-    0 to "Circle",
-    2 to "Squircle",
-    9 to "Scallop",
-    7 to "Star",
-    10 to "Trefoil",
-    8 to "Hexagon",
-    6 to "Pentagon",
-    4 to "Triangle",
-    11 to "Octagon"
+internal val PHOTO_SHAPES: List<Pair<Int, String>> get() = listOf(
+    5 to tr("Cookie", "Печенье"),
+    1 to tr("Clover", "Клевер"),
+    3 to tr("Flower", "Цветок"),
+    0 to tr("Circle", "Круг"),
+    2 to tr("Squircle", "Сквиркл"),
+    9 to tr("Scallop", "Гребешок"),
+    7 to tr("Star", "Звезда"),
+    10 to tr("Trefoil", "Трилистник"),
+    8 to tr("Hexagon", "Шестиугольник"),
+    6 to tr("Pentagon", "Пятиугольник"),
+    4 to tr("Triangle", "Треугольник"),
+    11 to tr("Octagon", "Восьмиугольник")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,9 +179,9 @@ private fun Setup(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Photo on the home screen") },
+                title = { Text(tr("Photo on the home screen", "Фото на главном экране")) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) { Icon(Symbols.Close, contentDescription = "Close") }
+                    IconButton(onClick = onClose) { Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть")) }
                 }
             )
         },
@@ -198,7 +200,7 @@ private fun Setup(
                                 onDone()
                             }
                         }
-                    ) { Text(if (saving) "Adding…" else "Add to home screen") }
+                    ) { Text(if (saving) tr("Adding…", "Добавляем…") else tr("Add to home screen", "Добавить на главный экран")) }
                 }
             }
         }
@@ -206,7 +208,7 @@ private fun Setup(
         if (people.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding).padding(24.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    "Sign in to TelegramYou, then come back to choose someone.",
+                    tr("Sign in to TelegramYou, then come back to choose someone.", "Войдите в TelegramYou и вернитесь, чтобы выбрать человека."),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -219,7 +221,7 @@ private fun Setup(
             }
             item {
                 Text(
-                    "Shape",
+                    tr("Shape", "Форма"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
@@ -235,7 +237,7 @@ private fun Setup(
             }
             item {
                 Text(
-                    "Person",
+                    tr("Person", "Человек"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 24.dp, bottom = 4.dp)

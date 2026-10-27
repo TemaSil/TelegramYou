@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.clickable
@@ -57,7 +59,7 @@ fun PrivacyScreen(
     onOpenBlocked: () -> Unit = {},
     onOpenAppLock: () -> Unit = {},
     /** What the app lock is set to, for its row's summary. */
-    appLockSummary: String = "Off"
+    appLockSummary: String = tr("Off", "Выкл.")
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(state.message) {
@@ -93,7 +95,7 @@ fun PrivacyScreen(
                     // change of audience would look as if it overrode them.
                     if (current?.exceptions?.isNotEmpty() == true) {
                         Text(
-                            "Exceptions for particular people stay as they are.",
+                            tr("Exceptions for particular people stay as they are.", "Исключения для отдельных людей останутся как есть."),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 12.dp)
@@ -102,7 +104,7 @@ fun PrivacyScreen(
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -111,10 +113,10 @@ fun PrivacyScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Privacy") },
+                title = { Text(tr("Privacy", "Конфиденциальность")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -133,12 +135,12 @@ fun PrivacyScreen(
         ) {
             // Two groups, as Android's Settings would draw them.
             item(key = "seen") {
-                SettingsGroup("Who can see") {
+                SettingsGroup(tr("Who can see", "Кто видит")) {
                     SEEN.forEach { setting -> privacyRow(setting, state.rules[setting], onEdit) }
                 }
             }
             item(key = "reach") {
-                SettingsGroup("Who can reach me") {
+                SettingsGroup(tr("Who can reach me", "Кто может со мной связаться")) {
                     REACH.forEach { setting -> privacyRow(setting, state.rules[setting], onEdit) }
                 }
             }
@@ -147,12 +149,12 @@ fun PrivacyScreen(
             item(key = "blocked") {
                 SettingsGroup {
                     link(
-                        title = "Blocked users",
-                        summary = "People who cannot message or call you",
+                        title = tr("Blocked users", "Заблокированные"),
+                        summary = tr("People who cannot message or call you", "Те, кто не может вам писать и звонить"),
                         onClick = onOpenBlocked
                     )
                     link(
-                        title = "App lock",
+                        title = tr("App lock", "Блокировка приложения"),
                         summary = appLockSummary,
                         onClick = onOpenAppLock
                     )
@@ -168,7 +170,7 @@ private fun SettingsGroupScope.privacyRow(
     onEdit: (PrivacySetting) -> Unit
 ) = link(
     title = setting.title,
-    summary = rules?.summary ?: "Could not be read",
+    summary = rules?.summary ?: tr("Could not be read", "Не удалось прочитать"),
     onClick = { if (rules != null) onEdit(setting) }
 )
 

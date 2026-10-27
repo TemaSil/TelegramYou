@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.components.withoutBottom
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
@@ -71,12 +73,12 @@ fun SettingsScreen(
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(tr("Settings", "Настройки")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Symbols.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = tr("Back", "Назад")
                         )
                     }
                 },
@@ -173,61 +175,71 @@ fun SettingsContent(
         // row says what is set, so the common answer needs no visit.
         val appearanceSummary = listOf(
             if (settings.dynamicColor && dynamicColorAvailable(Build.VERSION.SDK_INT)) {
-                "Wallpaper colours"
+                tr("Wallpaper colours", "Цвета обоев")
             } else {
-                Accents.nameOf(settings.accent) ?: "Custom colour"
+                Accents.nameOf(settings.accent) ?: tr("Custom colour", "Свой цвет")
             },
-            settings.theme.name + if (settings.pureBlack) ", black" else ""
+            settings.theme.label + if (settings.pureBlack) tr(", black", ", чёрная") else ""
         ).joinToString(" · ")
+        // The app's language (2.6) is Android's to choose, as for any app:
+        // on Android 13 its own page for this app, before it the phone's.
+        val context = androidx.compose.ui.platform.LocalContext.current
         SettingsGroup {
             link(
-                title = "Appearance",
+                title = tr("Appearance", "Оформление"),
                 summary = appearanceSummary,
                 icon = Symbols.Palette,
                 onClick = onOpenAppearance
             )
             link(
-                title = "Chat folders",
-                summary = "Sort chats into tabs",
+                title = tr("Language", "Язык"),
+                summary = java.util.Locale.getDefault().let { it.getDisplayLanguage(it) }
+                    .replaceFirstChar { it.titlecase(java.util.Locale.getDefault()) },
+                icon = Symbols.Language,
+                onClick = { openLanguageSettings(context) }
+            )
+            link(
+                title = tr("Chat folders", "Папки с чатами"),
+                summary = tr("Sort chats into tabs", "Разложите чаты по вкладкам"),
                 icon = Symbols.Folder,
                 onClick = onOpenFolders
             )
             link(
-                title = "Notifications",
-                summary = "Sound and previews for chats, groups and channels",
+                title = tr("Notifications", "Уведомления"),
+                summary = tr("Sound and previews for chats, groups and channels", "Звук и превью для чатов, групп и каналов"),
                 icon = Symbols.Notifications,
                 onClick = onOpenNotifications
             )
         }
 
-        SettingsGroup("Privacy and security") {
+        SettingsGroup(tr("Privacy and security", "Конфиденциальность")) {
             link(
-                title = "Privacy",
-                summary = "Who can see your number, your last seen and more",
+                title = tr("Privacy", "Конфиденциальность"),
+                summary = tr("Who can see your number, your last seen and more", "Кто видит ваш номер, время в сети и другое"),
                 icon = Symbols.Lock,
                 tone = IconTone.Secondary,
                 onClick = onOpenPrivacy
             )
             link(
-                title = "Devices",
-                summary = "Where you are signed in",
+                title = tr("Devices", "Устройства"),
+                summary = tr("Where you are signed in", "Где выполнен вход"),
                 icon = Symbols.Devices,
                 tone = IconTone.Secondary,
                 onClick = onOpenDevices
             )
         }
 
-        SettingsGroup("Data and network") {
+        SettingsGroup(tr("Data and network", "Данные и сеть")) {
             link(
-                title = "Data and storage",
-                summary = "The cache, and clearing it",
+                title = tr("Data and storage", "Данные и память"),
+                summary = tr("The cache, and clearing it", "Кэш и его очистка"),
                 icon = Symbols.Storage,
                 tone = IconTone.Tertiary,
                 onClick = onOpenStorage
             )
             link(
-                title = "Proxy",
-                summary = "Connect through SOCKS5, HTTP or MTProto",
+                title = tr("Proxy", "Прокси"),
+                summary = tr("Connect through SOCKS5, HTTP or MTProto", "Подключение через SOCKS5, HTTP или MTProto"),
                 icon = Symbols.VpnKey,
                 tone = IconTone.Tertiary,
                 onClick = onOpenProxy
@@ -238,8 +250,8 @@ fun SettingsContent(
         // settings most people never need, kept out of their way.
         SettingsGroup {
             link(
-                title = "For geeks",
-                summary = "Small things for people who like to tinker",
+                title = tr("For geeks", "Для гиков"),
+                summary = tr("Small things for people who like to tinker", "Мелочи для тех, кто любит покопаться"),
                 icon = Symbols.Science,
                 onClick = onOpenGeeks
             )
@@ -255,11 +267,11 @@ fun SettingsContent(
                 { Badge() }
             } else null
             link(
-                title = "App update",
+                title = tr("App update", "Обновление"),
                 summary = when (state) {
-                    is UpdateState.Available -> "Version ${state.release.label} is out"
-                    is UpdateState.Ready -> "Version ${state.release.label} is ready to install"
-                    else -> updates?.let { "Version ${it.installed} · what's new" } ?: "What's new"
+                    is UpdateState.Available -> tr("Version ${state.release.label} is out", "Вышла версия ${state.release.label}")
+                    is UpdateState.Ready -> tr("Version ${state.release.label} is ready to install", "Версия ${state.release.label} готова к установке")
+                    else -> updates?.let { tr("Version ${it.installed} · what's new", "Версия ${it.installed} · что нового") } ?: tr("What's new", "Что нового")
                 },
                 icon = Symbols.SystemUpdate,
                 tone = if (waiting) IconTone.Tertiary else IconTone.Primary,
@@ -274,7 +286,7 @@ fun SettingsContent(
         var confirmLogout by remember { mutableStateOf(false) }
         SettingsGroup {
             link(
-                title = "Log out",
+                title = tr("Log out", "Выйти"),
                 titleColor = error,
                 onClick = { confirmLogout = true }
             )
@@ -283,16 +295,16 @@ fun SettingsContent(
             AlertDialog(
                 onDismissRequest = { confirmLogout = false },
                 icon = { Icon(Symbols.Logout, contentDescription = null) },
-                title = { Text("Log out of Telegram?") },
-                text = { Text("Your chats stay on Telegram. You can sign back in with your phone number.") },
+                title = { Text(tr("Log out of Telegram?", "Выйти из Telegram?")) },
+                text = { Text(tr("Your chats stay on Telegram. You can sign back in with your phone number.", "Чаты останутся в Telegram. Войти снова можно по номеру телефона.")) },
                 confirmButton = {
                     TextButton(onClick = {
                         confirmLogout = false
                         onLogout()
-                    }) { Text("Log out") }
+                    }) { Text(tr("Log out", "Выйти")) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { confirmLogout = false }) { Text("Cancel") }
+                    TextButton(onClick = { confirmLogout = false }) { Text(tr("Cancel", "Отмена")) }
                 }
             )
         }
@@ -307,4 +319,19 @@ internal fun SectionHeader(text: String) {
         color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
     )
+}
+
+/**
+ * Android's language settings for this app: from Android 13 the page that
+ * picks a language for one app, which is where a phone's owner expects it;
+ * before that the phone's own, which this app follows.
+ */
+private fun openLanguageSettings(context: android.content.Context) {
+    val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
+            .setData(android.net.Uri.fromParts("package", context.packageName, null))
+    } else {
+        android.content.Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)
+    }
+    runCatching { context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }

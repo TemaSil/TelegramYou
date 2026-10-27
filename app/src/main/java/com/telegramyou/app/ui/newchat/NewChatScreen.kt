@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.newchat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.components.personShape
 import androidx.compose.foundation.layout.Arrangement
@@ -95,10 +97,10 @@ fun NewChatScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (kind == NewChatKind.Group) "New group" else "New channel") },
+                title = { Text(if (kind == NewChatKind.Group) tr("New group", "Новая группа") else tr("New channel", "Новый канал")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 }
             )
@@ -129,7 +131,7 @@ fun NewChatScreen(
                         // accessibility tree the emulator dumped had this as
                         // an empty Button, which TalkBack reads as "button"
                         // and UiAutomator could not find at all.
-                        .semantics { contentDescription = "Create" },
+                        .semantics { contentDescription = tr("Create", "Создать") },
                     icon = {
                         if (state.isWorking) {
                             LoadingIndicator(modifier = Modifier.size(24.dp))
@@ -137,7 +139,7 @@ fun NewChatScreen(
                             Icon(Symbols.Check, contentDescription = null)
                         }
                     },
-                    text = { Text("Create") }
+                    text = { Text(tr("Create", "Создать")) }
                 )
             }
         }
@@ -153,7 +155,7 @@ fun NewChatScreen(
                     value = state.title,
                     onValueChange = onTitleChange,
                     label = {
-                        Text(if (kind == NewChatKind.Group) "Group name" else "Channel name")
+                        Text(if (kind == NewChatKind.Group) tr("Group name", "Название группы") else tr("Channel name", "Название канала"))
                     },
                     singleLine = true,
                     isError = state.titleProblem != null,
@@ -178,10 +180,10 @@ fun NewChatScreen(
                     OutlinedTextField(
                         value = state.description,
                         onValueChange = onDescriptionChange,
-                        label = { Text("Description (optional)") },
+                        label = { Text(tr("Description (optional)", "Описание (необязательно)")) },
                         minLines = 3,
                         supportingText = {
-                            Text("Shown to people before they subscribe")
+                            Text(tr("Shown to people before they subscribe", "Его видят до подписки"))
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -192,9 +194,9 @@ fun NewChatScreen(
                 item {
                     Text(
                         if (state.selected.isEmpty()) {
-                            "Members"
+                            tr("Members", "Участники")
                         } else {
-                            "Members · ${state.selected.size} chosen"
+                            tr("Members · ${state.selected.size} chosen", "Участники · выбрано ${state.selected.size}")
                         },
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
@@ -274,10 +276,10 @@ fun JoinLinkScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Join with a link") },
+                title = { Text(tr("Join with a link", "Вступить по ссылке")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 }
             )
@@ -293,7 +295,7 @@ fun JoinLinkScreen(
             OutlinedTextField(
                 value = state.link,
                 onValueChange = onLinkChange,
-                label = { Text("Invite link") },
+                label = { Text(tr("Invite link", "Ссылка-приглашение")) },
                 placeholder = { Text("t.me/+…") },
                 singleLine = true,
                 isError = state.linkProblem != null,
@@ -328,10 +330,7 @@ fun JoinLinkScreen(
                         AvatarBubble(title = preview.title, seed = preview.avatarColor, size = 72.dp)
                         Text(preview.title, style = MaterialTheme.typography.titleLarge)
                         Text(
-                            "%,d %s".format(
-                                preview.memberCount,
-                                if (preview.isChannel) "subscribers" else "members"
-                            ),
+                            com.telegramyou.app.ui.format.memberCountLabel(preview.memberCount, preview.isChannel),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -339,9 +338,9 @@ fun JoinLinkScreen(
                             Button(onClick = onJoin, enabled = !state.isWorking) {
                                 Text(
                                     when {
-                                        preview.joinedChatId != null -> "Open"
-                                        preview.isChannel -> "Join channel"
-                                        else -> "Join group"
+                                        preview.joinedChatId != null -> tr("Open", "Открыть")
+                                        preview.isChannel -> tr("Join channel", "Вступить в канал")
+                                        else -> tr("Join group", "Вступить в группу")
                                     }
                                 )
                             }
@@ -350,7 +349,7 @@ fun JoinLinkScreen(
                             // Said rather than left to the button's wording:
                             // "Open" alone could read as a broken join.
                             Text(
-                                "You are already in it",
+                                tr("You are already in it", "Вы уже там"),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

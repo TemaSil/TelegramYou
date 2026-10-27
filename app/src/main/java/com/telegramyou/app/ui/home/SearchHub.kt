@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.settings.settingsBackground
 import com.telegramyou.app.ui.motion.ChatContainerSpring
@@ -178,14 +180,14 @@ internal fun SearchPage(
             },
             expanded = false,
             onExpandedChange = {},
-            placeholder = { Text("Search Telegram") },
+            placeholder = { Text(tr("Search Telegram", "Поиск в Telegram")) },
             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             trailingIcon = {
                 if (search.isSearching) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else if (search.query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Symbols.Close, contentDescription = "Clear")
+                        Icon(Symbols.Close, contentDescription = tr("Clear", "Очистить"))
                     }
                 }
             }
@@ -230,7 +232,7 @@ private fun SearchFrontPage(
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         if (search.topPeople.isNotEmpty()) {
-            item(key = "people-header") { SearchSectionHeader("People") }
+            item(key = "people-header") { SearchSectionHeader(tr("People", "Люди")) }
             item(key = "people") {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
@@ -248,7 +250,7 @@ private fun SearchFrontPage(
         }
         if (search.recentQueries.isNotEmpty()) {
             item(key = "queries-header") {
-                SearchSectionHeader("Recent searches", action = "Clear", onAction = actions.onRecentQueriesCleared)
+                SearchSectionHeader(tr("Recent searches", "Недавние запросы"), action = tr("Clear", "Очистить"), onAction = actions.onRecentQueriesCleared)
             }
             item(key = "queries") {
                 FlowRow(
@@ -267,7 +269,7 @@ private fun SearchFrontPage(
         }
         if (search.recentChats.isNotEmpty()) {
             item(key = "recent-header") {
-                SearchSectionHeader("Recent", action = "Clear", onAction = actions.onRecentChatsCleared)
+                SearchSectionHeader(tr("Recent", "Недавние"), action = tr("Clear", "Очистить"), onAction = actions.onRecentChatsCleared)
             }
             itemsIndexed(search.recentChats, key = { _, chat -> "recent-${chat.id}" }) { index, chat ->
                 SearchChatRow(
@@ -278,14 +280,14 @@ private fun SearchFrontPage(
                     modifier = grows("recent", chat.id),
                     trailing = {
                         IconButton(onClick = { actions.onRecentChatRemoved(chat.id) }) {
-                            Icon(Symbols.Close, contentDescription = "Remove ${chat.title} from recent")
+                            Icon(Symbols.Close, contentDescription = tr("Remove ${chat.title} from recent", "Убрать ${chat.title} из недавних"))
                         }
                     }
                 )
             }
         }
         if (search.recommended.isNotEmpty()) {
-            item(key = "recommended-header") { SearchSectionHeader("Channels for you") }
+            item(key = "recommended-header") { SearchSectionHeader(tr("Channels for you", "Каналы для вас")) }
             itemsIndexed(search.recommended, key = { _, chat -> "recommended-${chat.id}" }) { index, chat ->
                 SearchChatRow(
                     chat = chat,
@@ -301,7 +303,7 @@ private fun SearchFrontPage(
         ) {
             item(key = "hint") {
                 Text(
-                    "Search for people, groups, channels, bots and posts",
+                    tr("Search for people, groups, channels, bots and posts", "Ищите людей, группы, каналы, ботов и публикации"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -329,7 +331,7 @@ private fun SearchResults(
     ) {
         if (scope.showsChats) {
             if (chats.mine.isNotEmpty()) {
-                item(key = "mine-header") { SearchSectionHeader(if (scope == SearchScope.All) "Chats" else "Yours") }
+                item(key = "mine-header") { SearchSectionHeader(if (scope == SearchScope.All) tr("Chats", "Чаты") else tr("Yours", "Ваши")) }
             }
             // The account's own chats as the chat list draws them — the
             // same row, in one group, with the group's corners.
@@ -346,7 +348,7 @@ private fun SearchResults(
                 )
             }
             if (chats.global.isNotEmpty()) {
-                item(key = "global-header") { SearchSectionHeader("Global search") }
+                item(key = "global-header") { SearchSectionHeader(tr("Global search", "Глобальный поиск")) }
             }
             itemsIndexed(chats.global, key = { _, chat -> "global-${chat.id}" }) { index, chat ->
                 SearchChatRow(
@@ -359,7 +361,7 @@ private fun SearchResults(
             }
         }
         if (scope.showsMessages && search.messages.isNotEmpty()) {
-            item(key = "messages-header") { SearchSectionHeader("Messages") }
+            item(key = "messages-header") { SearchSectionHeader(tr("Messages", "Сообщения")) }
             itemsIndexed(
                 search.messages,
                 // A message id is only unique within its chat, so the chat
@@ -392,13 +394,13 @@ private fun SearchResults(
                         modifier = Modifier.fillMaxWidth().padding(24.dp)
                     ) {
                         Text(
-                            "Posts from public channels across Telegram",
+                            tr("Posts from public channels across Telegram", "Публикации из открытых каналов Telegram"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
                         Spacer(Modifier.padding(top = 12.dp))
-                        Button(onClick = actions.onSearchPosts) { Text("Search posts") }
+                        Button(onClick = actions.onSearchPosts) { Text(tr("Search posts", "Искать публикации")) }
                     }
                 }
                 else -> {
@@ -422,7 +424,7 @@ private fun SearchResults(
                         )
                     }
                     if (posts.hits.isEmpty() && !posts.limitReached) {
-                        item(key = "posts-none") { NothingFound("No public posts about “${search.query}”") }
+                        item(key = "posts-none") { NothingFound(tr("No public posts about “${search.query}”", "Нет открытых публикаций о «${search.query}»")) }
                     }
                 }
             }
@@ -435,7 +437,7 @@ private fun SearchResults(
                         LoadingIndicator()
                     }
                 }
-                music.isEmpty() -> item(key = "music-none") { NothingFound("No music called “${search.query}”") }
+                music.isEmpty() -> item(key = "music-none") { NothingFound(tr("No music called “${search.query}”", "Нет музыки с названием «${search.query}»")) }
                 else -> itemsIndexed(music, key = { _, m -> "music-${m.chatId}-${m.id}" }) { index, message ->
                     TrackHitRow(
                         message = message,
@@ -456,7 +458,7 @@ private fun SearchResults(
             else -> chats.isEmpty
         }
         if (!search.isSearching && nothing) {
-            item(key = "nothing") { NothingFound("Nothing found for “${search.query}”") }
+            item(key = "nothing") { NothingFound(tr("Nothing found for “${search.query}”", "По запросу «${search.query}» ничего не найдено")) }
         }
     }
 }
@@ -519,10 +521,10 @@ private fun PersonTile(person: ChatPreview, onClick: () -> Unit, modifier: Modif
 
 /** What kind of chat a row is, for chats that are not in the list yet. */
 private fun ChatPreview.kindLabel(): String = when {
-    isBot -> "Bot"
-    isChannel -> "Channel"
-    isGroup -> "Group"
-    else -> "Chat"
+    isBot -> tr("Bot", "Бот")
+    isChannel -> tr("Channel", "Канал")
+    isGroup -> tr("Group", "Группа")
+    else -> tr("Chat", "Чат")
 }
 
 /**
@@ -646,7 +648,7 @@ private fun TrackHitRow(
             .padding(horizontal = 16.dp),
         leadingContent = {
             FilledTonalIconButton(onClick = onPlay, modifier = Modifier.size(40.dp)) {
-                Icon(Symbols.PlayArrowFilled, contentDescription = "Play ${audio.displayTitle}")
+                Icon(Symbols.PlayArrowFilled, contentDescription = tr("Play ${audio.displayTitle}", "Слушать ${audio.displayTitle}"))
             }
         },
         supportingContent = {
@@ -654,7 +656,7 @@ private fun TrackHitRow(
                 listOf(
                     audio.performer,
                     audio.durationSeconds.takeIf { it > 0 }?.let { formatDuration(it.toLong()) },
-                    from?.let { "from $it" }
+                    from?.let { tr("from $it", "из $it") }
                 ).filter { !it.isNullOrBlank() }.joinToString(" · "),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

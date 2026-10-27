@@ -6,13 +6,17 @@ package com.telegramyou.app.telegram.model
  * filters — the server does the choosing — and [emptyText] is what a tab
  * says with nothing in it.
  */
-enum class SharedMediaKind(val label: String, val emptyText: String) {
-    Media("Media", "No photos or videos here yet"),
-    Files("Files", "No files here yet"),
-    Music("Music", "No music here yet"),
-    Voice("Voice", "No voice or video messages here yet"),
-    Links("Links", "No links here yet"),
-    Gifs("GIFs", "No GIFs here yet");
+enum class SharedMediaKind(private val en: Pair<String, String>, private val ru: Pair<String, String>) {
+    Media("Media" to "No photos or videos here yet", "Медиа" to "Фото и видео здесь пока нет"),
+    Files("Files" to "No files here yet", "Файлы" to "Файлов здесь пока нет"),
+    Music("Music" to "No music here yet", "Музыка" to "Музыки здесь пока нет"),
+    Voice("Voice" to "No voice or video messages here yet", "Голосовые" to "Голосовых и видеосообщений здесь пока нет"),
+    Links("Links" to "No links here yet", "Ссылки" to "Ссылок здесь пока нет"),
+    Gifs("GIFs" to "No GIFs here yet", "GIF" to "GIF здесь пока нет");
+
+    /** The tab's name and what it says while empty, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(en.first, ru.first)
+    val emptyText: String get() = com.telegramyou.app.i18n.tr(en.second, ru.second)
 
     /**
      * Whether [message] belongs in this tab — what the demo filters by, and

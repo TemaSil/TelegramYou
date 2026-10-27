@@ -1,5 +1,7 @@
 package com.telegramyou.app.notifications
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -49,7 +51,7 @@ object ConversationShortcuts {
         val id = conversationId(chat.id)
         try {
             val icon = icon(context, chat)
-            val title = chat.title.ifBlank { "Chat" }
+            val title = chat.title.ifBlank { tr("Chat", "Чат") }
             val shortcut = ShortcutInfoCompat.Builder(context, id)
                 .setShortLabel(title)
                 .setLongLived(true)

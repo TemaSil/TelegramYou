@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.auth
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.BuildConfig
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.width
@@ -247,8 +249,8 @@ fun AuthScreen(
                         // with a way out for a mailbox that is gone.
                         AuthStep.EmailCode -> CodeStep(
                             state = state,
-                            title = "Check your email",
-                            fallbackHint = "We emailed you a code",
+                            title = tr("Check your email", "Проверьте почту"),
+                            fallbackHint = tr("We emailed you a code", "Мы отправили код на почту"),
                             onCodeChange = onCodeChange,
                             onSubmit = { if (state.canSubmit) onSubmitEmailCode() },
                             onResendCode = onResendCode,
@@ -278,7 +280,7 @@ fun AuthScreen(
                 onClick = onOpenProxy,
                 modifier = Modifier.align(Alignment.TopEnd)
             ) {
-                Icon(Symbols.VpnKey, contentDescription = "Proxy")
+                Icon(Symbols.VpnKey, contentDescription = tr("Proxy", "Прокси"))
             }
             // Adding an account: a way back to the one already signed in,
             // where an app bar keeps its navigation.
@@ -287,7 +289,7 @@ fun AuthScreen(
                     onClick = onCancelAdding,
                     modifier = Modifier.align(Alignment.TopStart)
                 ) {
-                    Icon(Symbols.Close, contentDescription = "Cancel adding account")
+                    Icon(Symbols.Close, contentDescription = tr("Cancel adding account", "Отменить добавление аккаунта"))
                 }
             }
         }
@@ -296,10 +298,10 @@ fun AuthScreen(
         // does the confirming.
         if (state.step != AuthStep.Qr) SubmitButton(
             label = when (state.step) {
-                AuthStep.Phone -> "Continue"
-                AuthStep.Code, AuthStep.EmailCode -> "Sign in"
-                AuthStep.Email -> "Send code"
-                AuthStep.Password -> "Unlock"
+                AuthStep.Phone -> tr("Continue", "Продолжить")
+                AuthStep.Code, AuthStep.EmailCode -> tr("Sign in", "Войти")
+                AuthStep.Email -> tr("Send code", "Отправить код")
+                AuthStep.Password -> tr("Unlock", "Разблокировать")
                 AuthStep.Qr -> ""
             },
             isLoading = auth.isLoading && auth.state != AuthState.Bootstrapping,
@@ -371,8 +373,8 @@ private fun QrStep(
 ) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         StepHeader(
-            "Scan to sign in",
-            "On a phone signed in to Telegram: Settings → Devices → Link Desktop Device, then point it here"
+            tr("Scan to sign in", "Отсканируйте, чтобы войти"),
+            tr("On a phone signed in to Telegram: Settings → Devices → Link Desktop Device, then point it here", "На телефоне, где выполнен вход в Telegram: Настройки → Устройства → Подключить устройство, затем наведите сюда")
         )
         Spacer(Modifier.height(16.dp))
         Box(Modifier.size(260.dp), contentAlignment = Alignment.Center) {
@@ -383,7 +385,7 @@ private fun QrStep(
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
         Spacer(Modifier.height(8.dp))
-        TextButton(onClick = onUsePhone) { Text("Use a phone number instead") }
+        TextButton(onClick = onUsePhone) { Text(tr("Use a phone number instead", "Войти по номеру телефона")) }
     }
 }
 
@@ -456,7 +458,7 @@ private fun PhoneStep(
     if (field.text != phone) field = TextFieldValue(phone, TextRange(phone.length))
 
     Column {
-        StepHeader("Your phone", "Check the country code and enter your number")
+        StepHeader(tr("Your phone", "Ваш телефон"), tr("Check the country code and enter your number", "Проверьте код страны и введите номер"))
         OutlinedTextField(
             value = field,
             onValueChange = { edited ->
@@ -471,14 +473,14 @@ private fun PhoneStep(
                 .fillMaxWidth()
                 .focusRequester(focus)
                 .semantics { contentType = ContentType.PhoneNumber },
-            label = { Text("Phone number") },
+            label = { Text(tr("Phone number", "Номер телефона")) },
             leadingIcon = {
                 // The country, and the way to choose another — a flag is
                 // what every phone field in every messenger puts here.
                 IconButton(
                     onClick = { picking = true },
                     modifier = Modifier.semantics {
-                        contentDescription = "Country: ${country?.name ?: "not chosen"}. Choose"
+                        contentDescription = tr("Country: ${country?.name ?: "not chosen"}. Choose", "Страна: ${country?.name ?: "не выбрана"}. Выбрать")
                     }
                 ) {
                     if (country != null) {
@@ -508,7 +510,7 @@ private fun PhoneStep(
         ) {
             Icon(Symbols.QrCode2, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Log in with a QR code")
+            Text(tr("Log in with a QR code", "Войти по QR-коду"))
         }
     }
 
@@ -555,7 +557,7 @@ private fun CountrySheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            placeholder = { Text("Country or code") },
+            placeholder = { Text(tr("Country or code", "Страна или код")) },
             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             singleLine = true
         )
@@ -587,8 +589,8 @@ private fun CodeStep(
     onSubmit: () -> Unit,
     onResendCode: () -> Unit,
     onChangeNumber: () -> Unit,
-    title: String = "Enter code",
-    fallbackHint: String = "Check Telegram for the code",
+    title: String = tr("Enter code", "Введите код"),
+    fallbackHint: String = tr("Check Telegram for the code", "Код пришёл в Telegram"),
     /** Only for a code sent by email, and only where the server offers it. */
     onResetEmail: (() -> Unit)? = null
 ) {
@@ -616,7 +618,7 @@ private fun CodeStep(
                 .focusRequester(focus)
                 // So the system can offer the code from the SMS itself.
                 .semantics { contentType = ContentType.SmsOtpCode },
-            label = { Text("Code") },
+            label = { Text(tr("Code", "Код")) },
             supportingText = auth.errorMessage?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
             isError = !auth.errorMessage.isNullOrBlank(),
             singleLine = true,
@@ -632,12 +634,12 @@ private fun CodeStep(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            TextButton(onClick = onChangeNumber) { Text("Change number") }
+            TextButton(onClick = onChangeNumber) { Text(tr("Change number", "Сменить номер")) }
             if (auth.canResend) {
                 TextButton(onClick = onResendCode, enabled = waitSeconds == 0) {
                     Text(
-                        if (waitSeconds > 0) "Resend in ${countdownLabel(waitSeconds)}"
-                        else "Resend code"
+                        if (waitSeconds > 0) tr("Resend in ${countdownLabel(waitSeconds)}", "Отправить снова через ${countdownLabel(waitSeconds)}")
+                        else tr("Resend code", "Отправить код снова")
                     )
                 }
             }
@@ -670,8 +672,8 @@ private fun EmailStep(
     val focus = rememberStepFocus()
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         StepHeader(
-            "Add a login email",
-            "Telegram asks for an email to sign in to this account. The code goes there."
+            tr("Add a login email", "Добавьте почту для входа"),
+            tr("Telegram asks for an email to sign in to this account. The code goes there.", "Telegram просит почту для входа в этот аккаунт. Код придёт туда.")
         )
         OutlinedTextField(
             value = email,
@@ -680,7 +682,7 @@ private fun EmailStep(
                 .fillMaxWidth()
                 .focusRequester(focus)
                 .semantics { contentType = ContentType.EmailAddress },
-            label = { Text("Email") },
+            label = { Text(tr("Email", "Почта")) },
             supportingText = error?.takeIf { it.isNotBlank() }?.let { { Text(it) } },
             isError = !error.isNullOrBlank(),
             singleLine = true,
@@ -692,7 +694,7 @@ private fun EmailStep(
         )
         Spacer(Modifier.height(8.dp))
         Row(modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = onChangeNumber) { Text("Change number") }
+            TextButton(onClick = onChangeNumber) { Text(tr("Change number", "Сменить номер")) }
         }
     }
 }
@@ -709,8 +711,8 @@ private fun PasswordStep(
     var visible by rememberSaveable { mutableStateOf(false) }
     Column {
         StepHeader(
-            "Two-step verification",
-            "This account has a cloud password. $hint".trim()
+            tr("Two-step verification", "Двухэтапная проверка"),
+            tr("This account has a cloud password. $hint", "У этого аккаунта есть облачный пароль. $hint").trim()
         )
         OutlinedTextField(
             value = password,
@@ -719,12 +721,12 @@ private fun PasswordStep(
                 .fillMaxWidth()
                 .focusRequester(focus)
                 .semantics { contentType = ContentType.Password },
-            label = { Text("Password") },
+            label = { Text(tr("Password", "Пароль")) },
             trailingIcon = {
                 IconButton(onClick = { visible = !visible }) {
                     Icon(
                         if (visible) Symbols.VisibilityOff else Symbols.Visibility,
-                        contentDescription = if (visible) "Hide password" else "Show password"
+                        contentDescription = if (visible) tr("Hide password", "Скрыть пароль") else tr("Show password", "Показать пароль")
                     )
                 }
             },

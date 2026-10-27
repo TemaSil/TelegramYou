@@ -1,5 +1,7 @@
 package com.telegramyou.app.notifications
 
+import com.telegramyou.app.i18n.tr
+
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -43,11 +45,13 @@ data class ChatNotificationSettings(
 }
 
 /** The durations "Mute for…" offers — Telegram's own four. */
-enum class MuteDuration(val seconds: Long, val label: String) {
-    OneHour(3_600, "1 hour"),
-    EightHours(8 * 3_600, "8 hours"),
-    TwoDays(2 * 86_400, "2 days"),
-    Forever(ChatNotificationSettings.MUTED_FOREVER, "Until turned back on");
+enum class MuteDuration(val seconds: Long, private val en: String, private val ru: String) {
+    OneHour(3_600, "1 hour", "1 час"),
+    EightHours(8 * 3_600, "8 hours", "8 часов"),
+    TwoDays(2 * 86_400, "2 days", "2 дня"),
+    Forever(ChatNotificationSettings.MUTED_FOREVER, "Until turned back on", "Пока не включу");
+
+    val label: String get() = com.telegramyou.app.i18n.tr(en, ru)
 
     fun until(nowSeconds: Long): Long =
         if (this == Forever) ChatNotificationSettings.MUTED_FOREVER else nowSeconds + seconds
@@ -63,12 +67,12 @@ fun notificationStatusLabel(
     zone: ZoneId,
     locale: Locale = Locale.getDefault()
 ): String {
-    if (!settings.isMuted(nowSeconds)) return "On"
-    if (settings.mutedUntil >= ChatNotificationSettings.MUTED_FOREVER) return "Off"
+    if (!settings.isMuted(nowSeconds)) return tr("On", "Вкл.")
+    if (settings.mutedUntil >= ChatNotificationSettings.MUTED_FOREVER) return tr("Off", "Выкл.")
     val end = Instant.ofEpochSecond(settings.mutedUntil).atZone(zone)
     val today = Instant.ofEpochSecond(nowSeconds).atZone(zone).toLocalDate()
     val pattern = if (end.toLocalDate() == today) "HH:mm" else "EEE HH:mm"
-    return "Off until " + end.format(DateTimeFormatter.ofPattern(pattern, locale))
+    return tr("Off until ", "Выкл. до ") + end.format(DateTimeFormatter.ofPattern(pattern, locale))
 }
 
 private const val YEAR_SECONDS = 366L * 86_400

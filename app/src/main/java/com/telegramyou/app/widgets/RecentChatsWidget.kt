@@ -1,5 +1,7 @@
 package com.telegramyou.app.widgets
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -84,7 +86,7 @@ class RecentChatsWidget : GlanceAppWidget() {
             titleBar = {
                 TitleBar(
                     startIcon = ImageProvider(R.drawable.ic_widget_mark),
-                    title = "Chats",
+                    title = tr("Chats", "Чаты"),
                     iconColor = GlanceTheme.colors.primary,
                     modifier = GlanceModifier.clickable(actionStartActivity<MainActivity>())
                 )
@@ -92,7 +94,7 @@ class RecentChatsWidget : GlanceAppWidget() {
         ) {
             if (chats.isEmpty()) {
                 Text(
-                    "Open TelegramYou to see your chats here",
+                    tr("Open TelegramYou to see your chats here", "Откройте TelegramYou, чтобы видеть здесь чаты"),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 14.sp),
                     modifier = GlanceModifier
                         .fillMaxWidth()
@@ -156,7 +158,7 @@ class RecentChatsWidget : GlanceAppWidget() {
                     )
                 )
                 Text(
-                    chat.draft.takeIf { it.isNotBlank() }?.let { "Draft: $it" } ?: chat.lastMessage,
+                    chat.draft.takeIf { it.isNotBlank() }?.let { tr("Draft: $it", "Черновик: $it") } ?: chat.lastMessage,
                     maxLines = 1,
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp)
                 )

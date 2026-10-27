@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.unit.dp
@@ -64,7 +66,7 @@ fun GeeksScreen(
         val newestFirst = remember(playerLog) { playerLog.orEmpty().lines().filter { it.isNotBlank() }.reversed().joinToString("\n") }
         AlertDialog(
             onDismissRequest = { showingPlayerLog = false },
-            title = { Text("Player log") },
+            title = { Text(tr("Player log", "Журнал плеера")) },
             text = {
                 SelectionContainer {
                     Text(
@@ -80,23 +82,23 @@ fun GeeksScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val clipboard = context.getSystemService(ClipboardManager::class.java)
-                    clipboard?.setPrimaryClip(ClipData.newPlainText("TelegramYou player log", newestFirst))
+                    clipboard?.setPrimaryClip(ClipData.newPlainText(tr("TelegramYou player log", "Журнал плеера TelegramYou"), newestFirst))
                     showingPlayerLog = false
-                }) { Text("Copy") }
+                }) { Text(tr("Copy", "Копировать")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     com.telegramyou.app.music.PlayerLog.clear(context)
                     playerLog = null
                     showingPlayerLog = false
-                }) { Text("Clear") }
+                }) { Text(tr("Clear", "Очистить")) }
             }
         )
     }
     if (showingCrash && crash != null) {
         AlertDialog(
             onDismissRequest = { showingCrash = false },
-            title = { Text("Last crash") },
+            title = { Text(tr("Last crash", "Последний сбой")) },
             text = {
                 SelectionContainer {
                     Text(
@@ -112,23 +114,23 @@ fun GeeksScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val clipboard = context.getSystemService(ClipboardManager::class.java)
-                    clipboard?.setPrimaryClip(ClipData.newPlainText("TelegramYou crash", crash))
+                    clipboard?.setPrimaryClip(ClipData.newPlainText(tr("TelegramYou crash", "Сбой TelegramYou"), crash))
                     showingCrash = false
-                }) { Text("Copy") }
+                }) { Text(tr("Copy", "Копировать")) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     CrashLog.clear(context)
                     crash = null
                     showingCrash = false
-                }) { Text("Clear") }
+                }) { Text(tr("Clear", "Очистить")) }
             }
         )
     }
     if (choosingDoubleTap) {
         AlertDialog(
             onDismissRequest = { choosingDoubleTap = false },
-            title = { Text("Double tap a message") },
+            title = { Text(tr("Double tap a message", "Двойное касание сообщения")) },
             text = {
                 Column {
                     DoubleTapAction.entries.forEach { action ->
@@ -153,7 +155,7 @@ fun GeeksScreen(
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { choosingDoubleTap = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { choosingDoubleTap = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -161,10 +163,10 @@ fun GeeksScreen(
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("For geeks") },
+                title = { Text(tr("For geeks", "Для гиков")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -178,102 +180,102 @@ fun GeeksScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 24.dp)
         ) {
-            SettingsGroup("In chats") {
+            SettingsGroup(tr("In chats", "В чатах")) {
                 link(
-                    title = "Double tap a message",
+                    title = tr("Double tap a message", "Двойное касание сообщения"),
                     summary = settings.doubleTap.label,
                     onClick = { choosingDoubleTap = true }
                 )
                 switch(
-                    title = "Seconds in message times",
-                    summary = "14:03:27 rather than 14:03",
+                    title = tr("Seconds in message times", "Секунды во времени сообщений"),
+                    summary = tr("14:03:27 rather than 14:03", "14:03:27 вместо 14:03"),
                     checked = settings.showSeconds
                 ) { on -> onChange { it.copy(showSeconds = on) } }
                 switch(
-                    title = "Message details",
-                    summary = "Its exact time and the ids of the message, its sender and the chat, in the menu",
+                    title = tr("Message details", "Подробности сообщения"),
+                    summary = tr("Its exact time and the ids of the message, its sender and the chat, in the menu", "Точное время и id сообщения, отправителя и чата в меню"),
                     checked = settings.messageDetails
                 ) { on -> onChange { it.copy(messageDetails = on) } }
                 switch(
-                    title = "Save and copy media",
-                    summary = "Save to Downloads, and copy a photo, from a message's menu",
+                    title = tr("Save and copy media", "Сохранение и копирование медиа"),
+                    summary = tr("Save to Downloads, and copy a photo, from a message's menu", "Сохранить в «Загрузки» и скопировать фото из меню сообщения"),
                     checked = settings.saveMedia
                 ) { on -> onChange { it.copy(saveMedia = on) } }
                 switch(
-                    title = "Forward without quoting",
-                    summary = "Forwarded messages arrive as yours, without \"Forwarded from\"",
+                    title = tr("Forward without quoting", "Пересылка без цитаты"),
+                    summary = tr("Forwarded messages arrive as yours, without \"Forwarded from\"", "Пересланное приходит от вас, без «Переслано от»"),
                     checked = settings.forwardWithoutQuote
                 ) { on -> onChange { it.copy(forwardWithoutQuote = on) } }
                 switch(
-                    title = "More in a message's menu",
-                    summary = "Repeat it, save it to Saved Messages, delete its downloaded file",
+                    title = tr("More in a message's menu", "Больше в меню сообщения"),
+                    summary = tr("Repeat it, save it to Saved Messages, delete its downloaded file", "Повторить, сохранить в Избранное, удалить скачанный файл"),
                     checked = settings.messageExtras
                 ) { on -> onChange { it.copy(messageExtras = on) } }
                 switch(
-                    title = "Translate chats",
-                    summary = "A chat's info can show what comes in, in your phone's language",
+                    title = tr("Translate chats", "Перевод чатов"),
+                    summary = tr("A chat's info can show what comes in, in your phone's language", "В инфо чата можно включить перевод входящих на язык телефона"),
                     checked = settings.autoTranslate
                 ) { on -> onChange { it.copy(autoTranslate = on) } }
                 switch(
-                    title = "Hide blocked people in groups",
-                    summary = "Their messages are left out of groups you share",
+                    title = tr("Hide blocked people in groups", "Скрывать заблокированных в группах"),
+                    summary = tr("Their messages are left out of groups you share", "Их сообщения не видны в общих группах"),
                     checked = settings.hideBlockedInGroups
                 ) { on -> onChange { it.copy(hideBlockedInGroups = on) } }
                 switch(
-                    title = "Ask before sending a recording",
-                    summary = "A voice or video message waits for Send or Delete when you let go",
+                    title = tr("Ask before sending a recording", "Спрашивать перед отправкой записи"),
+                    summary = tr("A voice or video message waits for Send or Delete when you let go", "Голосовое или видеосообщение ждёт «Отправить» или «Удалить», когда вы отпустите кнопку"),
                     checked = settings.confirmRecordings
                 ) { on -> onChange { it.copy(confirmRecordings = on) } }
             }
 
-            SettingsGroup("Chat list and search") {
+            SettingsGroup(tr("Chat list and search", "Список чатов и поиск")) {
                 switch(
-                    title = "Hide stories",
-                    summary = "No stories above the folders",
+                    title = tr("Hide stories", "Скрыть истории"),
+                    summary = tr("No stories above the folders", "Без историй над папками"),
                     checked = settings.hideStories
                 ) { on -> onChange { it.copy(hideStories = on) } }
                 switch(
-                    title = "Hide the All tab",
-                    summary = "Start on your first folder, when you have folders",
+                    title = tr("Hide the All tab", "Скрыть вкладку «Все»"),
+                    summary = tr("Start on your first folder, when you have folders", "Начинать с первой папки, если папки есть"),
                     checked = settings.hideAllChatsTab
                 ) { on -> onChange { it.copy(hideAllChatsTab = on) } }
                 switch(
-                    title = "Open search without the keyboard",
-                    summary = "Show recent chats and people first; tap the field to type",
+                    title = tr("Open search without the keyboard", "Открывать поиск без клавиатуры"),
+                    summary = tr("Show recent chats and people first; tap the field to type", "Сначала недавние чаты и люди; коснитесь поля, чтобы печатать"),
                     checked = settings.searchWithoutKeyboard
                 ) { on -> onChange { it.copy(searchWithoutKeyboard = on) } }
                 switch(
-                    title = "Pull down for the archive",
-                    summary = "Pull the chat list down past its top to open the archive",
+                    title = tr("Pull down for the archive", "Архив жестом вниз"),
+                    summary = tr("Pull the chat list down past its top to open the archive", "Потяните список чатов вниз за верх, чтобы открыть архив"),
                     checked = settings.openArchiveOnPull
                 ) { on -> onChange { it.copy(openArchiveOnPull = on) } }
             }
 
-            SettingsGroup("Notifications") {
+            SettingsGroup(tr("Notifications", "Уведомления")) {
                 switch(
-                    title = "Silence people not in contacts",
-                    summary = "Their messages arrive without sound or vibration",
+                    title = tr("Silence people not in contacts", "Без звука от незнакомых"),
+                    summary = tr("Their messages arrive without sound or vibration", "Их сообщения приходят без звука и вибрации"),
                     checked = settings.silenceNonContacts
                 ) { on -> onChange { it.copy(silenceNonContacts = on) } }
             }
 
-            SettingsGroup("Experiments") {
+            SettingsGroup(tr("Experiments", "Эксперименты")) {
                 switch(
-                    title = "Music library",
-                    summary = "Every chat's music as albums, artists and playlists, in the chat list's menu",
+                    title = tr("Music library", "Музыкальная библиотека"),
+                    summary = tr("Every chat's music as albums, artists and playlists, in the chat list's menu", "Музыка из всех чатов — альбомы, исполнители и плейлисты в меню списка чатов"),
                     checked = settings.musicLibrary
                 ) { on -> onChange { it.copy(musicLibrary = on) } }
                 switch(
-                    title = "Members in a group's header (beta)",
-                    summary = "A group or channel shows the faces of the people in it rather than its own picture",
+                    title = tr("Members in a group's header (beta)", "Участники в шапке группы (бета)"),
+                    summary = tr("A group or channel shows the faces of the people in it rather than its own picture", "Группа или канал показывает лица участников вместо своей картинки"),
                     checked = settings.groupFaces
                 ) { on -> onChange { it.copy(groupFaces = on) } }
             }
 
-            SettingsGroup("Connection") {
+            SettingsGroup(tr("Connection", "Соединение")) {
                 switch(
-                    title = "Prefer IPv6",
-                    summary = "Reach Telegram over IPv6 where the network offers both",
+                    title = tr("Prefer IPv6", "Предпочитать IPv6"),
+                    summary = tr("Reach Telegram over IPv6 where the network offers both", "Подключаться к Telegram по IPv6, если сеть даёт оба"),
                     checked = settings.preferIpv6
                 ) { on -> onChange { it.copy(preferIpv6 = on) } }
             }
@@ -283,18 +285,18 @@ fun GeeksScreen(
             // And the music player's log (1.7), for music that stops or
             // skips by itself: what it did, and the reason the system gave.
             if (crash != null || playerLog != null) {
-                SettingsGroup("Diagnostics") {
+                SettingsGroup(tr("Diagnostics", "Диагностика")) {
                     if (crash != null) {
                         link(
-                            title = "Last crash",
-                            summary = crash!!.lineSequence().drop(2).firstOrNull().orEmpty().ifBlank { "Tap to see it" },
+                            title = tr("Last crash", "Последний сбой"),
+                            summary = crash!!.lineSequence().drop(2).firstOrNull().orEmpty().ifBlank { tr("Tap to see it", "Нажмите, чтобы посмотреть") },
                             onClick = { showingCrash = true }
                         )
                     }
                     if (playerLog != null) {
                         link(
-                            title = "Player log",
-                            summary = "Why music last stopped or skipped",
+                            title = tr("Player log", "Журнал плеера"),
+                            summary = tr("Why music last stopped or skipped", "Почему музыка в последний раз остановилась или перескочила"),
                             onClick = { showingPlayerLog = true }
                         )
                     }

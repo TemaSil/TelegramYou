@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.ChatPreview
 import android.app.Notification
 import android.app.PendingIntent
@@ -255,7 +257,11 @@ class TelegramForegroundService : Service() {
                     // few kilobytes — Android drops updates that come faster.
                     val percent = if (total > 0) (done * 100 / total).toInt() else -1
                     val text = if (running.isEmpty()) {
-                        if (ids.size == 1) "Downloading 1 file" else "Downloading ${ids.size} files"
+                        if (ids.size == 1) {
+                            tr("Downloading 1 file", "Скачивается 1 файл")
+                        } else {
+                            tr("Downloading ${ids.size} files", "Скачивается файлов: ${ids.size}")
+                        }
                     } else {
                         downloadNotificationText(running)
                     }
@@ -338,7 +344,7 @@ class TelegramForegroundService : Service() {
     private fun birthdayNotification(person: com.telegramyou.app.telegram.model.BirthdayPerson, accountId: Int): Notification =
         NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_BIRTHDAYS)
             .setContentTitle(com.telegramyou.app.telegram.model.birthdayNoticeTitle(person))
-            .setContentText("Tap to wish them a happy one")
+            .setContentText(tr("Tap to wish them a happy one", "Нажмите, чтобы поздравить"))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setCategory(NotificationCompat.CATEGORY_EVENT)
             // A group of its own: left ungrouped, Android bundled it with a
@@ -369,7 +375,7 @@ class TelegramForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         return NotificationCompat.Builder(this, TelegramYouApp.CHANNEL_DOWNLOADS)
-            .setContentTitle("Downloads")
+            .setContentTitle(tr("Downloads", "Загрузки"))
             .setContentText(text)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setProgress(100, percent.coerceAtLeast(0), percent < 0)
@@ -378,7 +384,7 @@ class TelegramForegroundService : Service() {
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_PROGRESS)
             .setContentIntent(open)
-            .addAction(R.drawable.ic_launcher_foreground, "Pause all", pause)
+            .addAction(R.drawable.ic_launcher_foreground, tr("Pause all", "Приостановить все"), pause)
             .build()
     }
 

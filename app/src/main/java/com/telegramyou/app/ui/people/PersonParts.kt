@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.people
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.AlertDialog
@@ -33,17 +35,17 @@ fun LazyListScope.personRows(profile: PersonProfile, onCopy: (what: String, text
     user.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
         item(key = "person-phone") {
             val shown = PhoneEntry.format(phone)
-            DetailRow(Symbols.Phone, "Mobile", shown) { onCopy("Phone number", shown) }
+            DetailRow(Symbols.Phone, tr("Mobile", "Мобильный"), shown) { onCopy(tr("Phone number", "Номер телефона"), shown) }
         }
     }
     user.username?.takeIf { it.isNotBlank() }?.let { handle ->
         item(key = "person-username") {
-            DetailRow(Symbols.AlternateEmail, "Username", "@$handle") { onCopy("Username", "@$handle") }
+            DetailRow(Symbols.AlternateEmail, tr("Username", "Имя пользователя"), "@$handle") { onCopy(tr("Username", "Имя пользователя"), "@$handle") }
         }
     }
     user.bio.takeIf { it.isNotBlank() }?.let { bio ->
         item(key = "person-bio") {
-            DetailRow(Symbols.Info, "Bio", bio, onClick = null)
+            DetailRow(Symbols.Info, tr("Bio", "О себе"), bio, onClick = null)
         }
     }
     // Their birthday where they show it, with their age when the year is
@@ -51,7 +53,7 @@ fun LazyListScope.personRows(profile: PersonProfile, onCopy: (what: String, text
     user.birthdate?.let { birthdate ->
         item(key = "person-birthday") {
             val today = java.time.LocalDate.now()
-            val label = if (birthdate.fallsOn(today)) "Birthday · today" else "Birthday"
+            val label = if (birthdate.fallsOn(today)) tr("Birthday · today", "День рождения · сегодня") else tr("Birthday", "День рождения")
             DetailRow(Symbols.Cake, label, birthdate.line(today), onClick = null)
         }
     }
@@ -81,11 +83,19 @@ private fun DetailRow(icon: ImageVector, label: String, value: String, onClick: 
  */
 fun LazyListScope.blockRow(profile: PersonProfile, onClick: () -> Unit) {
     item(key = "person-block") {
-        val what = if (profile.isBot) "bot" else "user"
         val blocking = !profile.isBlocked
         val error = MaterialTheme.colorScheme.error
         ListItem(
-            headlineContent = { Text(if (blocking) "Block $what" else "Unblock $what") },
+            headlineContent = {
+                Text(
+                    when {
+                        blocking && profile.isBot -> tr("Block bot", "Заблокировать бота")
+                        blocking -> tr("Block user", "Заблокировать")
+                        profile.isBot -> tr("Unblock bot", "Разблокировать бота")
+                        else -> tr("Unblock user", "Разблокировать")
+                    }
+                )
+            },
             leadingContent = { Icon(Symbols.Block, contentDescription = null) },
             colors = if (blocking) {
                 ListItemDefaults.colors(headlineColor = error, leadingIconColor = error)
@@ -106,13 +116,13 @@ fun BlockDialog(profile: PersonProfile, onDismiss: () -> Unit, onConfirm: () -> 
     val name = firstNameOf(profile.user.displayName)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Block $name?") },
+        title = { Text(tr("Block $name?", "Заблокировать $name?")) },
         text = {
             Text(
                 if (profile.isBot) {
-                    "The bot will not be able to message you. You can unblock it later."
+                    tr("The bot will not be able to message you. You can unblock it later.", "Бот не сможет вам писать. Разблокировать можно позже.")
                 } else {
-                    "$name will not be able to message or call you. You can unblock them later."
+                    tr("$name will not be able to message or call you. You can unblock them later.", "$name не сможет вам писать и звонить. Разблокировать можно позже.")
                 }
             )
         },
@@ -120,8 +130,8 @@ fun BlockDialog(profile: PersonProfile, onDismiss: () -> Unit, onConfirm: () -> 
             TextButton(
                 onClick = onConfirm,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) { Text("Block") }
+            ) { Text(tr("Block", "Заблокировать")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }

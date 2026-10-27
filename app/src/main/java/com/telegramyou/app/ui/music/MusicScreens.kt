@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.music
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.MutableFloatState
 import android.content.Intent
@@ -220,7 +222,7 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                     .padding(horizontal = 12.dp, vertical = 4.dp)
                     .clip(PlayerContainerShape)
                     .clickable(onClick = onOpen)
-                    .semantics { contentDescription = "Now playing: ${track.title}" }
+                    .semantics { contentDescription = tr("Now playing: ${track.title}", "Сейчас играет: ${track.title}") }
             ) {
                 Column {
                     Row(
@@ -242,8 +244,8 @@ fun MiniPlayer(state: NowPlaying, actions: MusicActions, onOpen: () -> Unit) {
                             )
                         }
                         PlayPauseButton(state, actions.onToggle, size = 40)
-                        IconButton(onClick = actions.onNext) { Icon(Symbols.SkipNext, contentDescription = "Next track") }
-                        IconButton(onClick = actions.onStop) { Icon(Symbols.Close, contentDescription = "Stop music") }
+                        IconButton(onClick = actions.onNext) { Icon(Symbols.SkipNext, contentDescription = tr("Next track", "Следующий трек")) }
+                        IconButton(onClick = actions.onStop) { Icon(Symbols.Close, contentDescription = tr("Stop music", "Остановить музыку")) }
                     }
                     // Flush with the bottom edge, whose rounding trims its ends.
                     LinearProgressIndicator(
@@ -338,8 +340,8 @@ private fun PlayPauseButton(
     ) {
         when {
             state.isLoading -> LoadingIndicator(Modifier.size((size * 0.6f).dp), color = MaterialTheme.colorScheme.onPrimary)
-            state.isPlaying -> Icon(Symbols.PauseFilled, contentDescription = "Pause", modifier = Modifier.size((size * 0.45f).dp))
-            else -> Icon(Symbols.PlayArrowFilled, contentDescription = "Play", modifier = Modifier.size((size * 0.45f).dp))
+            state.isPlaying -> Icon(Symbols.PauseFilled, contentDescription = tr("Pause", "Пауза"), modifier = Modifier.size((size * 0.45f).dp))
+            else -> Icon(Symbols.PlayArrowFilled, contentDescription = tr("Play", "Играть"), modifier = Modifier.size((size * 0.45f).dp))
         }
     }
 }
@@ -451,20 +453,20 @@ private fun ReplyDialog(to: String, onSend: (String) -> Unit, onDismiss: () -> U
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Reply, contentDescription = null) },
-        title = { Text("Reply to $to") },
+        title = { Text(tr("Reply to $to", "Ответить: $to")) },
         text = {
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                placeholder = { Text("Message") },
+                placeholder = { Text(tr("Message", "Сообщение")) },
                 maxLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
-            TextButton(onClick = { onSend(text) }, enabled = text.isNotBlank()) { Text("Send") }
+            TextButton(onClick = { onSend(text) }, enabled = text.isNotBlank()) { Text(tr("Send", "Отправить")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 
@@ -496,7 +498,7 @@ fun PlayerScreen(
             // After a save, the library is a tap away: play from it.
             val result = host.showSnackbar(
                 message,
-                actionLabel = savedTo?.let { "Play saved" },
+                actionLabel = savedTo?.let { tr("Play saved", "Слушать сохранённое") },
                 // With an action a snackbar otherwise stays until dismissed.
                 duration = SnackbarDuration.Long
             )
@@ -555,7 +557,7 @@ fun PlayerScreen(
                     // menu on the other side.
                     Spacer(Modifier.size(48.dp))
                     Text(
-                        state.queue.sourceTitle.ifBlank { "Music" },
+                        state.queue.sourceTitle.ifBlank { tr("Music", "Музыка") },
                         style = MaterialTheme.typography.titleSmall,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
@@ -563,7 +565,7 @@ fun PlayerScreen(
                         modifier = Modifier.weight(1f)
                     )
                     Box {
-                        IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = "More") }
+                        IconButton(onClick = { menuOpen = true }) { Icon(Symbols.MoreVert, contentDescription = tr("More", "Ещё")) }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             // A reaction straight onto the message the track
                             // came in: whoever sent it sees it, without the
@@ -584,7 +586,7 @@ fun PlayerScreen(
                                 }
                                 HorizontalDivider()
                                 DropdownMenuItem(
-                                    text = { Text("Reply") },
+                                    text = { Text(tr("Reply", "Ответить")) },
                                     leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -592,7 +594,7 @@ fun PlayerScreen(
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Open chat") },
+                                    text = { Text(tr("Open chat", "Открыть чат")) },
                                     leadingIcon = { Icon(Symbols.Chat, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -605,7 +607,7 @@ fun PlayerScreen(
                             // and what it is (1.7). Everyone has the player,
                             // so everyone has this — not only the library.
                             if (track != null) DropdownMenuItem(
-                                text = { Text("Share") },
+                                text = { Text(tr("Share", "Поделиться")) },
                                 leadingIcon = { Icon(Symbols.Share, contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
@@ -624,7 +626,7 @@ fun PlayerScreen(
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Save to Saved Messages") },
+                                text = { Text(tr("Save to Saved Messages", "Сохранить в Избранное")) },
                                 leadingIcon = { Icon(Symbols.Bookmark, contentDescription = null) },
                                 onClick = {
                                     menuOpen = false
@@ -633,7 +635,7 @@ fun PlayerScreen(
                             )
                             if (state.queue.chatId > 0) {
                                 DropdownMenuItem(
-                                    text = { Text("Download all for offline") },
+                                    text = { Text(tr("Download all for offline", "Скачать всё для офлайна")) },
                                     leadingIcon = { Icon(Symbols.Download, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -649,7 +651,7 @@ fun PlayerScreen(
                                 .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC)
                             if (panel.resolveActivity(context.packageManager) != null) {
                                 DropdownMenuItem(
-                                    text = { Text("Equaliser") },
+                                    text = { Text(tr("Equaliser", "Эквалайзер")) },
                                     leadingIcon = { Icon(Symbols.Equalizer, contentDescription = null) },
                                     onClick = {
                                         menuOpen = false
@@ -672,7 +674,7 @@ fun PlayerScreen(
                 }
                 if (track == null) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Text("Nothing is playing", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(tr("Nothing is playing", "Ничего не играет"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     return@Column
                 }
@@ -726,7 +728,7 @@ fun PlayerScreen(
                         if (track.coverPath != null) {
                             AsyncImage(
                                 model = File(track.coverPath),
-                                contentDescription = "Cover of ${track.title}",
+                                contentDescription = tr("Cover of ${track.title}", "Обложка: ${track.title}"),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -762,7 +764,7 @@ fun PlayerScreen(
                     listOf(
                         track.performer,
                         track.senderName.takeIf { it.isNotBlank() && !it.equals(track.performer, ignoreCase = true) }
-                            ?.let { "sent by $it" }
+                            ?.let { tr("sent by $it", "прислал(а) $it") }
                     )
                         .filter { !it.isNullOrBlank() }
                         .joinToString(" · "),
@@ -798,10 +800,10 @@ fun PlayerScreen(
                                     .animateWidth(source)
                                     .height(88.dp)
                             ) {
-                                Icon(Symbols.SkipPrevious, contentDescription = "Previous track", modifier = Modifier.size(32.dp))
+                                Icon(Symbols.SkipPrevious, contentDescription = tr("Previous track", "Предыдущий трек"), modifier = Modifier.size(32.dp))
                             }
                         },
-                        menuContent = { DropdownMenuItem(text = { Text("Previous track") }, onClick = actions.onPrevious) }
+                        menuContent = { DropdownMenuItem(text = { Text(tr("Previous track", "Предыдущий трек")) }, onClick = actions.onPrevious) }
                     )
                     customItem(
                         buttonGroupContent = {
@@ -818,7 +820,7 @@ fun PlayerScreen(
                             )
                         },
                         menuContent = {
-                            DropdownMenuItem(text = { Text(if (state.isPlaying) "Pause" else "Play") }, onClick = actions.onToggle)
+                            DropdownMenuItem(text = { Text(if (state.isPlaying) tr("Pause", "Пауза") else tr("Play", "Играть")) }, onClick = actions.onToggle)
                         }
                     )
                     customItem(
@@ -833,10 +835,10 @@ fun PlayerScreen(
                                     .animateWidth(source)
                                     .height(88.dp)
                             ) {
-                                Icon(Symbols.SkipNext, contentDescription = "Next track", modifier = Modifier.size(32.dp))
+                                Icon(Symbols.SkipNext, contentDescription = tr("Next track", "Следующий трек"), modifier = Modifier.size(32.dp))
                             }
                         },
-                        menuContent = { DropdownMenuItem(text = { Text("Next track") }, onClick = actions.onNext) }
+                        menuContent = { DropdownMenuItem(text = { Text(tr("Next track", "Следующий трек")) }, onClick = actions.onNext) }
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -862,7 +864,7 @@ fun PlayerScreen(
                             )
                         },
                         menuContent = {
-                            DropdownMenuItem(text = { Text("Order: ${state.queue.order.label}") }, onClick = {})
+                            DropdownMenuItem(text = { Text(tr("Order: ${state.queue.order.label}", "Порядок: ${state.queue.order.label}")) }, onClick = {})
                         }
                     )
                     customItem(
@@ -896,13 +898,13 @@ fun PlayerScreen(
                                     .weight(1f)
                                     .animateWidth(source)
                                     .height(56.dp)
-                                    .semantics { contentDescription = "Speed ${speedLabel(state.speed)}" }
+                                    .semantics { contentDescription = tr("Speed ${speedLabel(state.speed)}", "Скорость ${speedLabel(state.speed)}") }
                             ) {
                                 Text(speedLabel(state.speed), style = MaterialTheme.typography.titleMedium)
                             }
                         },
                         menuContent = {
-                            DropdownMenuItem(text = { Text("Speed ${speedLabel(state.speed)}") }, onClick = actions.onSpeed)
+                            DropdownMenuItem(text = { Text(tr("Speed ${speedLabel(state.speed)}", "Скорость ${speedLabel(state.speed)}")) }, onClick = actions.onSpeed)
                         }
                     )
                 }
@@ -919,9 +921,9 @@ fun PlayerScreen(
                         label = {
                             Text(
                                 when (state.sleep) {
-                                    SleepTimer.Off -> "Sleep timer"
-                                    SleepTimer.EndOfTrack -> "Stops after this track"
-                                    else -> "Sleep timer: ${state.sleep.label}"
+                                    SleepTimer.Off -> tr("Sleep timer", "Таймер сна")
+                                    SleepTimer.EndOfTrack -> tr("Stops after this track", "Остановится после этого трека")
+                                    else -> tr("Sleep timer: ${state.sleep.label}", "Таймер сна: ${state.sleep.label}")
                                 }
                             )
                         },
@@ -929,14 +931,14 @@ fun PlayerScreen(
                     )
                     AssistChip(
                         onClick = { queueOpen = true },
-                        label = { Text("Queue") },
+                        label = { Text(tr("Queue", "Очередь")) },
                         leadingIcon = { Icon(Symbols.QueueMusic, contentDescription = null, modifier = Modifier.size(18.dp)) }
                     )
                 }
                 state.offline?.let { offline ->
                     Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
                         Text(
-                            "Downloading ${offline.done} of ${offline.total} for offline",
+                            tr("Downloading ${offline.done} of ${offline.total} for offline", "Скачивается для офлайна: ${offline.done} из ${offline.total}"),
                             style = MaterialTheme.typography.labelMedium
                         )
                         LinearWavyProgressIndicator(
@@ -957,7 +959,7 @@ fun PlayerScreen(
             AlertDialog(
                 onDismissRequest = { sleepOpen = false },
                 icon = { Icon(Symbols.Bedtime, contentDescription = null) },
-                title = { Text("Sleep timer") },
+                title = { Text(tr("Sleep timer", "Таймер сна")) },
                 text = {
                     Column {
                         SleepTimer.entries.forEach { timer ->
@@ -976,7 +978,7 @@ fun PlayerScreen(
                         }
                     }
                 },
-                confirmButton = { TextButton(onClick = { sleepOpen = false }) { Text("Close") } }
+                confirmButton = { TextButton(onClick = { sleepOpen = false }) { Text(tr("Close", "Закрыть")) } }
             )
         }
     }
@@ -1006,7 +1008,7 @@ private fun OrderButton(
             // Plain order shows the shuffle symbol, untinted, as players do:
             // an arrow down on its own read as "download". The arrows are in
             // the menu, beside their words.
-            Icon(if (order == QueueOrder.Listed) Symbols.Shuffle else orderIcon(order), contentDescription = "Order: ${order.label}")
+            Icon(if (order == QueueOrder.Listed) Symbols.Shuffle else orderIcon(order), contentDescription = tr("Order: ${order.label}", "Порядок: ${order.label}"))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             QueueOrder.entries.forEach { option ->
@@ -1060,7 +1062,7 @@ private fun Seeker(state: NowPlaying, onSeek: (Float) -> Unit) {
                         dragging = null
                     }
                 )
-                .semantics { contentDescription = "Position in ${state.track?.title ?: "track"}" },
+                .semantics { contentDescription = tr("Position in ${state.track?.title ?: "track"}", "Позиция в ${state.track?.title ?: "треке"}") },
             contentAlignment = Alignment.Center
         ) {
             LinearWavyProgressIndicator(progress = { shown }, modifier = Modifier.fillMaxWidth())
@@ -1108,10 +1110,10 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
             Column {
                 Text(
                     buildString {
-                        append(state.queue.sourceTitle.ifBlank { "Queue" })
+                        append(state.queue.sourceTitle.ifBlank { tr("Queue", "Очередь") })
                         append(" · ")
                         append(tracks.size)
-                        append(if (state.queue.isComplete) " tracks" else "+ tracks")
+                        append(if (state.queue.isComplete) tr(" tracks", " треков") else tr("+ tracks", "+ треков"))
                     },
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -1120,7 +1122,7 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text("Search the queue") },
+                    placeholder = { Text(tr("Search the queue", "Поиск в очереди")) },
                     leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier
@@ -1157,7 +1159,7 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
                             },
                             leadingContent = {
                                 if (playing) {
-                                    Icon(Symbols.GraphicEq, contentDescription = "Playing", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(Symbols.GraphicEq, contentDescription = tr("Playing", "Играет"), tint = MaterialTheme.colorScheme.primary)
                                 } else {
                                     Text("${entry.index + 1}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.widthIn(min = 24.dp))
                                 }
@@ -1182,7 +1184,7 @@ private fun QueueSheet(state: NowPlaying, actions: MusicActions, onDismiss: () -
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
-                        .semantics { contentDescription = "Go to what is playing" }
+                        .semantics { contentDescription = tr("Go to what is playing", "К тому, что играет") }
                 ) { Icon(Symbols.GraphicEq, contentDescription = null) }
             }
         }
@@ -1199,7 +1201,7 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
     if (queue.interlude == null && queue.upNext.isEmpty()) return
     Column(Modifier.fillMaxWidth()) {
         Text(
-            "Up next",
+            tr("Up next", "Далее"),
             style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
@@ -1208,8 +1210,8 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
             ListItem(
                 colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                 headlineContent = { Text(now.title, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                supportingContent = { Text(now.performer.ifBlank { "Playing" }, maxLines = 1) },
-                leadingContent = { Icon(Symbols.GraphicEq, contentDescription = "Playing", tint = MaterialTheme.colorScheme.primary) }
+                supportingContent = { Text(now.performer.ifBlank { tr("Playing", "Играет") }, maxLines = 1) },
+                leadingContent = { Icon(Symbols.GraphicEq, contentDescription = tr("Playing", "Играет"), tint = MaterialTheme.colorScheme.primary) }
             )
         }
         // A few, and how many more: Up next is a short list by nature, and
@@ -1221,14 +1223,14 @@ private fun UpNext(state: NowPlaying, actions: MusicActions) {
                 leadingContent = { Icon(Symbols.QueueMusic, contentDescription = null) },
                 trailingContent = {
                     IconButton(onClick = { actions.onRemoveUpNext(position) }) {
-                        Icon(Symbols.Close, contentDescription = "Remove ${track.title} from Up next")
+                        Icon(Symbols.Close, contentDescription = tr("Remove ${track.title} from Up next", "Убрать ${track.title} из «Далее»"))
                     }
                 }
             )
         }
         if (queue.upNext.size > UP_NEXT_SHOWN) {
             Text(
-                "and ${queue.upNext.size - UP_NEXT_SHOWN} more",
+                tr("and ${queue.upNext.size - UP_NEXT_SHOWN} more", "и ещё ${queue.upNext.size - UP_NEXT_SHOWN}"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)

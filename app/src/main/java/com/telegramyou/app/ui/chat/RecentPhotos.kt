@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
@@ -211,7 +213,7 @@ internal fun RecentPhotoCarousel(
             ) {
                 AsyncImage(
                     model = uri,
-                    contentDescription = if (picked) "Recent photo, picked" else "Recent photo",
+                    contentDescription = if (picked) tr("Recent photo, picked", "Недавнее фото, выбрано") else tr("Recent photo", "Недавнее фото"),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -244,7 +246,7 @@ internal fun RecentPhotoCarousel(
                 },
                 modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text("Select more photos")
+                Text(tr("Select more photos", "Выбрать ещё фото"))
             }
         }
     }

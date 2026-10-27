@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.layout.Box
@@ -69,27 +71,27 @@ fun DevicesScreen(
     state.confirming?.let { session ->
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("End this session?") },
-            text = { Text("${session.title()} will be signed out. ${session.appLine()}".trim()) },
+            title = { Text(tr("End this session?", "Завершить сеанс?")) },
+            text = { Text(tr("${session.title()} will be signed out. ${session.appLine()}", "${session.title()} выйдет из аккаунта. ${session.appLine()}").trim()) },
             confirmButton = {
                 TextButton(onClick = onTerminateConfirmed) {
-                    Text("End session", color = MaterialTheme.colorScheme.error)
+                    Text(tr("End session", "Завершить"), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         )
     }
     if (state.confirmingAll) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("End all other sessions?") },
-            text = { Text("Every device but this one will be signed out.") },
+            title = { Text(tr("End all other sessions?", "Завершить все другие сеансы?")) },
+            text = { Text(tr("Every device but this one will be signed out.", "Все устройства, кроме этого, выйдут из аккаунта.")) },
             confirmButton = {
                 TextButton(onClick = onTerminateAllConfirmed) {
-                    Text("End all", color = MaterialTheme.colorScheme.error)
+                    Text(tr("End all", "Завершить все"), color = MaterialTheme.colorScheme.error)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -98,10 +100,10 @@ fun DevicesScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Devices") },
+                title = { Text(tr("Devices", "Устройства")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -120,7 +122,7 @@ fun DevicesScreen(
         ) {
             state.current?.let { current ->
                 item(key = "this") {
-                    SettingsGroup("This device") {
+                    SettingsGroup(tr("This device", "Это устройство")) {
                         sessionRow(current, current.activityLabel(now, timeLabel), onClick = null)
                     }
                 }
@@ -132,15 +134,15 @@ fun DevicesScreen(
                     val error = MaterialTheme.colorScheme.error
                     SettingsGroup {
                         link(
-                            title = "End all other sessions",
-                            summary = "Signs out every device but this one",
+                            title = tr("End all other sessions", "Завершить все другие сеансы"),
+                            summary = tr("Signs out every device but this one", "Выход на всех устройствах, кроме этого"),
                             titleColor = error,
                             onClick = { if (!state.isWorking) onTerminateAllRequested() }
                         )
                     }
                 }
                 item(key = "others") {
-                    SettingsGroup("Active sessions") {
+                    SettingsGroup(tr("Active sessions", "Активные сеансы")) {
                         state.others.forEach { session ->
                             sessionRow(
                                 session,
@@ -160,7 +162,7 @@ private fun SettingsGroupScope.sessionRow(session: ActiveSession, activity: Stri
         title = session.title(),
         summary = listOfNotNull(
             session.appLine().takeIf { it.isNotBlank() },
-            "Waiting for the two-step password".takeIf { session.isPasswordPending }
+            tr("Waiting for the two-step password", "Ждёт пароль двухэтапной проверки").takeIf { session.isPasswordPending }
         ).joinToString("\n").ifBlank { null },
         leading = { SettingsIcon(deviceIcon(session.kind), IconTone.Secondary) },
         trailing = { Text(activity, style = MaterialTheme.typography.labelMedium) },

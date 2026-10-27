@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.components
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.chat.typingLabel
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.telegram.model.LastMessageStatus
@@ -197,7 +199,7 @@ fun ChatListRow(
                         val mark = MaterialTheme.colorScheme.error
                         Text(
                             text = buildAnnotatedString {
-                                withStyle(SpanStyle(color = mark)) { append("Draft: ") }
+                                withStyle(SpanStyle(color = mark)) { append(tr("Draft: ", "Черновик: ")) }
                                 append(chat.draft.lineSequence().first())
                             },
                             maxLines = 1,
@@ -232,10 +234,10 @@ fun ChatListRow(
                                     LastMessageStatus.Failed -> Symbols.ErrorOutlineFilled
                                 },
                                 contentDescription = when (status) {
-                                    LastMessageStatus.Sending -> "Sending"
-                                    LastMessageStatus.Sent -> "Sent"
-                                    LastMessageStatus.Read -> "Read"
-                                    LastMessageStatus.Failed -> "Not sent"
+                                    LastMessageStatus.Sending -> tr("Sending", "Отправляется")
+                                    LastMessageStatus.Sent -> tr("Sent", "Отправлено")
+                                    LastMessageStatus.Read -> tr("Read", "Прочитано")
+                                    LastMessageStatus.Failed -> tr("Not sent", "Не отправлено")
                                 },
                                 tint = when (status) {
                                     LastMessageStatus.Read -> MaterialTheme.colorScheme.primary
@@ -281,7 +283,7 @@ fun ChatListRow(
                         // though the last message were the pinned one.
                         Icon(
                             Symbols.PushPinFilled,
-                            contentDescription = "Pinned",
+                            contentDescription = tr("Pinned", "Закреплён"),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -304,7 +306,7 @@ fun ChatListRow(
                         Spacer(Modifier.width(4.dp))
                         Icon(
                             Symbols.VolumeOff,
-                            contentDescription = "Muted",
+                            contentDescription = tr("Muted", "Без звука"),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -348,7 +350,7 @@ fun ChatListRow(
                 // so the entry is the main list's only.
                 if (onPinnedChange != null && swipeStartLabel == null) {
                     DropdownMenuItem(
-                        text = { Text(if (chat.isPinned) "Unpin" else "Pin") },
+                        text = { Text(if (chat.isPinned) tr("Unpin", "Открепить") else tr("Pin", "Закрепить")) },
                         leadingIcon = {
                             Icon(Symbols.PushPinFilled, contentDescription = null)
                         },
@@ -359,7 +361,7 @@ fun ChatListRow(
                     )
                 }
                 DropdownMenuItem(
-                    text = { Text(if (chat.isMuted) "Unmute" else "Mute") },
+                    text = { Text(if (chat.isMuted) tr("Unmute", "Включить звук") else tr("Mute", "Выключить звук")) },
                     leadingIcon = {
                         Icon(
                             if (chat.isMuted) Symbols.NotificationsActive
@@ -379,7 +381,7 @@ fun ChatListRow(
                     // In the menu, not on a third swipe direction: there are
                     // two, and both are already spoken for.
                     DropdownMenuItem(
-                        text = { Text(if (chat.isArchived) "Unarchive" else "Archive") },
+                        text = { Text(if (chat.isArchived) tr("Unarchive", "Вернуть из архива") else tr("Archive", "В архив")) },
                         leadingIcon = {
                             Icon(
                                 if (chat.isArchived) Symbols.Unarchive
@@ -398,7 +400,7 @@ fun ChatListRow(
                     // there is no room for, and hidden when there is nothing to
                     // clear — an entry that would do nothing is worse than none.
                     DropdownMenuItem(
-                        text = { Text("Mark as read") },
+                        text = { Text(tr("Mark as read", "Прочитано")) },
                         leadingIcon = {
                             Icon(Symbols.MarkChatRead, contentDescription = null)
                         },
@@ -415,7 +417,7 @@ fun ChatListRow(
                 val removeLabel = removal.removeLabel
                 if (onClearHistory != null && removal.canClearHistory) {
                     DropdownMenuItem(
-                        text = { Text("Clear history") },
+                        text = { Text(tr("Clear history", "Очистить историю")) },
                         leadingIcon = { Icon(Symbols.DeleteSweep, contentDescription = null) },
                         onClick = {
                             menuOpen = false
@@ -500,11 +502,11 @@ private fun SwipeAction(
             // The archive renames this one, and renaming it changes the icon
             // too: a pin over "Unarchive" would say the opposite of the word.
             icon = if (startLabel == null) Symbols.PushPinFilled else Symbols.Unarchive
-            label = startLabel ?: if (isPinned) "Unpin" else "Pin"
+            label = startLabel ?: if (isPinned) tr("Unpin", "Открепить") else tr("Pin", "Закрепить")
         } else {
             icon = if (isMuted) Symbols.NotificationsActive
             else Symbols.NotificationsOff
-            label = if (isMuted) "Unmute" else "Mute"
+            label = if (isMuted) tr("Unmute", "Включить звук") else tr("Mute", "Выключить звук")
         }
         Icon(icon, contentDescription = label, tint = content)
     }

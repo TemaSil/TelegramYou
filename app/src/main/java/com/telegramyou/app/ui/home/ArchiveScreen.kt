@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.home
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -63,12 +65,12 @@ fun ArchiveScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Archive") },
+                title = { Text(tr("Archive", "Архив")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Symbols.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = tr("Back", "Назад")
                         )
                     }
                 }
@@ -103,7 +105,7 @@ fun ArchiveScreen(
                     // meaning to the main list, which is the one difference
                     // this screen makes.
                     onPinnedChange = { onUnarchive(chat.id) },
-                    swipeStartLabel = "Unarchive",
+                    swipeStartLabel = tr("Unarchive", "Вернуть из архива"),
                     onMarkRead = { onMarkRead(chat.id) }
                 )
             }
@@ -121,7 +123,7 @@ private fun EmptyArchive(contentPadding: PaddingValues) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            "Nothing is archived",
+            tr("Nothing is archived", "В архиве пусто"),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

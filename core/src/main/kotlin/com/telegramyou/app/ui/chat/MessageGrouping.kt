@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.ChatMessage
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -83,8 +85,8 @@ fun dayLabel(
 ): String {
     if (date <= 0L) return ""
     return when {
-        sameDay(date, now) -> "Today"
-        sameDay(date, now - 24 * 60 * 60) -> "Yesterday"
+        sameDay(date, now) -> tr("Today", "Сегодня", locale)
+        sameDay(date, now - 24 * 60 * 60) -> tr("Yesterday", "Вчера", locale)
         // The year only where it is not this one: "8 July" alone, a year
         // back in a long history, read as this summer.
         sameYear(date, now) -> SimpleDateFormat("d MMMM", locale).format(Date(date * 1000L))

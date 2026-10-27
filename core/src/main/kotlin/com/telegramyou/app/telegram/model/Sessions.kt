@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * One place this account is signed in — TDLib's `session`, reduced to what
  * the devices screen shows and acts on.
@@ -44,7 +46,7 @@ fun deviceKindOf(tdType: String): DeviceKind = when (tdType.removePrefix("sessio
 
 /** The session's headline: the device where it says, the platform where not. */
 fun ActiveSession.title(): String =
-    deviceModel.ifBlank { platform }.ifBlank { applicationName }.ifBlank { "Unknown device" }
+    deviceModel.ifBlank { platform }.ifBlank { applicationName }.ifBlank { tr("Unknown device", "Неизвестное устройство") }
 
 /**
  * The line under it: which app and where — "Telegram Desktop 5.2 · Berlin,
@@ -53,14 +55,14 @@ fun ActiveSession.title(): String =
  */
 fun ActiveSession.appLine(): String {
     val app = listOf(applicationName, applicationVersion).filter { it.isNotBlank() }.joinToString(" ")
-    val unofficial = if (!isOfficialApplication && app.isNotBlank()) " (unofficial)" else ""
+    val unofficial = if (!isOfficialApplication && app.isNotBlank()) tr(" (unofficial)", " (неофициальное)") else ""
     return listOf(app + unofficial, location).filter { it.isNotBlank() }.joinToString(" · ")
 }
 
 /** "Online" for this device and for one active within five minutes; the time otherwise. */
 fun ActiveSession.activityLabel(nowSeconds: Long, timeLabel: (Long) -> String): String = when {
-    isCurrent -> "Online"
-    nowSeconds - lastActiveDate < ONLINE_WINDOW_SECONDS -> "Online"
+    isCurrent -> tr("Online", "В сети")
+    nowSeconds - lastActiveDate < ONLINE_WINDOW_SECONDS -> tr("Online", "В сети")
     else -> timeLabel(lastActiveDate)
 }
 

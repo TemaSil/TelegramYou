@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -98,7 +100,7 @@ class SettingsGroupScope internal constructor() {
     ) = item(
         title = title,
         onClick = { if (enabled) onChange(!checked) },
-        modifier = Modifier.semantics { stateDescription = if (checked) "On" else "Off" },
+        modifier = Modifier.semantics { stateDescription = if (checked) tr("On", "Вкл.") else tr("Off", "Выкл.") },
         summary = summary,
         leading = leading ?: icon?.let { { SettingsIcon(it, tone) } },
         trailing = { Switch(checked = checked, onCheckedChange = null, enabled = enabled) }

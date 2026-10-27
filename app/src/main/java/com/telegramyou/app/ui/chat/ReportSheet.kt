@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +45,7 @@ internal fun ReportSheet(step: ReportStep, onAnswer: (optionId: String, text: St
         ) {
             Column(Modifier.navigationBarsPadding()) {
                 Text(
-                    step.title.ifBlank { "Report" },
+                    step.title.ifBlank { tr("Report", "Пожаловаться") },
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
                 )
@@ -64,12 +66,12 @@ internal fun ReportSheet(step: ReportStep, onAnswer: (optionId: String, text: St
             var text by rememberSaveable(step.optionId) { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = onDismiss,
-                title = { Text("Report") },
+                title = { Text(tr("Report", "Пожаловаться")) },
                 text = {
                     OutlinedTextField(
                         value = text,
                         onValueChange = { text = it },
-                        label = { Text(if (step.optional) "Add a comment (optional)" else "What is wrong with it") },
+                        label = { Text(if (step.optional) tr("Add a comment (optional)", "Комментарий (необязательно)") else tr("What is wrong with it", "Что с этим не так")) },
                         minLines = 2,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -78,9 +80,9 @@ internal fun ReportSheet(step: ReportStep, onAnswer: (optionId: String, text: St
                     TextButton(
                         onClick = { onAnswer(step.optionId, text.trim()) },
                         enabled = step.optional || text.isNotBlank()
-                    ) { Text("Send report") }
+                    ) { Text(tr("Send report", "Отправить жалобу")) }
                 },
-                dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+                dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
             )
         }
         ReportStep.Done -> Unit

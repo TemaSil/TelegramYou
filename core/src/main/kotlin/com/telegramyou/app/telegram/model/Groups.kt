@@ -1,5 +1,9 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.counted
+
+import com.telegramyou.app.i18n.tr
+
 /**
  * Running a group: who is in charge of it, what everybody else may do, the
  * links that let people in, and — in a forum — its topics.
@@ -51,14 +55,17 @@ data class AdminRights(
 )
 
 /** One switch in the rights editor, and how it reads. */
-enum class AdminRight(val label: String) {
-    ChangeInfo("Change group info"),
-    DeleteMessages("Delete messages"),
-    RestrictMembers("Ban and restrict members"),
-    InviteUsers("Invite people"),
-    PinMessages("Pin messages"),
-    ManageTopics("Manage topics"),
-    PromoteMembers("Add new admins");
+enum class AdminRight(private val labelEn: String, private val labelRu: String) {
+    ChangeInfo("Change group info", "Изменение профиля группы"),
+    DeleteMessages("Delete messages", "Удаление сообщений"),
+    RestrictMembers("Ban and restrict members", "Блокировка участников"),
+    InviteUsers("Invite people", "Приглашение людей"),
+    PinMessages("Pin messages", "Закрепление сообщений"),
+    ManageTopics("Manage topics", "Управление темами"),
+    PromoteMembers("Add new admins", "Назначение админов");
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
+
 
     fun isOn(rights: AdminRights): Boolean = when (this) {
         ChangeInfo -> rights.changeInfo
@@ -154,14 +161,17 @@ data class GroupPermissions(
 )
 
 /** One switch on the permissions screen, and how it reads. */
-enum class GroupPermission(val label: String) {
-    SendMessages("Send messages"),
-    SendMedia("Send photos, videos and files"),
-    SendPolls("Send polls"),
-    AddMembers("Add members"),
-    PinMessages("Pin messages"),
-    ChangeInfo("Change group info"),
-    CreateTopics("Create topics");
+enum class GroupPermission(private val labelEn: String, private val labelRu: String) {
+    SendMessages("Send messages", "Отправка сообщений"),
+    SendMedia("Send photos, videos and files", "Отправка фото, видео и файлов"),
+    SendPolls("Send polls", "Отправка опросов"),
+    AddMembers("Add members", "Добавление участников"),
+    PinMessages("Pin messages", "Закрепление сообщений"),
+    ChangeInfo("Change group info", "Изменение профиля группы"),
+    CreateTopics("Create topics", "Создание тем");
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
+
 
     fun isOn(permissions: GroupPermissions): Boolean = when (this) {
         SendMessages -> permissions.sendMessages
@@ -217,13 +227,16 @@ data class GroupManagement(
 )
 
 /** What can be done to one member, in the order a menu offers it. */
-enum class MemberAction(val label: String) {
-    MakeAdmin("Make admin"),
-    EditAdmin("Edit admin rights"),
-    RemoveAdmin("Dismiss as admin"),
-    Restrict("Don't let them write"),
-    Unrestrict("Let them write"),
-    Remove("Remove from group")
+enum class MemberAction(private val labelEn: String, private val labelRu: String) {
+    MakeAdmin("Make admin", "Сделать админом"),
+    EditAdmin("Edit admin rights", "Изменить права админа"),
+    RemoveAdmin("Dismiss as admin", "Снять с админов"),
+    Restrict("Don't let them write", "Запретить писать"),
+    Unrestrict("Let them write", "Разрешить писать"),
+    Remove("Remove from group", "Удалить из группы");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**
@@ -262,9 +275,9 @@ fun memberActions(
 
 /** The word beside a member's name: their title, their role, or nothing. */
 fun memberRoleLabel(member: GroupMember): String? = when (member.role) {
-    MemberRole.Owner -> member.title.ifBlank { "Owner" }
-    MemberRole.Admin -> member.title.ifBlank { "Admin" }
-    MemberRole.Restricted -> "Can't write"
+    MemberRole.Owner -> member.title.ifBlank { tr("Owner", "Владелец") }
+    MemberRole.Admin -> member.title.ifBlank { tr("Admin", "Админ") }
+    MemberRole.Restricted -> tr("Can't write", "Не может писать")
     MemberRole.Member -> null
 }
 
@@ -304,22 +317,28 @@ data class JoinRequest(
 )
 
 /** How long a new link lasts, as the create dialog offers it. */
-enum class LinkExpiry(val label: String, val seconds: Long) {
-    Hour("1 hour", 3_600),
-    Day("1 day", 86_400),
-    Week("1 week", 604_800),
-    Never("Never", 0);
+enum class LinkExpiry(private val labelEn: String, private val labelRu: String, val seconds: Long) {
+    Hour("1 hour", "1 час", 3_600),
+    Day("1 day", "1 день", 86_400),
+    Week("1 week", "1 неделя", 604_800),
+    Never("Never", "Бессрочно", 0);
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
+
 
     /** Epoch seconds a link made at [nowSeconds] stops working; 0 for never. */
     fun from(nowSeconds: Long): Long = if (seconds == 0L) 0 else nowSeconds + seconds
 }
 
 /** How many may join through a new link, as the create dialog offers it. */
-enum class LinkLimit(val label: String, val count: Int) {
-    One("1", 1),
-    Ten("10", 10),
-    Hundred("100", 100),
-    Unlimited("No limit", 0)
+enum class LinkLimit(private val labelEn: String, private val labelRu: String, val count: Int) {
+    One("1", "1", 1),
+    Ten("10", "10", 10),
+    Hundred("100", "100", 100),
+    Unlimited("No limit", "Без лимита", 0);
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**
@@ -330,23 +349,22 @@ enum class LinkLimit(val label: String, val count: Int) {
 fun inviteLinkSummary(link: InviteLink, nowSeconds: Long): String {
     val parts = mutableListOf<String>()
     parts += when (link.memberCount) {
-        0 -> "No one joined yet"
-        1 -> "1 joined"
-        else -> "${link.memberCount} joined"
+        0 -> tr("No one joined yet", "Пока никто не вступил")
+        else -> tr("${link.memberCount} joined", "вступили: ${link.memberCount}")
     }
     if (link.pendingRequests > 0 && !link.isRevoked) {
-        parts += if (link.pendingRequests == 1) "1 request" else "${link.pendingRequests} requests"
+        parts += counted(link.pendingRequests, "request", "requests", "заявка", "заявки", "заявок")
     }
     val expired = link.expiresAt in 1..nowSeconds
     val full = link.memberLimit > 0 && link.memberCount >= link.memberLimit
     when {
-        link.isRevoked -> parts += "revoked"
-        expired -> parts += "expired"
-        full -> parts += "no places left"
+        link.isRevoked -> parts += tr("revoked", "отозвана")
+        expired -> parts += tr("expired", "истекла")
+        full -> parts += tr("no places left", "мест нет")
         else -> {
-            if (link.createsJoinRequest) parts += "admins approve"
-            if (link.memberLimit > 0) parts += "${link.memberLimit - link.memberCount} left"
-            if (link.expiresAt > 0) parts += "expires in ${durationWords(link.expiresAt - nowSeconds)}"
+            if (link.createsJoinRequest) parts += tr("admins approve", "одобряют админы")
+            if (link.memberLimit > 0) parts += tr("${link.memberLimit - link.memberCount} left", "осталось ${link.memberLimit - link.memberCount}")
+            if (link.expiresAt > 0) parts += tr("expires in ${durationWords(link.expiresAt - nowSeconds)}", "истекает через ${durationWords(link.expiresAt - nowSeconds)}")
         }
     }
     return parts.joinToString(" · ")
@@ -358,10 +376,10 @@ private fun durationWords(seconds: Long): String {
     val hours = minutes / 60
     val days = hours / 24
     return when {
-        days >= 1 -> if (days == 1L) "1 day" else "$days days"
-        hours >= 1 -> if (hours == 1L) "1 hour" else "$hours hours"
-        minutes >= 1 -> if (minutes == 1L) "1 minute" else "$minutes minutes"
-        else -> "less than a minute"
+        days >= 1 -> counted(days, "day", "days", "день", "дня", "дней")
+        hours >= 1 -> counted(hours, "hour", "hours", "час", "часа", "часов")
+        minutes >= 1 -> counted(minutes, "minute", "minutes", "минуту", "минуты", "минут")
+        else -> tr("less than a minute", "меньше минуты")
     }
 }
 
@@ -388,11 +406,14 @@ data class ForumTopic(
 )
 
 /** What can be done to one topic, in the order its menu offers it. */
-enum class TopicAction(val label: String) {
-    Rename("Rename"),
-    Close("Close topic"),
-    Reopen("Reopen topic"),
-    Delete("Delete topic")
+enum class TopicAction(private val labelEn: String, private val labelRu: String) {
+    Rename("Rename", "Переименовать"),
+    Close("Close topic", "Закрыть тему"),
+    Reopen("Reopen topic", "Открыть тему"),
+    Delete("Delete topic", "Удалить тему");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**

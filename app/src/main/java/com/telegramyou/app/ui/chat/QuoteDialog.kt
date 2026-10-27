@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.AlertDialog
@@ -37,13 +39,13 @@ internal fun QuoteDialog(text: String, onQuote: (start: Int, end: Int) -> Unit, 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.FormatQuote, contentDescription = null) },
-        title = { Text("Quote") },
+        title = { Text(tr("Quote", "Цитата")) },
         text = {
             OutlinedTextField(
                 value = value,
                 onValueChange = { value = it.copy(text = text) },
                 readOnly = true,
-                supportingText = { Text("Select the part to quote") },
+                supportingText = { Text(tr("Select the part to quote", "Выделите часть для цитаты")) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 320.dp)
@@ -54,9 +56,9 @@ internal fun QuoteDialog(text: String, onQuote: (start: Int, end: Int) -> Unit, 
             TextButton(
                 onClick = { onQuote(value.selection.min, value.selection.max) },
                 enabled = !value.selection.collapsed
-            ) { Text("Reply with quote") }
+            ) { Text(tr("Reply with quote", "Ответить с цитатой")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 
@@ -89,9 +91,9 @@ internal fun JumpToDateDialog(onPick: (dayStart: Long) -> Unit, onDismiss: () ->
                     onPick(day.atStartOfDay(java.time.ZoneId.systemDefault()).toEpochSecond())
                 },
                 enabled = state.selectedDateMillis != null
-            ) { Text("Go to date") }
+            ) { Text(tr("Go to date", "Перейти к дате")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     ) {
         androidx.compose.material3.DatePicker(state = state)
     }

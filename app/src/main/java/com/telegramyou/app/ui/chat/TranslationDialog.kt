@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,11 +40,11 @@ internal fun TranslationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Translate, contentDescription = null) },
-        title = { Text("Translation") },
+        title = { Text(tr("Translation", "Перевод")) },
         text = {
             Column {
                 Text(
-                    "Into ${languageName(translation.language)}",
+                    tr("Into ${languageName(translation.language)}", "На ${languageName(translation.language)}"),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -65,10 +67,10 @@ internal fun TranslationDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(tr("Close", "Закрыть")) }
         },
         dismissButton = {
-            TextButton(onClick = { text?.let(onCopy) }, enabled = text != null) { Text("Copy") }
+            TextButton(onClick = { text?.let(onCopy) }, enabled = text != null) { Text(tr("Copy", "Копировать")) }
         }
     )
 }

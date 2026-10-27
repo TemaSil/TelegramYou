@@ -1,5 +1,7 @@
 package com.telegramyou.app.update
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -94,7 +96,7 @@ class AppUpdates(private val context: Context) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "update check: ${e.message}")
-                if (!quiet) _state.value = UpdateState.Failed("Could not reach GitHub")
+                if (!quiet) _state.value = UpdateState.Failed(tr("Could not reach GitHub", "Не удалось связаться с GitHub"))
                 return@launch
             }
             if (result != null) _latest.value = result
@@ -123,7 +125,7 @@ class AppUpdates(private val context: Context) {
                 throw e
             } catch (e: Exception) {
                 Log.w(TAG, "update download: ${e.message}")
-                _state.value = UpdateState.Failed("The download stopped. Try again.")
+                _state.value = UpdateState.Failed(tr("The download stopped. Try again.", "Загрузка прервалась. Попробуйте ещё раз."))
             }
         }
     }
@@ -161,7 +163,7 @@ class AppUpdates(private val context: Context) {
         try {
             context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         } catch (e: ActivityNotFoundException) {
-            _state.value = UpdateState.Failed("Nothing on this phone can install the update")
+            _state.value = UpdateState.Failed(tr("Nothing on this phone can install the update", "На этом телефоне нечем установить обновление"))
         }
     }
 
@@ -173,7 +175,7 @@ class AppUpdates(private val context: Context) {
         }
         try {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                error("GitHub answered ${connection.responseCode}")
+                error(tr("GitHub answered ${connection.responseCode}", "GitHub ответил ${connection.responseCode}"))
             }
             val json = JSONObject(connection.inputStream.bufferedReader().use { it.readText() })
             val assets = json.optJSONArray("assets")
@@ -216,7 +218,7 @@ class AppUpdates(private val context: Context) {
         }
         try {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                error("GitHub answered ${connection.responseCode}")
+                error(tr("GitHub answered ${connection.responseCode}", "GitHub ответил ${connection.responseCode}"))
             }
             val total = connection.contentLengthLong.takeIf { it > 0 } ?: release.size
             var done = 0L

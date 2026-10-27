@@ -61,11 +61,14 @@ data class GeekSettings(
 enum class MessageExtra { Repeat, SaveToSavedMessages, DeleteFile }
 
 /** What a double tap on a message does. */
-enum class DoubleTapAction(val label: String) {
-    Nothing("Nothing"),
-    React("React with ❤️"),
-    Reply("Reply"),
-    Copy("Copy the text")
+enum class DoubleTapAction(private val labelEn: String, private val labelRu: String) {
+    Nothing("Nothing", "Ничего"),
+    React("React with ❤️", "Реакция ❤️"),
+    Reply("Reply", "Ответить"),
+    Copy("Copy the text", "Скопировать текст");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /** The quick reaction a double tap puts on a message — Telegram's own default. */

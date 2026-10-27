@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * Who has read one of the account's own messages (2.0), as the official
  * client shows it at the top of the message's menu: in a private chat the
@@ -28,12 +30,12 @@ data class Viewer(val userId: Long, val name: String, val date: Long, val photoP
  * worth a line.
  */
 fun readLine(info: ReadInfo?, time: (Long) -> String): String? = when (info) {
-    is ReadInfo.ReadAt -> "Read ${time(info.date)}"
-    ReadInfo.Unread -> "Not read yet"
+    is ReadInfo.ReadAt -> tr("Read ${time(info.date)}", "Прочитано ${time(info.date)}")
+    ReadInfo.Unread -> tr("Not read yet", "Ещё не прочитано")
     is ReadInfo.SeenBy -> when (info.viewers.size) {
-        0 -> "Not seen yet"
-        1 -> "Seen by ${info.viewers.single().name}"
-        else -> "Seen by ${info.viewers.size}"
+        0 -> tr("Not seen yet", "Ещё никто не видел")
+        1 -> tr("Seen by ${info.viewers.single().name}", "Видел(а) ${info.viewers.single().name}")
+        else -> tr("Seen by ${info.viewers.size}", "Просмотров: ${info.viewers.size}")
     }
     ReadInfo.Hidden, null -> null
 }

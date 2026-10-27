@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 import kotlin.random.Random
 
 /** A track in the player: a music message, and what the player shows of it. */
@@ -39,24 +41,30 @@ fun ChatMessage.asTrack(): Track? {
         coverPath = audio.coverPath,
         coverFileId = audio.coverFileId,
         foundCoverFileId = audio.foundCoverFileId,
-        senderName = if (isOutgoing) "You" else senderName.orEmpty(),
+        senderName = if (isOutgoing) tr("You", "Вы") else senderName.orEmpty(),
         albumId = albumId
     )
 }
 
 /** Which way the queue is played. */
-enum class QueueOrder(val label: String) {
+enum class QueueOrder(private val labelEn: String, private val labelRu: String) {
     /** Down the list, as the chat shows it: newest first. */
-    Listed("In order"),
+    Listed("In order", "По порядку"),
     /** Up the list: oldest first. */
-    Reversed("Reversed"),
-    Shuffled("Shuffle")
+    Reversed("Reversed", "В обратном"),
+    Shuffled("Shuffle", "Перемешать");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
-enum class RepeatMode(val label: String) {
-    Off("Repeat off"),
-    All("Repeat all"),
-    One("Repeat one")
+enum class RepeatMode(private val labelEn: String, private val labelRu: String) {
+    Off("Repeat off", "Без повтора"),
+    All("Repeat all", "Повторять всё"),
+    One("Repeat one", "Повторять один");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**
@@ -266,10 +274,13 @@ const val RESUME_MIN_SECONDS = 10 * 60
 private const val RESUME_SKIP_MS = 10_000L
 
 /** When the sleep timer stops the music. */
-enum class SleepTimer(val label: String, val minutes: Int) {
-    Off("Off", 0),
-    Quarter("15 minutes", 15),
-    Half("30 minutes", 30),
-    Hour("1 hour", 60),
-    EndOfTrack("End of track", 0)
+enum class SleepTimer(private val labelEn: String, private val labelRu: String, val minutes: Int) {
+    Off("Off", "Выкл.", 0),
+    Quarter("15 minutes", "15 минут", 15),
+    Half("30 minutes", "30 минут", 30),
+    Hour("1 hour", "1 час", 60),
+    EndOfTrack("End of track", "До конца трека", 0);
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }

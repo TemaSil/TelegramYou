@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.profile
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -89,12 +91,12 @@ internal fun BirthdayDialog(current: Birthdate?, onSave: (Birthdate?) -> Unit, o
                     val date = Instant.ofEpochMilli(picked).atZone(ZoneOffset.UTC).toLocalDate()
                     onSave(Birthdate(date.dayOfMonth, date.monthValue, date.year.takeIf { showYear }))
                 }
-            ) { Text("Save") }
+            ) { Text(tr("Save", "Сохранить")) }
         },
         dismissButton = {
             Row {
-                if (current != null) TextButton(onClick = { onSave(null) }) { Text("Remove") }
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                if (current != null) TextButton(onClick = { onSave(null) }) { Text(tr("Remove", "Удалить")) }
+                TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
             }
         }
     ) {
@@ -110,11 +112,11 @@ internal fun BirthdayDialog(current: Birthdate?, onSave: (Birthdate?) -> Unit, o
                         .fillMaxWidth()
                         .padding(start = 24.dp, end = 12.dp, top = 16.dp)
                 ) {
-                    Text("Your birthday", Modifier.weight(1f))
+                    Text(tr("Your birthday", "Ваш день рождения"), Modifier.weight(1f))
                     FilterChip(
                         selected = showYear,
                         onClick = { showYear = !showYear },
-                        label = { Text("Show year") },
+                        label = { Text(tr("Show year", "Показывать год")) },
                         leadingIcon = if (showYear) {
                             { Icon(Symbols.Check, contentDescription = null, Modifier.size(FilterChipDefaults.IconSize)) }
                         } else {
@@ -144,12 +146,12 @@ internal fun ProfileColorDialog(
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Profile colour") },
+        title = { Text(tr("Profile colour", "Цвет профиля")) },
         text = {
             val list = loaded
             when {
                 list == null -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LoadingIndicator() }
-                list.isEmpty() -> Text("No colours to choose from right now.")
+                list.isEmpty() -> Text(tr("No colours to choose from right now.", "Сейчас цветов на выбор нет."))
                 else -> FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -177,9 +179,9 @@ internal fun ProfileColorDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Done", "Готово")) } },
         dismissButton = {
-            if (current != null) TextButton(onClick = { onPick(null) }) { Text("No colour") }
+            if (current != null) TextButton(onClick = { onPick(null) }) { Text(tr("No colour", "Без цвета")) }
         }
     )
 }
@@ -196,12 +198,12 @@ internal fun EmojiStatusDialog(
     val loaded by produceState<List<Long>?>(null) { value = runCatching { choices() }.getOrDefault(emptyList()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Emoji status") },
+        title = { Text(tr("Emoji status", "Эмодзи-статус")) },
         text = {
             val list = loaded
             when {
                 list == null -> Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { LoadingIndicator() }
-                list.isEmpty() -> Text("No statuses to choose from right now.")
+                list.isEmpty() -> Text(tr("No statuses to choose from right now.", "Сейчас статусов на выбор нет."))
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(STATUS_CELL),
                     modifier = Modifier.heightIn(max = 320.dp)
@@ -228,9 +230,9 @@ internal fun EmojiStatusDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Done", "Готово")) } },
         dismissButton = {
-            if (currentId != null) TextButton(onClick = { onPick(null) }) { Text("Remove") }
+            if (currentId != null) TextButton(onClick = { onPick(null) }) { Text(tr("Remove", "Удалить")) }
         }
     )
 }
@@ -241,9 +243,9 @@ internal fun PremiumNeededDialog(what: String, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.WorkspacePremium, contentDescription = null) },
-        title = { Text("Telegram Premium") },
-        text = { Text("Telegram lets only Premium accounts set $what.") },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } }
+        title = { Text(tr("Telegram Premium", "Telegram Premium")) },
+        text = { Text(tr("Telegram lets only Premium accounts set $what.", "Telegram разрешает ставить $what только аккаунтам с Premium.")) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("OK", "OK")) } }
     )
 }
 

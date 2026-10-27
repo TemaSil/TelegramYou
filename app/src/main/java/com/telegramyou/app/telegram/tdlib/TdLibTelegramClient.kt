@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.accounts.databaseDirName
 import com.telegramyou.app.telegram.accounts.filesDirName
 import kotlinx.coroutines.withTimeoutOrNull
@@ -472,7 +474,7 @@ class TdLibTelegramClient(
             _authState.update { it.copy(isLoading = false) }
         } catch (e: TdLibException) {
             val message = if (e.message.orEmpty().contains("TASK_ALREADY_EXISTS")) {
-                "The reset is already on its way"
+                tr("The reset is already on its way", "Сброс уже запущен")
             } else {
                 e.message
             }
@@ -528,7 +530,7 @@ class TdLibTelegramClient(
     override suspend fun resendCode() {
         try {
             requireEngine().send(JSONObject().put("@type", "resendAuthenticationCode"))
-            _authState.update { it.copy(codeHint = "Code resent", errorMessage = null) }
+            _authState.update { it.copy(codeHint = tr("Code resent", "Код отправлен снова"), errorMessage = null) }
         } catch (e: TdLibException) {
             _authState.update { it.copy(errorMessage = e.message) }
         }
@@ -911,7 +913,7 @@ class TdLibTelegramClient(
                 fileId = fileId,
                 chatId = chatId,
                 messageId = message.id,
-                name = message.fileName ?: message.audio?.displayTitle ?: message.text.ifBlank { "File" },
+                name = message.fileName ?: message.audio?.displayTitle ?: message.text.ifBlank { tr("File", "Файл") },
                 sizeBytes = file?.let { f -> f.optLong("size").takeIf { it > 0 } ?: f.optLong("expected_size") } ?: 0L,
                 downloadedBytes = local?.optLong("downloaded_size") ?: 0L,
                 mimeType = message.mimeType,
@@ -1340,7 +1342,7 @@ class TdLibTelegramClient(
         messagesByChat[chatId] = mapped.toMutableList()
         val chat = chatsById[chatId]
         val preview = chat?.let { toPreview(it) }
-            ?: ChatPreview(chatId, "Chat $chatId", "", "")
+            ?: ChatPreview(chatId, tr("Chat $chatId", "Чат $chatId"), "", "")
         // The keyboard a bot left up, if TDLib has not announced it yet.
         chat?.optLong("reply_markup_message_id")?.takeIf { it != 0L }?.let { markupId ->
             if (chatId !in _replyKeyboards.value) scope.launch { loadReplyKeyboard(chatId, markupId) }
@@ -2578,7 +2580,7 @@ class TdLibTelegramClient(
                         val user = userObject(userId)
                         Viewer(
                             userId = userId,
-                            name = user?.let { mapUser(it).displayName } ?: "Someone",
+                            name = user?.let { mapUser(it).displayName } ?: tr("Someone", "Кто-то"),
                             date = viewer.optLong("view_date"),
                             photoPath = user?.let { photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small")) }
                         )
@@ -3445,7 +3447,7 @@ class TdLibTelegramClient(
         val file = JSONObject().put("@type", "inputFileLocal").put("path", path)
         val content = if (isVideo) {
             val seconds = videoSeconds(path)
-            if (seconds > STORY_VIDEO_MAX_SECONDS) error("A story video can be at most a minute long")
+            if (seconds > STORY_VIDEO_MAX_SECONDS) error(tr("A story video can be at most a minute long", "Видео в истории может быть не длиннее минуты"))
             JSONObject()
                 .put("@type", "inputStoryContentVideo")
                 .put("video", file)
@@ -3485,11 +3487,11 @@ class TdLibTelegramClient(
     /** What canPostStory's answer means for a person, or null for go ahead. */
     private fun storyRefusal(answer: JSONObject): String? = when (answer.optString("@type")) {
         "canPostStoryResultOk" -> null
-        "canPostStoryResultPremiumNeeded" -> "Posting more stories needs Telegram Premium"
-        "canPostStoryResultActiveStoryLimitExceeded" -> "You have as many stories up as Telegram allows"
-        "canPostStoryResultWeeklyLimitExceeded" -> "That is this week's limit of stories"
-        "canPostStoryResultMonthlyLimitExceeded" -> "That is this month's limit of stories"
-        "canPostStoryResultBoostNeeded" -> "This chat needs boosts to post stories"
+        "canPostStoryResultPremiumNeeded" -> tr("Posting more stories needs Telegram Premium", "Чтобы публиковать больше историй, нужен Telegram Premium")
+        "canPostStoryResultActiveStoryLimitExceeded" -> tr("You have as many stories up as Telegram allows", "У вас уже столько историй, сколько разрешает Telegram")
+        "canPostStoryResultWeeklyLimitExceeded" -> tr("That is this week's limit of stories", "Это лимит историй на эту неделю")
+        "canPostStoryResultMonthlyLimitExceeded" -> tr("That is this month's limit of stories", "Это лимит историй на этот месяц")
+        "canPostStoryResultBoostNeeded" -> tr("This chat needs boosts to post stories", "Этому чату нужны бусты, чтобы публиковать истории")
         else -> null
     }
 
@@ -3788,7 +3790,7 @@ class TdLibTelegramClient(
      */
     override suspend fun sendSticker(chatId: Long, sticker: StickerContent, replyToId: Long?) {
         awaitReady()
-        val fileId = sticker.fileId ?: error("This sticker has no file to send")
+        val fileId = sticker.fileId ?: error(tr("This sticker has no file to send", "У этого стикера нет файла для отправки"))
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
@@ -3823,7 +3825,7 @@ class TdLibTelegramClient(
 
     override suspend fun saveGif(video: VideoContent) {
         awaitReady()
-        val fileId = video.fileId ?: error("This GIF has no file to keep")
+        val fileId = video.fileId ?: error(tr("This GIF has no file to keep", "У этой GIF нет файла для сохранения"))
         requireEngine().send(
             JSONObject()
                 .put("@type", "addSavedAnimation")
@@ -3978,7 +3980,7 @@ class TdLibTelegramClient(
 
     override suspend fun sendGif(chatId: Long, gif: GifItem, replyToId: Long?) {
         awaitReady()
-        val fileId = gif.video.fileId ?: error("This GIF has no file to send")
+        val fileId = gif.video.fileId ?: error(tr("This GIF has no file to send", "У этой GIF нет файла для отправки"))
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")
@@ -4508,7 +4510,7 @@ class TdLibTelegramClient(
                         oldId = update.optLong("old_message_id"),
                         message = mapMessage(chatId, message),
                         error = error?.optString("message").orEmpty()
-                            .ifBlank { "the server refused it" }
+                            .ifBlank { tr("the server refused it", "сервер отказал") }
                     )
                 )
             }
@@ -4658,7 +4660,7 @@ class TdLibTelegramClient(
                         state = AuthState.WaitPassword,
                         isLoading = false,
                         errorMessage = null,
-                        codeHint = if (hint.isBlank()) "" else "Hint: $hint"
+                        codeHint = if (hint.isBlank()) "" else tr("Hint: $hint", "Подсказка: $hint")
                     )
                 }
             }
@@ -4710,7 +4712,7 @@ class TdLibTelegramClient(
                         state = AuthState.WaitEmailCode,
                         isLoading = false,
                         errorMessage = null,
-                        codeHint = if (pattern.isBlank()) "We emailed you a code" else "We sent a code to $pattern",
+                        codeHint = if (pattern.isBlank()) tr("We emailed you a code", "Мы отправили код на почту") else tr("We sent a code to $pattern", "Мы отправили код на $pattern"),
                         codeLength = codeInfo?.optInt("length") ?: 0,
                         emailReset = emailResetOf(state.optJSONObject("email_address_reset_state")),
                         // An email code can always be asked for again; there
@@ -4842,11 +4844,11 @@ class TdLibTelegramClient(
     private fun publishStories() {
         val own = StoryItem(
             id = 0,
-            authorName = "My story",
+            authorName = tr("My story", "Моя история"),
             isOwn = true,
             hasUnseen = false,
             previewEmoji = "＋",
-            caption = "Add"
+            caption = tr("Add", "Добавить")
         )
         // This account's own, whatever list TDLib files them in: its private
         // chat with itself carries the account's id.
@@ -4857,11 +4859,11 @@ class TdLibTelegramClient(
                 val chatId = active.optLong("chat_id")
                 StoryItem(
                     id = storyKey(chatId),
-                    authorName = "My story",
+                    authorName = tr("My story", "Моя история"),
                     hasUnseen = false,
                     avatarColor = chatId,
                     previewEmoji = "✨",
-                    caption = "My story",
+                    caption = tr("My story", "Моя история"),
                     photoPath = photoPath(chatsById[chatId]?.optJSONObject("photo")?.optJSONObject("small")),
                     isMine = true
                 )
@@ -4879,7 +4881,7 @@ class TdLibTelegramClient(
                 val title = chat?.optString("title").orEmpty()
                 StoryItem(
                     id = storyKey(chatId),
-                    authorName = title.ifBlank { "Story" },
+                    authorName = title.ifBlank { tr("Story", "История") },
                     hasUnseen = ids.any { it > maxRead },
                     avatarColor = chatId,
                     previewEmoji = "✨",
@@ -5104,7 +5106,7 @@ class TdLibTelegramClient(
                 .orEmpty()
             folders += ChatFolder(
                 id = info.optInt("id"),
-                title = title.ifBlank { "Folder" },
+                title = title.ifBlank { tr("Folder", "Папка") },
                 iconName = info.optJSONObject("icon")?.optString("name").orEmpty()
             )
         }

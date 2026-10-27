@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.notifications.ChatNotificationSettings
 
 data class TelegramUser(
@@ -37,7 +39,7 @@ data class TelegramUser(
 ) {
     val displayName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")
-            .ifBlank { username ?: "User" }
+            .ifBlank { username ?: tr("User", "Пользователь") }
 
     val initials: String
         get() = displayName
@@ -269,10 +271,13 @@ data class StoryItem(
  * client offers first. "Selected people" is left for when there is a picker
  * worth having for it.
  */
-enum class StoryAudience(val label: String) {
-    Everyone("Everyone"),
-    Contacts("My contacts"),
-    CloseFriends("Close friends")
+enum class StoryAudience(private val labelEn: String, private val labelRu: String) {
+    Everyone("Everyone", "Все"),
+    Contacts("My contacts", "Мои контакты"),
+    CloseFriends("Close friends", "Близкие друзья");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /** The longest video Telegram takes as a story, in seconds. */

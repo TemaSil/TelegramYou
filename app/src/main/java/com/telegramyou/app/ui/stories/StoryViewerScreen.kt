@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.stories
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import android.view.TextureView
 import androidx.compose.foundation.background
@@ -124,7 +126,7 @@ fun StoryViewerScreen(
                 // A file TDLib keeps, or — for a story this account just
                 // posted offline — the picture's own content URI.
                 model = if ("://" in path) path else File(path),
-                contentDescription = frame.caption.ifBlank { "Story" },
+                contentDescription = frame.caption.ifBlank { tr("Story", "История") },
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
@@ -189,7 +191,7 @@ fun StoryViewerScreen(
                     }
                 }
                 IconButton(onClick = onClose) {
-                    Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
+                    Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"), tint = Color.White)
                 }
             }
         }
@@ -233,7 +235,7 @@ private fun TextStory(story: StoryItem, frame: StoryFrame) {
             Text(story.previewEmoji, fontSize = 96.sp)
             Spacer(Modifier.height(16.dp))
             Text(
-                frame.caption.ifBlank { story.caption }.ifBlank { "Story" },
+                frame.caption.ifBlank { story.caption }.ifBlank { tr("Story", "История") },
                 color = Color.White,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,

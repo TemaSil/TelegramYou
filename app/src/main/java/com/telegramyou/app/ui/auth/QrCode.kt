@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.auth
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -58,7 +60,7 @@ fun QrCode(content: String, size: Dp, modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(28.dp))
             .background(ground)
             .padding(20.dp)
-            .semantics { contentDescription = "QR code to sign in" }
+            .semantics { contentDescription = tr("QR code to sign in", "QR-код для входа") }
     ) {
         Canvas(Modifier.size(size)) {
             val cell = this.size.width / matrix.width

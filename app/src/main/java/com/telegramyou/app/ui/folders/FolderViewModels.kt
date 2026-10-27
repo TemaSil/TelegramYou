@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.folders
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -55,7 +57,7 @@ class FoldersViewModel(private val repository: TelegramRepository) : ViewModel()
         val to = from + by
         if (from < 0 || to !in ids.indices) return
         ids.add(to, ids.removeAt(from))
-        run("Could not move the folder") { repository.reorderFolders(ids) }
+        run(tr("Could not move the folder", "Не удалось переместить папку")) { repository.reorderFolders(ids) }
     }
 
     fun onDeleteRequested(folder: ChatFolder) = local.update { it.copy(deleting = folder) }
@@ -65,7 +67,7 @@ class FoldersViewModel(private val repository: TelegramRepository) : ViewModel()
     fun onDeleteConfirmed() {
         val folder = local.value.deleting ?: return
         local.update { it.copy(deleting = null) }
-        run("Could not delete the folder") { repository.deleteFolder(folder.id) }
+        run(tr("Could not delete the folder", "Не удалось удалить папку")) { repository.deleteFolder(folder.id) }
     }
 
     fun onMessageShown() = local.update { it.copy(message = null) }
@@ -135,7 +137,7 @@ class FolderEditViewModel(
                     throw e
                 } catch (e: Exception) {
                     _uiState.update {
-                        it.copy(isLoading = false, message = failureText("Could not load the folder", e.message))
+                        it.copy(isLoading = false, message = failureText(tr("Could not load the folder", "Не удалось загрузить папку"), e.message))
                     }
                 }
             }
@@ -172,7 +174,7 @@ class FolderEditViewModel(
                 throw e
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isSaving = false, message = failureText("Could not save the folder", e.message))
+                    it.copy(isSaving = false, message = failureText(tr("Could not save the folder", "Не удалось сохранить папку"), e.message))
                 }
             }
         }
@@ -192,7 +194,7 @@ class FolderEditViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.update { it.copy(message = failureText("Could not delete the folder", e.message)) }
+                _uiState.update { it.copy(message = failureText(tr("Could not delete the folder", "Не удалось удалить папку"), e.message)) }
             }
         }
     }

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
@@ -76,9 +78,9 @@ import com.telegramyou.app.ui.icons.Symbols
 
 /** The panel's three tabs, in the order every Telegram client has them. */
 enum class ExpressionTab(val label: String) {
-    Emoji("Emoji"),
-    Gifs("GIFs"),
-    Stickers("Stickers")
+    Emoji(tr("Emoji", "Эмодзи")),
+    Gifs(tr("GIFs", "GIF")),
+    Stickers(tr("Stickers", "Стикеры"))
 }
 
 /** The GIF tab: what is typed into its search, and what came back. */
@@ -186,8 +188,8 @@ fun ExpressionPanel(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(HANDLE_BAND)
-                    .clickable(onClickLabel = if (expanded) "Make smaller" else "Make taller") { settle(!expanded) }
-                    .semantics { contentDescription = if (expanded) "Collapse panel" else "Expand panel" }
+                    .clickable(onClickLabel = if (expanded) tr("Make smaller", "Уменьшить") else tr("Make taller", "Увеличить")) { settle(!expanded) }
+                    .semantics { contentDescription = if (expanded) tr("Collapse panel", "Свернуть панель") else tr("Expand panel", "Развернуть панель") }
             ) {
                 // Material's own handle; its padding is for a sheet's top,
                 // and here the band around it is the target instead.
@@ -295,7 +297,7 @@ private fun StandardEmoji(onEmoji: (String) -> Unit) {
                 },
                 modifier = Modifier
                     .fillMaxSize()
-                    .semantics { contentDescription = "Emoji" }
+                    .semantics { contentDescription = tr("Emoji", "Эмодзи") }
             )
         }
     }
@@ -329,7 +331,7 @@ private fun EmojiTab(
                 Tab(
                     selected = selected == null,
                     onClick = { onSetSelected(null) },
-                    icon = { Icon(Symbols.EmojiEmotions, contentDescription = "Standard emoji") }
+                    icon = { Icon(Symbols.EmojiEmotions, contentDescription = tr("Standard emoji", "Обычные эмодзи")) }
                 )
                 sets.forEach { set ->
                     Tab(
@@ -364,7 +366,7 @@ private fun EmojiTab(
                                 .aspectRatio(1f)
                                 .clip(RoundedCornerShape(12.dp))
                                 .clickable { onCustomPicked(sticker) }
-                                .semantics { contentDescription = "${sticker.emoji} custom emoji" }
+                                .semantics { contentDescription = tr("${sticker.emoji} custom emoji", "${sticker.emoji} свой эмодзи") }
                         ) {
                             StickerView(sticker, size = CUSTOM_EMOJI_SIZE, animate = true)
                         }
@@ -377,7 +379,7 @@ private fun EmojiTab(
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
             ) {
-                Icon(Symbols.Backspace, contentDescription = "Backspace")
+                Icon(Symbols.Backspace, contentDescription = tr("Backspace", "Стереть"))
             }
         }
     }
@@ -413,7 +415,7 @@ private fun GifTab(
         TextField(
             value = state.query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Search GIFs") },
+            placeholder = { Text(tr("Search GIFs", "Поиск GIF")) },
             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             singleLine = true,
             shape = CircleShape,
@@ -426,14 +428,14 @@ private fun GifTab(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
-                .semantics { contentDescription = "Search GIFs" }
+                .semantics { contentDescription = tr("Search GIFs", "Поиск GIF") }
         )
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             when {
                 state.isLoading && state.gifs.isEmpty() -> Loading()
                 state.gifs.isEmpty() -> Text(
-                    if (state.query.isBlank()) "GIFs you save show up here. Search to find more."
-                    else "No GIFs for “${state.query}”",
+                    if (state.query.isBlank()) tr("GIFs you save show up here. Search to find more.", "Здесь будут сохранённые GIF. Найдите ещё через поиск.")
+                    else tr("No GIFs for “${state.query}”", "Нет GIF по запросу «${state.query}»"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

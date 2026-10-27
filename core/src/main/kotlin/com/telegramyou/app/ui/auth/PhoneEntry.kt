@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.auth
 
+import com.telegramyou.app.i18n.tr
+
 import com.google.i18n.phonenumbers.NumberParseException
 import com.google.i18n.phonenumbers.PhoneNumberUtil
 import java.util.Locale
@@ -169,21 +171,21 @@ object PhoneEntry {
  * to itself. [phone] is shown formatted.
  */
 fun codeDeliveryText(codeType: String, phone: String): String {
-    val number = if (phone.isBlank()) "your phone" else PhoneEntry.format(phone)
+    val number = if (phone.isBlank()) tr("your phone", "ваш телефон") else PhoneEntry.format(phone)
     return when (codeType) {
         "authenticationCodeTypeTelegramMessage" ->
-            "We've sent the code to Telegram on your other device"
+            tr("We've sent the code to Telegram on your other device", "Мы отправили код в Telegram на другом вашем устройстве")
         "authenticationCodeTypeSms",
         "authenticationCodeTypeSmsWord",
         "authenticationCodeTypeSmsPhrase",
         "authenticationCodeTypeFirebaseAndroid",
-        "authenticationCodeTypeFirebaseIos" -> "We've sent an SMS with the code to $number"
-        "authenticationCodeTypeCall" -> "We're calling $number to read you the code"
+        "authenticationCodeTypeFirebaseIos" -> tr("We've sent an SMS with the code to $number", "Мы отправили SMS с кодом на $number")
+        "authenticationCodeTypeCall" -> tr("We're calling $number to read you the code", "Звоним на $number, чтобы продиктовать код")
         "authenticationCodeTypeFlashCall",
         "authenticationCodeTypeMissedCall" ->
-            "We'll call $number — the code is in the number that calls"
-        "authenticationCodeTypeFragment" -> "The code is in Fragment, for your anonymous number"
-        else -> "Enter the code sent to $number"
+            tr("We'll call $number — the code is in the number that calls", "Позвоним на $number — код в номере звонящего")
+        "authenticationCodeTypeFragment" -> tr("The code is in Fragment, for your anonymous number", "Код — в Fragment, для вашего анонимного номера")
+        else -> tr("Enter the code sent to $number", "Введите код, отправленный на $number")
     }
 }
 

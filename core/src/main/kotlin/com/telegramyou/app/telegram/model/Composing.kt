@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -33,12 +35,12 @@ data class PollDraft(
      */
     val problem: String?
         get() = when {
-            question.isBlank() -> "Ask a question"
-            question.trim().length > POLL_QUESTION_LIMIT -> "The question is too long"
-            filledOptions.size < 2 -> "Add at least two answers"
-            filledOptions.any { it.length > POLL_OPTION_LIMIT } -> "An answer is too long"
-            filledOptions.map { it.lowercase() }.toSet().size != filledOptions.size -> "Two answers are the same"
-            isQuiz && correctIndex == null -> "Choose the right answer"
+            question.isBlank() -> tr("Ask a question", "Задайте вопрос")
+            question.trim().length > POLL_QUESTION_LIMIT -> tr("The question is too long", "Вопрос слишком длинный")
+            filledOptions.size < 2 -> tr("Add at least two answers", "Добавьте хотя бы два ответа")
+            filledOptions.any { it.length > POLL_OPTION_LIMIT } -> tr("An answer is too long", "Ответ слишком длинный")
+            filledOptions.map { it.lowercase() }.toSet().size != filledOptions.size -> tr("Two answers are the same", "Два ответа совпадают")
+            isQuiz && correctIndex == null -> tr("Choose the right answer", "Выберите верный ответ")
             else -> null
         }
 
@@ -102,18 +104,18 @@ const val SCHEDULE_MIN_LEAD_SECONDS = 30L
 const val SCHEDULE_MAX_AHEAD_SECONDS = 365L * 24 * 60 * 60
 
 /** "Today at 18:00", "Tomorrow at 09:30", "12 Oct at 09:30". */
-fun scheduleLabel(at: Long, nowSeconds: Long, zone: ZoneId, locale: Locale = Locale.ENGLISH): String {
+fun scheduleLabel(at: Long, nowSeconds: Long, zone: ZoneId, locale: Locale = Locale.getDefault()): String {
     val then = Instant.ofEpochSecond(at).atZone(zone)
     val today = Instant.ofEpochSecond(nowSeconds).atZone(zone).toLocalDate()
     val time = then.format(DateTimeFormatter.ofPattern("HH:mm", locale))
     val day: LocalDate = then.toLocalDate()
     val dayLabel = when (day) {
-        today -> "Today"
-        today.plusDays(1) -> "Tomorrow"
+        today -> tr("Today", "Сегодня")
+        today.plusDays(1) -> tr("Tomorrow", "Завтра")
         else -> if (day.year == today.year) then.format(DateTimeFormatter.ofPattern("d MMM", locale))
         else then.format(DateTimeFormatter.ofPattern("d MMM yyyy", locale))
     }
-    return "$dayLabel at $time"
+    return tr("$dayLabel at $time", "$dayLabel в $time")
 }
 
 /**
@@ -142,7 +144,7 @@ data class AudioContent(
     val foundCoverFileId: Int? = null
 ) {
     /** The title, or the file's name when the file carries no tags. */
-    val displayTitle: String get() = title.ifBlank { fileName.substringBeforeLast('.').ifBlank { "Audio" } }
+    val displayTitle: String get() = title.ifBlank { fileName.substringBeforeLast('.').ifBlank { tr("Audio", "Аудио") } }
 }
 
 /** Extensions sent as music rather than as a plain file. */

@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.tdlib
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.telegram.model.SendOptions
 import com.telegramyou.app.telegram.model.LocationContent
 import com.telegramyou.app.telegram.model.ContactContent
@@ -213,23 +215,23 @@ internal fun previewText(message: JSONObject?): String {
     return when (content.optString("@type")) {
         "messageText" -> content.optJSONObject("text")?.optString("text").orEmpty()
         "messageAnimatedEmoji" -> content.optString("emoji")
-        "messagePhoto" -> "🖼 Photo"
-        "messageVideo" -> "🎬 Video"
+        "messagePhoto" -> tr("🖼 Photo", "🖼 Фото")
+        "messageVideo" -> tr("🎬 Video", "🎬 Видео")
         "messageAnimation" -> "GIF"
-        "messageVideoNote" -> "Video message"
-        "messageDocument" -> "📎 ${content.optJSONObject("document")?.optString("file_name") ?: "File"}"
-        "messageVoiceNote" -> "🎤 Voice"
+        "messageVideoNote" -> tr("Video message", "Видеосообщение")
+        "messageDocument" -> "📎 ${content.optJSONObject("document")?.optString("file_name") ?: tr("File", "Файл")}"
+        "messageVoiceNote" -> tr("🎤 Voice", "🎤 Голосовое")
         "messageSticker" -> content.optJSONObject("sticker")?.optString("emoji")
-            ?.takeIf { it.isNotBlank() }?.let { "$it Sticker" } ?: "Sticker"
+            ?.takeIf { it.isNotBlank() }?.let { tr("$it Sticker", "$it Стикер") } ?: tr("Sticker", "Стикер")
         "messageAudio" -> "🎵 " + (content.optJSONObject("audio")?.let { audio ->
             audio.optString("title").ifBlank { audio.optString("file_name") }
-        }?.takeIf { it.isNotBlank() } ?: "Audio")
+        }?.takeIf { it.isNotBlank() } ?: tr("Audio", "Аудио"))
         "messageContact" -> "👤 " + (content.optJSONObject("contact")?.let(::contactOf)?.displayName
-            ?.takeIf { it.isNotBlank() } ?: "Contact")
-        "messageLocation" -> "📍 Location"
-        "messageVenue" -> "📍 " + (content.optJSONObject("venue")?.optString("title")?.takeIf { it.isNotBlank() } ?: "Location")
+            ?.takeIf { it.isNotBlank() } ?: tr("Contact", "Контакт"))
+        "messageLocation" -> tr("📍 Location", "📍 Геопозиция")
+        "messageVenue" -> "📍 " + (content.optJSONObject("venue")?.optString("title")?.takeIf { it.isNotBlank() } ?: tr("Location", "Геопозиция"))
         "messagePoll" -> "📊 " + (content.optJSONObject("poll")?.textOf("question")
-            ?.takeIf { it.isNotBlank() } ?: "Poll")
+            ?.takeIf { it.isNotBlank() } ?: tr("Poll", "Опрос"))
         else -> content.optString("@type").removePrefix("message")
     }
 }

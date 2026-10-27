@@ -30,11 +30,14 @@ data class AppLockSettings(
 }
 
 /** How long the app may be away before it asks again. */
-enum class AutoLock(val label: String, val seconds: Long) {
-    Immediately("Immediately", 0),
-    OneMinute("After 1 minute", 60),
-    FiveMinutes("After 5 minutes", 5 * 60),
-    OneHour("After 1 hour", 60 * 60)
+enum class AutoLock(private val labelEn: String, private val labelRu: String, val seconds: Long) {
+    Immediately("Immediately", "Сразу", 0),
+    OneMinute("After 1 minute", "Через 1 минуту", 60),
+    FiveMinutes("After 5 minutes", "Через 5 минут", 5 * 60),
+    OneHour("After 1 hour", "Через 1 час", 60 * 60);
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 object AppLock {

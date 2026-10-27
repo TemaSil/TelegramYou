@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.stories
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -104,7 +106,7 @@ class NewStoryViewModel(private val repository: TelegramRepository) : ViewModel(
                 throw e
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(isPosting = false, errorMessage = failureText("Could not post the story", e.message))
+                    it.copy(isPosting = false, errorMessage = failureText(tr("Could not post the story", "Не удалось опубликовать историю"), e.message))
                 }
             }
         }
@@ -151,9 +153,9 @@ fun NewStoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("New story") },
+                title = { Text(tr("New story", "Новая история")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.Close, contentDescription = "Close") }
+                    IconButton(onClick = onBack) { Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть")) }
                 }
             )
         }
@@ -170,7 +172,7 @@ fun NewStoryScreen(
             val uri = state.uri
             if (uri == null) {
                 Text(
-                    "Share a photo or a video for a day.",
+                    tr("Share a photo or a video for a day.", "Поделитесь фото или видео на сутки."),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -186,17 +188,17 @@ fun NewStoryScreen(
             ) {
                 Icon(Symbols.PhotoLibrary, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
-                Text(if (uri == null) "Choose a photo or video" else "Choose another")
+                Text(if (uri == null) tr("Choose a photo or video", "Выбрать фото или видео") else tr("Choose another", "Выбрать другое"))
             }
             if (uri != null) {
                 OutlinedTextField(
                     value = state.caption,
                     onValueChange = onCaptionChange,
-                    label = { Text("Caption") },
+                    label = { Text(tr("Caption", "Подпись")) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    "Who can see it",
+                    tr("Who can see it", "Кто увидит"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -221,7 +223,7 @@ fun NewStoryScreen(
                     if (state.isPosting) {
                         LoadingIndicator(Modifier.size(24.dp))
                     } else {
-                        Text("Post story")
+                        Text(tr("Post story", "Опубликовать"))
                     }
                 }
             }
@@ -251,12 +253,12 @@ private fun StoryPreview(uri: String, isVideo: Boolean) {
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(28.dp))
-                        .semantics { contentDescription = "Story video" }
+                        .semantics { contentDescription = tr("Story video", "Видео истории") }
                 )
             } else {
                 AsyncImage(
                     model = uri,
-                    contentDescription = "Story picture",
+                    contentDescription = tr("Story picture", "Картинка истории"),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()

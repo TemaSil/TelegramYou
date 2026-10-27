@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.music
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -55,7 +57,7 @@ fun VoiceBar(
         enter = expandVertically() + fadeIn(),
         exit = shrinkVertically() + fadeOut()
     ) {
-        val who = state.senderName.ifBlank { "Voice message" }
+        val who = state.senderName.ifBlank { tr("Voice message", "Голосовое сообщение") }
         Surface(
             color = MaterialTheme.colorScheme.tertiaryContainer,
             contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -64,7 +66,7 @@ fun VoiceBar(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 4.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .semantics { contentDescription = "Voice message from $who" }
+                .semantics { contentDescription = tr("Voice message from $who", "Голосовое от $who") }
         ) {
             Column {
                 Row(
@@ -79,7 +81,7 @@ fun VoiceBar(
                     ) {
                         Text(who, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(
-                            if (state.following > 0) "Voice message · ${state.following} more" else "Voice message",
+                            if (state.following > 0) tr("Voice message · ${state.following} more", "Голосовое · ещё ${state.following}") else tr("Voice message", "Голосовое сообщение"),
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -95,7 +97,7 @@ fun VoiceBar(
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .size(width = 52.dp, height = 40.dp)
-                            .semantics { contentDescription = "Voice speed $speed" }
+                            .semantics { contentDescription = tr("Voice speed $speed", "Скорость голосового $speed") }
                     ) {
                         Text(
                             speed,
@@ -106,10 +108,10 @@ fun VoiceBar(
                     FilledIconButton(onClick = onToggle, modifier = Modifier.size(40.dp)) {
                         Icon(
                             if (state.isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
-                            contentDescription = if (state.isPlaying) "Pause the voice bar" else "Resume the voice bar"
+                            contentDescription = if (state.isPlaying) tr("Pause the voice bar", "Пауза") else tr("Resume the voice bar", "Продолжить")
                         )
                     }
-                    IconButton(onClick = onStop) { Icon(Symbols.Close, contentDescription = "Stop voice message") }
+                    IconButton(onClick = onStop) { Icon(Symbols.Close, contentDescription = tr("Stop voice message", "Остановить голосовое")) }
                 }
                 // The mini player's line, flush with the bottom edge.
                 LinearProgressIndicator(

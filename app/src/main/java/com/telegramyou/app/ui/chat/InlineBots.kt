@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -62,7 +64,7 @@ internal fun InlineResultsPanel(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .semantics { contentDescription = "Results from @${panel.bot.username}" }
+            .semantics { contentDescription = tr("Results from @${panel.bot.username}", "Результаты от @${panel.bot.username}") }
     ) {
         Box {
             val results = panel.results
@@ -70,7 +72,7 @@ internal fun InlineResultsPanel(
                 results.isEmpty() && panel.isLoading -> Box(Modifier.fillMaxWidth().heightIn(min = 72.dp))
                 results.isEmpty() -> Text(
                     if (panel.query.isBlank() && panel.bot.placeholder.isNotBlank()) panel.bot.placeholder
-                    else "No results from @${panel.bot.username}",
+                    else tr("No results from @${panel.bot.username}", "Нет результатов от @${panel.bot.username}"),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp)
@@ -181,17 +183,17 @@ private fun kindIcon(kind: InlineResultKind): ImageVector = when (kind) {
 }
 
 private fun kindLabel(kind: InlineResultKind): String = when (kind) {
-    InlineResultKind.Article -> "Article"
-    InlineResultKind.Photo -> "Photo"
+    InlineResultKind.Article -> tr("Article", "Статья")
+    InlineResultKind.Photo -> tr("Photo", "Фото")
     InlineResultKind.Gif -> "GIF"
-    InlineResultKind.Video -> "Video"
-    InlineResultKind.Sticker -> "Sticker"
-    InlineResultKind.Audio -> "Audio"
-    InlineResultKind.Voice -> "Voice message"
-    InlineResultKind.Document -> "File"
-    InlineResultKind.Place -> "Place"
-    InlineResultKind.Contact -> "Contact"
-    InlineResultKind.Game -> "Game"
+    InlineResultKind.Video -> tr("Video", "Видео")
+    InlineResultKind.Sticker -> tr("Sticker", "Стикер")
+    InlineResultKind.Audio -> tr("Audio", "Аудио")
+    InlineResultKind.Voice -> tr("Voice message", "Голосовое сообщение")
+    InlineResultKind.Document -> tr("File", "Файл")
+    InlineResultKind.Place -> tr("Place", "Место")
+    InlineResultKind.Contact -> tr("Contact", "Контакт")
+    InlineResultKind.Game -> tr("Game", "Игра")
 }
 
 /** About three rows, or two rows of tiles: the conversation stays in sight above it. */

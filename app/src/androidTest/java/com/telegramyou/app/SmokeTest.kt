@@ -2092,6 +2092,33 @@ class SmokeTest {
      * name, and the tap switches to it and opens the chat. The second is
      * signed out of at the end, so later tests find one account.
      */
+    /**
+     * Russian (2.6), picked for the app as Android 13 picks a language for
+     * any app: the bar, the settings and a count come back in Russian, and
+     * the phone's language is given back at the end, whatever happened.
+     */
+    @Test
+    fun theAppSpeaksRussianWhenAskedTo() {
+        assumeTrue("a per-app language needs Android 13", Build.VERSION.SDK_INT >= 33)
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val locales = instrumentation.targetContext.getSystemService(android.app.LocaleManager::class.java)
+        try {
+            instrumentation.runOnMainSync { locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru") }
+            waitFor(By.text("Чаты"), "the bar in Russian")
+            screenshot("120-russian-chats")
+            tap(By.text("Настройки"))
+            waitFor(By.text("Оформление"), "the settings in Russian")
+            waitFor(By.text("Язык"), "the language row")
+            screenshot("121-russian-settings")
+        } finally {
+            instrumentation.runOnMainSync { locales.applicationLocales = android.os.LocaleList.getEmptyLocaleList() }
+        }
+        waitFor(By.text("Chats"), "the bar in English again")
+    }
+
     @Test
     fun theAccountNotInUseNotifiesToo() {
         signIn()

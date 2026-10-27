@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 import java.net.URLEncoder
 import java.util.Locale
 
@@ -40,7 +42,7 @@ data class LocationContent(
 fun geoUri(location: LocationContent): String {
     val lat = String.format(Locale.ROOT, "%.6f", location.latitude)
     val lon = String.format(Locale.ROOT, "%.6f", location.longitude)
-    val label = location.title.ifBlank { "Location" }
+    val label = location.title.ifBlank { tr("Location", "Геопозиция") }
     val query = URLEncoder.encode("$lat,$lon($label)", "UTF-8").replace("+", "%20")
     return "geo:$lat,$lon?q=$query"
 }

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.animation.core.animate
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -178,7 +180,7 @@ fun PhotoPage(
         if (path == null) CircularProgressIndicator(color = Color.White)
         AsyncImage(
             model = path,
-            contentDescription = caption.ifBlank { "Photo" },
+            contentDescription = if (caption.isBlank() || caption == "Photo") tr("Photo", "Фото") else caption,
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()
@@ -267,7 +269,7 @@ fun PhotoPage(
                     .padding(8.dp)
                     .alpha(1f - progress)
             ) {
-                Icon(Symbols.Close, contentDescription = "Close", tint = Color.White)
+                Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"), tint = Color.White)
             }
         }
     }
@@ -344,7 +346,7 @@ internal fun PhotoMessage(
             } else {
                 AsyncImage(
                     model = path,
-                    contentDescription = caption.ifBlank { "Photo" },
+                    contentDescription = if (caption.isBlank() || caption == "Photo") tr("Photo", "Фото") else caption,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -394,8 +396,8 @@ internal fun SpoilerCover(messageId: Long, mini: String?, path: String? = null, 
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clickable(onClickLabel = "Show") { revealed = true }
-            .semantics(mergeDescendants = true) { contentDescription = "Spoiler" }
+            .clickable(onClickLabel = tr("Show", "Показать")) { revealed = true }
+            .semantics(mergeDescendants = true) { contentDescription = tr("Spoiler", "Спойлер") }
     ) {
         if (mini != null) {
             BlurredMini(mini, Modifier.fillMaxSize())
@@ -419,7 +421,7 @@ internal fun SpoilerCover(messageId: Long, mini: String?, path: String? = null, 
             ) {
                 Icon(Symbols.VisibilityOff, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Spoiler", style = MaterialTheme.typography.labelLarge)
+                Text(tr("Spoiler", "Спойлер"), style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -505,9 +507,9 @@ internal fun VideoMessage(
     }
     Column {
         val label = if (caption.isBlank() || caption == "Video") {
-            "Video, ${formatDuration(video.durationSeconds.toLong())}"
+            tr("Video, ${formatDuration(video.durationSeconds.toLong())}", "Видео, ${formatDuration(video.durationSeconds.toLong())}")
         } else {
-            "Video, $caption"
+            tr("Video, $caption", "Видео, $caption")
         }
         Box(
             modifier = Modifier
@@ -636,7 +638,7 @@ internal fun AnimationMessage(
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 .semantics(mergeDescendants = true) {
-                    contentDescription = if (caption.isBlank() || caption == "GIF") "GIF" else "GIF, $caption"
+                    contentDescription = if (caption.isBlank() || caption == "GIF") "GIF" else tr("GIF, $caption", "GIF, $caption")
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -722,7 +724,7 @@ internal fun VideoNoteMessage(
     // circle starts as soon as there is something to play.
     var playing by remember { mutableStateOf(false) }
     val duration = formatDuration(note.durationSeconds.toLong())
-    val description = if (playing && note.path != null) "Video message, playing" else "Video message, $duration"
+    val description = if (playing && note.path != null) tr("Video message, playing", "Видеосообщение, играет") else tr("Video message, $duration", "Видеосообщение, $duration")
     Box(
         modifier = Modifier
             .size(VIDEO_NOTE_SIZE)
@@ -850,7 +852,7 @@ internal fun VoiceMessage(
                 Icon(
                     if (state == VoiceState.Playing) Symbols.PauseFilled
                     else Symbols.PlayArrowFilled,
-                    contentDescription = if (state == VoiceState.Playing) "Pause voice message" else "Play voice message",
+                    contentDescription = if (state == VoiceState.Playing) tr("Pause voice message", "Пауза") else tr("Play voice message", "Слушать голосовое"),
                     tint = tint
                 )
             }

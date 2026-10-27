@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.foundation.layout.heightIn
@@ -28,9 +30,9 @@ import java.util.Date
 internal fun readTimeLabel(context: Context, date: Long): String {
     val clock = DateFormat.getTimeFormat(context).format(Date(date * 1000))
     return when (val day = dayLabel(date)) {
-        "Today" -> "at $clock"
-        "Yesterday" -> "yesterday at $clock"
-        else -> "on $day at $clock"
+        "Today", "Сегодня" -> tr("at $clock", "в $clock")
+        "Yesterday", "Вчера" -> tr("yesterday at $clock", "вчера в $clock")
+        else -> tr("on $day at $clock", "$day в $clock")
     }
 }
 
@@ -41,7 +43,7 @@ internal fun SeenByDialog(viewers: List<Viewer>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.DoneAll, contentDescription = null) },
-        title = { Text("Seen by ${viewers.size}") },
+        title = { Text(tr("Seen by ${viewers.size}", "Просмотрели: ${viewers.size}")) },
         text = {
             LazyColumn(Modifier.heightIn(max = 360.dp)) {
                 items(viewers, key = { it.userId }) { viewer ->
@@ -53,6 +55,6 @@ internal fun SeenByDialog(viewers: List<Viewer>, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Close", "Закрыть")) } }
     )
 }

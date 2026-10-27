@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.runtime.remember
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.clickable
@@ -137,7 +139,7 @@ fun ChatMediaScreen(
                         Column {
                             Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text(
-                                "Shared media",
+                                tr("Shared media", "Медиа"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -145,7 +147,7 @@ fun ChatMediaScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Symbols.ArrowBack, contentDescription = "Back")
+                            Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                         }
                     }
                 )
@@ -227,14 +229,14 @@ fun ChatMediaScreen(
                             item(key = "offline") {
                                 if (offline == null) {
                                     ListItem(
-                                        headlineContent = { Text("Download all for offline") },
-                                        supportingContent = { Text("Every track in this chat, to play without a connection") },
+                                        headlineContent = { Text(tr("Download all for offline", "Скачать всё для офлайна")) },
+                                        supportingContent = { Text(tr("Every track in this chat, to play without a connection", "Все треки этого чата, чтобы слушать без сети")) },
                                         leadingContent = { Icon(Symbols.Download, contentDescription = null) },
                                         modifier = Modifier.clickable(onClick = onDownloadAll)
                                     )
                                 } else {
                                     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                                        Text("Downloading ${offline.done} of ${offline.total}", style = MaterialTheme.typography.bodyMedium)
+                                        Text(tr("Downloading ${offline.done} of ${offline.total}", "Скачивается ${offline.done} из ${offline.total}"), style = MaterialTheme.typography.bodyMedium)
                                         LinearWavyProgressIndicator(
                                             progress = { if (offline.total > 0) offline.done.toFloat() / offline.total else 0f },
                                             modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
@@ -303,7 +305,7 @@ private const val NEAR_END_ROWS = 6
 /** Who sent it and when, the line every row of a tab ends on. */
 private fun sentLine(message: ChatMessage): String =
     listOfNotNull(
-        (if (message.isOutgoing) "You" else message.senderName)?.takeIf { it.isNotBlank() },
+        (if (message.isOutgoing) tr("You", "Вы") else message.senderName)?.takeIf { it.isNotBlank() },
         message.timeLabel.takeIf { it.isNotBlank() }
     ).joinToString(" · ")
 
@@ -317,7 +319,7 @@ private fun sentLine(message: ChatMessage): String =
 private fun FileRow(message: ChatMessage, opening: Boolean, onClick: () -> Unit) {
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = { Text(message.fileName ?: "File", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        headlineContent = { Text(message.fileName ?: tr("File", "Файл"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
             Text(
                 listOfNotNull(message.fileSizeLabel, sentLine(message).takeIf { it.isNotBlank() }).joinToString(" · "),
@@ -345,7 +347,7 @@ private fun FileRow(message: ChatMessage, opening: Boolean, onClick: () -> Unit)
         trailingContent = if (opening) {
             { LoadingIndicator(Modifier.size(28.dp)) }
         } else if (message.documentPath == null && message.documentFileId != null) {
-            { Icon(Symbols.Download, contentDescription = "Download ${message.fileName ?: "file"}") }
+            { Icon(Symbols.Download, contentDescription = tr("Download ${message.fileName ?: "file"}", "Скачать ${message.fileName ?: "файл"}")) }
         } else {
             null
         }
@@ -413,8 +415,8 @@ private fun PlayableRow(
     val audio = message.audio
     val title = when {
         audio != null -> audio.displayTitle
-        message.contentType == MessageContentType.VideoNote -> "Video message"
-        else -> "Voice message"
+        message.contentType == MessageContentType.VideoNote -> tr("Video message", "Видеосообщение")
+        else -> tr("Voice message", "Голосовое сообщение")
     }
     val details = listOfNotNull(
         audio?.performer?.takeIf { it.isNotBlank() },
@@ -442,8 +444,8 @@ private fun PlayableRow(
             FilledTonalIconButton(onClick = onToggle, modifier = Modifier.size(48.dp)) {
                 when {
                     loading -> LoadingIndicator(Modifier.size(28.dp))
-                    playing -> Icon(Symbols.PauseFilled, contentDescription = "Pause")
-                    else -> Icon(Symbols.PlayArrowFilled, contentDescription = "Play $title")
+                    playing -> Icon(Symbols.PauseFilled, contentDescription = tr("Pause", "Пауза"))
+                    else -> Icon(Symbols.PlayArrowFilled, contentDescription = tr("Play $title", "Слушать $title"))
                 }
             }
         }
@@ -462,7 +464,7 @@ private fun VideoTile(
         modifier = Modifier
             .fillMaxSize()
             .semantics(mergeDescendants = true) {
-                contentDescription = if (caption.isBlank()) "Video" else "Video, $caption"
+                contentDescription = if (caption.isBlank()) tr("Video", "Видео") else tr("Video, $caption", "Видео, $caption")
             }
     ) {
         video.thumbPath?.let { poster ->
@@ -553,14 +555,14 @@ internal fun MediaTile(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     Symbols.Image,
-                    contentDescription = message.text.ifBlank { "Photo" },
+                    contentDescription = message.text.ifBlank { tr("Photo", "Фото") },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
             AsyncImage(
                 model = path,
-                contentDescription = message.text.ifBlank { "Photo" },
+                contentDescription = message.text.ifBlank { tr("Photo", "Фото") },
                 // Crop, not Fit: a square tile showing a letterboxed photo is
                 // mostly container, and the grid is for finding a picture
                 // rather than for looking at one.

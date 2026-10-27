@@ -1,5 +1,7 @@
 package com.telegramyou.app.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.theme.Accents
 
 /**
@@ -12,7 +14,15 @@ import com.telegramyou.app.ui.theme.Accents
 enum class ThemeChoice {
     System,
     Light,
-    Dark
+    Dark;
+
+    /** Its name on the Appearance screen, in the language in use. */
+    val label: String
+        get() = when (this) {
+            System -> com.telegramyou.app.i18n.tr("System", "Системная")
+            Light -> com.telegramyou.app.i18n.tr("Light", "Светлая")
+            Dark -> com.telegramyou.app.i18n.tr("Dark", "Тёмная")
+        }
 }
 
 /**
@@ -118,15 +128,18 @@ data class AppearanceSettings(
  * themed monochrome icon is the same in all of them, so a launcher that tints
  * icons from the wallpaper ignores this, as it should.
  */
-enum class AppIcon(val label: String, val background: Int) {
-    Teal("Teal", 0xFF1EE2A8.toInt()),
-    Blue("Blue", 0xFF4285F4.toInt()),
-    Violet("Violet", 0xFF7C4DFF.toInt()),
-    Pink("Pink", 0xFFE91E63.toInt()),
-    Red("Red", 0xFFE53935.toInt()),
-    Orange("Orange", 0xFFFF8A00.toInt()),
-    Amber("Amber", 0xFFFFC107.toInt()),
-    Green("Green", 0xFF4CAF50.toInt());
+enum class AppIcon(private val labelEn: String, private val labelRu: String, val background: Int) {
+    Teal("Teal", "Бирюзовая", 0xFF1EE2A8.toInt()),
+    Blue("Blue", "Синяя", 0xFF4285F4.toInt()),
+    Violet("Violet", "Фиолетовая", 0xFF7C4DFF.toInt()),
+    Pink("Pink", "Розовая", 0xFFE91E63.toInt()),
+    Red("Red", "Красная", 0xFFE53935.toInt()),
+    Orange("Orange", "Оранжевая", 0xFFFF8A00.toInt()),
+    Amber("Amber", "Янтарная", 0xFFFFC107.toInt()),
+    Green("Green", "Зелёная", 0xFF4CAF50.toInt());
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
+
 
     /** The alias's class name, relative to the app's namespace. */
     val alias: String get() = "Launcher$name"
@@ -173,15 +186,18 @@ private fun relativeLuminance(argb: Int): Double {
  * Plain. The names are stored, so an entry may be added but not renamed,
  * and not removed without the owner's word — AppearanceTest holds the four.
  */
-enum class ChatWallpaper(val label: String) {
+enum class ChatWallpaper(private val labelEn: String, private val labelRu: String) {
     /** The surface alone. */
-    Plain("Plain"),
+    Plain("Plain", "Без узора"),
     /** A grid of dots, every other row shifted. */
-    Dots("Dots"),
+    Dots("Dots", "Точки"),
     /** Four-pointed sparkles, Expressive's star, scattered. */
-    Sparkles("Sparkles"),
+    Sparkles("Sparkles", "Искры"),
     /** Squared paper: thin lines both ways. */
-    Grid("Grid")
+    Grid("Grid", "Сетка");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**
@@ -189,10 +205,13 @@ enum class ChatWallpaper(val label: String) {
  * default), its container (softer, for a calmer chat), or the tertiary
  * container (a second colour against the other side's grey).
  */
-enum class OutgoingTone(val label: String) {
-    Accent("Accent"),
-    Soft("Soft"),
-    Tertiary("Tertiary")
+enum class OutgoingTone(private val labelEn: String, private val labelRu: String) {
+    Accent("Accent", "Акцент"),
+    Soft("Soft", "Мягкий"),
+    Tertiary("Tertiary", "Третичный");
+
+    /** Read each time, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(labelEn, labelRu)
 }
 
 /**
@@ -225,10 +244,10 @@ object TextSize {
     fun nearest(scale: Float): Float = steps.minBy { kotlin.math.abs(it - scale) }
 
     fun label(scale: Float): String = when (steps.indexOf(nearest(scale))) {
-        0 -> "Small"
-        1 -> "Default"
-        2 -> "Large"
-        else -> "Largest"
+        0 -> tr("Small", "Мелкий")
+        1 -> tr("Default", "Обычный")
+        2 -> tr("Large", "Крупный")
+        else -> tr("Largest", "Самый крупный")
     }
 }
 

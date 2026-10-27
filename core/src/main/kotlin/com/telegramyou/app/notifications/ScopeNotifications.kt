@@ -1,13 +1,19 @@
 package com.telegramyou.app.notifications
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * The three kinds of chat Telegram keeps notification defaults for (2.0):
  * every chat of a kind follows these until it is given its own.
  */
-enum class NotificationScope(val label: String, val summary: String) {
-    PrivateChats("Private chats", "Messages from one person"),
-    Groups("Groups", "Messages in groups"),
-    Channels("Channels", "New posts in channels")
+enum class NotificationScope(private val en: Pair<String, String>, private val ru: Pair<String, String>) {
+    PrivateChats("Private chats" to "Messages from one person", "Личные чаты" to "Сообщения от одного человека"),
+    Groups("Groups" to "Messages in groups", "Группы" to "Сообщения в группах"),
+    Channels("Channels" to "New posts in channels", "Каналы" to "Новые публикации в каналах");
+
+    /** Its name and what it covers, in the language in use. */
+    val label: String get() = com.telegramyou.app.i18n.tr(en.first, ru.first)
+    val summary: String get() = com.telegramyou.app.i18n.tr(en.second, ru.second)
 }
 
 /**
@@ -29,5 +35,5 @@ data class ScopeNotifications(
 ) {
     /** What the main switch says under it: the kind of chat, or that it is silenced. */
     fun summaryFor(scope: NotificationScope): String =
-        if (enabled) scope.summary else "Off for ${scope.label.lowercase()}"
+        if (enabled) scope.summary else tr("Off for ${scope.label.lowercase()}", "Выкл. для: ${scope.label.lowercase()}")
 }

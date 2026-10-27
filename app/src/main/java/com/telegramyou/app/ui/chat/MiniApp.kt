@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.annotation.SuppressLint
 import android.os.Handler
 import android.os.Looper
@@ -160,11 +162,11 @@ internal fun MiniAppSheet(app: OpenWebApp, theme: WebAppTheme, onClose: () -> Un
                 navigationIcon = {
                     if (backVisible) {
                         IconButton(onClick = { send("back_button_pressed") }) {
-                            Icon(Symbols.ArrowBack, contentDescription = "Back")
+                            Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                         }
                     } else {
                         IconButton(onClick = { requestClose() }) {
-                            Icon(Symbols.Close, contentDescription = "Close Mini App")
+                            Icon(Symbols.Close, contentDescription = tr("Close Mini App", "Закрыть мини-приложение"))
                         }
                     }
                 },
@@ -247,10 +249,10 @@ internal fun MiniAppSheet(app: OpenWebApp, theme: WebAppTheme, onClose: () -> Un
     if (askingClose) {
         AlertDialog(
             onDismissRequest = { askingClose = false },
-            title = { Text("Close ${app.title}?") },
-            text = { Text("Changes you made may not be saved.") },
-            confirmButton = { TextButton(onClick = { askingClose = false; close() }) { Text("Close") } },
-            dismissButton = { TextButton(onClick = { askingClose = false }) { Text("Cancel") } }
+            title = { Text(tr("Close ${app.title}?", "Закрыть ${app.title}?")) },
+            text = { Text(tr("Changes you made may not be saved.", "Изменения могут не сохраниться.")) },
+            confirmButton = { TextButton(onClick = { askingClose = false; close() }) { Text(tr("Close", "Закрыть")) } },
+            dismissButton = { TextButton(onClick = { askingClose = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
     DisposableEffect(Unit) {
@@ -284,9 +286,9 @@ private data class MiniAppPopup(val title: String, val message: String, val butt
                 val button = raw?.optJSONObject(index) ?: return@mapNotNull null
                 val label = button.optString("text").ifBlank {
                     when (button.optString("type")) {
-                        "ok" -> "OK"
-                        "close" -> "Close"
-                        "cancel" -> "Cancel"
+                        "ok" -> tr("OK", "OK")
+                        "close" -> tr("Close", "Закрыть")
+                        "cancel" -> tr("Cancel", "Отмена")
                         else -> ""
                     }
                 }
@@ -295,7 +297,7 @@ private data class MiniAppPopup(val title: String, val message: String, val butt
             return MiniAppPopup(
                 title = data.optString("title"),
                 message = data.optString("message"),
-                buttons = buttons.ifEmpty { listOf("" to "OK") }
+                buttons = buttons.ifEmpty { listOf("" to tr("OK", "OK")) }
             )
         }
     }

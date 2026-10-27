@@ -67,3 +67,13 @@ val checkNoInternalApi by tasks.registering {
 }
 
 tasks.named("check") { dependsOn(checkNoInternalApi) }
+
+// English for every test, whatever the machine's language: the app's words
+// are read in the language in use (com.telegramyou.app.i18n.tr), and the
+// tests assert the English ones — a run on a Russian-speaking computer would
+// otherwise fail on words, not on anything wrong. Tests of the Russian set
+// the locale themselves.
+tasks.withType<Test>().configureEach {
+    systemProperty("user.language", "en")
+    systemProperty("user.country", "US")
+}

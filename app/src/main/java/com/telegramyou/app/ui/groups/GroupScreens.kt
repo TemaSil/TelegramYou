@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.groups
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -140,7 +142,7 @@ private fun GroupScaffold(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                 }
             )
         },
@@ -174,7 +176,7 @@ fun GroupPermissionsScreen(
 ) {
     val host = remember { SnackbarHostState() }
     Announce(host, null, state.errorMessage, {}, onErrorShown)
-    GroupScaffold("Permissions", state.title, onBack, host) { padding ->
+    GroupScaffold(tr("Permissions", "Разрешения"), state.title, onBack, host) { padding ->
         val management = state.management ?: return@GroupScaffold Loading(padding)
         LazyColumn(
             modifier = Modifier
@@ -184,7 +186,7 @@ fun GroupPermissionsScreen(
         ) {
             item {
                 Text(
-                    "What members can do",
+                    tr("What members can do", "Что могут участники"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp)
@@ -202,7 +204,7 @@ fun GroupPermissionsScreen(
             }
             item {
                 Text(
-                    "Admins can always do all of these.",
+                    tr("Admins can always do all of these.", "Админы могут всё это всегда."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
@@ -252,7 +254,7 @@ fun ManagedMemberRow(
                     }
                     if (actions.isNotEmpty()) {
                         IconButton(onClick = { menu = true }) {
-                            Icon(Symbols.MoreVert, contentDescription = "Manage ${member.user.displayName}")
+                            Icon(Symbols.MoreVert, contentDescription = tr("Manage ${member.user.displayName}", "Управлять: ${member.user.displayName}"))
                         }
                     }
                 }
@@ -287,10 +289,17 @@ fun RemoveMemberDialog(member: GroupMember, groupTitle: String, onDismiss: () ->
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Logout, contentDescription = null) },
-        title = { Text("Remove ${member.user.displayName}?") },
-        text = { Text("They leave ${groupTitle.ifBlank { "the group" }}. They can be invited back.") },
-        confirmButton = { TextButton(onClick = onConfirm) { Text("Remove") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        title = { Text(tr("Remove ${member.user.displayName}?", "Удалить ${member.user.displayName}?")) },
+        text = {
+            Text(
+                tr(
+                    "They leave ${groupTitle.ifBlank { "the group" }}. They can be invited back.",
+                    "Участник покинет ${groupTitle.ifBlank { "группу" }}. Его можно будет пригласить снова."
+                )
+            )
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(tr("Remove", "Удалить")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 
@@ -330,20 +339,20 @@ fun InviteLinksScreen(
         AlertDialog(
             onDismissRequest = { revoking = null },
             icon = { Icon(Symbols.Link, contentDescription = null) },
-            title = { Text("Revoke the link?") },
-            text = { Text("It stops working for anyone who has it. People who joined through it stay.") },
+            title = { Text(tr("Revoke the link?", "Отозвать ссылку?")) },
+            text = { Text(tr("It stops working for anyone who has it. People who joined through it stay.", "Ссылка перестанет работать у всех. Вступившие по ней останутся.")) },
             confirmButton = {
                 TextButton(onClick = {
                     revoking = null
                     onRevoke(link)
-                }) { Text("Revoke") }
+                }) { Text(tr("Revoke", "Отозвать")) }
             },
-            dismissButton = { TextButton(onClick = { revoking = null }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { revoking = null }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
     GroupScaffold(
-        "Invite links",
+        tr("Invite links", "Ссылки-приглашения"),
         state.title,
         onBack,
         host,
@@ -352,9 +361,9 @@ fun InviteLinksScreen(
                 onClick = { creating = true },
                 // Named explicitly: the alpha's extended button publishes an
                 // empty node otherwise — see ProxyScreen.
-                modifier = Modifier.semantics { contentDescription = "New link" },
+                modifier = Modifier.semantics { contentDescription = tr("New link", "Новая ссылка") },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
-                text = { Text("New link") }
+                text = { Text(tr("New link", "Новая ссылка")) }
             )
         }
     ) { padding ->
@@ -374,11 +383,11 @@ fun InviteLinksScreen(
                     now = now,
                     onCopy = {
                         copy(link.link)
-                        scope.launch { host.showSnackbar("Link copied") }
+                        scope.launch { host.showSnackbar(tr("Link copied", "Ссылка скопирована")) }
                     },
                     onShare = {
                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link.link)
-                        context.startActivity(Intent.createChooser(send, "Share invite link"))
+                        context.startActivity(Intent.createChooser(send, tr("Share invite link", "Поделиться ссылкой-приглашением")))
                     },
                     onRevoke = { revoking = link }
                 )
@@ -386,7 +395,7 @@ fun InviteLinksScreen(
             if (revoked.isNotEmpty()) {
                 item(key = "revoked-heading") {
                     Text(
-                        "Revoked",
+                        tr("Revoked", "Отозвана"),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 4.dp)
@@ -413,7 +422,7 @@ private fun LinkRow(link: InviteLink, now: Long, onCopy: () -> Unit, onShare: ()
     ListItem(
         modifier = Modifier.clickable(onClick = onCopy),
         overlineContent = if (link.isPrimary) {
-            { Text("Primary link") }
+            { Text(tr("Primary link", "Основная ссылка")) }
         } else {
             null
         },
@@ -423,11 +432,11 @@ private fun LinkRow(link: InviteLink, now: Long, onCopy: () -> Unit, onShare: ()
         trailingContent = {
             Box {
                 IconButton(onClick = { menu = true }) {
-                    Icon(Symbols.MoreVert, contentDescription = "More for $label")
+                    Icon(Symbols.MoreVert, contentDescription = tr("More for $label", "Ещё для $label"))
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Copy") },
+                        text = { Text(tr("Copy", "Копировать")) },
                         leadingIcon = { Icon(Symbols.ContentCopy, contentDescription = null) },
                         onClick = {
                             menu = false
@@ -435,7 +444,7 @@ private fun LinkRow(link: InviteLink, now: Long, onCopy: () -> Unit, onShare: ()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Share") },
+                        text = { Text(tr("Share", "Поделиться")) },
                         leadingIcon = { Icon(Symbols.Share, contentDescription = null) },
                         onClick = {
                             menu = false
@@ -443,7 +452,7 @@ private fun LinkRow(link: InviteLink, now: Long, onCopy: () -> Unit, onShare: ()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Revoke", color = MaterialTheme.colorScheme.error) },
+                        text = { Text(tr("Revoke", "Отозвать"), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(Symbols.Block, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         },
@@ -472,17 +481,17 @@ private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, 
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.Link, contentDescription = null) },
-        title = { Text("New invite link") },
+        title = { Text(tr("New invite link", "Новая ссылка-приглашение")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name (optional)") },
+                    label = { Text(tr("Name (optional)", "Название (необязательно)")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Text("Lasts", style = MaterialTheme.typography.titleSmall)
+                Text(tr("Lasts", "Срок"), style = MaterialTheme.typography.titleSmall)
                 SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     LinkExpiry.entries.forEachIndexed { index, option ->
                         SegmentedButton(
@@ -496,14 +505,14 @@ private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, 
                 // Asking first and a head count do not go together: Telegram
                 // refuses a limit on a link an admin approves.
                 ListItem(
-                    headlineContent = { Text("Admins approve new members") },
+                    headlineContent = { Text(tr("Admins approve new members", "Админы одобряют новых участников")) },
                     trailingContent = { Switch(checked = asksFirst, onCheckedChange = { asksFirst = it }) },
                     // The dialog's own tone, not a `surface` slab on it.
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.clickable { asksFirst = !asksFirst }
                 )
                 if (!asksFirst) {
-                    Text("People who can join", style = MaterialTheme.typography.titleSmall)
+                    Text(tr("People who can join", "Сколько людей может вступить"), style = MaterialTheme.typography.titleSmall)
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                         LinkLimit.entries.forEachIndexed { index, option ->
                             SegmentedButton(
@@ -517,8 +526,8 @@ private fun NewLinkDialog(onDismiss: () -> Unit, onCreate: (String, LinkExpiry, 
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onCreate(name, expiry, limit, asksFirst) }) { Text("Create") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        confirmButton = { TextButton(onClick = { onCreate(name, expiry, limit, asksFirst) }) { Text(tr("Create", "Создать")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 
@@ -550,30 +559,30 @@ fun TopicsScreen(
         AlertDialog(
             onDismissRequest = onTopicDialogDismissed,
             icon = { Icon(Symbols.Edit, contentDescription = null) },
-            title = { Text("Rename topic") },
+            title = { Text(tr("Rename topic", "Переименовать тему")) },
             text = {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Topic name") },
+                    label = { Text(tr("Topic name", "Название темы")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
-                TextButton(enabled = name.isNotBlank(), onClick = { onTopicRenamed(name) }) { Text("Save") }
+                TextButton(enabled = name.isNotBlank(), onClick = { onTopicRenamed(name) }) { Text(tr("Save", "Сохранить")) }
             },
-            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text(tr("Cancel", "Отмена")) } }
         )
     }
     state.deletingTopic?.let { topic ->
         AlertDialog(
             onDismissRequest = onTopicDialogDismissed,
             icon = { Icon(Symbols.Delete, contentDescription = null) },
-            title = { Text("Delete ${topic.name}?") },
-            text = { Text("The topic and every message in it go, for everyone. It cannot be undone.") },
-            confirmButton = { TextButton(onClick = onTopicDeleteConfirmed) { Text("Delete") } },
-            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text("Cancel") } }
+            title = { Text(tr("Delete ${topic.name}?", "Удалить ${topic.name}?")) },
+            text = { Text(tr("The topic and every message in it go, for everyone. It cannot be undone.", "Тема и все сообщения в ней удалятся у всех. Это не отменить.")) },
+            confirmButton = { TextButton(onClick = onTopicDeleteConfirmed) { Text(tr("Delete", "Удалить")) } },
+            dismissButton = { TextButton(onClick = onTopicDialogDismissed) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -582,12 +591,12 @@ fun TopicsScreen(
         AlertDialog(
             onDismissRequest = { creating = false },
             icon = { Icon(Symbols.Forum, contentDescription = null) },
-            title = { Text("New topic") },
+            title = { Text(tr("New topic", "Новая тема")) },
             text = {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Topic name") },
+                    label = { Text(tr("Topic name", "Название темы")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -599,15 +608,15 @@ fun TopicsScreen(
                         creating = false
                         onCreateTopic(name)
                     }
-                ) { Text("Create") }
+                ) { Text(tr("Create", "Создать")) }
             },
-            dismissButton = { TextButton(onClick = { creating = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { creating = false }) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
     GroupScaffold(
-        state.title.ifBlank { "Topics" },
-        "Topics",
+        state.title.ifBlank { tr("Topics", "Темы") },
+        tr("Topics", "Темы"),
         onBack,
         host,
         floatingActionButton = {
@@ -615,9 +624,9 @@ fun TopicsScreen(
                 onClick = { creating = true },
                 // Named explicitly: the alpha's extended button publishes an
                 // empty node otherwise — see ProxyScreen.
-                modifier = Modifier.semantics { contentDescription = "New topic" },
+                modifier = Modifier.semantics { contentDescription = tr("New topic", "Новая тема") },
                 icon = { Icon(Symbols.Add, contentDescription = null) },
-                text = { Text("New topic") }
+                text = { Text(tr("New topic", "Новая тема")) }
             )
         }
     ) { padding ->
@@ -639,7 +648,7 @@ fun TopicsScreen(
             }
             item(key = "info") {
                 ListItem(
-                    headlineContent = { Text("Group info") },
+                    headlineContent = { Text(tr("Group info", "Инфо группы")) },
                     leadingContent = { Icon(Symbols.Info, contentDescription = null) },
                     modifier = Modifier.clickable(onClick = onOpenInfo)
                 )
@@ -665,14 +674,14 @@ private fun TopicRow(
             // person was in the middle of.
             if (topic.draft.isNotBlank()) {
                 Text(
-                    "Draft: ${topic.draft}",
+                    tr("Draft: ${topic.draft}", "Черновик: ${topic.draft}"),
                     color = MaterialTheme.colorScheme.error,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             } else {
                 Text(
-                    topic.lastMessage.ifBlank { "No messages yet" },
+                    topic.lastMessage.ifBlank { tr("No messages yet", "Сообщений пока нет") },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -709,14 +718,14 @@ private fun TopicRow(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     ) { Text(topic.unreadCount.toString()) }
-                    topic.isClosed -> Icon(Symbols.Lock, contentDescription = "Closed", modifier = Modifier.size(16.dp))
-                    topic.isPinned -> Icon(Symbols.PushPin, contentDescription = "Pinned", modifier = Modifier.size(16.dp))
+                    topic.isClosed -> Icon(Symbols.Lock, contentDescription = tr("Closed", "Закрыта"), modifier = Modifier.size(16.dp))
+                    topic.isPinned -> Icon(Symbols.PushPin, contentDescription = tr("Pinned", "Закреплена"), modifier = Modifier.size(16.dp))
                 }
             }
             if (actions.isNotEmpty()) {
                 Box {
                     IconButton(onClick = { menu = true }) {
-                        Icon(Symbols.MoreVert, contentDescription = "Manage ${topic.name}")
+                        Icon(Symbols.MoreVert, contentDescription = tr("Manage ${topic.name}", "Управлять: ${topic.name}"))
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         actions.forEach { action ->
@@ -772,16 +781,20 @@ fun AdminRightsSheet(
                 .padding(bottom = 16.dp)
         ) {
             Text(
-                if (promoting) "Make ${member.user.displayName} an admin" else "${member.user.displayName}'s rights",
+                if (promoting) {
+                    tr("Make ${member.user.displayName} an admin", "Сделать ${member.user.displayName} админом")
+                } else {
+                    tr("${member.user.displayName}'s rights", "Права: ${member.user.displayName}")
+                },
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it.take(ADMIN_TITLE_MAX) },
-                label = { Text("Title") },
-                placeholder = { Text("Admin") },
-                supportingText = { Text("${title.length} / $ADMIN_TITLE_MAX · shown beside their name") },
+                label = { Text(tr("Title", "Должность")) },
+                placeholder = { Text(tr("Admin", "Админ")) },
+                supportingText = { Text(tr("${title.length} / $ADMIN_TITLE_MAX · shown beside their name", "${title.length} / $ADMIN_TITLE_MAX · видно рядом с именем")) },
                 singleLine = true,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -790,7 +803,7 @@ fun AdminRightsSheet(
             val shown = AdminRight.shownFor(isForum, isBasicGroup)
             if (shown.isNotEmpty()) {
                 Text(
-                    "What they can do",
+                    tr("What they can do", "Что может"),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 24.dp, top = 16.dp, bottom = 4.dp)
@@ -814,8 +827,8 @@ fun AdminRightsSheet(
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-                Button(onClick = { onSave(rights, title) }) { Text(if (promoting) "Make admin" else "Save") }
+                OutlinedButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
+                Button(onClick = { onSave(rights, title) }) { Text(if (promoting) tr("Make admin", "Сделать админом") else tr("Save", "Сохранить")) }
             }
         }
     }
@@ -837,7 +850,7 @@ fun JoinRequestsScreen(
 ) {
     val host = remember { SnackbarHostState() }
     Announce(host, state.notice, state.errorMessage, onNoticeShown, onErrorShown)
-    GroupScaffold("Join requests", state.title, onBack, host) { padding ->
+    GroupScaffold(tr("Join requests", "Заявки на вступление"), state.title, onBack, host) { padding ->
         val requests = state.joinRequests ?: return@GroupScaffold Loading(padding)
         if (requests.isEmpty()) {
             Box(
@@ -847,7 +860,7 @@ fun JoinRequestsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Nobody is waiting to join",
+                    tr("Nobody is waiting to join", "Заявок нет"),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -868,7 +881,7 @@ fun JoinRequestsScreen(
                         headlineContent = { Text(request.user.displayName) },
                         supportingContent = request.bio.takeIf { it.isNotBlank() }?.let { bio -> { Text(bio) } },
                         overlineContent = {
-                            Text("Asked " + chatListTimeLabel(request.date, now, ZoneId.systemDefault()))
+                            Text(tr("Asked ", "Заявка: ") + chatListTimeLabel(request.date, now, ZoneId.systemDefault()))
                         },
                         leadingContent = {
                             AvatarBubble(
@@ -884,8 +897,8 @@ fun JoinRequestsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.padding(start = 72.dp, end = 16.dp, bottom = 8.dp)
                     ) {
-                        FilledTonalButton(onClick = { onAnswer(request, true) }) { Text("Add to group") }
-                        TextButton(onClick = { onAnswer(request, false) }) { Text("Dismiss") }
+                        FilledTonalButton(onClick = { onAnswer(request, true) }) { Text(tr("Add to group", "Добавить в группу")) }
+                        TextButton(onClick = { onAnswer(request, false) }) { Text(tr("Dismiss", "Отклонить")) }
                     }
                 }
             }

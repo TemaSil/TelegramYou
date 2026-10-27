@@ -1,5 +1,7 @@
 package com.telegramyou.app.update
 
+import com.telegramyou.app.i18n.tr
+
 import java.time.ZoneId
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.runtime.remember
@@ -79,10 +81,10 @@ fun AppUpdateScreen(onBack: () -> Unit) {
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("App update") },
+                title = { Text(tr("App update", "Обновление")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -124,11 +126,11 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                         Spacer(Modifier.height(16.dp))
                         Text(
                             when (state) {
-                                is UpdateState.Available -> "Version ${state.release.label} is out"
-                                is UpdateState.Downloading -> "Downloading ${state.release.label}"
-                                is UpdateState.Ready -> "Version ${state.release.label} is ready"
-                                UpdateState.Checking -> "Checking for updates…"
-                                UpdateState.UpToDate -> "You're up to date"
+                                is UpdateState.Available -> tr("Version ${state.release.label} is out", "Вышла версия ${state.release.label}")
+                                is UpdateState.Downloading -> tr("Downloading ${state.release.label}", "Скачивается ${state.release.label}")
+                                is UpdateState.Ready -> tr("Version ${state.release.label} is ready", "Версия ${state.release.label} готова")
+                                UpdateState.Checking -> tr("Checking for updates…", "Проверяем обновления…")
+                                UpdateState.UpToDate -> tr("You're up to date", "У вас последняя версия")
                                 else -> "TelegramYou $installed"
                             },
                             style = MaterialTheme.typography.headlineSmall,
@@ -138,11 +140,11 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                         Text(
                             when (state) {
                                 is UpdateState.Failed -> state.message
-                                is UpdateState.Ready -> "Android will ask you to confirm the install"
-                                is UpdateState.Available -> listOf("You have ${updates?.installedLabel ?: installed}", sizeLabel(state.release.size))
+                                is UpdateState.Ready -> tr("Android will ask you to confirm the install", "Android попросит подтвердить установку")
+                                is UpdateState.Available -> listOf(tr("You have ${updates?.installedLabel ?: installed}", "У вас ${updates?.installedLabel ?: installed}"), sizeLabel(state.release.size))
                                     .filter { it.isNotEmpty() }
                                     .joinToString(" · ")
-                                else -> "Version $installed"
+                                else -> tr("Version $installed", "Версия $installed")
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (state is UpdateState.Failed) MaterialTheme.colorScheme.error
@@ -163,7 +165,7 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                                 }
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    state.progress?.let { "${(it * 100).toInt()}%" } ?: "Starting…",
+                                    state.progress?.let { "${(it * 100).toInt()}%" } ?: tr("Starting…", "Начинаем…"),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             }
@@ -173,17 +175,17 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                             ) {
                                 Icon(Symbols.Download, contentDescription = null)
                                 Spacer(Modifier.size(8.dp))
-                                Text("Download and install")
+                                Text(tr("Download and install", "Скачать и установить"))
                             }
                             is UpdateState.Ready -> Button(
                                 onClick = { updates?.install() },
                                 modifier = Modifier.fillMaxWidth()
-                            ) { Text("Install") }
+                            ) { Text(tr("Install", "Установить")) }
                             else -> Button(
                                 onClick = { updates?.check() },
                                 enabled = updates != null,
                                 modifier = Modifier.fillMaxWidth()
-                            ) { Text("Check for updates") }
+                            ) { Text(tr("Check for updates", "Проверить обновления")) }
                         }
                     }
                 }
@@ -209,8 +211,8 @@ fun AppUpdateScreen(onBack: () -> Unit) {
             if (notes != null) {
                 item(key = "whats-new") {
                     WhatsNewCard(
-                        heading = if (incoming?.notes != null) "What's new in ${incoming.version}"
-                        else "What's new in this version",
+                        heading = if (incoming?.notes != null) tr("What's new in ${incoming.version}", "Что нового в ${incoming.version}")
+                        else tr("What's new in this version", "Что нового в этой версии"),
                         notes = notes,
                         released = released
                     )

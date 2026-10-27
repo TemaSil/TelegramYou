@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 import java.net.URI
 import java.net.URLDecoder
 
@@ -44,11 +46,11 @@ data class ProxyDraft(
         get() {
             val portNumber = port.trim().toIntOrNull()
             return when {
-                server.isBlank() -> "Enter the server"
-                server.trim().any { it.isWhitespace() } -> "The server has a space in it"
-                portNumber == null || portNumber !in 1..65_535 -> "The port is a number from 1 to 65535"
+                server.isBlank() -> tr("Enter the server", "Укажите сервер")
+                server.trim().any { it.isWhitespace() } -> tr("The server has a space in it", "В адресе сервера есть пробел")
+                portNumber == null || portNumber !in 1..65_535 -> tr("The port is a number from 1 to 65535", "Порт — число от 1 до 65535")
                 kind == ProxyKind.MtProto && !isMtProtoSecret(secret.trim()) ->
-                    "An MTProto secret is 32 or more hex digits, or a base64 one"
+                    tr("An MTProto secret is 32 or more hex digits, or a base64 one", "Секрет MTProto — от 32 шестнадцатеричных цифр или base64")
                 else -> null
             }
         }

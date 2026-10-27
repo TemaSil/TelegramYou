@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.lock
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -109,9 +111,9 @@ fun AppLockSettingsScreen(
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("App lock") },
+                title = { Text(tr("App lock", "Блокировка приложения")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
@@ -125,38 +127,38 @@ fun AppLockSettingsScreen(
                 .padding(bottom = 24.dp)
         ) {
             Text(
-                "A PIN in front of the app, asked for when it opens and when you come back to it.",
+                tr("A PIN in front of the app, asked for when it opens and when you come back to it.", "PIN перед приложением — при открытии и при возвращении в него."),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
             )
             SettingsGroup {
                 switch(
-                    title = "Lock with a PIN",
+                    title = tr("Lock with a PIN", "Блокировка PIN-кодом"),
                     checked = settings.enabled,
                     onChange = { on -> if (on) settingPin = true else checking = PinCheck.TurnOff }
                 )
                 if (settings.enabled) {
-                    item(title = "Change PIN", onClick = { checking = PinCheck.Change })
+                    item(title = tr("Change PIN", "Сменить PIN"), onClick = { checking = PinCheck.Change })
                 }
             }
             if (settings.enabled) {
                 SettingsGroup {
                     switch(
-                        title = "Unlock with fingerprint",
-                        summary = if (biometricHere) null else "No fingerprint set up on this phone",
+                        title = tr("Unlock with fingerprint", "Разблокировка отпечатком"),
+                        summary = if (biometricHere) null else tr("No fingerprint set up on this phone", "На этом телефоне не настроен отпечаток"),
                         checked = settings.biometric && biometricHere,
                         enabled = biometricHere,
                         onChange = onBiometricChange
                     )
                     item(
-                        title = "Lock",
+                        title = tr("Lock", "Блокировать"),
                         summary = settings.autoLock.label,
                         onClick = { choosingAutoLock = true }
                     )
                     switch(
-                        title = "Hide in recent apps",
-                        summary = "Recents shows a blank card instead of your chats. Screenshots are off too",
+                        title = tr("Hide in recent apps", "Скрывать в недавних"),
+                        summary = tr("Recents shows a blank card instead of your chats. Screenshots are off too", "В недавних видна пустая карточка вместо чатов. Скриншоты тоже отключены"),
                         checked = settings.hideInRecents,
                         onChange = onHideInRecentsChange
                     )
@@ -195,14 +197,14 @@ private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) 
             ) {
                 Text(
                     when {
-                        chosen != null -> "Repeat the PIN"
-                        changing -> "New PIN"
-                        else -> "Choose a PIN"
+                        chosen != null -> tr("Repeat the PIN", "Повторите PIN")
+                        changing -> tr("New PIN", "Новый PIN")
+                        else -> tr("Choose a PIN", "Придумайте PIN")
                     },
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    error ?: if (chosen == null) "${AppLock.MIN_PIN} to ${AppLock.MAX_PIN} digits" else " ",
+                    error ?: if (chosen == null) tr("${AppLock.MIN_PIN} to ${AppLock.MAX_PIN} digits", "От ${AppLock.MIN_PIN} до ${AppLock.MAX_PIN} цифр") else " ",
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -223,7 +225,7 @@ private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) 
                                 } else {
                                     first = null
                                     typed = ""
-                                    error = "The two did not match. Start again"
+                                    error = tr("The two did not match. Start again", "PIN не совпали. Начните заново")
                                 }
                             }
                         }
@@ -232,7 +234,7 @@ private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) 
                 )
                 androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 24.dp))
                 Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp)) {
-                    TextButton(onClick = onDismiss) { Text("Cancel") }
+                    TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
                     if (chosen == null) {
                         androidx.compose.material3.Button(
                             enabled = AppLock.isValidPin(typed),
@@ -240,7 +242,7 @@ private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) 
                                 first = typed
                                 typed = ""
                             }
-                        ) { Text("Continue") }
+                        ) { Text(tr("Continue", "Продолжить")) }
                     }
                 }
             }
@@ -253,7 +255,7 @@ private fun PinDialog(changing: Boolean, onDismiss: () -> Unit, onSet: (String) 
 private fun AutoLockDialog(selected: AutoLock, onDismiss: () -> Unit, onSelect: (AutoLock) -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Lock") },
+        title = { Text(tr("Lock", "Блокировать")) },
         text = {
             Column {
                 AutoLock.entries.forEach { choice ->
@@ -274,14 +276,16 @@ private fun AutoLockDialog(selected: AutoLock, onDismiss: () -> Unit, onSelect: 
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Done", "Готово")) } }
     )
 }
 
 /** What the current PIN is asked for. */
-private enum class PinCheck(val title: String) {
-    TurnOff("Enter your PIN to turn the lock off"),
-    Change("Enter your current PIN")
+private enum class PinCheck(private val en: String, private val ru: String) {
+    TurnOff("Enter your PIN to turn the lock off", "Введите PIN, чтобы выключить блокировку"),
+    Change("Enter your current PIN", "Введите текущий PIN");
+
+    val title: String get() = com.telegramyou.app.i18n.tr(en, ru)
 }
 
 /**
@@ -316,7 +320,7 @@ private fun PinCheckDialog(
                     .padding(24.dp)
             ) {
                 Text(
-                    if (wrong) "Wrong PIN, try again" else purpose.title,
+                    if (wrong) tr("Wrong PIN, try again", "Неверный PIN, попробуйте ещё") else purpose.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = if (wrong) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
@@ -344,7 +348,7 @@ private fun PinCheckDialog(
                     onBackspace = { typed = typed.dropLast(1) }
                 )
                 androidx.compose.foundation.layout.Spacer(Modifier.padding(top = 24.dp))
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) }
             }
         }
     }

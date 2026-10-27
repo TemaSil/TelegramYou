@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * A stretch of a message's text that is more than text: bold, a link, a
  * mention. Telegram sends these beside the words rather than inside them.
@@ -119,7 +121,7 @@ fun parseMarkdown(input: String): Pair<String, List<TextEntity>> {
  * a person's or a chat's name, or the name someone chose to forward under
  * with their account hidden.
  */
-fun forwardedLabel(origin: String): String = "Forwarded from $origin"
+fun forwardedLabel(origin: String): String = tr("Forwarded from $origin", "Переслано от $origin")
 
 /**
  * Photos sent together that should draw as one grid: runs of consecutive

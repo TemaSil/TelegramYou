@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -43,7 +45,7 @@ class DevicesViewModel(
     private fun refresh() {
         viewModelScope.launch {
             var list = emptyList<ActiveSession>()
-            attempt("Could not read the devices") { list = repository.activeSessions() }
+            attempt(tr("Could not read the devices", "Не удалось получить список устройств")) { list = repository.activeSessions() }
             _uiState.update { it.copy(sessions = list.inDisplayOrder(), isLoading = false) }
         }
     }
@@ -61,13 +63,13 @@ class DevicesViewModel(
         val session = _uiState.value.confirming ?: return
         _uiState.update { it.copy(confirming = null, isWorking = true) }
         viewModelScope.launch {
-            val done = attempt("Could not end that session") { repository.terminateSession(session.id) }
+            val done = attempt(tr("Could not end that session", "Не удалось завершить сеанс")) { repository.terminateSession(session.id) }
             _uiState.update { state ->
                 if (done) {
                     state.copy(
                         sessions = state.sessions.filterNot { it.id == session.id },
                         isWorking = false,
-                        message = "Signed out of ${session.title()}"
+                        message = tr("Signed out of ${session.title()}", "${session.title()}: выход выполнен")
                     )
                 } else {
                     state.copy(isWorking = false)
@@ -79,13 +81,13 @@ class DevicesViewModel(
     fun onTerminateAllConfirmed() {
         _uiState.update { it.copy(confirmingAll = false, isWorking = true) }
         viewModelScope.launch {
-            val done = attempt("Could not end the other sessions") { repository.terminateOtherSessions() }
+            val done = attempt(tr("Could not end the other sessions", "Не удалось завершить другие сеансы")) { repository.terminateOtherSessions() }
             _uiState.update { state ->
                 if (done) {
                     state.copy(
                         sessions = state.sessions.filter { it.isCurrent },
                         isWorking = false,
-                        message = "Signed out of every other device"
+                        message = tr("Signed out of every other device", "Выход выполнен на всех других устройствах")
                     )
                 } else {
                     state.copy(isWorking = false)

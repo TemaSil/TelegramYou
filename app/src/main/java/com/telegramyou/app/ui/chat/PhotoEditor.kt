@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
@@ -109,9 +111,9 @@ internal fun PhotoEditor(
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 TopAppBar(
-                    title = { Text("Edit photo") },
+                    title = { Text(tr("Edit photo", "Изменить фото")) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Cancel") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = tr("Cancel", "Отмена")) }
                     },
                     actions = {
                         TextButton(
@@ -129,7 +131,7 @@ internal fun PhotoEditor(
                                     onDone(written, hidden)
                                 }
                             }
-                        ) { Text("Done") }
+                        ) { Text(tr("Done", "Готово")) }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
                 )
@@ -144,13 +146,13 @@ internal fun PhotoEditor(
                         .padding(16.dp)
                 ) {
                     FilledTonalIconButton(onClick = { edit = edit.turnedLeft() }) {
-                        Icon(Symbols.Rotate90DegreesCcw, contentDescription = "Rotate")
+                        Icon(Symbols.Rotate90DegreesCcw, contentDescription = tr("Rotate", "Повернуть"))
                     }
-                    TextButton(enabled = !edit.isNone, onClick = { edit = PhotoEdit() }) { Text("Reset") }
+                    TextButton(enabled = !edit.isNone, onClick = { edit = PhotoEdit() }) { Text(tr("Reset", "Сбросить")) }
                     FilterChip(
                         selected = hidden,
                         onClick = { hidden = !hidden },
-                        label = { Text("Spoiler") },
+                        label = { Text(tr("Spoiler", "Спойлер")) },
                         leadingIcon = {
                             Icon(
                                 if (hidden) Symbols.VisibilityOff else Symbols.Visibility,
@@ -197,7 +199,7 @@ private fun CropFrame(picture: Bitmap, crop: CropRect, onCrop: (CropRect) -> Uni
         Box(
             modifier = Modifier
                 .size(with(density) { shown.width.toDp() }, with(density) { shown.height.toDp() })
-                .semantics { contentDescription = "Photo, cropped by its corners" }
+                .semantics { contentDescription = tr("Photo, cropped by its corners", "Фото, обрезка за углы") }
         ) {
             Image(image, contentDescription = null, contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxSize())
             var handle by remember { mutableStateOf<CropHandle?>(null) }

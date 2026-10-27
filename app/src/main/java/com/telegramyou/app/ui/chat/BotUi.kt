@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -174,11 +176,11 @@ internal fun PollMessage(
                     },
                     enabled = picked.isNotEmpty(),
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
-                ) { Text("Vote") }
+                ) { Text(tr("Vote", "Голосовать")) }
                 poll.canRetract -> TextButton(
                     onClick = { onVote(emptySet()) },
                     colors = ButtonDefaults.textButtonColors(contentColor = onTint)
-                ) { Text("Retract vote") }
+                ) { Text(tr("Retract vote", "Отозвать голос")) }
             }
         }
     }
@@ -231,9 +233,9 @@ private fun PollResultRow(
                 Icon(
                     mark,
                     contentDescription = when {
-                        isQuiz && isCorrect -> "Right answer"
-                        wrong -> "Wrong answer"
-                        else -> "Your vote"
+                        isQuiz && isCorrect -> tr("Right answer", "Верный ответ")
+                        wrong -> tr("Wrong answer", "Неверный ответ")
+                        else -> tr("Your vote", "Ваш голос")
                     },
                     tint = if (wrong) MaterialTheme.colorScheme.error else onTint,
                     modifier = Modifier.size(18.dp)

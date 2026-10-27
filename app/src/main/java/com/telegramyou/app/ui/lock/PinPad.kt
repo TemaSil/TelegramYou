@@ -2,6 +2,8 @@
 
 package com.telegramyou.app.ui.lock
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -80,7 +82,7 @@ internal fun PinPad(
             modifier = Modifier
                 .height(DOT_ROOM)
                 .semantics {
-                    contentDescription = if (pinLength != null) "${typed.length} of $pinLength digits" else "${typed.length} digits"
+                    contentDescription = if (pinLength != null) tr("${typed.length} of $pinLength digits", "${typed.length} из $pinLength цифр") else tr("${typed.length} digits", "Цифр: ${typed.length}")
                 }
         ) {
             repeat(pinLength ?: typed.length) { index -> PinDot(filled = index < typed.length, index = index) }
@@ -98,7 +100,7 @@ internal fun PinPad(
             ) {
                 // Delete left of 0 and the fingerprint right of it, as the
                 // Pixel's own keypad has them.
-                PinIconKey(Symbols.Backspace, "Delete digit", enabled = typed.isNotEmpty(), onClick = onBackspace)
+                PinIconKey(Symbols.Backspace, tr("Delete digit", "Стереть цифру"), enabled = typed.isNotEmpty(), onClick = onBackspace)
                 PinKey('0', enabled) { onDigit('0') }
                 Box(Modifier.size(KEY_SIZE), contentAlignment = Alignment.Center) { extraKey() }
             }
@@ -144,7 +146,7 @@ private fun PinKey(digit: Char, enabled: Boolean, onClick: () -> Unit) {
         interactionSource = interaction,
         modifier = Modifier
             .size(KEY_SIZE)
-            .semantics { contentDescription = "Digit $digit" }
+            .semantics { contentDescription = tr("Digit $digit", "Цифра $digit") }
     ) {
         Text(digit.toString(), style = MaterialTheme.typography.headlineMedium)
     }

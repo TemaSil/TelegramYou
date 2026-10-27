@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.proxy
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -51,7 +53,7 @@ class ProxyViewModel(
     private fun refresh() {
         viewModelScope.launch {
             var list: List<ProxyServer> = emptyList()
-            attempt("Could not read the proxies") { list = repository.proxies() }
+            attempt(tr("Could not read the proxies", "Не удалось прочитать список прокси")) { list = repository.proxies() }
             _uiState.update { state ->
                 state.copy(
                     proxies = list,
@@ -82,14 +84,14 @@ class ProxyViewModel(
      */
     fun onUseProxyChange(use: Boolean) {
         val first = _uiState.value.proxies.firstOrNull() ?: return
-        change("Could not switch the proxy") {
+        change(tr("Could not switch the proxy", "Не удалось переключить прокси")) {
             if (use) repository.enableProxy(first.id) else repository.disableProxy()
         }
     }
 
-    fun onSelect(id: Int) = change("Could not switch the proxy") { repository.enableProxy(id) }
+    fun onSelect(id: Int) = change(tr("Could not switch the proxy", "Не удалось переключить прокси")) { repository.enableProxy(id) }
 
-    fun onRemove(id: Int) = change("Could not remove the proxy") { repository.removeProxy(id) }
+    fun onRemove(id: Int) = change(tr("Could not remove the proxy", "Не удалось удалить прокси")) { repository.removeProxy(id) }
 
     fun onAddOpen() = _uiState.update { it.copy(draft = ProxyDraft()) }
 
@@ -109,7 +111,7 @@ class ProxyViewModel(
     fun onLinkPasted(text: String) {
         val parsed = parseProxyLink(text)
         if (parsed == null) {
-            _uiState.update { it.copy(errorMessage = "That is not a proxy link") }
+            _uiState.update { it.copy(errorMessage = tr("That is not a proxy link", "Это не ссылка на прокси")) }
             return
         }
         _uiState.update { it.copy(draft = parsed) }
@@ -120,7 +122,7 @@ class ProxyViewModel(
         val server = _uiState.value.draft?.toServer() ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
-            val saved = attempt("Could not add the proxy") { repository.addProxy(server, enable = true) }
+            val saved = attempt(tr("Could not add the proxy", "Не удалось добавить прокси")) { repository.addProxy(server, enable = true) }
             _uiState.update { it.copy(isSaving = false, draft = if (saved) null else it.draft) }
             refresh()
         }

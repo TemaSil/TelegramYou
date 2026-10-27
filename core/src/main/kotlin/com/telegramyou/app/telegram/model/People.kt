@@ -1,5 +1,7 @@
 package com.telegramyou.app.telegram.model
 
+import com.telegramyou.app.i18n.tr
+
 /**
  * Somebody else, as their profile shows them.
  *
@@ -41,10 +43,10 @@ data class ChatRemoval(
 )
 
 fun chatRemovalOf(chat: ChatPreview): ChatRemoval = when {
-    chat.isChannel -> ChatRemoval(false, "Leave channel", leaves = true, offerForEveryone = false)
-    chat.isGroup -> ChatRemoval(false, "Leave group", leaves = true, offerForEveryone = false)
+    chat.isChannel -> ChatRemoval(false, tr("Leave channel", "Покинуть канал"), leaves = true, offerForEveryone = false)
+    chat.isGroup -> ChatRemoval(false, tr("Leave group", "Покинуть группу"), leaves = true, offerForEveryone = false)
     chat.isSavedMessages -> ChatRemoval(true, null, leaves = false, offerForEveryone = false)
-    else -> ChatRemoval(true, "Delete chat", leaves = false, offerForEveryone = chat.canDeleteForEveryone)
+    else -> ChatRemoval(true, tr("Delete chat", "Удалить чат"), leaves = false, offerForEveryone = chat.canDeleteForEveryone)
 }
 
 /** "Lina" out of "Lina Park" — how the dialogs name the other side. */

@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Location
@@ -66,7 +68,7 @@ internal fun SendLocationDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Symbols.MyLocation, contentDescription = null) },
-        title = { Text("Send your location?") },
+        title = { Text(tr("Send your location?", "Отправить геопозицию?")) },
         text = {
             when {
                 looking -> Row(
@@ -74,14 +76,14 @@ internal fun SendLocationDialog(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     LoadingIndicator(Modifier.size(32.dp))
-                    Text("Finding you…")
+                    Text(tr("Finding you…", "Ищем вас…"))
                 }
-                found == null -> Text("Could not find where you are. Is location switched on?")
+                found == null -> Text(tr("Could not find where you are. Is location switched on?", "Не удалось определить, где вы. Местоположение включено?"))
                 else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(coordinatesLabel(LocationContent(found.latitude, found.longitude)))
                     if (found.hasAccuracy()) {
                         Text(
-                            "Accurate to about ${found.accuracy.roundToInt()} m",
+                            tr("Accurate to about ${found.accuracy.roundToInt()} m", "Точность около ${found.accuracy.roundToInt()} м"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -91,7 +93,7 @@ internal fun SendLocationDialog(
         },
         confirmButton = {
             if (!looking && found == null) {
-                TextButton(onClick = { attempt++ }) { Text("Try again") }
+                TextButton(onClick = { attempt++ }) { Text(tr("Try again", "Ещё раз")) }
             } else {
                 TextButton(
                     enabled = found != null,
@@ -100,10 +102,10 @@ internal fun SendLocationDialog(
                             onSend(it.latitude, it.longitude, if (it.hasAccuracy()) it.accuracy.toDouble() else 0.0)
                         }
                     }
-                ) { Text("Send") }
+                ) { Text(tr("Send", "Отправить")) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
     )
 }
 

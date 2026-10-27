@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.theme.centreOnScreen
 import androidx.compose.ui.layout.onGloballyPositioned
 import android.os.Build
@@ -100,9 +102,9 @@ fun AppearanceScreen(
         containerColor = settingsBackground(),
         topBar = {
             TopAppBar(
-                title = { Text("Appearance") },
+                title = { Text(tr("Appearance", "Оформление")) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
             )
@@ -122,14 +124,14 @@ fun AppearanceScreen(
         ) {
             ChatPreview(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 
-            SettingsGroup("Colour") {
+            SettingsGroup(tr("Colour", "Цвет")) {
                 // The switch this client exists for, so it says what it does.
                 switch(
-                    title = "Colour from your wallpaper",
+                    title = tr("Colour from your wallpaper", "Цвет из обоев"),
                     summary = if (available) {
-                        "Material You: the palette comes from your wallpaper"
+                        tr("Material You: the palette comes from your wallpaper", "Material You: палитра берётся из обоев")
                     } else {
-                        "Needs Android 12 or newer"
+                        tr("Needs Android 12 or newer", "Нужен Android 12 или новее")
                     },
                     checked = wallpaper,
                     enabled = available,
@@ -139,11 +141,11 @@ fun AppearanceScreen(
                 // dimmed, while it is on, so the choice is visible and it is
                 // plain what turns it on.
                 item(
-                    title = "Accent colour",
+                    title = tr("Accent colour", "Акцентный цвет"),
                     summary = if (wallpaper) {
-                        "Turn off wallpaper colour to choose one"
+                        tr("Turn off wallpaper colour to choose one", "Выключите цвет из обоев, чтобы выбрать")
                     } else {
-                        Accents.nameOf(settings.accent) ?: "Custom"
+                        Accents.nameOf(settings.accent) ?: tr("Custom", "Свой")
                     },
                     onClick = {},
                     below = {
@@ -158,7 +160,7 @@ fun AppearanceScreen(
                 // Three short choices side by side: exactly what a segmented
                 // button row is for, set under the row's title.
                 item(
-                    title = "Theme",
+                    title = tr("Theme", "Тема"),
                     onClick = {},
                     below = {
                         // The new theme spreads out of the segment tapped
@@ -185,32 +187,32 @@ fun AppearanceScreen(
                                         count = ThemeChoice.entries.size
                                     )
                                 ) {
-                                    Text(choice.name)
+                                    Text(choice.label)
                                 }
                             }
                         }
                     }
                 )
                 switch(
-                    title = "Pure black",
-                    summary = "A black background in the dark theme, for OLED screens",
+                    title = tr("Pure black", "Чисто чёрная"),
+                    summary = tr("A black background in the dark theme, for OLED screens", "Чёрный фон в тёмной теме для OLED-экранов"),
                     checked = settings.pureBlack,
                     onChange = actions.onPureBlackChange
                 )
                 switch(
-                    title = "Colours from the avatar",
-                    summary = "Each chat takes its colours from the other person's picture",
+                    title = tr("Colours from the avatar", "Цвета из аватарки"),
+                    summary = tr("Each chat takes its colours from the other person's picture", "Каждый чат берёт цвета с картинки собеседника"),
                     checked = settings.chatColorsFromAvatar,
                     onChange = actions.onChatColorsFromAvatarChange
                 )
             }
 
-            SettingsGroup("Chat") {
+            SettingsGroup(tr("Chat", "Чат")) {
                 // "Chat background", not "Wallpaper": on Android that word
                 // means the home screen's picture, which is also what Material
                 // You takes its colours from, two items up.
                 item(
-                    title = "Chat background",
+                    title = tr("Chat background", "Фон чата"),
                     onClick = {},
                     below = {
                         WallpaperPicker(
@@ -220,7 +222,7 @@ fun AppearanceScreen(
                     }
                 )
                 item(
-                    title = "Your messages",
+                    title = tr("Your messages", "Ваши сообщения"),
                     onClick = {},
                     below = {
                         Choices(
@@ -232,8 +234,8 @@ fun AppearanceScreen(
                     }
                 )
                 item(
-                    title = "Message corners",
-                    summary = "${settings.bubbleCorners} dp",
+                    title = tr("Message corners", "Углы сообщений"),
+                    summary = tr("${settings.bubbleCorners} dp", "${settings.bubbleCorners} dp"),
                     onClick = {},
                     below = {
                         Slider(
@@ -243,12 +245,12 @@ fun AppearanceScreen(
                             steps = BubbleCorners.SLIDER_STEPS,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .semantics { contentDescription = "Message corners" }
+                                .semantics { contentDescription = tr("Message corners", "Углы сообщений") }
                         )
                     }
                 )
                 item(
-                    title = "Message text size",
+                    title = tr("Message text size", "Размер текста сообщений"),
                     summary = TextSize.label(settings.messageTextScale),
                     onClick = {},
                     below = {
@@ -259,37 +261,37 @@ fun AppearanceScreen(
                             steps = TextSize.steps.size - 2,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .semantics { contentDescription = "Message text size" }
+                                .semantics { contentDescription = tr("Message text size", "Размер текста сообщений") }
                         )
                     }
                 )
                 // How the chat looks, so here rather than under For geeks,
                 // where it was in 2.0 and 2.0.1 (the owner's word).
                 switch(
-                    title = "Composer in a capsule",
-                    summary = "The field and its buttons in one rounded bar, as before 2.0",
+                    title = tr("Composer in a capsule", "Поле ввода капсулой"),
+                    summary = tr("The field and its buttons in one rounded bar, as before 2.0", "Поле и кнопки в одной скруглённой полосе, как до 2.0"),
                     checked = settings.composerCapsule,
                     onChange = actions.onComposerCapsuleChange
                 )
             }
 
-            SettingsGroup("Chat list and text") {
+            SettingsGroup(tr("Chat list and text", "Список чатов и текст")) {
                 switch(
-                    title = "Shaped avatars",
-                    summary = "Everyone gets one of Material's shapes as well as a colour",
+                    title = tr("Shaped avatars", "Фигурные аватарки"),
+                    summary = tr("Everyone gets one of Material's shapes as well as a colour", "Каждому — не только цвет, но и одна из фигур Material"),
                     checked = settings.shapedAvatars,
                     onChange = actions.onShapedAvatarsChange
                 )
                 switch(
-                    title = "Two-line previews",
-                    summary = "Show more of the last message in the chat list",
+                    title = tr("Two-line previews", "Превью в две строки"),
+                    summary = tr("Show more of the last message in the chat list", "Больше текста последнего сообщения в списке чатов"),
                     checked = settings.twoLinePreviews,
                     onChange = actions.onTwoLinePreviewsChange
                 )
                 // Four stops, the way Android's own display settings offer it.
                 // The preview above follows as it moves.
                 item(
-                    title = "Text size",
+                    title = tr("Text size", "Размер текста"),
                     summary = TextSize.label(settings.textScale),
                     onClick = {},
                     below = {
@@ -300,37 +302,37 @@ fun AppearanceScreen(
                             steps = TextSize.steps.size - 2,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .semantics { contentDescription = "Text size" }
+                                .semantics { contentDescription = tr("Text size", "Размер текста") }
                         )
                     }
                 )
             }
 
-            SettingsGroup("Motion") {
+            SettingsGroup(tr("Motion", "Анимация")) {
                 switch(
-                    title = "Less motion",
-                    summary = "Screens fade instead of opening out, and nothing bounces",
+                    title = tr("Less motion", "Меньше анимации"),
+                    summary = tr("Screens fade instead of opening out, and nothing bounces", "Экраны проявляются, а не раскрываются, и ничего не пружинит"),
                     checked = settings.reduceMotion,
                     onChange = actions.onReduceMotionChange
                 )
                 switch(
-                    title = "Cover moves with the music",
-                    summary = if (settings.reduceMotion) "Held still by Less motion" else "The player's cover breathes into a scalloped shape on the beat",
+                    title = tr("Cover moves with the music", "Обложка двигается под музыку"),
+                    summary = if (settings.reduceMotion) tr("Held still by Less motion", "Неподвижна из-за «Меньше анимации»") else tr("The player's cover breathes into a scalloped shape on the beat", "Обложка в плеере дышит фигурной формой в такт"),
                     checked = settings.coverMoves,
                     onChange = actions.onCoverMovesChange
                 )
             }
 
-            SettingsGroup("Music") {
+            SettingsGroup(tr("Music", "Музыка")) {
                 switch(
-                    title = "Mini player at the top",
-                    summary = "Under the screen's title, rather than above the navigation bar and the composer",
+                    title = tr("Mini player at the top", "Мини-плеер сверху"),
+                    summary = tr("Under the screen's title, rather than above the navigation bar and the composer", "Под заголовком экрана, а не над панелью навигации и полем ввода"),
                     checked = settings.miniPlayerOnTop,
                     onChange = actions.onMiniPlayerOnTopChange
                 )
                 switch(
-                    title = "Find missing covers",
-                    summary = "A track without a cover gets the one Telegram finds by its title and artist",
+                    title = tr("Find missing covers", "Искать недостающие обложки"),
+                    summary = tr("A track without a cover gets the one Telegram finds by its title and artist", "Трек без обложки получит ту, что Telegram найдёт по названию и исполнителю"),
                     checked = settings.findCovers,
                     onChange = actions.onFindCoversChange
                 )
@@ -353,7 +355,7 @@ private fun ChatPreview(modifier: Modifier = Modifier) {
         shape = RoundedCornerShape(28.dp),
         modifier = modifier
             .fillMaxWidth()
-            .semantics { contentDescription = "Preview" }
+            .semantics { contentDescription = tr("Preview", "Предпросмотр") }
     ) {
         Column(
             modifier = Modifier
@@ -361,9 +363,9 @@ private fun ChatPreview(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            PreviewBubble("Did the new colours land?", outgoing = false)
-            PreviewBubble("They did — everything follows the accent now ✨", outgoing = true)
-            PreviewBubble("Looks like home", outgoing = false)
+            PreviewBubble(tr("Did the new colours land?", "Новые цвета применились?"), outgoing = false)
+            PreviewBubble(tr("They did — everything follows the accent now ✨", "Да — теперь всё следует за акцентом ✨"), outgoing = true)
+            PreviewBubble(tr("Looks like home", "Как дома"), outgoing = false)
         }
     }
 }

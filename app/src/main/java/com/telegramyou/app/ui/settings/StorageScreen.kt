@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.semantics.semantics
@@ -73,16 +75,21 @@ fun StorageScreen(
     if (state.confirming) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Clear ${bytesLabel(state.selectedBytes)}?") },
+            title = { Text(tr("Clear ${bytesLabel(state.selectedBytes)}?", "Очистить ${bytesLabel(state.selectedBytes)}?")) },
             text = {
                 Text(
-                    "These files are only removed from this phone. They stay in " +
-                        "Telegram and download again when they are opened. Files you " +
-                        "downloaded go too, and stay listed in Downloads to fetch again."
+                    tr(
+                        "These files are only removed from this phone. They stay in " +
+                            "Telegram and download again when they are opened. Files you " +
+                            "downloaded go too, and stay listed in Downloads to fetch again.",
+                        "Файлы удалятся только с этого телефона. В Telegram они останутся " +
+                            "и скачаются снова, когда их откроют. Скачанные вами файлы тоже " +
+                            "удалятся, но останутся в списке «Загрузки», чтобы скачать их заново."
+                    )
                 )
             },
-            confirmButton = { TextButton(onClick = onClearConfirmed) { Text("Clear") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            confirmButton = { TextButton(onClick = onClearConfirmed) { Text(tr("Clear", "Очистить")) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 
@@ -91,10 +98,10 @@ fun StorageScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Data and storage") },
+                title = { Text(tr("Data and storage", "Данные и память")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Symbols.ArrowBack, contentDescription = "Back")
+                        Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = settingsBackground())
@@ -117,8 +124,8 @@ fun StorageScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            if (state.selectedBytes > 0) "Clear ${bytesLabel(state.selectedBytes)}"
-                            else "Nothing selected"
+                            if (state.selectedBytes > 0) tr("Clear ${bytesLabel(state.selectedBytes)}", "Очистить ${bytesLabel(state.selectedBytes)}")
+                            else tr("Nothing selected", "Ничего не выбрано")
                         )
                     }
                 }
@@ -140,13 +147,13 @@ fun StorageScreen(
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
                     Text(bytesLabel(usage.filesBytes), style = MaterialTheme.typography.displaySmall)
                     Text(
-                        "Cached on this phone",
+                        tr("Cached on this phone", "В кэше на этом телефоне"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (usage.databaseBytes > 0) {
                         Text(
-                            "Plus ${bytesLabel(usage.databaseBytes)} of chats, which stay",
+                            tr("Plus ${bytesLabel(usage.databaseBytes)} of chats, which stay", "И ещё ${bytesLabel(usage.databaseBytes)} чатов, они остаются"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -156,10 +163,10 @@ fun StorageScreen(
             // Where the files a person chose to download are, before the
             // choice of what to clear: clearing takes them too.
             item(key = "downloads") {
-                SettingsGroup("Downloads") {
+                SettingsGroup(tr("Downloads", "Загрузки")) {
                     item(
-                        title = "Downloads",
-                        summary = "Files you downloaded, and where they are",
+                        title = tr("Downloads", "Загрузки"),
+                        summary = tr("Files you downloaded, and where they are", "Скачанные файлы и где они лежат"),
                         leading = { Icon(Symbols.Download, contentDescription = null) },
                         onClick = onOpenDownloads
                     )
@@ -168,7 +175,7 @@ fun StorageScreen(
             if (usage.slices.isEmpty()) {
                 item(key = "empty") {
                     Text(
-                        "Nothing is cached yet.",
+                        tr("Nothing is cached yet.", "В кэше пока ничего нет."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp)
@@ -176,7 +183,7 @@ fun StorageScreen(
                 }
             } else {
                 item(key = "kinds") {
-                    SettingsGroup("Clear from this phone") {
+                    SettingsGroup(tr("Clear from this phone", "Удалить с этого телефона")) {
                         usage.slices.forEach { slice ->
                             val checked = slice.kind in state.selected
                             // The whole row toggles, as a checkbox row does in
@@ -188,7 +195,7 @@ fun StorageScreen(
                                     leading = { Checkbox(checked = checked, onCheckedChange = null) },
                                     trailing = { Text(bytesLabel(slice.bytes)) },
                                     modifier = Modifier.semantics {
-                                        stateDescription = if (checked) "Selected" else "Not selected"
+                                        stateDescription = if (checked) tr("Selected", "Выбрано") else tr("Not selected", "Не выбрано")
                                     },
                                     onClick = { if (!state.isClearing) onKindToggle(slice.kind) }
                                 )
@@ -200,4 +207,5 @@ fun StorageScreen(
     }
 }
 
-private fun filesLabel(count: Int): String = if (count == 1) "1 file" else "$count files"
+private fun filesLabel(count: Int): String =
+    com.telegramyou.app.i18n.counted(count, "file", "files", "файл", "файла", "файлов")

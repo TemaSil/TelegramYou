@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.settings
 
+import com.telegramyou.app.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.telegramyou.app.telegram.TelegramRepository
@@ -44,7 +46,7 @@ class StorageViewModel(
     init {
         viewModelScope.launch {
             var usage: StorageUsage? = null
-            attempt("Could not measure the cache") { usage = repository.storageUsage() }
+            attempt(tr("Could not measure the cache", "Не удалось измерить кэш")) { usage = repository.storageUsage() }
             val found = usage ?: StorageUsage(emptyList())
             _uiState.update {
                 it.copy(
@@ -72,7 +74,7 @@ class StorageViewModel(
         _uiState.update { it.copy(confirming = false, isClearing = true) }
         viewModelScope.launch {
             var after: StorageUsage? = null
-            attempt("Could not clear the cache") { after = repository.clearCache(kinds) }
+            attempt(tr("Could not clear the cache", "Не удалось очистить кэш")) { after = repository.clearCache(kinds) }
             _uiState.update { current ->
                 val usage = after
                 if (usage == null) {
@@ -82,7 +84,7 @@ class StorageViewModel(
                         usage = usage,
                         isClearing = false,
                         selected = current.selected.filter { kind -> usage.slices.any { it.kind == kind } }.toSet(),
-                        message = "Cleared ${bytesLabel(freeing)}"
+                        message = tr("Cleared ${bytesLabel(freeing)}", "Очищено ${bytesLabel(freeing)}")
                     )
                 }
             }

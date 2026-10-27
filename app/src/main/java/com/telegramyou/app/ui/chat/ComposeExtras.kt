@@ -1,5 +1,7 @@
 package com.telegramyou.app.ui.chat
 
+import com.telegramyou.app.i18n.tr
+
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -88,12 +90,12 @@ internal fun PollComposer(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("New poll") },
+                    title = { Text(tr("New poll", "Новый опрос")) },
                     navigationIcon = {
-                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = "Discard poll") }
+                        IconButton(onClick = onDismiss) { Icon(Symbols.Close, contentDescription = tr("Discard poll", "Отменить опрос")) }
                     },
                     actions = {
-                        TextButton(onClick = onSend, enabled = draft.canSend) { Text("Send") }
+                        TextButton(onClick = onSend, enabled = draft.canSend) { Text(tr("Send", "Отправить")) }
                     }
                 )
             }
@@ -107,16 +109,16 @@ internal fun PollComposer(
                     OutlinedTextField(
                         value = draft.question,
                         onValueChange = { onChange(draft.copy(question = it)) },
-                        label = { Text("Question") },
+                        label = { Text(tr("Question", "Вопрос")) },
                         // Named for TalkBack, and for the UI test, which
                         // otherwise finds the chat's own field behind this
                         // dialog first.
-                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Poll question" }
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = tr("Poll question", "Вопрос опроса") }
                     )
                 }
                 item(key = "answers") {
                     Text(
-                        if (draft.isQuiz) "Answers — mark the right one" else "Answers",
+                        if (draft.isQuiz) tr("Answers — mark the right one", "Ответы — отметьте верный") else tr("Answers", "Ответы"),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
@@ -134,13 +136,13 @@ internal fun PollComposer(
                         OutlinedTextField(
                             value = option,
                             onValueChange = { onChange(draft.withOption(index, it)) },
-                            placeholder = { Text("Answer ${index + 1}") },
+                            placeholder = { Text(tr("Answer ${index + 1}", "Ответ ${index + 1}")) },
                             singleLine = true,
-                            modifier = Modifier.weight(1f).semantics { contentDescription = "Answer ${index + 1}" },
+                            modifier = Modifier.weight(1f).semantics { contentDescription = tr("Answer ${index + 1}", "Ответ ${index + 1}") },
                             trailingIcon = if (draft.options.size > 2 && option.isNotEmpty()) {
                                 {
                                     IconButton(onClick = { onChange(draft.withoutOption(index)) }) {
-                                        Icon(Symbols.Close, contentDescription = "Remove answer ${index + 1}")
+                                        Icon(Symbols.Close, contentDescription = tr("Remove answer ${index + 1}", "Убрать ответ ${index + 1}"))
                                     }
                                 }
                             } else null
@@ -149,11 +151,11 @@ internal fun PollComposer(
                 }
                 item(key = "switches") {
                     Column {
-                        PollSwitch("Anonymous voting", draft.isAnonymous) { onChange(draft.copy(isAnonymous = it)) }
-                        PollSwitch("Multiple answers", draft.allowsMultiple, enabled = !draft.isQuiz) {
+                        PollSwitch(tr("Anonymous voting", "Анонимное голосование"), draft.isAnonymous) { onChange(draft.copy(isAnonymous = it)) }
+                        PollSwitch(tr("Multiple answers", "Несколько ответов"), draft.allowsMultiple, enabled = !draft.isQuiz) {
                             onChange(draft.copy(allowsMultiple = it))
                         }
-                        PollSwitch("Quiz mode", draft.isQuiz) { onChange(draft.asQuiz(it)) }
+                        PollSwitch(tr("Quiz mode", "Викторина"), draft.isQuiz) { onChange(draft.asQuiz(it)) }
                     }
                 }
                 if (draft.isQuiz) {
@@ -161,8 +163,8 @@ internal fun PollComposer(
                         OutlinedTextField(
                             value = draft.explanation,
                             onValueChange = { onChange(draft.copy(explanation = it)) },
-                            label = { Text("Explanation (optional)") },
-                            supportingText = { Text("Shown after someone answers") },
+                            label = { Text(tr("Explanation (optional)", "Пояснение (необязательно)")) },
+                            supportingText = { Text(tr("Shown after someone answers", "Видно после ответа")) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -226,10 +228,10 @@ internal fun SchedulePicker(onPicked: (Long) -> Unit, onDismiss: () -> Unit) {
             onDismissRequest = onDismiss,
             confirmButton = {
                 TextButton(onClick = { pickedDate = dateState.selectedDateMillis }, enabled = dateState.selectedDateMillis != null) {
-                    Text("Next")
+                    Text(tr("Next", "Далее"))
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         ) {
             DatePicker(state = dateState)
         }
@@ -237,14 +239,14 @@ internal fun SchedulePicker(onPicked: (Long) -> Unit, onDismiss: () -> Unit) {
         val timeState = rememberTimePickerState(initialHour = start.hour, initialMinute = start.minute, is24Hour = true)
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Send at") },
+            title = { Text(tr("Send at", "Отправить в")) },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = { onPicked(scheduleInstant(date, timeState.hour, timeState.minute, zone)) }) {
-                    Text("Schedule")
+                    Text(tr("Schedule", "Запланировать"))
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
         )
     }
 }
@@ -265,13 +267,13 @@ internal fun ScheduledSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
         Text(
-            "Scheduled messages",
+            tr("Scheduled messages", "Отложенные сообщения"),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
         if (messages.isEmpty()) {
             Text(
-                "Nothing is waiting to be sent",
+                tr("Nothing is waiting to be sent", "Ничего не ждёт отправки"),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -289,10 +291,10 @@ internal fun ScheduledSheet(
                     trailingContent = {
                         Row {
                             IconButton(onClick = { onSendNow(message) }) {
-                                Icon(Symbols.SendFilled, contentDescription = "Send now")
+                                Icon(Symbols.SendFilled, contentDescription = tr("Send now", "Отправить сейчас"))
                             }
                             IconButton(onClick = { onDelete(message) }) {
-                                Icon(Symbols.Delete, contentDescription = "Delete scheduled message")
+                                Icon(Symbols.Delete, contentDescription = tr("Delete scheduled message", "Удалить отложенное"))
                             }
                         }
                     },
@@ -325,8 +327,8 @@ internal fun AudioMessage(
             FilledTonalIconButton(onClick = onToggle) {
                 when (state) {
                     VoiceState.Loading -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    VoiceState.Playing -> Icon(Symbols.PauseFilled, contentDescription = "Pause")
-                    VoiceState.Idle -> Icon(Symbols.PlayArrowFilled, contentDescription = "Play ${audio.displayTitle}")
+                    VoiceState.Playing -> Icon(Symbols.PauseFilled, contentDescription = tr("Pause", "Пауза"))
+                    VoiceState.Idle -> Icon(Symbols.PlayArrowFilled, contentDescription = tr("Play ${audio.displayTitle}", "Слушать ${audio.displayTitle}"))
                 }
             }
             Spacer(Modifier.width(12.dp))
@@ -346,7 +348,7 @@ internal fun AudioMessage(
                     Icon(Symbols.MusicNote, contentDescription = null, tint = onTint.copy(alpha = 0.7f), modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        details.ifBlank { "Audio" },
+                        details.ifBlank { tr("Audio", "Аудио") },
                         style = MaterialTheme.typography.labelMedium,
                         color = onTint.copy(alpha = 0.7f),
                         maxLines = 1,
@@ -373,7 +375,7 @@ internal fun AudioMessage(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { contentDescription = "Position in ${audio.displayTitle}" }
+                    .semantics { contentDescription = tr("Position in ${audio.displayTitle}", "Позиция в ${audio.displayTitle}") }
             )
         }
     }
