@@ -2945,7 +2945,11 @@ class SmokeTest {
         val words = By.text(java.util.regex.Pattern.compile(".*(tram just stopped|ten minutes late).*"))
         waitFor(words, "the voice message written down")
         screenshot("125-voice-to-text")
-        tap(By.desc("Hide text"))
+        // The bubble grew by the words, upwards in a list laid out from the
+        // bottom, and can take its button past the top.
+        val hide = By.desc("Hide text")
+        if (!device.hasObject(hide)) scrollBackTo(hide, "the voice message's Hide text")
+        tap(hide)
         assertTrue(
             "the words stayed after Hide text",
             device.wait(Until.gone(words), STEP_TIMEOUT)
