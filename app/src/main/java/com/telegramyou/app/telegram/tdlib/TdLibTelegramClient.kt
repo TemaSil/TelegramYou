@@ -91,6 +91,7 @@ import com.telegramyou.app.telegram.model.Birthdate
 import com.telegramyou.app.telegram.model.BirthdayPerson
 import com.telegramyou.app.telegram.model.ProfileColor
 import com.telegramyou.app.telegram.model.ProfileColorChoice
+import com.telegramyou.app.telegram.model.StickerSetInfo
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.SharedMediaKind
@@ -3761,7 +3762,8 @@ class TdLibTelegramClient(
             StickerSetPreview(
                 id = set.optInt64("id"),
                 title = set.optString("title"),
-                cover = cover
+                cover = cover,
+                count = set.optInt("size")
             )
         }
     }
@@ -3772,6 +3774,68 @@ class TdLibTelegramClient(
             JSONObject().put("@type", "getStickerSet").put("set_id", setId.toString())
         ).optJSONArray("stickers") ?: return emptyList()
         return (0 until stickers.length()).mapNotNull { stickers.optJSONObject(it)?.let(::stickerOf) }
+    }
+
+    override suspend fun stickerSetInfo(setId: Long): StickerSetInfo? {
+        awaitReady()
+        val set = try {
+            requireEngine().send(JSONObject().put("@type", "getStickerSet").put("set_id", setId.toString()))
+        } catch (e: Throwable) {
+            Log.w(TAG, "stickerSetInfo: ${e.message}")
+            return null
+        }
+        val stickers = set.optJSONArray("stickers")
+        return StickerSetInfo(
+            id = set.optInt64("id"),
+            title = set.optString("title"),
+            name = set.optString("name"),
+            stickers = (0 until (stickers?.length() ?: 0)).mapNotNull { stickers?.optJSONObject(it)?.let(::stickerOf) },
+            isInstalled = set.optBoolean("is_installed") && !set.optBoolean("is_archived")
+        )
+    }
+
+    override suspend fun setStickerSetInstalled(setId: Long, installed: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "changeStickerSet")
+                .put("set_id", setId.toString())
+                .put("is_installed", installed)
+                .put("is_archived", false)
+        )
+    }
+
+    override suspend fun reorderStickerSets(order: List<Long>) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "reorderInstalledStickerSets")
+                .put("sticker_type", JSONObject().put("@type", "stickerTypeRegular"))
+                .put("sticker_set_ids", JSONArray().apply { order.forEach { put(it.toString()) } })
+        )
+    }
+
+    override suspend fun trendingStickerSets(): List<StickerSetPreview> {
+        awaitReady()
+        val sets = requireEngine().send(
+            JSONObject()
+                .put("@type", "getTrendingStickerSets")
+                .put("sticker_type", JSONObject().put("@type", "stickerTypeRegular"))
+                .put("offset", 0)
+                .put("limit", TRENDING_SETS)
+        ).optJSONArray("sets") ?: return emptyList()
+        return (0 until sets.length()).mapNotNull { index ->
+            val set = sets.optJSONObject(index) ?: return@mapNotNull null
+            val cover = set.optJSONObject("thumbnail")?.let { stickerFromThumbnail(it, set.optString("title")) }
+                ?: set.optJSONArray("covers")?.optJSONObject(0)?.let(::stickerOf)
+            StickerSetPreview(
+                id = set.optInt64("id"),
+                title = set.optString("title"),
+                cover = cover,
+                count = set.optInt("size"),
+                isInstalled = set.optBoolean("is_installed") && !set.optBoolean("is_archived")
+            )
+        }
     }
 
     override suspend fun recentStickers(): List<StickerContent> {
@@ -5827,6 +5891,9 @@ internal fun JSONObject.optInt64(key: String): Long =
 
 /** How many messages after the day before's last are looked through for a date's first. */
 private const val FIRST_FROM_PAGE = 20
+
+/** How many trending sticker sets the Stickers screen offers. */
+private const val TRENDING_SETS = 20
 
 /** How many custom emoji the status picker offers. */
 private const val MAX_STATUS_CHOICES = 48

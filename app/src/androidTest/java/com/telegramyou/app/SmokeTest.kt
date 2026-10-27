@@ -2097,6 +2097,47 @@ class SmokeTest {
      * any app: the bar, the settings and a count come back in Russian, and
      * the phone's language is given back at the end, whatever happened.
      */
+    /**
+     * Stickers looked after (2.6): a sticker in a chat opens its set, which
+     * is added from there; Settings → Stickers then lists it first, moves it
+     * down and takes it off again, back among the trending ones — so the
+     * account's sets are as they were for whatever runs next.
+     */
+    @Test
+    fun aStickerSetIsAddedFromAChatAndManaged() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("Send me the apk?"))
+        tap(By.text("Send me the apk?"))
+        waitFor(By.desc("😊 sticker"), "Artem's sticker")
+        awaitNoHeadsUp()
+        tap(By.desc("😊 sticker"))
+        waitFor(By.text("Add stickers"), "the sticker set's sheet")
+        assertTrue("the sheet does not name the set", device.hasObject(By.text("Space")))
+        screenshot("49-sticker-set")
+        tap(By.text("Add stickers"))
+        assertTrue("the sheet stayed after Add", device.wait(Until.gone(By.text("Add stickers")), STEP_TIMEOUT))
+
+        backTo(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("Stickers"))
+        tap(By.text("Stickers"))
+        waitFor(By.text("Your stickers"), "the stickers screen")
+        waitFor(By.text("Space"), "the added set among yours")
+        waitFor(By.text("Trending"), "the trending sets")
+        screenshot("49b-stickers")
+        tap(By.desc("Space options"))
+        tap(By.text("Move down"))
+        tap(By.desc("Space options"))
+        tap(By.text("Remove"))
+        waitFor(By.text("Stickers removed"), "the set taken off")
+        // Back among the trending, with Add beside it.
+        waitFor(By.text("Space"), "the set among the trending again")
+    }
+
     @Test
     fun theAppSpeaksRussianWhenAskedTo() {
         assumeTrue("a per-app language needs Android 13", Build.VERSION.SDK_INT >= 33)

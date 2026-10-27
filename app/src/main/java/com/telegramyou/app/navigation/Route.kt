@@ -98,6 +98,12 @@ sealed interface Route {
         override val path = PATTERN
     }
 
+    /** Settings → Stickers (2.6): your sets and the trending ones. */
+    data object Stickers : Route {
+        const val PATTERN = "settings/stickers"
+        override val path = PATTERN
+    }
+
     /**
      * Making a group or a channel. Routes rather than sheets: each is a form
      * with a keyboard up and a list under it, and a sheet would be fighting

@@ -616,6 +616,7 @@ fun TelegramYouNavHost(
                 onOpenFolders = { navController.navigateTo(Route.Folders) },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenStickers = { navController.navigateTo(Route.Stickers) },
                 onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
@@ -723,6 +724,7 @@ fun TelegramYouNavHost(
                 },
                 onOpenDevices = { navController.navigateTo(Route.Devices) },
                 onOpenStorage = { navController.navigateTo(Route.Storage) },
+                onOpenStickers = { navController.navigateTo(Route.Stickers) },
                 onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
@@ -933,6 +935,19 @@ fun TelegramYouNavHost(
                 onClearConfirmed = storageViewModel::onClearConfirmed,
                 onMessageShown = storageViewModel::onMessageShown,
                 onOpenDownloads = { navController.navigateTo(Route.Downloads) }
+            )
+        }
+        composable(Route.Stickers.PATTERN) {
+            val stickers: com.telegramyou.app.ui.settings.StickersViewModel = viewModel(factory = viewModelFactory)
+            val state by stickers.uiState.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.settings.StickersScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onMove = stickers::onMove,
+                onInstalledChange = stickers::onInstalledChange,
+                onOpen = stickers::onOpen,
+                onClose = stickers::onClose,
+                onMessageShown = stickers::onMessageShown
             )
         }
         composable(Route.Downloads.PATTERN) {
@@ -1402,6 +1417,9 @@ fun TelegramYouNavHost(
                     onExpressionTab = chatViewModel::onExpressionTab,
                     onStickerSetSelected = chatViewModel::onStickerSetSelected,
                     onStickerPicked = chatViewModel::onStickerPicked,
+                    onStickerSetOpened = chatViewModel::onStickerSetOpened,
+                    onStickerSetClosed = chatViewModel::onStickerSetClosed,
+                    onStickerSetInstalledChange = chatViewModel::onStickerSetInstalledChange,
                     onStickerImage = chatViewModel::onStickerImage,
                     onSendLocation = chatViewModel::onSendLocation,
                     onCustomEmojiSetSelected = chatViewModel::onCustomEmojiSetSelected,

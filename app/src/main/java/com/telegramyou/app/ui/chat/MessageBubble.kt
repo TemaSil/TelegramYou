@@ -171,6 +171,8 @@ internal fun MessageBubble(
     onForward: () -> Unit = {},
     /** A round video message was started: its sender sees it watched. */
     onContentOpened: () -> Unit = {},
+    /** A sticker message tapped: its set's sheet (2.6). */
+    onStickerOpened: () -> Unit = {},
     /** Settings → For geeks → More in a message's menu; see MessageExtra. */
     onExtra: (MessageExtra) -> Unit = {},
     /** Its text in the phone's language; see TranslationDialog. */
@@ -452,7 +454,11 @@ internal fun MessageBubble(
                     // Once a selection is up, a tap adds to it. Opening the
                     // menu on a plain tap the rest of the time would fire on
                     // every scroll that ends on a bubble.
-                    onClick = { if (isSelecting) onSelect() },
+                    // A sticker opens its set, as in every Telegram client.
+                    onClick = {
+                        if (isSelecting) onSelect()
+                        else if (message.contentType == MessageContentType.Sticker && message.sticker != null) onStickerOpened()
+                    },
                     onLongClick = onBubbleLongClick,
                     // Only when one is chosen: a double-tap handler makes every
                     // single tap wait to see whether a second is coming.

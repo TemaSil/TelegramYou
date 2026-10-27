@@ -241,6 +241,8 @@ data class ChatUiState(
     val expressions: ExpressionTab? = null,
     /** The sticker tab's sets and stickers, once it has been opened. */
     val stickerPicker: StickerPickerState? = null,
+    /** A sticker set's sheet, opened from one of its stickers (2.6); its info null while it loads. */
+    val openStickerSet: OpenStickerSet? = null,
     /** The GIF tab's search and results, once it has been opened. */
     val gifPicker: GifPickerState? = null,
     /** The emoji tab's custom-emoji sets, once it has been opened; see CustomEmojiState. */
@@ -764,6 +766,52 @@ class ChatViewModel(
                 )
             }
             if (first != null) onStickerSetSelected(first)
+        }
+    }
+
+    /** A sticker in the chat tapped: its set's sheet, filled in once fetched. */
+    fun onStickerSetOpened(setId: Long) {
+        if (setId == 0L) return
+        _uiState.update { it.copy(openStickerSet = OpenStickerSet(setId)) }
+        viewModelScope.launch {
+            val info = try {
+                repository.stickerSetInfo(setId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            _uiState.update { state ->
+                when {
+                    state.openStickerSet?.setId != setId -> state
+                    info == null -> state.copy(
+                        openStickerSet = null,
+                        errorMessage = tr("Could not open the sticker set", "Не удалось открыть набор стикеров")
+                    )
+                    else -> state.copy(openStickerSet = OpenStickerSet(setId, info))
+                }
+            }
+        }
+    }
+
+    fun onStickerSetClosed() = _uiState.update { it.copy(openStickerSet = null) }
+
+    /** The open set added to the account or taken off; the picker learns it next time it opens. */
+    fun onStickerSetInstalledChange(installed: Boolean) {
+        val open = _uiState.value.openStickerSet ?: return
+        viewModelScope.launch {
+            val done = attempt(tr("Could not change your stickers", "Не удалось изменить стикеры")) {
+                repository.setStickerSetInstalled(open.setId, installed)
+            }
+            if (!done) return@launch
+            _uiState.update { state ->
+                state.copy(
+                    openStickerSet = null,
+                    notice = if (installed) tr("Stickers added", "Стикеры добавлены") else tr("Stickers removed", "Стикеры удалены")
+                )
+            }
+            // The picker read the sets when it opened: read again, with the change.
+            if (_uiState.value.stickerPicker != null) loadStickers()
         }
     }
 
@@ -2579,3 +2627,6 @@ fun ChatMessage.withFetchedQuote(fetched: Map<Long, FetchedQuote>): ChatMessage 
     val quote = fetched[id] ?: return this
     return copy(replyToSender = quote.sender, replyToText = replyToText ?: quote.text)
 }
+
+/** A sticker set's sheet: which set, and the set once fetched. */
+data class OpenStickerSet(val setId: Long, val info: com.telegramyou.app.telegram.model.StickerSetInfo? = null)

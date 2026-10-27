@@ -87,6 +87,7 @@ import com.telegramyou.app.telegram.model.Birthdate
 import com.telegramyou.app.telegram.model.BirthdayPerson
 import com.telegramyou.app.telegram.model.ProfileColor
 import com.telegramyou.app.telegram.model.ProfileColorChoice
+import com.telegramyou.app.telegram.model.StickerSetInfo
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.ButtonAction
@@ -2173,19 +2174,62 @@ class DemoTelegramClient(
     // drawn as its emoji, large, which exercises the picker and the bubble
     // the same way.
 
-    private val demoStickerSets = listOf(
-        StickerSetPreview(1, "Faces", StickerContent(emoji = "😀")),
-        StickerSetPreview(2, "Animals", StickerContent(emoji = "🐱")),
-        StickerSetPreview(3, "Things", StickerContent(emoji = "🚀"))
+    /** Every set the demo knows: three added, three trending (2.6). */
+    private val demoStickerTitles = mapOf(
+        1L to "Faces", 2L to "Animals", 3L to "Things",
+        4L to "Space", 5L to "Food", 6L to "Weather"
     )
     private val demoStickers = mapOf(
         1L to "😀 😂 🥹 😍 😎 🤔 😴 🤯 🥳 😭 😡 🤗",
         2L to "🐱 🐶 🦊 🐼 🐨 🐸 🐧 🦉 🐙 🦋 🐢 🦄",
-        3L to "🚀 ☕ 🎧 📷 🎨 💡 🔥 🌈 🎉 ⚡ 🌙 ⭐"
+        3L to "🚀 ☕ 🎧 📷 🎨 💡 🔥 🌈 🎉 ⚡ 🌙 ⭐",
+        4L to "🪐 🌍 🌕 ☄️ 🛰️ 👽 🌌 🔭",
+        5L to "🍕 🍣 🍩 🥐 🍜 🥑 🍓 🧁",
+        6L to "☀️ 🌧️ ⛈️ 🌈 ❄️ 🌪️ 🌤️ 🌫️"
     )
+    /** The sets this account has, in its order; the rest are trending. */
+    private val installedStickerSets = MutableStateFlow(listOf(1L, 2L, 3L))
     private val sentStickers = MutableStateFlow<List<StickerContent>>(emptyList())
 
-    override suspend fun stickerSets(): List<StickerSetPreview> = demoStickerSets
+    private fun demoSetPreview(id: Long) = StickerSetPreview(
+        id = id,
+        title = demoStickerTitles[id].orEmpty(),
+        cover = StickerContent(emoji = demoStickers[id].orEmpty().substringBefore(' '), setId = id),
+        count = demoStickers[id].orEmpty().split(' ').size,
+        isInstalled = id in installedStickerSets.value
+    )
+
+    override suspend fun stickerSets(): List<StickerSetPreview> = installedStickerSets.value.map(::demoSetPreview)
+
+    override suspend fun stickerSetInfo(setId: Long): StickerSetInfo? {
+        delay(120)
+        val title = demoStickerTitles[setId] ?: return null
+        return StickerSetInfo(
+            id = setId,
+            title = title,
+            name = title.lowercase(),
+            stickers = stickerSet(setId),
+            isInstalled = setId in installedStickerSets.value
+        )
+    }
+
+    override suspend fun setStickerSetInstalled(setId: Long, installed: Boolean) {
+        delay(120)
+        installedStickerSets.update { sets ->
+            // Added at the top, as Telegram puts a new set.
+            if (installed) listOf(setId) + (sets - setId) else sets - setId
+        }
+    }
+
+    override suspend fun reorderStickerSets(order: List<Long>) {
+        delay(80)
+        installedStickerSets.value = order.filter { it in installedStickerSets.value }
+    }
+
+    override suspend fun trendingStickerSets(): List<StickerSetPreview> {
+        delay(150)
+        return listOf(4L, 5L, 6L).map(::demoSetPreview)
+    }
 
     override suspend fun stickerSet(setId: Long): List<StickerContent> =
         if (setId == DEMO_EMOJI_SET) {
@@ -2197,7 +2241,7 @@ class DemoTelegramClient(
             }
         } else {
             demoStickers[setId].orEmpty().split(' ').mapIndexed { index, emoji ->
-                StickerContent(id = setId * 100 + index, emoji = emoji)
+                StickerContent(id = setId * 100 + index, emoji = emoji, setId = setId)
             }
         }
 
@@ -2996,6 +3040,9 @@ class DemoTelegramClient(
                 sticker = StickerContent(
                     id = 9_001,
                     emoji = "😊",
+                    // From Space, a set this account has not added, so a
+                    // tap on it offers Add (2.6).
+                    setId = 4,
                     format = StickerFormat.Webm,
                     path = DEMO_VIDEO_STICKER
                 )

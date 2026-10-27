@@ -26,4 +26,16 @@ class StickersTest {
         assertFalse(StickerContent(emoji = "😀", format = StickerFormat.Webp).isAnimated)
         assertFalse(StickerContent(emoji = "😀", format = StickerFormat.Webm).isAnimated)
     }
+
+    @Test
+    fun aSetMovesWithinTheList() {
+        val order = listOf(1L, 2L, 3L)
+        assertEquals(listOf(2L, 1L, 3L), movedSet(order, 2, -1))
+        assertEquals(listOf(1L, 3L, 2L), movedSet(order, 2, 1))
+        // Already at an end: nowhere further to go.
+        assertEquals(order, movedSet(order, 1, -1))
+        assertEquals(order, movedSet(order, 3, 1))
+        // Not one of the account's.
+        assertEquals(order, movedSet(order, 9, 1))
+    }
 }

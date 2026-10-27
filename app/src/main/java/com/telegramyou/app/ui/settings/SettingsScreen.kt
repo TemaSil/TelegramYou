@@ -61,6 +61,7 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
+    onOpenStickers: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
@@ -93,6 +94,7 @@ fun SettingsScreen(
             contentPadding = padding,
             onOpenDevices = onOpenDevices,
             onOpenStorage = onOpenStorage,
+            onOpenStickers = onOpenStickers,
             onOpenNotifications = onOpenNotifications,
             onOpenPrivacy = onOpenPrivacy,
             onOpenGeeks = onOpenGeeks,
@@ -122,6 +124,7 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
+    onOpenStickers: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
@@ -203,6 +206,12 @@ fun SettingsContent(
                 summary = tr("Sort chats into tabs", "Разложите чаты по вкладкам"),
                 icon = Symbols.Folder,
                 onClick = onOpenFolders
+            )
+            link(
+                title = tr("Stickers", "Стикеры"),
+                summary = tr("Your sets, their order, and what is trending", "Ваши наборы, их порядок и популярные"),
+                icon = Symbols.Sticker,
+                onClick = onOpenStickers
             )
             link(
                 title = tr("Notifications", "Уведомления"),

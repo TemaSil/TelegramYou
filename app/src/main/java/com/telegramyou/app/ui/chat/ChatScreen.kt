@@ -290,6 +290,10 @@ fun ChatScreen(
     onExpressionTab: (ExpressionTab) -> Unit = {},
     onStickerSetSelected: (Long) -> Unit = {},
     onStickerPicked: (StickerContent) -> Unit = {},
+    /** A sticker in the chat tapped: its set's sheet (2.6). */
+    onStickerSetOpened: (Long) -> Unit = {},
+    onStickerSetClosed: () -> Unit = {},
+    onStickerSetInstalledChange: (Boolean) -> Unit = {},
     onCustomEmojiSetSelected: (Long?) -> Unit = {},
     onCustomEmojiPicked: (StickerContent) -> Unit = {},
     /** Where this phone is, found and confirmed in SendLocationDialog. */
@@ -390,6 +394,23 @@ fun ChatScreen(
             snackbarHostState.showSnackbar(notice)
             onNoticeShown()
         }
+    }
+    // A sticker's set, opened from it (2.6): a tap in it sends, where this
+    // chat can be written to.
+    state.openStickerSet?.let { open ->
+        StickerSetSheet(
+            set = open.info,
+            onDismiss = onStickerSetClosed,
+            onInstalledChange = onStickerSetInstalledChange,
+            onSend = if (state.detail?.chat?.canPost != false) {
+                { sticker ->
+                    onStickerSetClosed()
+                    onStickerPicked(sticker)
+                }
+            } else {
+                null
+            }
+        )
     }
     // The two pickers for scheduling, one after the other; see SchedulePicker.
     var schedulePicking by remember { mutableStateOf(false) }
@@ -1298,6 +1319,7 @@ fun ChatScreen(
                                 onMenuOpened = { onMessageMenuOpened(message) },
                                 onForward = { onForwardOne(message) },
                                 onContentOpened = { onContentOpened(message) },
+                                onStickerOpened = { message.sticker?.setId?.let(onStickerSetOpened) },
                                 onExtra = { extra -> onMessageExtra(message, extra) },
                                 onTranslate = { onTranslate(message, translationLanguage()) },
                                 onOpenComments = { onOpenComments(message) },

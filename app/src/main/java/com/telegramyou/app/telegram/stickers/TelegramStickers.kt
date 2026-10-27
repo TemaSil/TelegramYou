@@ -4,6 +4,7 @@ import com.telegramyou.app.telegram.model.VideoContent
 import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerSetPreview
+import com.telegramyou.app.telegram.model.StickerSetInfo
 
 /** The account's stickers, for the picker, and sending one. */
 interface TelegramStickers {
@@ -19,6 +20,18 @@ interface TelegramStickers {
 
     /** Every sticker in set [setId]. */
     suspend fun stickerSet(setId: Long): List<StickerContent>
+
+    /** A set whole, with whether this account has it — for its sheet (2.6). */
+    suspend fun stickerSetInfo(setId: Long): StickerSetInfo? = null
+
+    /** Adds a set to this account, or takes it off. */
+    suspend fun setStickerSetInstalled(setId: Long, installed: Boolean) {}
+
+    /** The account's sets in a new order, all of them, first first. */
+    suspend fun reorderStickerSets(order: List<Long>) {}
+
+    /** The sets Telegram is suggesting now, added or not. */
+    suspend fun trendingStickerSets(): List<StickerSetPreview> = emptyList()
 
     /** The stickers sent most recently, newest first. */
     suspend fun recentStickers(): List<StickerContent>
