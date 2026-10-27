@@ -147,12 +147,18 @@ class AccountManager(
         }
     }
 
-    private fun repositoryFor(id: Int): TelegramRepository = repositories.getOrPut(id) {
-        TelegramRepository(makeClient(id)).also { repository ->
-            repository.start()
-            onCreated(repository)
-            watch(id, repository)
-        }.also { _open.value = repositories.toMap() }
+    private fun repositoryFor(id: Int): TelegramRepository {
+        repositories[id]?.let { return it }
+        val repository = TelegramRepository(makeClient(id))
+        // In the map before it is published as open: published from inside
+        // getOrPut's lambda, the map did not hold it yet, and with one
+        // account nothing was open at all — nothing notified.
+        repositories[id] = repository
+        repository.start()
+        onCreated(repository)
+        watch(id, repository)
+        _open.value = repositories.toMap()
+        return repository
     }
 
     /**
