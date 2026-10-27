@@ -2233,7 +2233,9 @@ class SmokeTest {
             } finally {
                 automation.dropShellPermissionIdentity()
             }
-            waitFor(By.desc("GIF"), "the chat, opened from the other account's notification")
+            // Its pinned message: what is at the bottom depends on how much
+            // the chat has said, and its GIF had scrolled away by then.
+            waitFor(By.text("Welcome to TelegramYou"), "the chat, opened from the other account's notification")
             awaitNoHeadsUp()
             device.pressBack()
             waitFor(By.text("Material Design"), "the chat list")
