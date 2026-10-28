@@ -798,7 +798,9 @@ class SmokeTest {
             // will not be driven, so the film still has them.
             tap(By.desc("Attach"))
             allowPhotos()
-            tap(By.text("Gallery"))
+            // The sheet's actions say their names as descriptions: each is
+            // one button, its label merged into it.
+            tap(By.desc("Gallery"))
             val picked = runCatching {
                 val thumbnail = By.res(java.util.regex.Pattern.compile(".*:id/icon_thumbnail"))
                 device.wait(Until.hasObject(thumbnail), STEP_TIMEOUT)
@@ -4543,7 +4545,11 @@ class SmokeTest {
      */
     private fun recordScreen(): android.os.ParcelFileDescriptor =
         InstrumentationRegistry.getInstrumentation().uiAutomation
-            .executeShellCommand("screenrecord --bit-rate 6000000 --time-limit 180 $VIDEO_ON_DEVICE")
+            // Framed for the unfolded screen, a Pixel Fold's inner one at
+            // four-fifths: the phone before it stands in the middle, and the
+            // unfolded screen fills the frame rather than a phone-shaped
+            // letterbox. The emulator's encoder takes no side over 2048.
+            .executeShellCommand("screenrecord --size 1472x1766 --bit-rate 8000000 --time-limit 180 $VIDEO_ON_DEVICE")
 
     private fun stopRecording(recording: android.os.ParcelFileDescriptor, name: String) {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
