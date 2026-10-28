@@ -585,6 +585,8 @@ class ChatViewModel(
      * read" was chosen from the list.
      */
     fun onSeen() {
+        // Ghost mode: read here, and not said to have been (2.8).
+        if (com.telegramyou.app.settings.GhostMode.hideReading) return
         val newest = _uiState.value.messages.lastOrNull { !it.isOutgoing } ?: return
         if (newest.id <= markedUpTo) return
         markedUpTo = newest.id
@@ -624,6 +626,7 @@ class ChatViewModel(
      * it lasts.
      */
     fun onOwnActivity(activity: OwnActivity) {
+        if (com.telegramyou.app.settings.GhostMode.hideTyping) return
         val say = ownActivity.update(activity, System.currentTimeMillis()) ?: return
         viewModelScope.launch { runCatching { repository.sendChatAction(chatId, say) } }
     }

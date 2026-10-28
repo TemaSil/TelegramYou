@@ -259,6 +259,26 @@ fun GeeksScreen(
                 ) { on -> onChange { it.copy(silenceNonContacts = on) } }
             }
 
+            // What this account does not tell anyone (2.8) — the forks'
+            // ghost mode, as three switches rather than one.
+            SettingsGroup(tr("Ghost mode", "Режим призрака")) {
+                switch(
+                    title = tr("Don't send “typing…”", "Не показывать «печатает»"),
+                    summary = tr("Nobody sees you typing or recording", "Никто не видит, что вы пишете или записываете"),
+                    checked = settings.ghostTyping
+                ) { on -> onChange { it.copy(ghostTyping = on) } }
+                switch(
+                    title = tr("Don't mark as read", "Не отмечать прочитанным"),
+                    summary = tr("Messages stay unread for their senders until you answer", "Сообщения остаются непрочитанными для отправителя, пока вы не ответите"),
+                    checked = settings.ghostReading
+                ) { on -> onChange { it.copy(ghostReading = on) } }
+                switch(
+                    title = tr("Stay offline", "Не показываться в сети"),
+                    summary = tr("You are never shown online while you use the app", "Вас не видно в сети, пока вы в приложении"),
+                    checked = settings.ghostOnline
+                ) { on -> onChange { it.copy(ghostOnline = on) } }
+            }
+
             SettingsGroup(tr("Experiments", "Эксперименты")) {
                 switch(
                     title = tr("Music library", "Музыкальная библиотека"),

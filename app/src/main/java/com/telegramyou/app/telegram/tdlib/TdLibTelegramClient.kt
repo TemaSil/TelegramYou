@@ -59,6 +59,7 @@ import com.telegramyou.app.ui.format.isOnline
 import com.telegramyou.app.ui.format.memberCountLabel
 import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.settings.GhostMode
 import com.telegramyou.app.telegram.model.FolderInvite
 import com.telegramyou.app.telegram.model.MAX_SAVED_TAG_LABEL
 import com.telegramyou.app.telegram.model.SavedTag
@@ -372,7 +373,8 @@ class TdLibTelegramClient(
             JSONObject()
                 .put("@type", "setOption")
                 .put("name", "online")
-                .put("value", JSONObject().put("@type", "optionValueBoolean").put("value", isOnline))
+                // Ghost mode (2.8): never online, whatever the app is doing.
+                .put("value", JSONObject().put("@type", "optionValueBoolean").put("value", isOnline && !GhostMode.hideOnline))
         )
     }
 

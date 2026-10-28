@@ -54,7 +54,11 @@ data class GeekSettings(
      * Off, it shows the chat's own picture, as Telegram does (2.0.1, on the
      * owner's word); kept here as a beta, to be worked on.
      */
-    val groupFaces: Boolean = false
+    val groupFaces: Boolean = false,
+    /** Ghost mode (2.8): no "typing…" sent, no messages marked read, never online. */
+    val ghostTyping: Boolean = false,
+    val ghostReading: Boolean = false,
+    val ghostOnline: Boolean = false
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */

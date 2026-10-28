@@ -705,6 +705,42 @@ class SmokeTest {
     }
 
     /**
+     * Ghost mode (2.8): with Don't mark as read on, a chat with unread
+     * messages opened and left keeps its count. Off again at the end, so
+     * the next test reads chats as it always has.
+     */
+    @Test
+    fun ghostModeLeavesAChatUnread() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val dontRead = By.text("Don't mark as read")
+        tap(By.text("Settings"))
+        waitFor(By.text("Appearance"), "the settings")
+        scrollSettingsTo(By.text("For geeks"))
+        tap(By.text("For geeks"))
+        scrollDownTo(dontRead)
+        tap(dontRead)
+        try {
+            backTo(By.text("Appearance"), "the settings")
+            tap(By.text("Chats"))
+            waitFor(By.text(GROUP_CHAT), "the chat list")
+            tap(By.text(GROUP_CHAT))
+            waitFor(GROUP_OPEN, "the group")
+            device.waitForIdle(IDLE_TIMEOUT)
+            backTo(By.text("Material Design"), "the chat list")
+            scrollChatsTo(By.text(GROUP_CHAT))
+            assertTrue("the group was marked read in ghost mode", device.hasObject(By.text("18")))
+        } finally {
+            tap(By.text("Settings"))
+            scrollSettingsTo(By.text("For geeks"))
+            tap(By.text("For geeks"))
+            scrollDownTo(dontRead)
+            tap(dontRead)
+        }
+    }
+
+    /**
      * A whole chat reported (2.8), from its info: Report, a reason picked
      * from Telegram's list, and the thanks.
      */

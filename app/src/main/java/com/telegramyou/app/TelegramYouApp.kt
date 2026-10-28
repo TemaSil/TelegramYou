@@ -178,6 +178,13 @@ class TelegramYouApp : Application() {
                 accounts.current.setPreferIpv6(it)
             }
         }
+        // Ghost mode's Stay offline (2.8), switched while the app is open: the
+        // account's presence said again, as it now should be.
+        MainScope().launch {
+            geeks.settings.map { it.ghostOnline }.distinctUntilChanged().drop(1).collect {
+                accounts.current.setOnline(com.telegramyou.app.telegram.AppVisibility.isInForeground)
+            }
+        }
 
         if (isSwitchedToDemo) {
             // Signing out of the demo is leaving it. Otherwise it would land
