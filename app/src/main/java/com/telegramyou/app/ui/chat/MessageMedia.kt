@@ -873,13 +873,15 @@ internal fun VoiceMessage(
                 .width(120.dp)
                 .height(28.dp)
         )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (outgoing) MaterialTheme.colorScheme.onPrimary
-            else MaterialTheme.colorScheme.onSurface
-        )
+        if (label.isNotEmpty()) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurface
+            )
+        }
         // Voice to text (2.7): Telegram writes it down, the words open under
         // the row, and the same button puts them away.
         if (onTranscribe != null) {

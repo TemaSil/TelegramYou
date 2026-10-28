@@ -31,4 +31,20 @@ class DurationTest {
     fun `a negative duration cannot be rendered and is clamped`() {
         assertEquals("0:00", formatDuration(-5))
     }
+
+    @Test
+    fun `a voice bubble shows its length and never the chat list's word for it`() {
+        assertEquals("0:42", voiceLabel("🎤 Voice", 42))
+        assertEquals("0:12", voiceLabel("0:12", 0))
+        assertEquals("", voiceLabel("🎤 Голосовое", 0))
+    }
+
+    @Test
+    fun `only a caption someone wrote is shown under a voice message`() {
+        assertEquals(false, isVoiceCaption("🎤 Voice"))
+        assertEquals(false, isVoiceCaption("🎤 Голосовое"))
+        assertEquals(false, isVoiceCaption("0:12"))
+        assertEquals(false, isVoiceCaption(""))
+        assertEquals(true, isVoiceCaption("Listen to this"))
+    }
 }

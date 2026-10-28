@@ -714,7 +714,7 @@ internal fun MessageBubble(
                     }
                     MessageContentType.Voice -> {
                         VoiceMessage(
-                            label = message.text.ifBlank { tr("Voice message", "Голосовое сообщение") },
+                            label = voiceLabel(message.text, message.voiceDurationSeconds),
                             waveform = message.waveform,
                             state = voiceState,
                             outgoing = outgoing,
@@ -725,6 +725,16 @@ internal fun MessageBubble(
                             transcribing = transcribing,
                             onTranscribe = onTranscribe
                         )
+                        // A caption someone wrote, under it as an audio file's
+                        // is; "🎤 Voice" is the chat list's word, not one.
+                        if (isVoiceCaption(message.text)) {
+                            Spacer(Modifier.height(6.dp))
+                            Text(
+                                message.text,
+                                color = if (outgoing) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                     else -> if (jumbo > 0) {
                         Text(

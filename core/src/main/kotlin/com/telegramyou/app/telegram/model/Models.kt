@@ -498,6 +498,8 @@ data class ChatMessage(
      * message is the same shape whether or not its waveform arrived.
      */
     val waveform: List<Int> = emptyList(),
+    /** A voice message's length, in seconds; 0 when unknown. The bubble shows it where the words would be. */
+    val voiceDurationSeconds: Int = 0,
     /**
      * What a voice message says, as Telegram wrote it down (2.7) — once
      * someone has asked for it; Telegram keeps it with the message after.

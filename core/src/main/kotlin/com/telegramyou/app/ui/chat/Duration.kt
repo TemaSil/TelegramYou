@@ -21,3 +21,30 @@ fun formatDuration(totalSeconds: Long): String {
 }
 
 private fun Long.pad(): String = toString().padStart(2, '0')
+
+/**
+ * Whether a voice message's [text] is a caption someone wrote, rather than
+ * what stands in for one: the "🎤 Voice" a message without a caption is
+ * worded as in the chat list, or the length the demo gives it. Only a real
+ * caption is shown on the bubble, under the waveform.
+ */
+fun isVoiceCaption(text: String): Boolean {
+    val trimmed = text.trim()
+    return trimmed.isNotEmpty() && trimmed !in VOICE_PLACEHOLDERS && !DURATION_ONLY.matches(trimmed)
+}
+
+/** How a voice message without a caption is worded, in both languages. */
+val VOICE_PLACEHOLDERS = setOf("🎤 Voice", "🎤 Голосовое")
+
+private val DURATION_ONLY = Regex("""\d+:\d{2}(:\d{2})?""")
+
+/**
+ * What a voice bubble says beside its waveform: the length, from
+ * [durationSeconds] or from a [text] that is only a length; blank otherwise
+ * — never "🎤 Voice", which says nothing the bubble does not already show.
+ */
+fun voiceLabel(text: String, durationSeconds: Int): String = when {
+    durationSeconds > 0 -> formatDuration(durationSeconds.toLong())
+    DURATION_ONLY.matches(text.trim()) -> text.trim()
+    else -> ""
+}

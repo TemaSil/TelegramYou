@@ -5698,6 +5698,7 @@ class TdLibTelegramClient(
                 ?.optString("path")
                 ?.takeIf { it.isNotBlank() },
             waveform = parseWaveform(content),
+            voiceDurationSeconds = content?.optJSONObject("voice_note")?.optInt("duration") ?: 0,
             transcript = content?.optJSONObject("voice_note")
                 ?.optJSONObject("speech_recognition_result")
                 ?.takeIf { it.optString("@type") == "speechRecognitionResultText" }
