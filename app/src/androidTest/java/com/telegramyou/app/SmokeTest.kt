@@ -3431,6 +3431,9 @@ class SmokeTest {
         // search rather than by scrolling to it.
         type("Tonal")
         waitFor(By.text("Tonal Spot"), "the queue searched")
+        // The keyboard down first: up, it can stand over the row found, and
+        // the tap landed on its comma key — "Tonal," and nothing played.
+        hideKeyboard()
         tap(By.text("Tonal Spot"))
         // The queue stays open; the new track is the one playing.
         waitFor(By.desc("Playing"), "the new track marked playing in the queue")
@@ -4547,6 +4550,16 @@ class SmokeTest {
      * still; something that never stops (a video, a typing indicator over a
      * large area) is taken as it is after a few seconds.
      */
+    /** The keyboard put away, when it is up; Back does it, and only it, while it is. */
+    private fun hideKeyboard() {
+        val up = InstrumentationRegistry.getInstrumentation().uiAutomation.windows
+            .any { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD }
+        if (up) {
+            device.pressBack()
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+    }
+
     /**
      * The screen recorded, from now until [stopRecording], with Android's
      * own screenrecord — as the shell, which may, into its own space; the
