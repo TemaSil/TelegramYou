@@ -959,6 +959,7 @@ fun TelegramYouNavHost(
                 onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
+                onOpenGhostMode = { navController.navigateTo(Route.GhostMode) },
                 onOpenUpdates = { navController.navigateTo(Route.Updates) }
             )
             }
@@ -1106,6 +1107,7 @@ fun TelegramYouNavHost(
                 onOpenNotifications = { navController.navigateTo(Route.NotificationSettings) },
                 onOpenPrivacy = { navController.navigateTo(Route.Privacy) },
                 onOpenGeeks = { navController.navigateTo(Route.Geeks) },
+                onOpenGhostMode = { navController.navigateTo(Route.GhostMode) },
                 onOpenProxy = { navController.navigateTo(Route.Proxy) },
                 onOpenUpdates = { navController.navigateTo(Route.Updates) },
                 onOpenAppearance = { navController.navigateTo(Route.Appearance) },
@@ -1142,6 +1144,15 @@ fun TelegramYouNavHost(
         }
         composable(Route.Updates.PATTERN) {
             AppUpdateScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Route.GhostMode.PATTERN) {
+            val store = geeks ?: return@composable
+            val settings by store.settings.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.settings.GhostModeScreen(
+                settings = settings,
+                onBack = { navController.popBackStack() },
+                onChange = store::update
+            )
         }
         composable(Route.Geeks.PATTERN) {
             val store = geeks ?: return@composable

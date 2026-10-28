@@ -212,6 +212,7 @@ fun HomeScreen(
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
+    onOpenGhostMode: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onProfilePhotoPicked: (String) -> Unit = {},
     profileLooks: com.telegramyou.app.ui.profile.ProfileLooksActions = com.telegramyou.app.ui.profile.ProfileLooksActions()
@@ -455,6 +456,7 @@ fun HomeScreen(
                         onOpenNotifications = onOpenNotifications,
                         onOpenPrivacy = onOpenPrivacy,
                         onOpenGeeks = onOpenGeeks,
+                        onOpenGhostMode = onOpenGhostMode,
                         onOpenProxy = onOpenProxy,
                         onOpenUpdates = onOpenUpdates,
                         onOpenProfile = { onTabSelected(HomeTab.Profile) },

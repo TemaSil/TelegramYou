@@ -69,6 +69,12 @@ sealed interface Route {
     }
 
     /** Settings → For geeks. */
+    /** Settings → Ghost mode (2.8). */
+    data object GhostMode : Route {
+        const val PATTERN = "settings/ghost"
+        override val path = PATTERN
+    }
+
     data object Geeks : Route {
         const val PATTERN = "settings/geeks"
         override val path = PATTERN

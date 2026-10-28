@@ -64,6 +64,7 @@ fun SettingsScreen(
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
+    onOpenGhostMode: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onOpenAppearance: () -> Unit = {},
@@ -96,6 +97,7 @@ fun SettingsScreen(
             onOpenNotifications = onOpenNotifications,
             onOpenPrivacy = onOpenPrivacy,
             onOpenGeeks = onOpenGeeks,
+            onOpenGhostMode = onOpenGhostMode,
             onOpenProxy = onOpenProxy,
             onOpenUpdates = onOpenUpdates,
             onOpenAppearance = onOpenAppearance,
@@ -125,6 +127,7 @@ fun SettingsContent(
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
+    onOpenGhostMode: () -> Unit = {},
     onOpenProxy: () -> Unit = {},
     onOpenUpdates: () -> Unit = {},
     onOpenProfile: () -> Unit = {},
@@ -184,6 +187,7 @@ fun SettingsContent(
         // The app's language (2.6) is Android's to choose, as for any app:
         // on Android 13 its own page for this app, before it the phone's.
         val context = androidx.compose.ui.platform.LocalContext.current
+        val ghostSummary = ghostModeSummary(com.telegramyou.app.settings.LocalGeekSettings.current)
         SettingsGroup {
             link(
                 title = tr("Appearance", "Оформление"),
@@ -219,6 +223,15 @@ fun SettingsContent(
                 icon = Symbols.Devices,
                 tone = IconTone.Secondary,
                 onClick = onOpenDevices
+            )
+            // Its own row, beside Privacy (2.8): what this account does not
+            // tell anyone, which people look for here rather than For geeks.
+            link(
+                title = tr("Ghost mode", "Режим призрака"),
+                summary = ghostSummary,
+                icon = Symbols.VisibilityOff,
+                tone = IconTone.Secondary,
+                onClick = onOpenGhostMode
             )
         }
 
