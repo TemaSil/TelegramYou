@@ -577,6 +577,11 @@ data class ChatMessage(
     val commentCount: Int? = null,
     /** The comment thread it was written in, in a discussion group; 0 otherwise. */
     val threadId: Long = 0,
+    /**
+     * In Saved Messages, the topic it is filed under (2.7) — the chat it
+     * was saved from, or My notes; 0 anywhere else. See [SavedTopic].
+     */
+    val savedTopicId: Long = 0,
     /** How many times it has been forwarded, where Telegram says (channel posts mostly); 0 otherwise. */
     val forwardCount: Int = 0,
     /**
