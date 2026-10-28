@@ -758,6 +758,99 @@ class SmokeTest {
     }
 
     /**
+     * The foldable, filmed (2.8): a phone's chat list; the phone unfolded —
+     * the window grown to a Pixel Fold's inner screen at the same density,
+     * which is how the app meets a real unfold; a chat opened and the list
+     * folded to its pictures; a message typed on the keyboard, two photos
+     * from the system's picker, a sticker; another chat from the pictures;
+     * the phone turned on its side, the whole list beside the chat; folded
+     * back. Recorded with screenrecord into evidence/video, for the owner to
+     * watch rather than for an assertion — every step still waits for what
+     * it needs, so a broken step fails here as anywhere.
+     */
+    @Test
+    fun aFoldableIsUnfoldedAndUsed() {
+        val photos = seedGallery()
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        val recording = recordScreen()
+        try {
+            SystemClock.sleep(VIDEO_BEAT)
+            device.executeShellCommand("wm size 1840x2208")
+            waitFor(By.text("Lina Park"), "the list on the unfolded screen")
+            SystemClock.sleep(VIDEO_BEAT)
+            tap(By.text("Lina Park"))
+            waitFor(By.text("Message"), "Lina's chat beside the folded list")
+            SystemClock.sleep(VIDEO_BEAT)
+
+            // Typed on the keyboard, as a person would, rather than set.
+            tap(By.clazz("android.widget.EditText"))
+            SystemClock.sleep(VIDEO_BEAT / 2)
+            device.executeShellCommand("input text Unfolded%sand%sit%sfits")
+            SystemClock.sleep(VIDEO_BEAT / 2)
+            tap(By.desc("Send"))
+            waitFor(By.text("Unfolded and it fits"), "the message sent")
+            device.pressBack()
+            SystemClock.sleep(VIDEO_BEAT / 2)
+
+            // Two photos from Android's own picker; shared in if the picker
+            // will not be driven, so the film still has them.
+            tap(By.desc("Attach"))
+            allowPhotos()
+            tap(By.text("Gallery"))
+            val picked = runCatching {
+                val thumbnail = By.res(java.util.regex.Pattern.compile(".*:id/icon_thumbnail"))
+                device.wait(Until.hasObject(thumbnail), STEP_TIMEOUT)
+                device.findObjects(thumbnail).take(2).forEach { it.click(); SystemClock.sleep(400) }
+                val add = By.text(java.util.regex.Pattern.compile("Add.*"))
+                device.wait(Until.hasObject(add), STEP_TIMEOUT)
+                device.findObject(add).click()
+            }.isSuccess
+            if (!picked) {
+                device.pressBack()
+                sharePhotos(photos.take(2), LINA_CHAT_ID)
+            }
+            waitFor(By.descStartsWith("Attachments,"), "the photos in the composer")
+            SystemClock.sleep(VIDEO_BEAT)
+            tap(By.desc("Send"))
+            assertTrue(
+                "the photos stayed in the composer",
+                device.wait(Until.gone(By.descStartsWith("Attachments,")), STEP_TIMEOUT)
+            )
+            SystemClock.sleep(VIDEO_BEAT)
+
+            // A sticker from the panel.
+            tap(By.desc("Emoji, GIFs and stickers"))
+            tap(By.text("Stickers"))
+            val sticker = By.descEndsWith(" sticker")
+            waitFor(sticker, "a sticker in the panel")
+            SystemClock.sleep(VIDEO_BEAT / 2)
+            device.findObjects(sticker).first().click()
+            SystemClock.sleep(VIDEO_BEAT)
+            device.pressBack()
+
+            // Another chat, from the folded list's pictures.
+            tap(By.desc("Material Design"))
+            waitFor(By.text("Message"), "Material Design beside the pictures")
+            SystemClock.sleep(VIDEO_BEAT)
+
+            // On its side: the whole list beside the chat.
+            device.executeShellCommand("wm size 2208x1840")
+            waitFor(By.text("Lina Park"), "the whole list on the unfolded phone on its side")
+            SystemClock.sleep(VIDEO_BEAT * 2)
+
+            // Folded again: the chat comes along as a phone's screen.
+            device.executeShellCommand("wm size reset")
+            waitFor(By.text("Message"), "the chat on the folded phone")
+            SystemClock.sleep(VIDEO_BEAT)
+        } finally {
+            device.executeShellCommand("wm size reset")
+            stopRecording(recording, "132-foldable")
+        }
+    }
+
+    /**
      * A whole chat reported (2.8), from its info: Report, a reason picked
      * from Telegram's list, and the thanks.
      */
@@ -4443,6 +4536,28 @@ class SmokeTest {
      * still; something that never stops (a video, a typing indicator over a
      * large area) is taken as it is after a few seconds.
      */
+    /**
+     * The screen recorded, from now until [stopRecording], with Android's
+     * own screenrecord — as the shell, which may, into its own space; the
+     * file is copied out through TestStorage after, as screenshots go.
+     */
+    private fun recordScreen(): android.os.ParcelFileDescriptor =
+        InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand("screenrecord --bit-rate 6000000 --time-limit 180 $VIDEO_ON_DEVICE")
+
+    private fun stopRecording(recording: android.os.ParcelFileDescriptor, name: String) {
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        // Interrupted, not killed, so it writes the file's index and the
+        // video plays; read to its end, which is screenrecord exiting.
+        device.executeShellCommand("pkill -INT screenrecord")
+        runCatching { android.os.ParcelFileDescriptor.AutoCloseInputStream(recording).use { it.readBytes() } }
+        val file = automation.executeShellCommand("cat $VIDEO_ON_DEVICE")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(file).use { input ->
+            TestStorage().openOutputFile("$name.mp4").use { output -> input.copyTo(output) }
+        }
+        device.executeShellCommand("rm -f $VIDEO_ON_DEVICE")
+    }
+
     private fun screenshot(name: String) {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         device.waitForIdle(IDLE_TIMEOUT)
@@ -4560,6 +4675,12 @@ class SmokeTest {
 
         /** The seeded group with more than one person talking in it. */
         const val GROUP_CHAT = "Design Circle"
+        /** Where screenrecord writes, in the shell's own space. */
+        const val VIDEO_ON_DEVICE = "/data/local/tmp/telegramyou-film.mp4"
+        /** How long the film rests on each step, for a person to see it. */
+        const val VIDEO_BEAT = 1_500L
+        /** Lina Park's chat in the demo. */
+        const val LINA_CHAT_ID = 2L
         const val GROUP_CHAT_ID = 3L
         const val FORUM_CHAT = "Compose Forum"
         const val MUSIC_CHANNEL = "Material Sound"

@@ -175,6 +175,10 @@ jobs:
           mkdir -p evidence/hierarchy
           find app/build/outputs -name 'hierarchy-*.xml' \
             -exec cp {} evidence/hierarchy/ \; 2>/dev/null || true
+          # Screen recordings a test made — see SmokeTest.recordScreen.
+          mkdir -p evidence/video
+          find app/build/outputs -name '*.mp4' \
+            -exec cp {} evidence/video/ \; 2>/dev/null || true
           # Frame timings a test measured — see SmokeTest.frameStats.
           mkdir -p evidence/frames
           find app/build/outputs -name 'frames-*.txt' \
@@ -243,6 +247,7 @@ jobs:
             echo "Rewritten on every run of the UI workflow."
             echo
             echo '- `evidence/screenshots/` — one per step of the smoke test'
+            echo '- `evidence/video/` — screen recordings a test made'
             echo '- `evidence/results/` — the instrumentation report, including'
             echo '  the stack trace of anything that failed'
             echo '- `evidence/crash-shard-N.txt` — the app'"'"'s own fatal exceptions, if any'
