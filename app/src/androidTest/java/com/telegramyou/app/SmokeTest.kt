@@ -782,8 +782,8 @@ class SmokeTest {
      * Two panes (2.8): the emulator's screen made a tablet's — 2560×1600 at
      * 320dpi, 1280×800dp — the list gains an empty pane beside it, a chat
      * opens there with the list still showing, and Back empties the pane
-     * rather than leaving; then an unfolded phone's, a Pixel Fold's inner
-     * screen held upright, 700dp wide. The screen goes back whatever happens.
+     * rather than leaving; then an unfolded phone's held upright, a Pixel
+     * Fold's inner screen, where the list folds to pictures beside a chat. The screen goes back whatever happens.
      */
     @Test
     fun aWideWindowOpensTheChatBesideTheList() {
@@ -800,13 +800,19 @@ class SmokeTest {
             screenshot("129-two-panes")
             device.pressBack()
             waitFor(By.desc("No chat open"), "the pane emptied by Back")
-            // An unfolded phone held upright: about 700dp wide, the
-            // narrowest window that takes two panes.
+            // An unfolded phone held upright — a Pixel Fold's inner screen,
+            // 700dp: the whole list until a chat opens, then the list folded
+            // to its pictures beside it, as Telegram's desktop app folds it.
             device.executeShellCommand("wm size 1840x2208")
             device.executeShellCommand("wm density 420")
-            waitFor(By.desc("No chat open"), "two panes on a foldable's width")
+            waitFor(By.text("Lina Park"), "the whole list on a foldable's width")
             tap(By.text("Lina Park"))
-            waitFor(By.text("Message"), "the chat in the foldable's pane")
+            waitFor(By.text("Message"), "the chat beside the folded list")
+            waitFor(By.desc("Material Design"), "the list folded to its pictures")
+            assertTrue(
+                "the list kept its names beside the chat on a foldable",
+                !device.hasObject(By.text("Material Design"))
+            )
             screenshot("130-two-panes-foldable")
         } finally {
             device.executeShellCommand("wm size reset")

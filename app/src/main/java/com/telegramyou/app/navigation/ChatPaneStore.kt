@@ -1,6 +1,22 @@
 package com.telegramyou.app.navigation
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.selected
+import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.ui.components.AvatarBubble
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +53,22 @@ import com.telegramyou.app.ui.icons.Symbols
  */
 const val TWO_PANE_WIDTH_DP = 600
 const val TWO_PANE_HEIGHT_DP = 480
+
+/**
+ * Wide enough for the whole list beside the chat: Material's expanded
+ * width, a tablet or an unfolded phone on its side. Narrower — an unfolded
+ * phone held upright, about 700dp — the whole list left the chat's names a
+ * few letters each (the owner, 28 October 2026: "Не маловато?"), so there
+ * the list folds to its chats' pictures beside an open chat, as Telegram's
+ * desktop app folds its own; see ChatAvatarColumn.
+ */
+const val FULL_LIST_WIDTH_DP = 840
+
+/**
+ * The list's width beside a chat: Material's list-detail pane, 360dp, and
+ * the navigation rail beside it — wider on a large tablet, never narrower.
+ */
+const val LIST_PANE_DP = 440
 
 /**
  * A store of its own for the conversation in the pane beside the list
@@ -96,3 +128,61 @@ fun NoChatPane() {
         }
     }
 }
+
+/**
+ * The chat list folded to its pictures (2.8), beside an open chat on a
+ * window too narrow for the whole list: each chat its avatar, its unread
+ * count as a badge, the open one lit — Telegram's desktop app folds its
+ * list the same way. A tap opens another chat in the pane.
+ */
+@Composable
+fun ChatAvatarColumn(
+    chats: List<ChatPreview>,
+    selected: Long?,
+    onOpen: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier
+            .width(AVATAR_COLUMN_DP.dp)
+            .fillMaxHeight(),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
+        items(chats, key = { it.id }) { chat ->
+            val isOpen = chat.id == selected
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (isOpen) MaterialTheme.colorScheme.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
+                    .clickable { onOpen(chat.id) }
+                    .semantics {
+                        contentDescription = chat.title
+                        this.selected = isOpen
+                    }
+                    .padding(vertical = 8.dp)
+            ) {
+                BadgedBox(
+                    badge = {
+                        if (chat.unreadCount > 0) {
+                            Badge { Text(if (chat.unreadCount > 99) "99+" else chat.unreadCount.toString()) }
+                        }
+                    }
+                ) {
+                    AvatarBubble(
+                        title = chat.title,
+                        seed = chat.avatarColor,
+                        size = 48.dp,
+                        photoPath = chat.photoPath,
+                        savedMessages = chat.isSavedMessages
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** How wide the folded list is: a 48dp picture and its badge, with room around. */
+const val AVATAR_COLUMN_DP = 80

@@ -16,6 +16,8 @@ import com.telegramyou.app.ui.stories.NewStoryViewModel
 import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.draganddrop.DragAndDropEvent
@@ -972,20 +974,37 @@ fun TelegramYouNavHost(
                     val pane = paneChatId
                     BackHandler(enabled = pane != null) { paneChatId = null }
                     Row(Modifier.fillMaxSize()) {
-                        Box(Modifier.weight(0.45f).fillMaxHeight()) { home() }
-                        Box(
-                            Modifier
-                                .weight(0.55f)
-                                .fillMaxHeight()
-                                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        ) {
-                            if (pane == null) {
-                                NoChatPane()
-                            } else {
-                                key(pane) {
-                                    ChatPaneStore(pane) {
-                                        val paneViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
-                                        chatPane(pane, paneViewModel, null) { paneChatId = null }
+                        val fullList = configuration.screenWidthDp >= FULL_LIST_WIDTH_DP
+                        when {
+                            // Wide: the whole list, Material's 360dp and the rail.
+                            fullList -> {
+                                val listWidth = maxOf(LIST_PANE_DP.dp, (configuration.screenWidthDp * 0.4f).dp)
+                                Box(Modifier.width(listWidth).fillMaxHeight()) { home() }
+                            }
+                            // Narrower, nothing open: the list has the window.
+                            pane == null -> Box(Modifier.weight(1f).fillMaxHeight()) { home() }
+                            // Narrower, a chat open: the list folds to pictures.
+                            else -> ChatAvatarColumn(
+                                chats = state.chats,
+                                selected = pane,
+                                onOpen = { id -> openChat(id) }
+                            )
+                        }
+                        if (fullList || pane != null) {
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            ) {
+                                if (pane == null) {
+                                    NoChatPane()
+                                } else {
+                                    key(pane) {
+                                        ChatPaneStore(pane) {
+                                            val paneViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
+                                            chatPane(pane, paneViewModel, null) { paneChatId = null }
+                                        }
                                     }
                                 }
                             }
