@@ -2228,9 +2228,10 @@ class SmokeTest {
         // The last tab, past the sets: the row scrolled along to it, since
         // with the set just added it runs off the screen's edge.
         val manage = By.desc("Your stickers and trending")
+        // Measured once: the first swipe takes Recent itself off the screen.
+        val row = device.findObject(By.desc("Recent stickers")).visibleBounds.centerY()
         repeat(4) {
             if (device.hasObject(manage)) return@repeat
-            val row = device.findObject(By.desc("Recent stickers")).visibleBounds.centerY()
             device.swipe((device.displayWidth * 0.85).toInt(), row, (device.displayWidth * 0.15).toInt(), row, 20)
             device.waitForIdle(IDLE_TIMEOUT)
         }
