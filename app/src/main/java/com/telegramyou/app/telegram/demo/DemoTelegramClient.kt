@@ -3423,25 +3423,13 @@ private val DEMO_AUDIO_SECONDS = 12
 /** The album in the demo's music channel: four tracks posted as one post. */
 private val DEMO_MUSIC_ALBUM_ID = 4_040L
 
-/** The shape drawn for the demo's voice messages, in Telegram's 5-bit levels. */
 /** What Lina's two voice messages say, written down. */
 private val DEMO_TRANSCRIPTS = mapOf(
     903L to "Hey, running ten minutes late — grab us a table by the window?",
     904L to "Actually make it fifteen, the tram just stopped."
 )
 
-/** Saved Messages' chat, and its topics: My notes and the two chats saved from. */
-private const val SAVED_CHAT_ID = 6L
-private const val SAVED_MY_NOTES = 1L
-private const val SAVED_FROM_LINA = 2L
-private const val SAVED_FROM_CIRCLE = 3L
-private val SAVED_SOURCES = mapOf(SAVED_FROM_LINA to 2L, SAVED_FROM_CIRCLE to 3L)
-
-/** The shared folder every t.me/addlist link opens offline, and the channel it brings. */
-private const val DEMO_SHARED_FOLDER = "Design friends"
-private const val DEMO_FOLDER_CHANNEL = "Material Weekly"
-private const val DEMO_FOLDER_CHANNEL_ID = -77L
-
+/** The shape drawn for the demo's voice messages, in Telegram's 5-bit levels. */
 private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)
 
 /** A small text file in Design Circle, so a file can be opened offline. */
@@ -3649,3 +3637,15 @@ internal const val DEMO_BOT_STATUS = "All green ✅"
 internal const val DEMO_AUDIO_TITLE = "Expressive Motion"
 internal const val DEMO_FORWARDED_TEXT = "Material 3 Expressive is now in the Compose alpha"
 private const val DEMO_ALBUM_ID = 7001L
+
+/** Saved Messages' chat, and its topics: My notes and the two chats saved from. */
+private const val SAVED_CHAT_ID = 6L
+private const val SAVED_MY_NOTES = 1L
+private const val SAVED_FROM_LINA = 2L
+private const val SAVED_FROM_CIRCLE = 3L
+private val SAVED_SOURCES = mapOf(SAVED_FROM_LINA to 2L, SAVED_FROM_CIRCLE to 3L)
+
+/** The shared folder every t.me/addlist link opens offline, and the channel it brings. */
+private const val DEMO_SHARED_FOLDER = "Design friends"
+private const val DEMO_FOLDER_CHANNEL = "Material Weekly"
+private const val DEMO_FOLDER_CHANNEL_ID = -77L

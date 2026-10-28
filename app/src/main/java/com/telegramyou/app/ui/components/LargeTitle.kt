@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.telegramyou.app.ui.theme.AppTitleStyle
+import com.telegramyou.app.ui.theme.appTitleFamily
 
 /**
  * A page's name in a large top app bar, in the app's title face — Settings',
@@ -19,6 +20,7 @@ fun LargeTitle(text: String, folded: Float) {
     Text(
         text,
         style = AppTitleStyle.copy(
+            fontFamily = appTitleFamily(text),
             fontSize = lerp(36.sp, 22.sp, folded),
             lineHeight = lerp(44.sp, 28.sp, folded)
         ),

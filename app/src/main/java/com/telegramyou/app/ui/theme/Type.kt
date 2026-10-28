@@ -50,9 +50,10 @@ val TelegramYouTypography = Typography()
  * Medium, square-ended and normal width before — Google Sans Flex, but its
  * plainest cut, which read as a neutral label rather than as a name.
  *
- * Latin only is deliberate while titles are all it sets: there is no
- * Cyrillic in the family at all, so it could not carry a chat list anyway.
- * A title in it has to be a fixed English word for the same reason.
+ * Latin only, and not by choice: Google Sans Flex has no Cyrillic at all —
+ * the upstream file has none to keep. A Russian title (2.6) fell back to the
+ * system face, narrower and lighter, so it read as a different heading; it
+ * is set in [AppTitleCyrillicFamily] instead. See [appTitleFamily].
  */
 /** The size the app's name is set at, which its optical size follows. */
 val AppTitleSize = 26.sp
@@ -75,6 +76,34 @@ val AppTitleFontFamily = FontFamily(
         )
     )
 )
+
+/**
+ * Google Sans — the face Flex was drawn from, which does have Cyrillic — for
+ * a title in Russian. Same source and licence (`ofl/googlesans`, its text in
+ * `assets/licenses/google_sans_OFL.txt`), cut to Cyrillic, digits and
+ * punctuation, grade at its default, weight and optical size kept: 150 KB.
+ *
+ *     pyftsubset "GoogleSans[GRAD,opsz,wght].ttf" \
+ *       --unicodes="U+0020-0040,U+00A0,U+00AB,U+00BB,U+0400-045F,U+0490-0491,U+2013-2014,U+2018-201F,U+2026" \
+ *       --layout-features='*' --output-file=cyr.ttf
+ *     fonttools varLib.instancer cyr.ttf GRAD=0 -o google_sans_cyrillic.ttf
+ *
+ * It has neither Flex's rounded ends nor its width, so a Russian title is
+ * the same family and weight without those two; nothing nearer has the
+ * letters.
+ */
+@OptIn(ExperimentalTextApi::class)
+val AppTitleCyrillicFamily = FontFamily(
+    Font(
+        R.font.google_sans_cyrillic,
+        weight = AppTitleWeight,
+        variationSettings = FontVariation.Settings(FontVariation.weight(AppTitleWeight.weight))
+    )
+)
+
+/** The title face for [text]: Google Sans Flex, or Google Sans where there is Cyrillic in it. */
+fun appTitleFamily(text: String): FontFamily =
+    if (text.any { it in '\u0400'..'\u04FF' }) AppTitleCyrillicFamily else AppTitleFontFamily
 
 /**
  * A title with character: the app's name on Home, and the Settings title,
