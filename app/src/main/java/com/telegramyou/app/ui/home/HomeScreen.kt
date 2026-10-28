@@ -157,6 +157,8 @@ fun HomeScreen(
     settings: AppearanceSettings,
     onRefresh: () -> Unit,
     onOpenChat: (Long) -> Unit,
+    /** The chat open in the pane beside the list, on a wide window (2.8). */
+    selectedChatId: Long? = null,
     onOpenStory: (StoryItem) -> Unit,
     onSearchExpandedChange: (Boolean) -> Unit,
     onSearchQueryChange: (String) -> Unit,
@@ -641,6 +643,7 @@ fun HomeScreen(
                                     // neighbours composed, and a chat in two
                                     // folders would be two rows with one key.
                                     opensOutOfRows = current,
+                                    selectedChatId = selectedChatId,
                                     onOpenArchive = onOpenArchive,
                                     onOpenChat = onOpenChat,
                                     onMutedChange = onMutedChange,
@@ -755,6 +758,7 @@ private fun ChatListPage(
     shapedAvatars: Boolean,
     swipeActions: Boolean,
     opensOutOfRows: Boolean,
+    selectedChatId: Long? = null,
     onOpenArchive: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onMutedChange: (Long, Boolean) -> Unit,
@@ -852,6 +856,7 @@ private fun ChatListPage(
                     count = group.size,
                     shapedAvatar = shapedAvatars,
                     swipeActions = swipeActions,
+                    selected = chat.id == selectedChatId,
                     onClick = { onOpenChat(chat.id) },
                     modifier = Modifier
                         .fillMaxWidth()

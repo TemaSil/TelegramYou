@@ -72,6 +72,8 @@ SHOWCASE = [
     ("27-email-code", "Email login"),
     ("23-proxy", "Proxy"),
     ("13-rail", "Tablet"),
+    ("129-two-panes", "Tablet, two panes"),
+    ("130-two-panes-foldable", "Foldable, two panes"),
 ]
 
 WIDTH = 540

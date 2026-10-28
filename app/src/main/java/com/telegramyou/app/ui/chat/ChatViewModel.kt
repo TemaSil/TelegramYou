@@ -2563,6 +2563,9 @@ class ChatViewModel(
 
     fun onReport(message: ChatMessage) = reportStep(ReportFlow(listOf(message.id), ReportStep.Done), "", "")
 
+    /** The whole chat reported (2.8), from its info: the same questions, about no message in particular. */
+    fun onReportChat() = reportStep(ReportFlow(emptyList(), ReportStep.Done), "", "")
+
     /** A reason chosen, or the words given, answered to the server's last question. */
     fun onReportAnswer(optionId: String, text: String = "") {
         val flow = _uiState.value.report ?: return

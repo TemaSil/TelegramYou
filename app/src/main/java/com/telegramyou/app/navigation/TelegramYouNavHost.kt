@@ -16,6 +16,11 @@ import com.telegramyou.app.ui.stories.NewStoryViewModel
 import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.key
 import androidx.compose.material3.MaterialTheme
@@ -528,9 +533,47 @@ fun TelegramYouNavHost(
         // the conversation, and a switch flipped in Appearance has to
         // recolour a chat opened after it without a restart.
         val chatAppearance by appearance.settings.collectAsStateWithLifecycle()
+        // Dropped onto the conversation (2.8): photos and files dragged
+        // from another app in split screen, or a tablet's other window,
+        // land in the composer to be looked at before they go — as a
+        // share into this chat does.
+        val activity = LocalActivity.current
+        val dropTarget = remember(chatViewModel) {
+            object : DragAndDropTarget {
+                override fun onDrop(event: DragAndDropEvent): Boolean {
+                    val drag = event.toAndroidDragEvent()
+                    val clip = drag.clipData ?: return false
+                    val permissions = activity?.requestDragAndDropPermissions(drag)
+                    val uris = (0 until clip.itemCount).mapNotNull { clip.getItemAt(it).uri }
+                    val text = (0 until clip.itemCount)
+                        .mapNotNull { clip.getItemAt(it).text?.toString()?.takeIf { t -> t.isNotBlank() } }
+                        .joinToString("\n")
+                    val type = drag.clipDescription?.takeIf { it.mimeTypeCount == 1 }?.getMimeType(0)
+                    openScope.launch {
+                        val dropped = try {
+                            com.telegramyou.app.notifications.IncomingShares.fromDrop(context, uris, text, type)
+                        } finally {
+                            permissions?.release()
+                        }
+                        dropped?.let {
+                            chatViewModel.onShareReceived(it.text, com.telegramyou.app.telegram.model.shareDraft(it.items))
+                        }
+                    }
+                    return true
+                }
+            }
+        }
         Box(
             Modifier
                 .fillMaxSize()
+                .dragAndDropTarget(
+                    shouldStartDragAndDrop = { event ->
+                        event.toAndroidDragEvent().clipDescription?.let { d ->
+                            (0 until d.mimeTypeCount).any { i -> d.getMimeType(i).substringBefore('/') in DROPPABLE }
+                        } == true
+                    },
+                    target = dropTarget
+                )
                 // Out of its row only as a screen of its own: in the pane
                 // beside the list there is no row it grows out of.
                 .then(
@@ -840,6 +883,7 @@ fun TelegramYouNavHost(
                 settings = appearanceSettings,
                 onRefresh = homeViewModel::refresh,
                 onOpenChat = openChat,
+                selectedChatId = paneChatId.takeIf { twoPanes },
                 onBirthdayCardDismissed = homeViewModel::onBirthdayCardDismissed,
                 // "My story" makes one; every other circle is watched.
                 onOpenStory = { story ->
@@ -1500,6 +1544,10 @@ fun TelegramYouNavHost(
                 }
             }
             ChatInfoScreen(
+                report = state.report,
+                onReport = chatViewModel::onReportChat,
+                onReportAnswer = { option, text -> chatViewModel.onReportAnswer(option, text) },
+                onReportDismissed = chatViewModel::onReportDismissed,
                 onAdminSaved = groupViewModel::onAdminSaved,
                 onAdminEditDismissed = groupViewModel::onAdminEditDismissed,
                 onMemberQuery = groupViewModel::onMemberQuery,
@@ -1649,3 +1697,6 @@ private fun android.content.Context.findActivity(): android.app.Activity? {
     }
     return null
 }
+
+/** What a drop onto a conversation may carry, by the first half of its type. */
+private val DROPPABLE = setOf("image", "video", "audio", "application", "text")

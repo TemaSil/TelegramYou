@@ -83,6 +83,12 @@ folders from their t.me/addlist links. See the [changelog](CHANGELOG.md).
 |:---:|:---:|:---:|
 | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/34-poll.jpg" width="240" alt="Polls"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/42-profile.jpg" width="240" alt="Profile"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/41-settings.jpg" width="240" alt="Settings"> |
 
+On a tablet and an unfolded phone the chat opens beside the list:
+
+| Tablet | Foldable |
+|:---:|:---:|
+| <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/129-two-panes.jpg" width="480" alt="Tablet, two panes"> | <img src="https://raw.githubusercontent.com/TemaSil/TelegramYou/gallery/latest/130-two-panes-foldable.jpg" width="300" alt="Foldable, two panes"> |
+
 Real screens, not mockups: the UI tests take them on an emulator after every
 push to `main`. Every build's set is in the
 [**gallery**](https://github.com/TemaSil/TelegramYou/tree/gallery#readme).

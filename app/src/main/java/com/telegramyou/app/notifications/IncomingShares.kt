@@ -46,6 +46,18 @@ object IncomingShares {
         IncomingShare(chatId = chatId, text = text, items = items).takeUnless { it.isEmpty }
     }
 
+    /**
+     * Things dragged onto a chat (2.8) — from another app in split screen
+     * or a tablet's other window — copied the same way, while the drop's
+     * permissions still hold; null when nothing in it could be read.
+     */
+    suspend fun fromDrop(context: Context, uris: List<Uri>, text: String, type: String?): IncomingShare? =
+        withContext(Dispatchers.IO) {
+            val folder = File(context.cacheDir, "shared").apply { mkdirs() }
+            val items = uris.mapIndexedNotNull { index, uri -> copy(context, uri, folder, index, type) }
+            IncomingShare(chatId = null, text = text, items = items).takeUnless { it.isEmpty }
+        }
+
     private fun copy(context: Context, uri: Uri, folder: File, index: Int, intentType: String?): SharedItem? =
         try {
             val resolver = context.contentResolver

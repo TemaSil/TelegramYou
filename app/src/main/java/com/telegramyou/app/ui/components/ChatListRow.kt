@@ -28,6 +28,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -126,7 +128,12 @@ fun ChatListRow(
      * Everything the swipes did is in the long-press menu as well, so turning
      * them off takes a shortcut away and nothing else.
      */
-    swipeActions: Boolean = true
+    swipeActions: Boolean = true,
+    /**
+     * The chat open in the pane beside the list (2.8), shown in Material's
+     * selected colour — the row the conversation on the right belongs to.
+     */
+    selected: Boolean = false
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val shapes = ListItemDefaults.segmentedShapes(index = index, count = count)
@@ -163,8 +170,13 @@ fun ChatListRow(
             // container already says — and it made the group look striped
             // rather than whole.
             colors = ListItemDefaults.segmentedColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                containerColor = if (selected) {
+                    MaterialTheme.colorScheme.secondaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceContainerLowest
+                }
             ),
+            modifier = Modifier.semantics { this.selected = selected },
             leadingContent = {
                 AvatarBubble(
                     title = chat.title,

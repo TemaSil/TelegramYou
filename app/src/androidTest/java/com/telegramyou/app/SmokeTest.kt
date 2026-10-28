@@ -705,10 +705,32 @@ class SmokeTest {
     }
 
     /**
-     * Two panes (2.8): the phone made as wide as a tablet by its density, the
-     * list gains an empty pane beside it, a chat opens there with the list
-     * still showing, and Back empties the pane rather than leaving. The
-     * density goes back whatever happens.
+     * A whole chat reported (2.8), from its info: Report, a reason picked
+     * from Telegram's list, and the thanks.
+     */
+    @Test
+    fun aChatIsReportedFromItsInfo() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(GROUP_OPEN, "the group")
+        awaitNoHeadsUp()
+        tap(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the info screen")
+        scrollDownTo(By.text("Report"))
+        tap(By.text("Report"))
+        waitFor(By.text("Spam"), "Telegram's reasons")
+        tap(By.text("Spam"))
+        waitFor(By.text("Reported. Thank you"), "the chat reported")
+    }
+
+    /**
+     * Two panes (2.8): the emulator's screen made a tablet's — 2560×1600 at
+     * 320dpi, 1280×800dp — the list gains an empty pane beside it, a chat
+     * opens there with the list still showing, and Back empties the pane
+     * rather than leaving; then an unfolded phone's, a Pixel Fold's inner
+     * screen held upright, 700dp wide. The screen goes back whatever happens.
      */
     @Test
     fun aWideWindowOpensTheChatBesideTheList() {
@@ -716,7 +738,8 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
         try {
-            device.executeShellCommand("wm density 200")
+            device.executeShellCommand("wm size 2560x1600")
+            device.executeShellCommand("wm density 320")
             waitFor(By.desc("No chat open"), "the empty pane beside the list")
             tap(By.text("Lina Park"))
             waitFor(By.text("Message"), "the chat in the pane")
@@ -724,7 +747,16 @@ class SmokeTest {
             screenshot("129-two-panes")
             device.pressBack()
             waitFor(By.desc("No chat open"), "the pane emptied by Back")
+            // An unfolded phone held upright: about 700dp wide, the
+            // narrowest window that takes two panes.
+            device.executeShellCommand("wm size 1840x2208")
+            device.executeShellCommand("wm density 420")
+            waitFor(By.desc("No chat open"), "two panes on a foldable's width")
+            tap(By.text("Lina Park"))
+            waitFor(By.text("Message"), "the chat in the foldable's pane")
+            screenshot("130-two-panes-foldable")
         } finally {
+            device.executeShellCommand("wm size reset")
             device.executeShellCommand("wm density reset")
         }
         waitFor(By.text("Material Design"), "the chat list at the phone's own size")

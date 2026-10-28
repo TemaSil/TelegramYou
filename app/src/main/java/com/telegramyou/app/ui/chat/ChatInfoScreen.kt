@@ -133,7 +133,12 @@ fun ChatInfoScreen(
     onAdminSaved: (AdminRights, String) -> Unit = { _, _ -> },
     onAdminEditDismissed: () -> Unit = {},
     onMemberQuery: (String) -> Unit = {},
-    onOpenJoinRequests: () -> Unit = {}
+    onOpenJoinRequests: () -> Unit = {},
+    /** The whole chat reported to Telegram (2.8), and the questions it asks on the way. */
+    report: ReportFlow? = null,
+    onReport: () -> Unit = {},
+    onReportAnswer: (String, String) -> Unit = { _, _ -> },
+    onReportDismissed: () -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -234,6 +239,9 @@ fun ChatInfoScreen(
         )
     }
 
+    report?.let { flow ->
+        ReportSheet(step = flow.step, onAnswer = onReportAnswer, onDismiss = onReportDismissed)
+    }
     if (confirmingLeave) {
         AlertDialog(
             onDismissRequest = onLeaveDismissed,
@@ -500,6 +508,21 @@ fun ChatInfoScreen(
                             leadingIconColor = MaterialTheme.colorScheme.error
                         ),
                         modifier = Modifier.clickable { confirmingDeleteMine = true }
+                    )
+                }
+            }
+            // Reported as a whole (2.8) — a message's own Report is in its
+            // menu. Not Saved Messages, which is this account itself.
+            if (chat != null && !chat.isSavedMessages) {
+                item(key = "report") {
+                    ListItem(
+                        headlineContent = { Text(tr("Report", "Пожаловаться")) },
+                        leadingContent = { Icon(Symbols.ErrorOutline, contentDescription = null) },
+                        colors = ListItemDefaults.colors(
+                            headlineColor = MaterialTheme.colorScheme.error,
+                            leadingIconColor = MaterialTheme.colorScheme.error
+                        ),
+                        modifier = Modifier.clickable(onClick = onReport)
                     )
                 }
             }

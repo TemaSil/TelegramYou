@@ -520,7 +520,9 @@ workflow gave the same commit, and refreshes `latest/` — which is what the
 Screenshots section of `README.md` shows. That section shows six at most —
 chats, a conversation, a group, search, profile, settings — the owner's
 call: the front page is a glance, and the gallery is where every screen
-lives. A screen shown there has to be in `gallery.py`'s list as well. It is the record of how the app looked release
+lives. Under them, since 2.8, one row more: two panes on a tablet and on
+an unfolded phone, which the owner asked for on the front page (28 October
+2026). A screen shown there has to be in `gallery.py`'s list as well. It is the record of how the app looked release
 by release; `.github/scripts/gallery.py` chooses the screens, shrinks them and
 writes its index. Renaming a screenshot in `SmokeTest` drops it from there
 until the list in that script is updated to match.
