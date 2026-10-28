@@ -788,6 +788,9 @@ class SmokeTest {
             tap(By.clazz("android.widget.EditText"))
             SystemClock.sleep(VIDEO_BEAT / 2)
             device.executeShellCommand("input text Unfolded%sand%sit%sfits")
+            // The keys arrive after the command returns: Send waits for the
+            // last of them, or it sends "Unfolded and it fit" — which it did.
+            waitFor(By.clazz("android.widget.EditText").text("Unfolded and it fits"), "the whole message typed")
             SystemClock.sleep(VIDEO_BEAT / 2)
             tap(By.desc("Send"))
             waitFor(By.text("Unfolded and it fits"), "the message sent")
