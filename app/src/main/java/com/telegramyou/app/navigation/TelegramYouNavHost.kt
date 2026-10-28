@@ -16,6 +16,9 @@ import com.telegramyou.app.ui.stories.NewStoryViewModel
 import com.telegramyou.app.ui.stories.NewStoryScreen
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRail
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -983,12 +986,43 @@ fun TelegramYouNavHost(
                             }
                             // Narrower, nothing open: the list has the window.
                             pane == null -> Box(Modifier.weight(1f).fillMaxHeight()) { home() }
-                            // Narrower, a chat open: the list folds to pictures.
-                            else -> ChatAvatarColumn(
-                                chats = state.chats,
-                                selected = pane,
-                                onOpen = { id -> openChat(id) }
-                            )
+                            // Narrower, a chat open: the list folds to pictures,
+                            // with the rail kept beside them as icons alone —
+                            // the way back to Search, Settings and Profile,
+                            // which close the chat to open there.
+                            else -> {
+                                NavigationRail(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier.fillMaxHeight()
+                                ) {
+                                    HomeTab.entries
+                                        .filter { it != HomeTab.Music || geekSettings.musicLibrary }
+                                        .forEach { entry ->
+                                            val chosen = entry == HomeTab.Chats
+                                            NavigationRailItem(
+                                                selected = chosen,
+                                                onClick = {
+                                                    if (!chosen) {
+                                                        paneChatId = null
+                                                        tab = entry
+                                                        homeViewModel.onSearchExpandedChange(entry == HomeTab.Search)
+                                                    }
+                                                },
+                                                icon = {
+                                                    Icon(
+                                                        if (chosen) entry.selectedIcon else entry.icon,
+                                                        contentDescription = entry.label
+                                                    )
+                                                }
+                                            )
+                                        }
+                                }
+                                ChatAvatarColumn(
+                                    chats = state.chats,
+                                    selected = pane,
+                                    onOpen = { id -> openChat(id) }
+                                )
+                            }
                         }
                         if (fullList || pane != null) {
                             Box(

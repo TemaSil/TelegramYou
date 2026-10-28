@@ -904,6 +904,8 @@ class SmokeTest {
             tap(By.text("Lina Park"))
             waitFor(By.text("Message"), "the chat beside the folded list")
             waitFor(By.desc("Material Design"), "the list folded to its pictures")
+            // The rail kept beside the pictures, so Settings is still a tap away.
+            waitFor(By.desc("Settings"), "the rail beside the folded list")
             assertTrue(
                 "the list kept its names beside the chat on a foldable",
                 !device.hasObject(By.text("Material Design"))
