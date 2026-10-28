@@ -229,9 +229,22 @@ class GroupViewModel(
         _uiState.update { it.copy(links = links, notice = tr("Link revoked", "Ссылка отозвана")) }
     }
 
-    fun loadTopics() = attempt(tr("Could not load the topics", "Не удалось загрузить темы")) {
+    /**
+     * How many times the topics have been asked for. Only the newest answer
+     * is drawn: the list asked for on returning to it could arrive after a
+     * topic was made, and put back the list without it.
+     */
+    private var topicsAsked = 0
+
+    /** The topics, or null when a newer request has been made since. */
+    private suspend fun freshTopics(): List<ForumTopic>? {
+        val ask = ++topicsAsked
         val topics = sortedTopics(repository.forumTopics(chatId))
-        _uiState.update { it.copy(topics = topics) }
+        return topics.takeIf { ask == topicsAsked }
+    }
+
+    fun loadTopics() = attempt(tr("Could not load the topics", "Не удалось загрузить темы")) {
+        freshTopics()?.let { topics -> _uiState.update { it.copy(topics = topics) } }
         // For the topics' menus: only an admin who may manage them has one.
         val management = repository.groupManagement(chatId)
         _uiState.update { it.copy(management = management ?: it.management) }
@@ -271,14 +284,14 @@ class GroupViewModel(
     fun onTopicDialogDismissed() = _uiState.update { it.copy(renamingTopic = null, deletingTopic = null) }
 
     private suspend fun reloadTopics(notice: String) {
-        val topics = sortedTopics(repository.forumTopics(chatId))
-        _uiState.update { it.copy(topics = topics, notice = notice) }
+        val topics = freshTopics()
+        _uiState.update { it.copy(topics = topics ?: it.topics, notice = notice) }
     }
 
     fun onCreateTopic(name: String) = attempt(tr("Could not start the topic", "Не удалось создать тему")) {
         repository.createForumTopic(chatId, name)
-        val topics = sortedTopics(repository.forumTopics(chatId))
-        _uiState.update { it.copy(topics = topics, notice = tr("Topic started", "Тема создана")) }
+        val topics = freshTopics()
+        _uiState.update { it.copy(topics = topics ?: it.topics, notice = tr("Topic started", "Тема создана")) }
     }
 
     fun onNoticeShown() = _uiState.update { it.copy(notice = null) }
