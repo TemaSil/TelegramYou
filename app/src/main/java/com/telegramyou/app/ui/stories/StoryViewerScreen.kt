@@ -76,7 +76,11 @@ fun StoryViewerScreen(
     onSeen: () -> Unit,
     onNext: () -> Boolean,
     onPrevious: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    /** Ghost mode's story views (2.8): always unseen, or minutes left of the eye's while. */
+    unseenAlways: Boolean = false,
+    unseenMinutesLeft: Int = 0,
+    onUnseenToggle: () -> Unit = {}
 ) {
     val frame = state.frame ?: return
     val path = state.paths[frame.id]?.takeIf { it.isNotBlank() } ?: frame.localPath
@@ -182,11 +186,35 @@ fun StoryViewerScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(story.authorName, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
                     val age = storyAgeLabel(frame.date, System.currentTimeMillis() / 1000)
-                    if (age.isNotEmpty()) {
+                    // Unseen (2.8): said where the age is, with the minutes
+                    // left when it is the eye's while rather than for good.
+                    val line = when {
+                        unseenAlways -> tr("Unseen · Ghost mode", "Незаметно · режим призрака")
+                        unseenMinutesLeft > 0 -> tr("Unseen · $unseenMinutesLeft min left", "Незаметно · осталось $unseenMinutesLeft мин")
+                        else -> age
+                    }
+                    if (line.isNotEmpty()) {
                         Text(
-                            age,
+                            line,
                             color = Color.White.copy(alpha = 0.75f),
                             style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+                // The eye (2.8): stories watched unseen for a quarter of an
+                // hour, or seen again. Counted only once a story is over, so
+                // the first one opened is not given away by the time it is
+                // tapped.
+                if (!unseenAlways) {
+                    IconButton(onClick = onUnseenToggle) {
+                        Icon(
+                            if (unseenMinutesLeft > 0) Symbols.VisibilityOff else Symbols.Visibility,
+                            contentDescription = if (unseenMinutesLeft > 0) {
+                                tr("Be seen again", "Снова показывать просмотры")
+                            } else {
+                                tr("Watch unseen for 15 minutes", "Смотреть незаметно 15 минут")
+                            },
+                            tint = Color.White
                         )
                     }
                 }

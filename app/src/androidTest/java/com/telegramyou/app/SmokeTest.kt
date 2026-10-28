@@ -669,6 +669,25 @@ class SmokeTest {
     }
 
     /**
+     * Stories watched unseen (2.8): the eye at the top of a story turns it on
+     * for a quarter of an hour, which the line under the name says, and a
+     * tap on it again turns it off.
+     */
+    @Test
+    fun aStoryIsWatchedUnseen() {
+        signIn()
+        waitFor(By.text(STORY_AUTHOR), "the stories rail")
+        awaitNoHeadsUp()
+        tap(By.text(STORY_AUTHOR))
+        waitFor(By.text(STORY_CAPTION), "the story viewer")
+        tap(By.desc("Watch unseen for 15 minutes"))
+        waitFor(By.textStartsWith("Unseen ·"), "the line saying it is unseen")
+        screenshot("131-story-unseen")
+        tap(By.desc("Be seen again"))
+        waitFor(By.desc("Watch unseen for 15 minutes"), "the eye open again")
+    }
+
+    /**
      * The chat list's overflow menu reaches Saved Messages and the proxies,
      * and a proxy added there is listed.
      *

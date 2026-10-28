@@ -58,7 +58,9 @@ data class GeekSettings(
     /** Ghost mode (2.8): no "typing…" sent, no messages marked read, never online. */
     val ghostTyping: Boolean = false,
     val ghostReading: Boolean = false,
-    val ghostOnline: Boolean = false
+    val ghostOnline: Boolean = false,
+    /** Stories watched without their posters seeing it (2.8). */
+    val ghostStories: Boolean = false
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */

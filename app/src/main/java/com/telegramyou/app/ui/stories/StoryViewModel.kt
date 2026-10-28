@@ -98,6 +98,9 @@ class StoryViewModel(
 
     /** The story on screen has been shown to its end, or tapped past. */
     fun markSeen() {
+        // Watched unseen (2.8): the poster is not told, and the circle keeps
+        // its ring — it was not seen, as far as anyone knows.
+        if (com.telegramyou.app.settings.GhostMode.storiesUnseen()) return
         val frame = _uiState.value.frame ?: return
         viewModelScope.launch {
             try {

@@ -80,6 +80,14 @@ fun GhostModeScreen(
                     summary = tr("You are never shown online while you use the app", "Вас не видно в сети, пока вы в приложении"),
                     checked = settings.ghostOnline
                 ) { on -> onChange { it.copy(ghostOnline = on) } }
+                switch(
+                    title = tr("Watch stories unseen", "Смотреть сторис незаметно"),
+                    summary = tr(
+                        "Always. Or for 15 minutes at a time, from the eye at the top of a story",
+                        "Всегда. Или на 15 минут — глазом вверху сторис"
+                    ),
+                    checked = settings.ghostStories
+                ) { on -> onChange { it.copy(ghostStories = on) } }
             }
         }
     }
@@ -90,7 +98,8 @@ fun ghostModeSummary(settings: GeekSettings): String {
     val on = listOfNotNull(
         tr("typing", "печатает").takeIf { settings.ghostTyping },
         tr("read", "прочитано").takeIf { settings.ghostReading },
-        tr("online", "в сети").takeIf { settings.ghostOnline }
+        tr("online", "в сети").takeIf { settings.ghostOnline },
+        tr("story views", "просмотры сторис").takeIf { settings.ghostStories }
     )
     return if (on.isEmpty()) tr("Off", "Выключен") else tr("Hiding ", "Скрыто: ") + on.joinToString(", ")
 }

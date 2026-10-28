@@ -49,6 +49,7 @@ class GeekStore(context: Context) {
             .putBoolean(KEY_GHOST_TYPING, now.ghostTyping)
             .putBoolean(KEY_GHOST_READING, now.ghostReading)
             .putBoolean(KEY_GHOST_ONLINE, now.ghostOnline)
+            .putBoolean(KEY_GHOST_STORIES, now.ghostStories)
             .apply()
         AutoTranslate.allow(now.autoTranslate)
         GhostMode.set(now)
@@ -76,7 +77,8 @@ class GeekStore(context: Context) {
             groupFaces = preferences.getBoolean(KEY_GROUP_FACES, false),
             ghostTyping = preferences.getBoolean(KEY_GHOST_TYPING, false),
             ghostReading = preferences.getBoolean(KEY_GHOST_READING, false),
-            ghostOnline = preferences.getBoolean(KEY_GHOST_ONLINE, false)
+            ghostOnline = preferences.getBoolean(KEY_GHOST_ONLINE, false),
+            ghostStories = preferences.getBoolean(KEY_GHOST_STORIES, false)
         )
     }
 
@@ -88,6 +90,7 @@ class GeekStore(context: Context) {
         const val KEY_GHOST_TYPING = "ghost_typing"
         const val KEY_GHOST_READING = "ghost_reading"
         const val KEY_GHOST_ONLINE = "ghost_online"
+        const val KEY_GHOST_STORIES = "ghost_stories"
         const val KEY_SECONDS = "show_seconds"
         const val KEY_DETAILS = "message_details"
         const val KEY_SAVE_MEDIA = "save_media"

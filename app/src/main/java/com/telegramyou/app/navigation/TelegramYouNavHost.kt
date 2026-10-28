@@ -1654,6 +1654,18 @@ fun TelegramYouNavHost(
                     .fillMaxSize()
                     .containerTransform(storyContainerKey(openedStoryId), StoryContainerShape, isScreen = true)
             ) {
+            // The minutes left of the eye's while, counted down as the
+            // stories play; 0 once it is over or was never on.
+            val unseenUntil by com.telegramyou.app.settings.GhostMode.storiesUnseenUntil.collectAsStateWithLifecycle()
+            var clock by remember { mutableStateOf(System.currentTimeMillis()) }
+            LaunchedEffect(unseenUntil) {
+                while (System.currentTimeMillis() < unseenUntil) {
+                    clock = System.currentTimeMillis()
+                    kotlinx.coroutines.delay(15_000)
+                }
+                clock = System.currentTimeMillis()
+            }
+            val unseenMinutesLeft = if (unseenUntil > clock) (((unseenUntil - clock) + 59_999) / 60_000).toInt() else 0
             when {
                 // Closed only once the lookup has answered: the first state is
                 // "not looked up yet", and closing on that is what made every
@@ -1673,7 +1685,16 @@ fun TelegramYouNavHost(
                     onSeen = storyViewModel::markSeen,
                     onNext = storyViewModel::next,
                     onPrevious = storyViewModel::previous,
-                    onClose = { navController.popBackStack() }
+                    onClose = { navController.popBackStack() },
+                    unseenAlways = geekSettings.ghostStories,
+                    unseenMinutesLeft = unseenMinutesLeft,
+                    onUnseenToggle = {
+                        if (com.telegramyou.app.settings.GhostMode.storiesUnseen()) {
+                            com.telegramyou.app.settings.GhostMode.stopWatchingUnseen()
+                        } else {
+                            com.telegramyou.app.settings.GhostMode.watchStoriesUnseen()
+                        }
+                    }
                 )
             }
             }
