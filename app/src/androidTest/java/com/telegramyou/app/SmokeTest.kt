@@ -3921,6 +3921,18 @@ class SmokeTest {
      */
     @Test
     fun theAppLocksBehindAPin() {
+        try {
+            locksBehindAPin()
+        } finally {
+            // Off whatever happened, or every later test on this emulator
+            // meets the lock instead of the chat list — a failure here once
+            // took eleven more down with it.
+            val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { app.appLock.disable() }
+        }
+    }
+
+    private fun locksBehindAPin() {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
@@ -3974,7 +3986,11 @@ class SmokeTest {
         waitFor(By.text("Enter your PIN to turn the lock off"), "the PIN asked before turning off")
         "9999".forEach { digit -> tap(By.desc("Digit $digit")) }
         waitFor(By.text("Wrong PIN, try again"), "a wrong PIN refused")
-        assertTrue("a wrong PIN turned the lock off", device.hasObject(By.desc("0 of 4 digits")))
+        // Waited for: the dots empty a beat after the words appear.
+        assertTrue(
+            "a wrong PIN turned the lock off",
+            device.wait(Until.hasObject(By.desc("0 of 4 digits")), STEP_TIMEOUT)
+        )
         screenshot("62b-app-lock-check")
         "1234".forEach { digit -> tap(By.desc("Digit $digit")) }
         assertTrue(
