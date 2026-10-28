@@ -9,6 +9,15 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.7
+
+- **Voice to text.** A button on every voice message asks Telegram to write it down, and the words open under the waveform; the same button puts them away. Premium's on Telegram's side, with a few free tries for everyone else.
+- **Saved Messages by chat.** A button in its header lists My notes and every chat something was saved from, each opened as a conversation of its own.
+- **Tags in Saved Messages**: the reactions put on saved messages show as chips under the header, a tap shows only what carries one, and a pencil names it.
+- **Shared folders**: a t.me/addlist link — tapped in a message, or pasted into Chat folders → Add a folder by link — shows the folder and its chats, any of which can be left out, and adds it. A folder's menu has Share, which makes a link to it.
+- **Stickers are looked after in the sticker panel**, not in Settings: its last tab lists your packs to move or remove, and trending ones to add. Language moved down beside For geeks.
+- **Russian titles in Google Sans**: Google Sans Flex has no Cyrillic, so Настройки, Поиск and Музыка fell back to the system face.
+
 ## 2.6
 
 - **Notifications from every account**, not only the one in use. Each account's chats have notifications of their own; with more than one signed in, the card names the account, and a tap — or Reply — goes to that account first. Switching accounts no longer clears the shade.

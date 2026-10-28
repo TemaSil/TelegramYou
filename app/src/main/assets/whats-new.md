@@ -1,6 +1,6 @@
-# Every account, in Russian too, and stickers kept
-- Messages to every account you're signed in to now notify, not just the one in use
-- A tap on one switches to that account and opens the chat
-- TelegramYou speaks Russian: pick it in Android's settings for the app
-- Tap a sticker to see its whole pack, and add or remove it right there
-- Settings → Stickers: reorder your packs and add trending ones
+# Voice to text, Saved Messages by chat, shared folders
+- Tap the new button on a voice message to read it instead
+- Saved Messages opens by chat: see what you saved from where
+- Tag saved messages with reactions, then filter and name the tags
+- Open a t.me/addlist link to add a shared folder, or share your own
+- Manage sticker packs right in the sticker panel; Russian titles look right

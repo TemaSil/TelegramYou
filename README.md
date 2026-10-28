@@ -55,13 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.6 · 27 October 2026
+## Latest: 2.7 · 28 October 2026
 
-Every account you are signed in to notifies now, and a tap switches to it;
-the app speaks Russian, chosen in Android's per-app language settings; and
-a sticker opens its pack, with your packs reordered and trending ones added
-from Settings → Stickers. 2.5 before it brought emoji statuses, profile
-colours and birthdays. See the [changelog](CHANGELOG.md).
+Voice messages can be read as text; Saved Messages opens by chat, with
+its tags as filters; and shared folders are added from their t.me/addlist
+links, or shared. Sticker packs are looked after in the sticker panel now.
+2.6 before it brought notifications from every account, Russian and
+stickers. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

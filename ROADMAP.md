@@ -116,8 +116,8 @@ By how soon they would notice, not by how hard it is.
       turns and crops (PhotoEditor) and goes under a spoiler; the held send
       button offers Send without sound, Send when online, Send as files and
       Schedule. Drawing on a photo, as the official app has, is not done.
-- [ ] **Voice to text** — TDLib's `recognizeSpeech`, Premium on Telegram's
-      side; the button on a voice message, the text under it.
+- [x] **Voice to text** (2.7) — TDLib's `recognizeSpeech`, Premium on
+      Telegram's side; the button on a voice message, the text under it.
 - [x] **Stickers looked after** (2.6) — a pack opened from a sticker, added
       and removed, the packs reordered, trending ones — in the sticker
       panel's last tab since 2.7; 2.6 had them in Settings → Stickers.
@@ -126,7 +126,10 @@ By how soon they would notice, not by how hard it is.
       card rather than Telegram's gradient; your own set from the profile
       (the colour and the status are Premium's). Contacts' birthdays as a
       card over the chat list and, once on the day, a notification.
-- [ ] **Saved Messages by chat** and its tags; **shared folder links**.
+- [x] **Saved Messages by chat** and its tags; **shared folder links**
+      (2.7) — the topics from Saved Messages' header, the tags as filter
+      chips with a name each; a t.me/addlist link opened from a message or
+      Chat folders, and Share in a folder's menu.
 - [x] **More than one account** (2.3) — up to three, as the official app
       holds. A TDLib instance per account, each with its own database
       (`tdlib`, `tdlib-1`, …; the first keeps the directory it always had),
