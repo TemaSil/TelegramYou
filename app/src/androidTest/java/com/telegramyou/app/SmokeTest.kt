@@ -784,13 +784,15 @@ class SmokeTest {
             waitFor(By.text("Message"), "Lina's chat beside the folded list")
             SystemClock.sleep(VIDEO_BEAT)
 
-            // Typed on the keyboard, as a person would, rather than set.
-            tap(By.clazz("android.widget.EditText"))
+            // The keyboard up, as a person writing would have it; the words
+            // set into the field rather than typed key by key, which the
+            // emulator's keyboard ate letters of — once it sent "…it fit",
+            // once it left "…it fi" as a draft that failed the next test.
+            val field = By.clazz("android.widget.EditText")
+            tap(field)
             SystemClock.sleep(VIDEO_BEAT / 2)
-            device.executeShellCommand("input text Unfolded%sand%sit%sfits")
-            // The keys arrive after the command returns: Send waits for the
-            // last of them, or it sends "Unfolded and it fit" — which it did.
-            waitFor(By.clazz("android.widget.EditText").text("Unfolded and it fits"), "the whole message typed")
+            device.findObject(field).text = "Unfolded and it fits"
+            waitFor(field.text("Unfolded and it fits"), "the whole message in the field")
             SystemClock.sleep(VIDEO_BEAT / 2)
             tap(By.desc("Send"))
             waitFor(By.text("Unfolded and it fits"), "the message sent")
@@ -850,6 +852,8 @@ class SmokeTest {
             waitFor(By.text("Message"), "the chat on the folded phone")
             SystemClock.sleep(VIDEO_BEAT)
         } finally {
+            // Nothing left in a composer as a draft for the next test.
+            runCatching { device.findObject(By.clazz("android.widget.EditText"))?.text = "" }
             device.executeShellCommand("wm size reset")
             stopRecording(recording, "132-foldable")
         }
