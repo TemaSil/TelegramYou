@@ -812,7 +812,10 @@ class SmokeTest {
             device.executeShellCommand("wm size reset")
             device.executeShellCommand("wm density reset")
         }
-        waitFor(By.text("Material Design"), "the chat list at the phone's own size")
+        // Folded back to a phone with Lina's chat in the pane: it comes
+        // along as a screen of its own, and Back is the list.
+        waitFor(By.text("Message"), "the pane's chat, full screen at the phone's own size")
+        backTo(By.text("Material Design"), "the chat list at the phone's own size")
     }
 
     /**
