@@ -2225,7 +2225,16 @@ class SmokeTest {
         tap(By.desc("Emoji, GIFs and stickers"))
         tap(By.text("Stickers"))
         waitFor(By.desc("Recent stickers"), "the sticker tab")
-        tap(By.desc("Your stickers and trending"))
+        // The last tab, past the sets: the row scrolled along to it, since
+        // with the set just added it runs off the screen's edge.
+        val manage = By.desc("Your stickers and trending")
+        repeat(4) {
+            if (device.hasObject(manage)) return@repeat
+            val row = device.findObject(By.desc("Recent stickers")).visibleBounds.centerY()
+            device.swipe((device.displayWidth * 0.85).toInt(), row, (device.displayWidth * 0.15).toInt(), row, 20)
+            device.waitForIdle(IDLE_TIMEOUT)
+        }
+        tap(manage)
         waitFor(By.text("Your stickers"), "the panel's page for the sets")
         waitFor(By.desc("Space options"), "the added set among yours")
         screenshot("49b-stickers")
