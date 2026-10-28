@@ -54,6 +54,8 @@ fun telegramViewModelFactory(
             else ChatViewModel(repository, createSavedStateHandle())
         }
         initializer { GroupViewModel(repository, createSavedStateHandle()) }
+        initializer { com.telegramyou.app.ui.saved.SavedTopicsViewModel(repository, createSavedStateHandle()) }
+        initializer { com.telegramyou.app.ui.folders.FolderInviteViewModel(repository, createSavedStateHandle()) }
         initializer { SharedMediaViewModel(repository, createSavedStateHandle()) }
         initializer { MyMusicViewModel(repository) }
         initializer {

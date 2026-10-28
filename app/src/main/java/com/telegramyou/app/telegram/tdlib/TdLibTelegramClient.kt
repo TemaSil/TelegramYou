@@ -59,6 +59,11 @@ import com.telegramyou.app.ui.format.isOnline
 import com.telegramyou.app.ui.format.memberCountLabel
 import com.telegramyou.app.ui.format.presenceLabel
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.FolderInvite
+import com.telegramyou.app.telegram.model.MAX_SAVED_TAG_LABEL
+import com.telegramyou.app.telegram.model.SavedTag
+import com.telegramyou.app.telegram.model.SavedTopic
+import com.telegramyou.app.telegram.model.SavedTopicKind
 import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResults
 import com.telegramyou.app.telegram.model.ReportOption
@@ -1871,12 +1876,185 @@ class TdLibTelegramClient(
         }
     }
 
+    /** The Saved Messages topics as the updates last said; see savedTopics. */
+    private val savedTopicsById = ConcurrentHashMap<Long, JSONObject>()
+
+    /** The Saved Messages topic its screen is on; see setOpenSavedTopic. */
+    private val openSavedTopics = ConcurrentHashMap<Long, Long>()
+
+    override fun setOpenSavedTopic(chatId: Long, topicId: Long?) {
+        if (topicId == null) openSavedTopics.remove(chatId) else openSavedTopics[chatId] = topicId
+    }
+
+    override fun closeOpenSavedTopic(chatId: Long, topicId: Long) {
+        openSavedTopics.remove(chatId, topicId)
+    }
+
+    /**
+     * Asked to be loaded, which TDLib answers with an update per topic, then
+     * read off those: a 404 means every topic is already here.
+     */
+    override suspend fun savedTopics(): List<SavedTopic> {
+        awaitReady()
+        repeat(SAVED_TOPIC_PAGES) {
+            try {
+                requireEngine().send(JSONObject().put("@type", "loadSavedMessagesTopics").put("limit", SAVED_TOPIC_PAGE))
+            } catch (e: TdLibException) {
+                if (e.code != 404) Log.w(TAG, "savedTopics: ${e.message}")
+                return@repeat
+            }
+        }
+        return savedTopicsById.values
+            .sortedByDescending { it.optString("order").toLongOrNull() ?: 0L }
+            .mapNotNull { savedTopicOf(it) }
+    }
+
+    private suspend fun savedTopicOf(topic: JSONObject): SavedTopic? {
+        val type = topic.optJSONObject("type") ?: return null
+        val last = topic.optJSONObject("last_message")
+        val (kind, chatId) = when (type.optString("@type")) {
+            "savedMessagesTopicTypeMyNotes" -> SavedTopicKind.MyNotes to null
+            "savedMessagesTopicTypeAuthorHidden" -> SavedTopicKind.AuthorHidden to null
+            "savedMessagesTopicTypeSavedFromChat" -> SavedTopicKind.FromChat to type.optLong("chat_id")
+            else -> return null
+        }
+        val title = chatId?.let { id ->
+            (chatsById[id] ?: runCatching {
+                requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", id))
+            }.getOrNull())?.optString("title")
+        }.orEmpty()
+        return SavedTopic(
+            id = topic.optLong("id"),
+            kind = kind,
+            title = title,
+            chatId = chatId,
+            preview = previewText(last),
+            timeLabel = chatListTimeLabel(
+                epochSeconds = last?.optLong("date") ?: 0L,
+                nowSeconds = nowSeconds(),
+                zone = ZoneId.systemDefault()
+            ),
+            isPinned = topic.optBoolean("is_pinned")
+        )
+    }
+
+    override suspend fun savedTags(topicId: Long): List<SavedTag> {
+        awaitReady()
+        val answer = try {
+            requireEngine().send(
+                JSONObject().put("@type", "getSavedMessagesTags").put("saved_messages_topic_id", topicId)
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "savedTags: ${e.message}")
+            return emptyList()
+        }
+        val tags = answer.optJSONArray("tags") ?: return emptyList()
+        return (0 until tags.length()).mapNotNull { i ->
+            val tag = tags.optJSONObject(i) ?: return@mapNotNull null
+            val reaction = reactionKeyOf(tag.optJSONObject("tag")) ?: return@mapNotNull null
+            SavedTag(reaction = reaction, label = tag.optString("label"), count = tag.optInt("count"))
+        }
+    }
+
+    override suspend fun savedMessagesTagged(reaction: String, topicId: Long): List<ChatMessage> {
+        awaitReady()
+        val found = requireEngine().send(
+            JSONObject()
+                .put("@type", "searchSavedMessages")
+                .put("saved_messages_topic_id", topicId)
+                .put("tag", reactionTypeOf(reaction))
+                .put("query", "")
+                .put("from_message_id", 0)
+                .put("offset", 0)
+                .put("limit", TAGGED_LIMIT)
+        )
+        val messages = found.optJSONArray("messages") ?: return emptyList()
+        val chatId = messages.optJSONObject(0)?.optLong("chat_id") ?: return emptyList()
+        return parseMessages(chatId, messages)
+    }
+
+    override suspend fun setSavedTagLabel(reaction: String, label: String) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "setSavedMessagesTagLabel")
+                .put("tag", reactionTypeOf(reaction))
+                .put("label", label.trim().take(MAX_SAVED_TAG_LABEL))
+        )
+    }
+
+    override suspend fun folderInvite(link: String): FolderInvite? {
+        awaitReady()
+        val info = try {
+            requireEngine().send(
+                JSONObject().put("@type", "checkChatFolderInviteLink").put("invite_link", link.trim())
+            )
+        } catch (e: TdLibException) {
+            Log.w(TAG, "folderInvite: ${e.message}")
+            return null
+        }
+        val folder = info.optJSONObject("chat_folder_info")
+        val name = folder?.optJSONObject("name")?.optJSONObject("text")?.optString("text")
+            ?: folder?.optString("title")
+        suspend fun chats(key: String): List<ChatPreview> {
+            val ids = info.optJSONArray(key) ?: return emptyList()
+            return (0 until ids.length()).mapNotNull { i ->
+                val id = ids.optLong(i)
+                (chatsById[id] ?: runCatching {
+                    requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", id))
+                }.getOrNull())?.let { toPreview(it) }
+            }
+        }
+        return FolderInvite(
+            link = link.trim(),
+            name = name.orEmpty().ifBlank { tr("Folder", "Папка") },
+            folderId = folder?.optInt("id")?.takeIf { it != 0 },
+            missingChats = chats("missing_chat_ids"),
+            addedChats = chats("added_chat_ids")
+        )
+    }
+
+    override suspend fun addFolderByLink(link: String, chatIds: List<Long>) {
+        awaitReady()
+        val ids = JSONArray().apply { chatIds.forEach { put(it) } }
+        requireEngine().send(
+            JSONObject().put("@type", "addChatFolderByInviteLink").put("invite_link", link.trim()).put("chat_ids", ids)
+        )
+    }
+
+    override suspend fun folderLink(folderId: Int): String? {
+        awaitReady()
+        // Only groups and channels can be shared, and only those this
+        // account may invite to: TDLib says which.
+        val shareable = requireEngine().send(
+            JSONObject().put("@type", "getChatsForChatFolderInviteLink").put("chat_folder_id", folderId)
+        ).optJSONArray("chat_ids") ?: JSONArray()
+        if (shareable.length() == 0) return null
+        val link = requireEngine().send(
+            JSONObject()
+                .put("@type", "createChatFolderInviteLink")
+                .put("chat_folder_id", folderId)
+                .put("name", "")
+                .put("chat_ids", shareable)
+        )
+        return link.optString("invite_link").takeIf { it.isNotBlank() }
+    }
+
     /**
      * A history request or a send, pointed at the topic [chatId]'s screen is
      * on, if it is on one: history becomes that topic's history, and a send
      * or a draft carries the topic. Anything else passes through unchanged.
      */
     private fun JSONObject.inOpenTopic(chatId: Long): JSONObject = apply {
+        // A Saved Messages topic (2.7) changes only what is read: what is
+        // written in Saved Messages goes to My notes, wherever it is opened.
+        openSavedTopics[chatId]?.let { topic ->
+            if (optString("@type") == "getChatHistory") {
+                put("@type", "getSavedMessagesTopicHistory")
+                put("saved_messages_topic_id", topic)
+            }
+            return@apply
+        }
         // A comment thread, open on a channel post's discussion group, is
         // the same idea as a forum topic: history becomes the thread's, and
         // what is sent goes into it (2.0).
@@ -4540,6 +4718,12 @@ class TdLibTelegramClient(
                 scopeNotifications[scope] = update.optJSONObject("notification_settings") ?: return
                 publishChats()
             }
+            "updateSavedMessagesTopic" -> {
+                // Saved Messages by chat (2.7): each topic, whole, on every
+                // change, as the folders come.
+                val topic = update.optJSONObject("topic") ?: return
+                savedTopicsById[topic.optLong("id")] = topic
+            }
             "updateChatFolders" -> {
                 // The account's folders, whole, on every change: TDLib sends
                 // the list rather than a diff, so this replaces rather than
@@ -5572,7 +5756,8 @@ class TdLibTelegramClient(
             isPinned = message.optBoolean("is_pinned"),
             topicId = topicIdOf(message),
             commentCount = commentCountOf(message),
-            threadId = threadIdOf(message)
+            threadId = threadIdOf(message),
+            savedTopicId = savedTopicIdOf(message)
         )
     }
 
@@ -5929,6 +6114,13 @@ internal fun JSONObject.optInt64(key: String): Long =
 
 /** How many messages after the day before's last are looked through for a date's first. */
 private const val FIRST_FROM_PAGE = 20
+
+/** Saved Messages topics asked for at a time, and how many times at most. */
+private const val SAVED_TOPIC_PAGE = 100
+private const val SAVED_TOPIC_PAGES = 5
+
+/** How many messages a tag in Saved Messages shows. */
+private const val TAGGED_LIMIT = 100
 
 /** How many trending sticker sets the Stickers screen offers. */
 private const val TRENDING_SETS = 20

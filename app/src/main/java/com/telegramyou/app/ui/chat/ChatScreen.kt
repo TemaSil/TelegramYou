@@ -256,6 +256,11 @@ fun ChatScreen(
     onForwardToContact: (TelegramUser) -> Unit = {},
     onVoiceToggled: (ChatMessage) -> Unit,
     onTranscribe: (ChatMessage) -> Unit = {},
+    /** Saved Messages by chat (2.7), and its tags. */
+    onOpenSavedTopics: () -> Unit = {},
+    onSavedTagSelected: (String) -> Unit = {},
+    onSavedTagNaming: (com.telegramyou.app.telegram.model.SavedTag?) -> Unit = {},
+    onSavedTagNamed: (String) -> Unit = {},
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
     onDocumentOpened: (ChatMessage) -> Unit = {},
@@ -1032,6 +1037,13 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Saved Messages as a whole opens by chat, as the
+                    // official client lists it (2.7).
+                    if (state.canOpenSavedTopics) {
+                        IconButton(onClick = onOpenSavedTopics) {
+                            Icon(Symbols.Forum, contentDescription = tr("Saved Messages by chat", "Избранное по чатам"))
+                        }
+                    }
                     // Only while something is waiting: a clock in the bar of
                     // a chat with nothing scheduled would be a button that
                     // opens an empty list.
@@ -1107,6 +1119,18 @@ fun ChatScreen(
                 .consumeWindowInsets(WindowInsets.navigationBars)
         ) {
             musicBar()
+            if (state.savedTags.isNotEmpty()) {
+                SavedTagRow(
+                    tags = state.savedTags,
+                    selected = state.selectedTag,
+                    onSelect = onSavedTagSelected,
+                    onName = onSavedTagNaming,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
+            state.namingTag?.let { tag ->
+                SavedTagNameDialog(tag = tag, onSave = onSavedTagNamed, onDismiss = { onSavedTagNaming(null) })
+            }
             detail?.pinnedMessage?.let { pinned ->
                 PinnedMessageBar(
                     message = pinned,

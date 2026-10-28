@@ -9,6 +9,8 @@ import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.telegram.model.ChatMessage
+import com.telegramyou.app.telegram.model.SavedTag
+import com.telegramyou.app.telegram.model.SavedTopic
 import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.MessagePermissions
 import com.telegramyou.app.telegram.model.MessageUpdate
@@ -324,6 +326,30 @@ interface TelegramMessages {
      * Telegram's reason.
      */
     suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? = null
+
+    /**
+     * Saved Messages by where they came from (2.7): its topics, the chats
+     * saved from and My notes, newest first, pinned ones on top.
+     */
+    suspend fun savedTopics(): List<SavedTopic> = emptyList()
+
+    /**
+     * Which Saved Messages topic the conversation screen on [chatId] — Saved
+     * Messages — is showing; the same contract as setOpenTopic, for them.
+     */
+    fun setOpenSavedTopic(chatId: Long, topicId: Long?) {}
+
+    /** The screen on [topicId] has gone, if that is still the open one. */
+    fun closeOpenSavedTopic(chatId: Long, topicId: Long) {}
+
+    /** The tags on saved messages (2.7), in [topicId] or, for 0, all of Saved Messages. */
+    suspend fun savedTags(topicId: Long = 0): List<SavedTag> = emptyList()
+
+    /** The saved messages tagged [reaction], newest last, in [topicId] or all of them for 0. */
+    suspend fun savedMessagesTagged(reaction: String, topicId: Long = 0): List<ChatMessage> = emptyList()
+
+    /** A tag named, or its name taken off with a blank [label]. */
+    suspend fun setSavedTagLabel(reaction: String, label: String) {}
 
     /** Whether [streamFile] works here: a video or a track plays as it downloads. */
     val canStream: Boolean get() = false

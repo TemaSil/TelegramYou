@@ -18,6 +18,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import com.telegramyou.app.telegram.model.folderLinkSlug
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -108,10 +109,33 @@ fun FoldersScreen(
     onDeleteRequested: (ChatFolder) -> Unit,
     onDeleteDismissed: () -> Unit,
     onDeleteConfirmed: () -> Unit,
-    onMessageShown: () -> Unit
+    onMessageShown: () -> Unit,
+    onShare: (Int) -> Unit = {},
+    onShared: () -> Unit = {},
+    /** A shared folder's link typed in, by the part after addlist/ (2.7). */
+    onOpenLink: (String) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Snackbars(state.message, snackbarHostState, onMessageShown)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(state.shareLink) {
+        val link = state.shareLink ?: return@LaunchedEffect
+        val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(android.content.Intent.EXTRA_TEXT, link)
+        context.startActivity(android.content.Intent.createChooser(send, null))
+        onShared()
+    }
+    var addingByLink by remember { mutableStateOf(false) }
+    if (addingByLink) {
+        FolderLinkDialog(
+            onOpen = { slug ->
+                addingByLink = false
+                onOpenLink(slug)
+            },
+            onDismiss = { addingByLink = false }
+        )
+    }
     state.deleting?.let { folder -> DeleteFolderDialog(folder.title, onDeleteDismissed, onDeleteConfirmed) }
     Scaffold(
         containerColor = settingsBackground(),
@@ -161,6 +185,7 @@ fun FoldersScreen(
                                     canMoveDown = index < rows.lastIndex,
                                     onMoveUp = { onMove(row.folder.id, -1) },
                                     onMoveDown = { onMove(row.folder.id, 1) },
+                                    onShare = { onShare(row.folder.id) },
                                     onDelete = { onDeleteRequested(row.folder) }
                                 )
                             }
@@ -168,8 +193,47 @@ fun FoldersScreen(
                     }
                 }
             }
+            // Someone else's folder, from its t.me/addlist link (2.7).
+            SettingsGroup {
+                item(
+                    title = tr("Add a folder by link", "Добавить папку по ссылке"),
+                    summary = tr("A shared folder's t.me/addlist link", "Ссылка t.me/addlist на общую папку"),
+                    leading = { Icon(Symbols.Link, contentDescription = null) },
+                    onClick = { addingByLink = true }
+                )
+            }
         }
     }
+}
+
+/** A shared folder's link, pasted; Open goes on only once it is one. */
+@Composable
+private fun FolderLinkDialog(onOpen: (String) -> Unit, onDismiss: () -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val slug = folderLinkSlug(text)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Symbols.Link, contentDescription = null) },
+        title = { Text(tr("Add a folder by link", "Добавить папку по ссылке")) },
+        text = {
+            OutlinedTextField(
+                value = text,
+                onValueChange = { text = it },
+                singleLine = true,
+                placeholder = { Text("t.me/addlist/…") },
+                isError = text.isNotBlank() && slug == null,
+                supportingText = if (text.isNotBlank() && slug == null) {
+                    { Text(tr("Not a folder link — they look like t.me/addlist/…", "Это не ссылка на папку — они выглядят как t.me/addlist/…")) }
+                } else {
+                    null
+                }
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { slug?.let(onOpen) }, enabled = slug != null) { Text(tr("Open", "Открыть")) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel", "Отмена")) } }
+    )
 }
 
 @Composable
@@ -179,6 +243,7 @@ private fun FolderMenu(
     canMoveDown: Boolean,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
+    onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
     var open by remember { mutableStateOf(false) }
@@ -201,6 +266,11 @@ private fun FolderMenu(
                     onClick = { open = false; onMoveDown() }
                 )
             }
+            DropdownMenuItem(
+                text = { Text(tr("Share", "Поделиться")) },
+                leadingIcon = { Icon(Symbols.Share, contentDescription = null) },
+                onClick = { open = false; onShare() }
+            )
             DropdownMenuItem(
                 text = { Text(tr("Delete", "Удалить")) },
                 leadingIcon = { Icon(Symbols.Delete, contentDescription = null) },

@@ -264,6 +264,30 @@ sealed interface Route {
         }
     }
 
+    /**
+     * A shared folder's link (2.7), by the part after addlist/ — a dialog
+     * over whatever opened it, a message or Chat folders.
+     */
+    data class FolderInvite(val slug: String) : Route {
+        override val path = "folder-invite/$slug"
+
+        companion object {
+            const val ARG_SLUG = "slug"
+            const val PATTERN = "folder-invite/{$ARG_SLUG}"
+            val arguments: List<NamedNavArgument> = listOf(navArgument(ARG_SLUG) { type = NavType.StringType })
+        }
+    }
+
+    /** Saved Messages by chat (2.7): its topics, each opened as a conversation. */
+    data class SavedTopics(val chatId: Long) : Route {
+        override val path = "chat/$chatId/saved"
+
+        companion object {
+            const val PATTERN = "chat/{${Chat.ARG_CHAT_ID}}/saved"
+            val arguments = Chat.arguments
+        }
+    }
+
     /** A forum's topics, which is where a forum opens. */
     data class Topics(val chatId: Long) : Route {
         override val path = "chat/$chatId/topics"
@@ -275,13 +299,15 @@ sealed interface Route {
     }
 
     /**
-     * A conversation — or, with [topicId], one topic of a forum, or with
+     * A conversation — or, with [topicId], one topic of a forum, with
      * [threadId], the comments under a channel post in its discussion group
-     * (2.0). Both are optional query arguments, so every existing
+     * (2.0), or with [savedTopicId], one chat's messages in Saved Messages
+     * (2.7). All three are optional query arguments, so every existing
      * `chat/{id}` still means the whole chat.
      */
-    data class Chat(val chatId: Long, val topicId: Int = 0, val threadId: Long = 0) : Route {
+    data class Chat(val chatId: Long, val topicId: Int = 0, val threadId: Long = 0, val savedTopicId: Long = 0) : Route {
         override val path = when {
+            savedTopicId != 0L -> "chat/$chatId?$ARG_SAVED_TOPIC_ID=$savedTopicId"
             threadId != 0L -> "chat/$chatId?$ARG_THREAD_ID=$threadId"
             topicId != 0 -> "chat/$chatId?$ARG_TOPIC_ID=$topicId"
             else -> "chat/$chatId"
@@ -291,7 +317,9 @@ sealed interface Route {
             const val ARG_CHAT_ID = "chatId"
             const val ARG_TOPIC_ID = "topicId"
             const val ARG_THREAD_ID = "threadId"
-            const val PATTERN = "chat/{$ARG_CHAT_ID}?$ARG_TOPIC_ID={$ARG_TOPIC_ID}&$ARG_THREAD_ID={$ARG_THREAD_ID}"
+            const val ARG_SAVED_TOPIC_ID = "savedTopicId"
+            const val PATTERN = "chat/{$ARG_CHAT_ID}?$ARG_TOPIC_ID={$ARG_TOPIC_ID}&$ARG_THREAD_ID={$ARG_THREAD_ID}" +
+                "&$ARG_SAVED_TOPIC_ID={$ARG_SAVED_TOPIC_ID}"
             val arguments: List<NamedNavArgument> =
                 listOf(navArgument(ARG_CHAT_ID) { type = NavType.LongType })
             /** The conversation's own, with the topic and the thread that are optional there. */
@@ -299,6 +327,9 @@ sealed interface Route {
                 type = NavType.IntType
                 defaultValue = 0
             } + navArgument(ARG_THREAD_ID) {
+                type = NavType.LongType
+                defaultValue = 0L
+            } + navArgument(ARG_SAVED_TOPIC_ID) {
                 type = NavType.LongType
                 defaultValue = 0L
             }

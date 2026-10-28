@@ -188,6 +188,12 @@ internal fun threadIdOf(message: JSONObject): Long {
     return if (topic.optString("@type") == "messageTopicThread") topic.optLong("message_thread_id") else 0
 }
 
+/** The Saved Messages topic [message] is filed under (2.7); 0 outside Saved Messages. */
+internal fun savedTopicIdOf(message: JSONObject): Long {
+    val topic = message.optJSONObject("topic_id") ?: return message.optLong("saved_messages_topic_id")
+    return if (topic.optString("@type") == "messageTopicSavedMessages") topic.optLong("saved_messages_topic_id") else 0
+}
+
 /** A comment thread as a send addresses it. */
 internal fun commentTopic(threadId: Long): JSONObject = JSONObject()
     .put("@type", "messageTopicThread")

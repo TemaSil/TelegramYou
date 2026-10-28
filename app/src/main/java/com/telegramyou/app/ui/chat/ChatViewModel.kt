@@ -13,6 +13,8 @@ import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
+import com.telegramyou.app.telegram.model.SavedTag
+import com.telegramyou.app.ui.saved.savedTopicTitle
 import com.telegramyou.app.telegram.model.movedSet
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.GifItem
@@ -270,6 +272,15 @@ data class ChatUiState(
      * chat's Translate messages is on (2.0); see AutoTranslate.
      */
     val translations: Map<Long, String> = emptyMap(),
+    /** In Saved Messages, its tags (2.7); empty anywhere else, and without Premium. */
+    val savedTags: List<SavedTag> = emptyList(),
+    /** The tag chosen to show only its messages, and those messages; null for all. */
+    val selectedTag: String? = null,
+    val taggedMessages: List<ChatMessage>? = null,
+    /** The tag being named, from a long press on it. */
+    val namingTag: SavedTag? = null,
+    /** Whether this is Saved Messages as a whole, which can be opened by chat. */
+    val canOpenSavedTopics: Boolean = false,
     /** Voice messages shown written down (2.7), by id; see onTranscribe. */
     val transcripts: Map<Long, String> = emptyMap(),
     /** Voice messages Telegram is writing down right now. */
@@ -299,7 +310,9 @@ data class ChatUiState(
     val canSendPolls: Boolean get() = detail?.chat?.let { it.isGroup || it.isChannel } == true
 
     val messages: List<ChatMessage>
-        get() = (olderMessages + (detachedWindow ?: detail?.messages.orEmpty())).let { all ->
+        // A tag chosen in Saved Messages (2.7): its messages in the
+        // conversation's place, until it is chosen again.
+        get() = taggedMessages ?: (olderMessages + (detachedWindow ?: detail?.messages.orEmpty())).let { all ->
             val shown = if (hiddenSenders.isEmpty()) all else all.filter { it.senderId !in hiddenSenders }
             // The thread's post at the very top, once the top is what is on
             // screen: the history paged back to its start, or a thread with
@@ -352,6 +365,13 @@ class ChatViewModel(
      */
     private val threadId: Long = savedStateHandle[Route.Chat.ARG_THREAD_ID] ?: 0L
 
+    /**
+     * The Saved Messages topic this screen is on — one chat's saved
+     * messages, or My notes — or 0 (2.7); said to the repository first, as
+     * a forum topic is.
+     */
+    private val savedTopicId: Long = savedStateHandle[Route.Chat.ARG_SAVED_TOPIC_ID] ?: 0L
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
@@ -359,7 +379,13 @@ class ChatViewModel(
         // Held open for as long as this state holder lives; released in
         // onCleared. See TelegramChats.retainChat for why it is counted.
         repository.retainChat(chatId)
-        if (threadId != 0L) {
+        if (savedTopicId != 0L) {
+            repository.setOpenSavedTopic(chatId, savedTopicId)
+            viewModelScope.launch {
+                val topic = runCatching { repository.savedTopics() }.getOrNull()?.firstOrNull { it.id == savedTopicId }
+                _uiState.update { it.copy(topicName = topic?.let(::savedTopicTitle) ?: tr("Saved Messages", "Избранное")) }
+            }
+        } else if (threadId != 0L) {
             repository.setOpenThread(chatId, threadId)
             // Comments keep no draft of their own here: the group's draft is
             // the group's, and a thread's is not worth a request per pause —
@@ -1162,6 +1188,8 @@ class ChatViewModel(
             val done = attempt(tr("Could not react", "Не удалось поставить реакцию")) {
                 repository.toggleReaction(chatId, message.id, emoji)
             }
+            // In Saved Messages a reaction is a tag: the row of them follows.
+            if (done && _uiState.value.detail?.chat?.isSavedMessages == true) loadSavedTags()
             // Toggling is its own inverse, so a refusal is undone by drawing
             // the same tap again.
             if (!done) _uiState.update { state ->
@@ -1440,6 +1468,57 @@ class ChatViewModel(
                     else -> state.copy(translation = null)
                 }
             }
+        }
+    }
+
+    /**
+     * Saved Messages' tags, read once the chat is known to be Saved Messages
+     * and again when a reaction changes; nothing for any other chat.
+     */
+    private fun loadSavedTags() {
+        viewModelScope.launch {
+            val tags = runCatching { repository.savedTags(savedTopicId) }.getOrDefault(emptyList())
+            _uiState.update { state ->
+                val selected = state.selectedTag?.takeIf { chosen -> tags.any { it.reaction == chosen } }
+                state.copy(
+                    savedTags = tags,
+                    selectedTag = selected,
+                    taggedMessages = if (selected == null) null else state.taggedMessages
+                )
+            }
+        }
+    }
+
+    /** A tag chosen to show only its messages, or chosen again to show them all. */
+    fun onSavedTagSelected(reaction: String) {
+        if (_uiState.value.selectedTag == reaction) {
+            _uiState.update { it.copy(selectedTag = null, taggedMessages = null) }
+            return
+        }
+        _uiState.update { it.copy(selectedTag = reaction) }
+        viewModelScope.launch {
+            var tagged: List<ChatMessage>? = null
+            attempt(tr("Could not show the tag", "Не удалось показать тег")) {
+                tagged = repository.savedMessagesTagged(reaction, savedTopicId)
+            }
+            _uiState.update { state ->
+                if (state.selectedTag != reaction) state
+                else if (tagged == null) state.copy(selectedTag = null)
+                else state.copy(taggedMessages = tagged)
+            }
+        }
+    }
+
+    fun onSavedTagNaming(tag: SavedTag?) = _uiState.update { it.copy(namingTag = tag) }
+
+    fun onSavedTagNamed(label: String) {
+        val tag = _uiState.value.namingTag ?: return
+        _uiState.update { it.copy(namingTag = null) }
+        viewModelScope.launch {
+            val done = attempt(tr("Could not name the tag", "Не удалось назвать тег")) {
+                repository.setSavedTagLabel(tag.reaction, label)
+            }
+            if (done) loadSavedTags()
         }
     }
 
@@ -1911,6 +1990,13 @@ class ChatViewModel(
      * edit, a deletion — is about a message already here, or about nothing.
      */
     private fun inThisTopic(update: MessageUpdate): Boolean {
+        if (savedTopicId != 0L) {
+            return when (update) {
+                is MessageUpdate.Added -> update.message.savedTopicId == savedTopicId
+                is MessageUpdate.Replaced -> update.message.savedTopicId == savedTopicId
+                else -> true
+            }
+        }
         if (threadId != 0L) {
             return when (update) {
                 is MessageUpdate.Added -> update.message.threadId == threadId
@@ -1938,6 +2024,7 @@ class ChatViewModel(
         }
         repository.releaseChat(chatId)
         if (topicId != 0) repository.closeOpenTopic(chatId, topicId)
+        if (savedTopicId != 0L) repository.closeOpenSavedTopic(chatId, savedTopicId)
         if (threadId != 0L) repository.closeOpenThread(chatId, threadId)
         // Voice messages are not stopped: they are the app's, and go on
         // after the chat is closed, with the bar to stop them.
@@ -2685,8 +2772,12 @@ class ChatViewModel(
                 // A selected message can be gone by the time the chat reloads —
                 // deleted here or by someone else. Keeping its id would leave
                 // the toolbar counting something that cannot be acted on.
-                reloaded.copy(selection = it.selection.retaining(reloaded.messages))
+                reloaded.copy(
+                    selection = it.selection.retaining(reloaded.messages),
+                    canOpenSavedTopics = detail.chat.isSavedMessages && savedTopicId == 0L
+                )
             }
+            if (detail.chat.isSavedMessages) loadSavedTags()
         }
     }
 }

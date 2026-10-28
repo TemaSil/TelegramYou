@@ -6,6 +6,7 @@ import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.ChatDetail
 import com.telegramyou.app.telegram.model.ChatFolder
 import com.telegramyou.app.telegram.model.ChatPreview
+import com.telegramyou.app.telegram.model.FolderInvite
 import com.telegramyou.app.telegram.model.FolderRules
 import com.telegramyou.app.telegram.model.InviteLinkPreview
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -241,6 +242,21 @@ interface TelegramChats {
 
     /** Puts the folders in the order of [folderIds]. */
     suspend fun reorderFolders(folderIds: List<Int>)
+
+    /**
+     * A shared folder's link, t.me/addlist/… (2.7), read: the folder's name
+     * and its chats. Null for a link that is not one, or has expired.
+     */
+    suspend fun folderInvite(link: String): FolderInvite? = null
+
+    /** The folder from [link] added, with [chatIds] of its chats joined. */
+    suspend fun addFolderByLink(link: String, chatIds: List<Long>) {}
+
+    /**
+     * A link to [folderId] for others to add it, with its chats that can be
+     * shared — groups and channels — in it; made shareable on the way.
+     */
+    suspend fun folderLink(folderId: Int): String? = null
 
     /**
      * Makes a group with [memberIds] in it and answers with its chat id.

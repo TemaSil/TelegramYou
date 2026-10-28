@@ -30,7 +30,9 @@ data class FoldersUiState(
     val folders: List<FolderRow> = emptyList(),
     /** The folder a delete was asked for, while the dialog is up. */
     val deleting: ChatFolder? = null,
-    val message: String? = null
+    val message: String? = null,
+    /** A folder's link made to share (2.7), handed to Android's share sheet once. */
+    val shareLink: String? = null
 )
 
 /**
@@ -71,6 +73,23 @@ class FoldersViewModel(private val repository: TelegramRepository) : ViewModel()
     }
 
     fun onMessageShown() = local.update { it.copy(message = null) }
+
+    /**
+     * A link to the folder for others (2.7). Telegram shares only groups and
+     * channels, and only those this account may invite to: a folder with
+     * none of those has nothing to share, and says so.
+     */
+    fun onShare(folderId: Int) {
+        run(tr("Could not make a link to the folder", "Не удалось создать ссылку на папку")) {
+            val link = repository.folderLink(folderId)
+            local.update {
+                if (link != null) it.copy(shareLink = link)
+                else it.copy(message = tr("Only groups and channels can be shared", "Поделиться можно только группами и каналами"))
+            }
+        }
+    }
+
+    fun onShared() = local.update { it.copy(shareLink = null) }
 
     private fun run(failure: String, request: suspend () -> Unit) {
         viewModelScope.launch {

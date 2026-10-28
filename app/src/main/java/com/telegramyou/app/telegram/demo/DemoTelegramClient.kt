@@ -1,5 +1,11 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.FolderInvite
+import com.telegramyou.app.telegram.model.MAX_SAVED_TAG_LABEL
+import com.telegramyou.app.telegram.model.SavedTag
+import com.telegramyou.app.telegram.model.SavedTopic
+import com.telegramyou.app.telegram.model.SavedTopicKind
+import com.telegramyou.app.telegram.model.isFolderLink
 import com.telegramyou.app.telegram.model.ChannelStanding
 import com.telegramyou.app.notifications.ScopeNotifications
 import com.telegramyou.app.notifications.NotificationScope
@@ -991,9 +997,106 @@ class DemoTelegramClient(
         )
     }
 
+    /** The Saved Messages topic its screen is on; see setOpenSavedTopic. */
+    private val openSavedTopics = mutableMapOf<Long, Long>()
+
+    override fun setOpenSavedTopic(chatId: Long, topicId: Long?) {
+        if (topicId == null) openSavedTopics.remove(chatId) else openSavedTopics[chatId] = topicId
+    }
+
+    override fun closeOpenSavedTopic(chatId: Long, topicId: Long) {
+        if (openSavedTopics[chatId] == topicId) openSavedTopics.remove(chatId)
+    }
+
+    override suspend fun savedTopics(): List<SavedTopic> {
+        delay(150)
+        val saved = chatMessages[SAVED_CHAT_ID].orEmpty()
+        return saved.groupBy { it.savedTopicId.takeIf { id -> id != 0L } ?: SAVED_MY_NOTES }
+            .map { (id, messages) ->
+                val last = messages.maxBy { it.date }
+                val from = SAVED_SOURCES[id]
+                SavedTopic(
+                    id = id,
+                    kind = if (from == null) SavedTopicKind.MyNotes else SavedTopicKind.FromChat,
+                    title = from?.let { source -> _chats.value.firstOrNull { it.id == source }?.title }.orEmpty(),
+                    chatId = from,
+                    preview = last.text.ifBlank { last.audio?.title.orEmpty() },
+                    timeLabel = last.timeLabel
+                ) to last.date
+            }
+            .sortedByDescending { it.second }
+            .map { it.first }
+    }
+
+    /** The demo's tag names, by reaction; see setSavedTagLabel. */
+    private val savedTagLabels = mutableMapOf("❤️" to "Ideas")
+
+    override suspend fun savedTags(topicId: Long): List<SavedTag> {
+        delay(100)
+        return chatMessages[SAVED_CHAT_ID].orEmpty()
+            .filter { topicId == 0L || it.savedTopicId == topicId }
+            .flatMap { message -> message.reactions.filter { it.isChosen }.map { it.emoji } }
+            .groupingBy { it }
+            .eachCount()
+            .map { (reaction, count) -> SavedTag(reaction, savedTagLabels[reaction].orEmpty(), count) }
+    }
+
+    override suspend fun savedMessagesTagged(reaction: String, topicId: Long): List<ChatMessage> {
+        delay(120)
+        return chatMessages[SAVED_CHAT_ID].orEmpty().filter { message ->
+            (topicId == 0L || message.savedTopicId == topicId) &&
+                message.reactions.any { it.emoji == reaction && it.isChosen }
+        }
+    }
+
+    override suspend fun setSavedTagLabel(reaction: String, label: String) {
+        delay(100)
+        if (label.isBlank()) savedTagLabels.remove(reaction) else savedTagLabels[reaction] = label.trim().take(MAX_SAVED_TAG_LABEL)
+    }
+
+    /**
+     * Any t.me/addlist link is the same folder offline: Design friends, with
+     * Design Circle already here and a channel to join, Material Weekly.
+     */
+    override suspend fun folderInvite(link: String): FolderInvite? {
+        delay(250)
+        if (!isFolderLink(link)) return null
+        val circle = _chats.value.filter { it.title == "Design Circle" }
+        val weekly = _chats.value.firstOrNull { it.title == DEMO_FOLDER_CHANNEL }
+        return FolderInvite(
+            link = link.trim(),
+            name = DEMO_SHARED_FOLDER,
+            folderId = _folders.value.firstOrNull { it.title == DEMO_SHARED_FOLDER }?.id,
+            missingChats = if (weekly == null) {
+                listOf(ChatPreview(DEMO_FOLDER_CHANNEL_ID, DEMO_FOLDER_CHANNEL, "", "", isChannel = true, avatarColor = 9))
+            } else {
+                emptyList()
+            },
+            addedChats = circle + listOfNotNull(weekly)
+        )
+    }
+
+    override suspend fun addFolderByLink(link: String, chatIds: List<Long>) {
+        delay(250)
+        val ids = _chats.value.filter { it.title == "Design Circle" }.map { it.id }.toMutableList()
+        if (DEMO_FOLDER_CHANNEL_ID in chatIds) {
+            val joined = _chats.value.firstOrNull { it.title == DEMO_FOLDER_CHANNEL }?.id
+                ?: addDemoChat(DEMO_FOLDER_CHANNEL, isChannel = true, firstLine = "Welcome to Material Weekly")
+            ids += joined
+        }
+        val existing = _folders.value.firstOrNull { it.title == DEMO_SHARED_FOLDER }?.id
+        saveFolder(existing, FolderRules(name = DEMO_SHARED_FOLDER, includedChatIds = ids))
+    }
+
+    override suspend fun folderLink(folderId: Int): String? {
+        delay(200)
+        return "https://t.me/addlist/TelegramYouDemo$folderId"
+    }
+
     /** A chat's messages, or the open topic's or thread's when its screen is on one. */
     private fun messagesIn(chatId: Long): List<ChatMessage> {
         val all = chatMessages[chatId].orEmpty()
+        openSavedTopics[chatId]?.let { topic -> return all.filter { it.savedTopicId == topic } }
         openThreads[chatId]?.let { thread -> return all.filter { it.threadId == thread } }
         val topic = openTopics[chatId] ?: return all
         return all.filter { it.topicId == topic }
@@ -3171,8 +3274,18 @@ class DemoTelegramClient(
             demoMessage(962, DISCUSSION_CHAT_ID, "It looks great in the dark theme", false, yesterday + 1200, "Maya")
                 .copy(threadId = 950)
         )
+        // Saved Messages by chat (2.7): what was written here is My notes;
+        // the two saved from Lina and from Design Circle are topics of their
+        // own. The heart on the first is a tag, named "Ideas".
         chatMessages[6] = mutableListOf(
-            demoMessage(95, 6, "Color tokens & springs", true, yesterday, isRead = true),
+            demoMessage(93, 6, "Grab us a table by the window", false, yesterday - 7_200, "Lina Park", isRead = true)
+                .copy(forwardedFrom = "Lina Park", savedTopicId = SAVED_FROM_LINA),
+            demoMessage(94, 6, "New Figma dump in #files", false, yesterday - 3_600, "Design Circle", isRead = true)
+                .copy(forwardedFrom = "Design Circle", savedTopicId = SAVED_FROM_CIRCLE),
+            demoMessage(
+                95, 6, "Color tokens & springs", true, yesterday, isRead = true,
+                reactions = listOf(MessageReaction("❤️", 1, isChosen = true))
+            ).copy(savedTopicId = SAVED_MY_NOTES),
             demoMessage(96, 6, "", true, today - 50 * 60, isRead = true).copy(
                 contentType = MessageContentType.Audio,
                 audio = AudioContent(
@@ -3182,7 +3295,8 @@ class DemoTelegramClient(
                     fileName = "expressive-motion.wav",
                     fileId = DEMO_AUDIO_FILE_ID
                 ),
-                voiceFileId = DEMO_AUDIO_FILE_ID
+                voiceFileId = DEMO_AUDIO_FILE_ID,
+                savedTopicId = SAVED_MY_NOTES
             )
         )
         chatMessages[BOT_CHAT_ID] = mutableListOf(
@@ -3315,6 +3429,18 @@ private val DEMO_TRANSCRIPTS = mapOf(
     903L to "Hey, running ten minutes late — grab us a table by the window?",
     904L to "Actually make it fifteen, the tram just stopped."
 )
+
+/** Saved Messages' chat, and its topics: My notes and the two chats saved from. */
+private const val SAVED_CHAT_ID = 6L
+private const val SAVED_MY_NOTES = 1L
+private const val SAVED_FROM_LINA = 2L
+private const val SAVED_FROM_CIRCLE = 3L
+private val SAVED_SOURCES = mapOf(SAVED_FROM_LINA to 2L, SAVED_FROM_CIRCLE to 3L)
+
+/** The shared folder every t.me/addlist link opens offline, and the channel it brings. */
+private const val DEMO_SHARED_FOLDER = "Design friends"
+private const val DEMO_FOLDER_CHANNEL = "Material Weekly"
+private const val DEMO_FOLDER_CHANNEL_ID = -77L
 
 private val DEMO_WAVEFORM = listOf(3, 8, 14, 20, 26, 18, 10, 6, 12, 22, 29, 24, 15, 9, 5, 11, 19, 27, 21, 13, 7, 4, 9, 16, 23, 17, 8, 3)
 

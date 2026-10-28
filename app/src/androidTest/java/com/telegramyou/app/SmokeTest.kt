@@ -704,6 +704,108 @@ class SmokeTest {
         device.pressBack()
     }
 
+    /**
+     * Saved Messages by chat (2.7): from its header, a list of where things
+     * were saved from — My notes, Lina, Design Circle — and one of them
+     * opened as a conversation with only what came from there.
+     */
+    @Test
+    fun savedMessagesOpenByChat() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.desc("More"))
+        tap(By.text("Saved Messages"))
+        waitFor(By.text("Message"), "the Saved Messages conversation")
+        tap(By.desc("Saved Messages by chat"))
+        waitFor(By.text("My notes"), "Saved Messages by chat")
+        waitFor(By.text("Design Circle"), "a chat saved from")
+        screenshot("126-saved-by-chat")
+        tap(By.text("Lina Park"))
+        waitFor(By.text("Grab us a table by the window"), "what was saved from Lina")
+        assertTrue(
+            "My notes showed among what was saved from Lina",
+            !device.hasObject(By.text("Color tokens & springs"))
+        )
+        device.pressBack()
+        waitFor(By.text("My notes"), "the list again")
+        device.pressBack()
+        waitFor(By.desc("Saved Messages by chat"), "Saved Messages again")
+    }
+
+    /**
+     * Saved Messages' tags (2.7): the heart on a note is a tag called Ideas,
+     * which shows only what carries it, and is renamed from its pencil —
+     * and named back, so the next test finds it as it was.
+     */
+    @Test
+    fun savedMessagesAreFilteredByTag() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.desc("More"))
+        tap(By.text("Saved Messages"))
+        waitFor(By.desc("Tag Ideas"), "the tag row")
+        tap(By.desc("Tag Ideas"))
+        assertTrue(
+            "an untagged message stayed under the tag",
+            device.wait(Until.gone(By.text("Grab us a table by the window")), STEP_TIMEOUT)
+        )
+        waitFor(By.text("Color tokens & springs"), "the tagged note")
+        screenshot("127-saved-tag")
+        tap(By.desc("Name this tag"))
+        waitFor(By.text("Name this tag"), "the naming dialog")
+        val field = By.clazz("android.widget.EditText")
+        waitFor(field, "the name field")
+        device.findObject(field).text = "Plans"
+        tap(By.text("Save"))
+        waitFor(By.desc("Tag Plans"), "the tag renamed")
+        tap(By.desc("Name this tag"))
+        waitFor(field, "the name field")
+        device.findObject(field).text = "Ideas"
+        tap(By.text("Save"))
+        waitFor(By.desc("Tag Ideas"), "the tag's name back")
+    }
+
+    /**
+     * A shared folder's link (2.7), typed into Chat folders: the folder and
+     * what it brings, the channel to join left out, and the folder added —
+     * then deleted again, so the next test finds the folders as they were.
+     */
+    @Test
+    fun aSharedFolderIsAddedByItsLink() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Settings"))
+        waitFor(By.text("Chat folders"), "the settings")
+        tap(By.text("Chat folders"))
+        waitFor(By.text("Work"), "the demo's folders")
+        scrollDownTo(By.text("Add a folder by link"))
+        tap(By.text("Add a folder by link"))
+        type("https://t.me/addlist/TelegramYouDemo")
+        tap(By.text("Open"))
+        waitFor(By.text("Add “Design friends”?"), "the shared folder's dialog")
+        waitFor(By.text("Material Weekly"), "the channel it brings")
+        screenshot("128-folder-invite")
+        // Left out, so the chat list stays as other tests expect it.
+        tap(By.text("Material Weekly"))
+        tap(By.text("Add folder"))
+        assertTrue(
+            "the dialog stayed after Add folder",
+            device.wait(Until.gone(By.text("Add folder")), STEP_TIMEOUT)
+        )
+        waitFor(By.text("Design friends"), "the folder among yours")
+        tap(By.desc("Design friends options"))
+        tap(By.text("Delete"))
+        waitFor(By.text("Delete Design friends?"), "the delete question")
+        device.findObjects(By.text("Delete")).maxByOrNull { it.visibleBounds.centerY() }!!.click()
+        assertTrue(
+            "the shared folder stayed after Delete",
+            device.wait(Until.gone(By.text("Design friends")), STEP_TIMEOUT)
+        )
+    }
+
     @Test
     fun theOverflowMenuOpensSavedMessagesAndProxies() {
         signIn()

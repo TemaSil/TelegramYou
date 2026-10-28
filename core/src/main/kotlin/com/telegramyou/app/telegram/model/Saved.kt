@@ -61,7 +61,13 @@ data class FolderInvite(
 )
 
 /** Whether [text] is a shared folder's link, t.me/addlist/…, with or without its scheme. */
-fun isFolderLink(text: String): Boolean =
-    FOLDER_LINK.matches(text.trim())
+fun isFolderLink(text: String): Boolean = folderLinkSlug(text) != null
 
-private val FOLDER_LINK = Regex("""(?i)(https?://)?(www\.)?(t|telegram)\.me/addlist/[A-Za-z0-9_-]+/?""")
+/** The part of a folder's link after addlist/, which names it; null for anything else. */
+fun folderLinkSlug(text: String): String? =
+    FOLDER_LINK.matchEntire(text.trim())?.groupValues?.get(1)
+
+/** The link a [slug] makes, as Telegram writes it. */
+fun folderLinkOf(slug: String): String = "https://t.me/addlist/$slug"
+
+private val FOLDER_LINK = Regex("""(?i)(?:https?://)?(?:www\.)?(?:t|telegram)\.me/addlist/([A-Za-z0-9_-]+)/?""")
