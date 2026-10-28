@@ -705,6 +705,32 @@ class SmokeTest {
     }
 
     /**
+     * Two panes (2.8): the phone made as wide as a tablet by its density, the
+     * list gains an empty pane beside it, a chat opens there with the list
+     * still showing, and Back empties the pane rather than leaving. The
+     * density goes back whatever happens.
+     */
+    @Test
+    fun aWideWindowOpensTheChatBesideTheList() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        try {
+            device.executeShellCommand("wm density 200")
+            waitFor(By.desc("No chat open"), "the empty pane beside the list")
+            tap(By.text("Lina Park"))
+            waitFor(By.text("Message"), "the chat in the pane")
+            assertTrue("the list went when the chat opened", device.hasObject(By.text("Material Design")))
+            screenshot("129-two-panes")
+            device.pressBack()
+            waitFor(By.desc("No chat open"), "the pane emptied by Back")
+        } finally {
+            device.executeShellCommand("wm density reset")
+        }
+        waitFor(By.text("Material Design"), "the chat list at the phone's own size")
+    }
+
+    /**
      * Saved Messages by chat (2.7): from its header, a list of where things
      * were saved from — My notes, Lina, Design Circle — and one of them
      * opened as a conversation with only what came from there.
