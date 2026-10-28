@@ -55,13 +55,11 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.7 · 28 October 2026
+## Latest: 2.7.1 · 28 October 2026
 
-Voice messages can be read as text; Saved Messages opens by chat, with
-its tags as filters; and shared folders are added from their t.me/addlist
-links, or shared. Sticker packs are looked after in the sticker panel now.
-2.6 before it brought notifications from every account, Russian and
-stickers. See the [changelog](CHANGELOG.md).
+Voice messages show their length rather than "🎤 Voice". 2.7 before it
+brought voice to text, Saved Messages by chat with its tags, and shared
+folders from their t.me/addlist links. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

@@ -9,6 +9,10 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.7.1
+
+- **Voice messages show their length**, not "🎤 Voice": a voice message without a caption carried the chat list's word for it, and the bubble drew that beside the waveform. A caption someone wrote shows under the waveform.
+
 ## 2.7
 
 - **Voice to text.** A button on every voice message asks Telegram to write it down, and the words open under the waveform; the same button puts them away. Premium's on Telegram's side, with a few free tries for everyone else.
