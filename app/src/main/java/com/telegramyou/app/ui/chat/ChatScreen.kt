@@ -295,6 +295,8 @@ fun ChatScreen(
     onStickerSetOpened: (Long) -> Unit = {},
     onStickerSetClosed: () -> Unit = {},
     onStickerSetInstalledChange: (Boolean) -> Unit = {},
+    onStickerSetMoved: (Long, Int) -> Unit = { _, _ -> },
+    onStickerSetInstalled: (Long, Boolean) -> Unit = { _, _ -> },
     onCustomEmojiSetSelected: (Long?) -> Unit = {},
     onCustomEmojiPicked: (StickerContent) -> Unit = {},
     /** Where this phone is, found and confirmed in SendLocationDialog. */
@@ -1896,6 +1898,9 @@ fun ChatScreen(
                     onBackspace = { onDraftChange(dropLastGrapheme(state.draft)) },
                     onStickerSetSelected = onStickerSetSelected,
                     onStickerPicked = onStickerPicked,
+                    onStickerSetOpened = onStickerSetOpened,
+                    onStickerSetMoved = onStickerSetMoved,
+                    onStickerSetInstalled = onStickerSetInstalled,
                     onStickerAsImage = { sticker ->
                         scope.launch { onStickerImage(stickerAsPicture(context, sticker, fileLoader)) }
                     },

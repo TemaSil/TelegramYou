@@ -13,6 +13,7 @@ import com.telegramyou.app.telegram.model.TelegramUser
 import com.telegramyou.app.telegram.model.ContactContent
 import com.telegramyou.app.notifications.ChatNotificationSettings
 import com.telegramyou.app.telegram.model.StickerSetPreview
+import com.telegramyou.app.telegram.model.movedSet
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.GifItem
 import com.telegramyou.app.telegram.model.ReactionOption
@@ -800,12 +801,21 @@ class ChatViewModel(
 
     fun onStickerSetClosed() = _uiState.update { it.copy(openStickerSet = null) }
 
-    /** The open set added to the account or taken off; the picker learns it next time it opens. */
+    /** The open set added to the account or taken off. */
     fun onStickerSetInstalledChange(installed: Boolean) {
         val open = _uiState.value.openStickerSet ?: return
+        onStickerSetInstalledChange(open.setId, installed)
+    }
+
+    /**
+     * A set added or taken off — from its sheet, or from the picker's own
+     * page for it — and the picker's sets read again with the change, on
+     * the tab it was on.
+     */
+    fun onStickerSetInstalledChange(setId: Long, installed: Boolean) {
         viewModelScope.launch {
             val done = attempt(tr("Could not change your stickers", "Не удалось изменить стикеры")) {
-                repository.setStickerSetInstalled(open.setId, installed)
+                repository.setStickerSetInstalled(setId, installed)
             }
             if (!done) return@launch
             _uiState.update { state ->
@@ -814,8 +824,47 @@ class ChatViewModel(
                     notice = if (installed) tr("Stickers added", "Стикеры добавлены") else tr("Stickers removed", "Стикеры удалены")
                 )
             }
-            // The picker read the sets when it opened: read again, with the change.
-            if (_uiState.value.stickerPicker != null) loadStickers()
+            val picker = _uiState.value.stickerPicker ?: return@launch
+            if (picker.selected == MANAGE_STICKERS) refreshManagedSets() else loadStickers()
+        }
+    }
+
+    /** One of the account's sets moved [by] places, from the picker's page; the whole order goes to Telegram. */
+    fun onStickerSetMoved(setId: Long, by: Int) {
+        val sets = _uiState.value.stickerPicker?.sets ?: return
+        val order = movedSet(sets.map { it.id }, setId, by)
+        if (order == sets.map { it.id }) return
+        val byId = sets.associateBy { it.id }
+        _uiState.update { state ->
+            state.copy(stickerPicker = state.stickerPicker?.copy(sets = order.mapNotNull(byId::get)))
+        }
+        viewModelScope.launch {
+            val done = attempt(tr("Could not move the set", "Не удалось переместить набор")) {
+                repository.reorderStickerSets(order)
+            }
+            if (!done) refreshManagedSets()
+        }
+    }
+
+    /** The picker's sets and Telegram's suggestions, read for its last page. */
+    private suspend fun refreshManagedSets() {
+        var sets: List<StickerSetPreview>? = null
+        var trending = emptyList<StickerSetPreview>()
+        attempt(tr("Could not load stickers", "Не удалось загрузить стикеры")) {
+            sets = repository.stickerSets()
+            trending = repository.trendingStickerSets()
+        }
+        _uiState.update { state ->
+            val picker = state.stickerPicker ?: return@update state
+            val mine = sets ?: picker.sets
+            val ids = mine.map { it.id }.toSet()
+            state.copy(
+                stickerPicker = picker.copy(
+                    sets = mine,
+                    trending = trending.filterNot { it.id in ids },
+                    isLoading = if (picker.selected == MANAGE_STICKERS) false else picker.isLoading
+                )
+            )
         }
     }
 
@@ -824,6 +873,10 @@ class ChatViewModel(
             state.copy(stickerPicker = state.stickerPicker?.copy(selected = setId, isLoading = true))
         }
         viewModelScope.launch {
+            if (setId == MANAGE_STICKERS) {
+                refreshManagedSets()
+                return@launch
+            }
             var stickers = emptyList<StickerContent>()
             attempt(tr("Could not load stickers", "Не удалось загрузить стикеры")) {
                 stickers = if (setId == RECENT_STICKERS) {

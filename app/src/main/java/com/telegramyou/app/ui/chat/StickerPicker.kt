@@ -48,11 +48,16 @@ data class StickerPickerState(
     /** [RECENT_STICKERS] for the recent tab, else a set's id. */
     val selected: Long = RECENT_STICKERS,
     val stickers: List<StickerContent> = emptyList(),
+    /** Telegram's suggestions, less the sets already added; read for [MANAGE_STICKERS]. */
+    val trending: List<StickerSetPreview> = emptyList(),
     val isLoading: Boolean = true
 )
 
 /** The picker's first tab, which is not a set: what was sent lately. */
 const val RECENT_STICKERS = -1L
+
+/** Its last, not a set either: the sets looked after, and trending ones; see StickerManagePage. */
+const val MANAGE_STICKERS = -2L
 
 /**
  * The panel's sticker tab: a scrollable tab row of the account's sets —
@@ -75,10 +80,13 @@ fun StickerTab(
      * "send as image", for somewhere a sticker would not go, or to be
      * saved as a photo at the other end.
      */
-    onSendAsImage: (StickerContent) -> Unit = {}
+    onSendAsImage: (StickerContent) -> Unit = {},
+    onOpenSet: (Long) -> Unit = {},
+    onMoveSet: (Long, Int) -> Unit = { _, _ -> },
+    onSetInstalledChange: (Long, Boolean) -> Unit = { _, _ -> }
 ) {
     Column(modifier = modifier) {
-        val tabs = listOf(RECENT_STICKERS) + state.sets.map { it.id }
+        val tabs = listOf(RECENT_STICKERS) + state.sets.map { it.id } + MANAGE_STICKERS
         PrimaryScrollableTabRow(
             selectedTabIndex = tabs.indexOf(state.selected).coerceAtLeast(0),
             edgePadding = 12.dp,
@@ -104,6 +112,11 @@ fun StickerTab(
                     }
                 )
             }
+            Tab(
+                selected = state.selected == MANAGE_STICKERS,
+                onClick = { onSetSelected(MANAGE_STICKERS) },
+                icon = { Icon(Symbols.Settings, contentDescription = tr("Your stickers and trending", "Ваши и популярные стикеры")) }
+            )
         }
         Box(
             modifier = Modifier
@@ -113,6 +126,13 @@ fun StickerTab(
         ) {
             when {
                 state.isLoading -> LoadingIndicator()
+                state.selected == MANAGE_STICKERS -> StickerManagePage(
+                    sets = state.sets,
+                    trending = state.trending,
+                    onOpen = onOpenSet,
+                    onMove = onMoveSet,
+                    onInstalledChange = onSetInstalledChange
+                )
                 state.stickers.isEmpty() -> Text(
                     if (state.selected == RECENT_STICKERS) {
                         tr("Stickers you send show up here", "Здесь будут стикеры, которые вы отправляете")

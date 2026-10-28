@@ -122,6 +122,10 @@ fun ExpressionPanel(
     onStickerPicked: (StickerContent) -> Unit,
     /** A still sticker to send as a picture; see StickerTab. */
     onStickerAsImage: (StickerContent) -> Unit = {},
+    /** The sticker tab's last page: a set's sheet, a set moved, one added or taken off. */
+    onStickerSetOpened: (Long) -> Unit = {},
+    onStickerSetMoved: (Long, Int) -> Unit = { _, _ -> },
+    onStickerSetInstalled: (Long, Boolean) -> Unit = { _, _ -> },
     /** The emoji tab's custom-emoji sets; null until it has been opened. */
     customEmoji: CustomEmojiState? = null,
     onCustomEmojiSetSelected: (Long?) -> Unit = {},
@@ -248,7 +252,10 @@ fun ExpressionPanel(
                                 onSetSelected = onStickerSetSelected,
                                 onPick = onStickerPicked,
                                 modifier = Modifier.fillMaxSize(),
-                                onSendAsImage = onStickerAsImage
+                                onSendAsImage = onStickerAsImage,
+                                onOpenSet = onStickerSetOpened,
+                                onMoveSet = onStickerSetMoved,
+                                onSetInstalledChange = onStickerSetInstalled
                             )
                         }
                     }

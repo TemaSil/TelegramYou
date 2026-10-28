@@ -61,7 +61,6 @@ fun SettingsScreen(
     onLogout: () -> Unit,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
-    onOpenStickers: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
@@ -94,7 +93,6 @@ fun SettingsScreen(
             contentPadding = padding,
             onOpenDevices = onOpenDevices,
             onOpenStorage = onOpenStorage,
-            onOpenStickers = onOpenStickers,
             onOpenNotifications = onOpenNotifications,
             onOpenPrivacy = onOpenPrivacy,
             onOpenGeeks = onOpenGeeks,
@@ -124,7 +122,6 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
     onOpenDevices: () -> Unit = {},
     onOpenStorage: () -> Unit = {},
-    onOpenStickers: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenGeeks: () -> Unit = {},
@@ -195,23 +192,10 @@ fun SettingsContent(
                 onClick = onOpenAppearance
             )
             link(
-                title = tr("Language", "Язык"),
-                summary = java.util.Locale.getDefault().let { it.getDisplayLanguage(it) }
-                    .replaceFirstChar { it.titlecase(java.util.Locale.getDefault()) },
-                icon = Symbols.Language,
-                onClick = { openLanguageSettings(context) }
-            )
-            link(
                 title = tr("Chat folders", "Папки с чатами"),
                 summary = tr("Sort chats into tabs", "Разложите чаты по вкладкам"),
                 icon = Symbols.Folder,
                 onClick = onOpenFolders
-            )
-            link(
-                title = tr("Stickers", "Стикеры"),
-                summary = tr("Your sets, their order, and what is trending", "Ваши наборы, их порядок и популярные"),
-                icon = Symbols.Sticker,
-                onClick = onOpenStickers
             )
             link(
                 title = tr("Notifications", "Уведомления"),
@@ -257,7 +241,16 @@ fun SettingsContent(
 
         // One row, and everything behind it off until turned on: the
         // settings most people never need, kept out of their way.
+        // Language beside it, the owner's call: set once, like the rest of
+        // this group, and out of the way of what is changed often.
         SettingsGroup {
+            link(
+                title = tr("Language", "Язык"),
+                summary = java.util.Locale.getDefault().let { it.getDisplayLanguage(it) }
+                    .replaceFirstChar { it.titlecase(java.util.Locale.getDefault()) },
+                icon = Symbols.Language,
+                onClick = { openLanguageSettings(context) }
+            )
             link(
                 title = tr("For geeks", "Для гиков"),
                 summary = tr("Small things for people who like to tinker", "Мелочи для тех, кто любит покопаться"),

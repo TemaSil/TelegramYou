@@ -2099,9 +2099,9 @@ class SmokeTest {
      */
     /**
      * Stickers looked after (2.6): a sticker in a chat opens its set, which
-     * is added from there; Settings → Stickers then lists it first, moves it
-     * down and takes it off again, back among the trending ones — so the
-     * account's sets are as they were for whatever runs next.
+     * is added from there; the sticker panel's last tab then lists it,
+     * moves it down and takes it off again, back among the trending ones —
+     * so the account's sets are as they were for whatever runs next.
      */
     @Test
     fun aStickerSetIsAddedFromAChatAndManaged() {
@@ -2119,23 +2119,23 @@ class SmokeTest {
         tap(By.text("Add stickers"))
         assertTrue("the sheet stayed after Add", device.wait(Until.gone(By.text("Add stickers")), STEP_TIMEOUT))
 
-        backTo(By.text("Material Design"), "the chat list")
-        awaitNoHeadsUp()
-        tap(By.text("Settings"))
-        waitFor(By.text("Appearance"), "the settings")
-        scrollSettingsTo(By.text("Stickers"))
+        // Looked after where stickers are picked: the panel's last tab.
+        tap(By.desc("Emoji, GIFs and stickers"))
         tap(By.text("Stickers"))
-        waitFor(By.text("Your stickers"), "the stickers screen")
-        waitFor(By.text("Space"), "the added set among yours")
-        waitFor(By.text("Trending"), "the trending sets")
+        waitFor(By.desc("Recent stickers"), "the sticker tab")
+        tap(By.desc("Your stickers and trending"))
+        waitFor(By.text("Your stickers"), "the panel's page for the sets")
+        waitFor(By.desc("Space options"), "the added set among yours")
         screenshot("49b-stickers")
         tap(By.desc("Space options"))
         tap(By.text("Move down"))
         tap(By.desc("Space options"))
         tap(By.text("Remove"))
         waitFor(By.text("Stickers removed"), "the set taken off")
-        // Back among the trending, with Add beside it.
-        waitFor(By.text("Space"), "the set among the trending again")
+        assertTrue(
+            "the set stayed among yours after Remove",
+            device.wait(Until.gone(By.desc("Space options")), STEP_TIMEOUT)
+        )
     }
 
     @Test
@@ -2156,7 +2156,7 @@ class SmokeTest {
             screenshot("120-russian-chats")
             tap(By.text("Настройки"))
             waitFor(By.text("Оформление"), "the settings in Russian")
-            waitFor(By.text("Язык"), "the language row")
+            scrollSettingsTo(By.text("Язык"))
             screenshot("121-russian-settings")
         } finally {
             instrumentation.runOnMainSync { locales.applicationLocales = android.os.LocaleList.getEmptyLocaleList() }

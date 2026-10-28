@@ -119,7 +119,8 @@ By how soon they would notice, not by how hard it is.
 - [ ] **Voice to text** — TDLib's `recognizeSpeech`, Premium on Telegram's
       side; the button on a voice message, the text under it.
 - [x] **Stickers looked after** (2.6) — a pack opened from a sticker, added
-      and removed, the packs reordered, trending ones (Settings → Stickers).
+      and removed, the packs reordered, trending ones — in the sticker
+      panel's last tab since 2.7; 2.6 had them in Settings → Stickers.
 - [x] **Emoji status, profile colour, birthday** on profiles (2.5) — shown
       on a person's info and your own profile, the colour as a flat tonal
       card rather than Telegram's gradient; your own set from the profile
