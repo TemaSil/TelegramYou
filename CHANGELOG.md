@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.8
+
+- **Two panes on a tablet and an unfolded phone.** From 840dp — a tablet, an unfolded phone on its side — the whole chat list stands beside the open chat, the open one lit. Narrower, as an unfolded phone held upright, the list has the screen until a chat opens and then folds to a column of avatars with their unread counts, the rail's icons beside it, as Telegram's desktop app folds its own. Folding the phone takes the open chat along.
+- **Drop into a chat**: photos and files dragged from another app in split screen land in the composer, as a share does.
+- **Ghost mode**, its own row in Settings: don't send "typing…", don't mark as read, stay offline — and watch stories unseen, always or for 15 minutes from the eye at the top of a story. Telegram still marks a chat read once you send something in it.
+- **Report a whole chat** from its info.
+
 ## 2.7.1
 
 - **Voice messages show their length**, not "🎤 Voice": a voice message without a caption carried the chat list's word for it, and the bubble drew that beside the waveform. A caption someone wrote shows under the waveform.

@@ -144,7 +144,7 @@ By how soon they would notice, not by how hard it is.
 - [ ] **Secret chats** — end-to-end, one device; TDLib carries them, the
       screens are the work.
 - [ ] **Channel statistics and boosts**, for admins.
-- [ ] **Report a whole chat**, from its info — 2.0 reports a message.
+- [x] **Report a whole chat** (2.8), from its info — 2.0 reports a message.
 - [x] **"Typing…" sent** (2.2) — `sendChatAction` as the field changes,
       "recording a voice message" or "a video message" while one is held,
       paced by OwnActivityPacer.
@@ -179,11 +179,12 @@ places to be ahead rather than level.
       the chat.
 - [x] **Keyboard** (2.1): Enter sends from a hardware keyboard,
       Shift+Enter a new line, Ctrl+F searches the chat.
-- [ ] **Two panes** on a tablet and an unfolded phone, the chat beside the
-      list (the rail is done). Larger than it looks: the chat screen's
-      wiring lives inside the navigation graph, with the container
-      transform from its row, and has to come out into something a pane
-      can hold first.
+- [x] **Two panes** (2.8) on a tablet and an unfolded phone: from 840dp the
+      whole list beside the chat, below it the list folded to pictures and
+      the rail's icons beside an open chat, as Telegram's desktop app folds
+      its own; the open chat lit in the list; photos and files dropped onto
+      a chat from another window. The chat screen came out of the
+      navigation graph into chatPane, which the route and the pane share.
 - [ ] **Stylus handwriting** into the composer — Compose's text fields take
       it on Android 14 by themselves; to be checked on a device with a pen.
 
@@ -194,8 +195,10 @@ Android Auto and a watch are out, on the owner's word of 8 October.
 Left until the base is closed, on the owner's word. What each is and why
 is in the AyuGram and Nekogram sections below.
 
-- [ ] From AyuGram: **ghost mode** (no "typing", no read marks until one
-      acts, no online, stories unseen) and **message filters**; edited
+- [x] From AyuGram: **ghost mode** (2.8) — its own row in Settings: no
+      "typing", no read marks, never online, stories unseen (always, or for
+      15 minutes from the eye in a story).
+- [ ] From AyuGram: **message filters**; edited
       marks as one likes, plain replies, a profile opened by id, streamer
       mode, ending a view-once photo at once; a Quick Settings tile for
       ghost mode once it exists.
