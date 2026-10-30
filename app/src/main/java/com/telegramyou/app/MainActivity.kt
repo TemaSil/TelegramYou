@@ -250,6 +250,8 @@ open class MainActivity : ComponentActivity() {
                         )
                         }
                         }
+                        // A call, over every screen while there is one (2.9).
+                        com.telegramyou.app.ui.calls.CallOverlay(repository)
                         }
                         // Over everything, the app still composed beneath:
                         // unlocking puts back exactly the screen that was

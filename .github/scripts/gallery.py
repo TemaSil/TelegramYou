@@ -74,6 +74,8 @@ SHOWCASE = [
     ("13-rail", "Tablet"),
     ("129-two-panes", "Tablet, two panes"),
     ("130-two-panes-foldable", "Foldable, two panes"),
+    ("141-call", "Call"),
+    ("142-call-incoming", "Incoming call"),
 ]
 
 WIDTH = 540

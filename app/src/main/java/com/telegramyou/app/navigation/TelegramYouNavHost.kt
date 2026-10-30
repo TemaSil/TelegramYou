@@ -689,6 +689,7 @@ fun TelegramYouNavHost(
                     },
                     onTranscribe = chatViewModel::onTranscribe,
                     onOpenSavedTopics = { navController.navigateTo(Route.SavedTopics(openedChatId)) },
+                    onCall = { openScope.launch { repository.startCall(openedChatId) } },
                     onSavedTagSelected = chatViewModel::onSavedTagSelected,
                     onSavedTagNaming = chatViewModel::onSavedTagNaming,
                     onSavedTagNamed = chatViewModel::onSavedTagNamed,

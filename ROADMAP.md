@@ -113,10 +113,25 @@ and leave the forks' extras for later.
 By how soon they would notice, not by how hard it is.
 
 - [ ] **Calls — 2.9, the owner's word of 30 October 2026.** TDLib carries
-      only the signalling; the voice and the picture need `tgcalls` and
-      WebRTC, a second native stack built in CI as TDLib is. The screen in
-      the manner of the Pixel's own dialer, in Material 3 Expressive —
-      voice first, then video. A real call needs two real phones to test.
+      only the signalling; the voice and the picture are a media library's.
+      That library is **NTgCalls** (`io.github.pytgcalls:ntgcalls` on Maven
+      Central, LGPL-3.0, WebRTC inside, Android ABIs prebuilt): it takes
+      the key TDLib has agreed (`skipExchange`), TDLib's servers
+      (`connectP2p`), and passes signalling both ways — so no WebRTC build
+      of our own. Linked as the AAR's shared library, which LGPL allows.
+      In stages:
+  - [x] the model (`CallInfo`, `callPhaseOf` in `:core`), TDLib's
+        `createCall` / `acceptCall` / `discardCall` / `updateCall`, the call
+        screen in the manner of the Pixel's phone app, a Call button in a
+        person's chat, the demo acting a call out, a smoke test;
+  - [ ] the sound: NTgCalls on Ready, the microphone permission, a
+        foreground service of type `phoneCall`, audio routing (speaker,
+        earpiece, Bluetooth), proximity screen-off;
+  - [ ] ringing when the app is not open: a `CallStyle` notification with
+        a full-screen intent, as Android's own calls do;
+  - [ ] the call kept while the app is used — a bar over the screens;
+  - [ ] video.
+      A real call needs two real phones to test; CI cannot.
 
 - [x] **Photos edited before they go** (2.2) — a photo in the tray, tapped,
       turns and crops (PhotoEditor) and goes under a spoiler; the held send

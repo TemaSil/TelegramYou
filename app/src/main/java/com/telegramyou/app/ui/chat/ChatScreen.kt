@@ -2,6 +2,7 @@ package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.i18n.tr
 
+import com.telegramyou.app.telegram.model.isCallable
 import com.telegramyou.app.telegram.model.SendOptions
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -258,6 +259,8 @@ fun ChatScreen(
     onTranscribe: (ChatMessage) -> Unit = {},
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
+    /** Rings the person this private chat is with (2.9). */
+    onCall: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
     onSavedTagNaming: (com.telegramyou.app.telegram.model.SavedTag?) -> Unit = {},
     onSavedTagNamed: (String) -> Unit = {},
@@ -1042,6 +1045,13 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // A person can be rung from their chat, first in the
+                    // bar, as every messenger puts it (2.9).
+                    if (detail?.chat?.isCallable == true) {
+                        IconButton(onClick = onCall) {
+                            Icon(Symbols.Phone, contentDescription = tr("Call", "Позвонить"))
+                        }
+                    }
                     // Saved Messages as a whole opens by chat, as the
                     // official client lists it (2.7).
                     if (state.canOpenSavedTopics) {

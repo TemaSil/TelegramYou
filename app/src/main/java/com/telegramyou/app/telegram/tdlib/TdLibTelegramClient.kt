@@ -8,6 +8,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import com.telegramyou.app.ui.chat.OwnActivity
 import com.telegramyou.app.notifications.ScopeNotifications
 import com.telegramyou.app.notifications.NotificationScope
+import com.telegramyou.app.telegram.model.CallEnd
+import com.telegramyou.app.telegram.model.CallInfo
+import com.telegramyou.app.telegram.model.CallPhase
+import com.telegramyou.app.telegram.model.callEndOf
+import com.telegramyou.app.telegram.model.callPhaseOf
 import com.telegramyou.app.telegram.model.CommentThread
 import com.telegramyou.app.telegram.model.FileStream
 import com.telegramyou.app.telegram.model.splitLongText
@@ -3796,6 +3801,156 @@ class TdLibTelegramClient(
         }
     }
 
+    // ── calls (2.9) ──────────────────────────────────────────────────────
+    //
+    // TDLib rings, answers, agrees the keys and says when it is over; the
+    // sound between the two phones is the media library's, started once the
+    // state is Ready. Until that is wired in, a call here gets as far as
+    // Connecting.
+
+    private val _call = MutableStateFlow<CallInfo?>(null)
+    override val call: StateFlow<CallInfo?> = _call.asStateFlow()
+
+    /** Whether the call in [_call] ever reached Ready, which decides how its end is told. */
+    @Volatile private var callWasReady = false
+
+    override suspend fun startCall(chatId: Long, video: Boolean) {
+        if (_call.value?.phase?.let { it != CallPhase.Ended } == true) return
+        awaitReady()
+        val chat = chatsById[chatId] ?: return
+        val type = chat.optJSONObject("type") ?: return
+        if (type.optString("@type") != "chatTypePrivate") return
+        val userId = type.optLong("user_id")
+        _call.value = callFor(id = 0, userId = userId, outgoing = true, video = video, phase = CallPhase.Requesting)
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "createCall")
+                    .put("user_id", userId)
+                    .put("protocol", callProtocol())
+                    .put("is_video", video)
+            )
+        } catch (e: TdLibException) {
+            Log.d(TAG, "createCall: ${e.message}")
+            _call.update {
+                it?.copy(
+                    phase = CallPhase.Ended,
+                    end = callEndOf("callStateError", null, isOutgoing = true, wasActive = false, error = e.message)
+                )
+            }
+        }
+    }
+
+    override suspend fun acceptCall() {
+        val current = _call.value?.takeIf { it.phase == CallPhase.Incoming } ?: return
+        _call.update { it?.copy(phase = CallPhase.Connecting) }
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "acceptCall")
+                    .put("call_id", current.id)
+                    .put("protocol", callProtocol())
+            )
+        } catch (e: TdLibException) {
+            Log.d(TAG, "acceptCall: ${e.message}")
+        }
+    }
+
+    override suspend fun endCall() {
+        val current = _call.value?.takeIf { it.phase != CallPhase.Ended } ?: return
+        if (current.id == 0) {
+            // Not yet given an id by the server: there is nothing to put down.
+            _call.update { it?.copy(phase = CallPhase.Ended, end = CallEnd.HungUp) }
+            return
+        }
+        val seconds = current.connectedAt?.let { (System.currentTimeMillis() - it) / 1000 } ?: 0L
+        try {
+            requireEngine().send(
+                JSONObject()
+                    .put("@type", "discardCall")
+                    .put("call_id", current.id)
+                    .put("is_disconnected", false)
+                    .put("invite_link", "")
+                    .put("duration", seconds.toInt())
+                    .put("is_video", current.isVideo)
+                    .put("connection_id", 0L)
+            )
+        } catch (e: TdLibException) {
+            Log.d(TAG, "discardCall: ${e.message}")
+            _call.update { it?.copy(phase = CallPhase.Ended, end = CallEnd.HungUp) }
+        }
+    }
+
+    override fun setCallMuted(muted: Boolean) = _call.update { it?.copy(isMuted = muted) }
+
+    override fun setCallSpeaker(on: Boolean) = _call.update { it?.copy(isSpeaker = on) }
+
+    override fun dismissCall() {
+        if (_call.value?.phase == CallPhase.Ended) _call.value = null
+    }
+
+    private fun callFor(id: Int, userId: Long, outgoing: Boolean, video: Boolean, phase: CallPhase): CallInfo {
+        val user = usersById[userId]
+        val chat = chatsById[userId]
+        return CallInfo(
+            id = id,
+            userId = userId,
+            name = user?.let { mapUser(it).displayName } ?: chat?.optString("title").orEmpty(),
+            photoPath = user?.let { photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small")) },
+            isOutgoing = outgoing,
+            isVideo = video,
+            phase = phase
+        )
+    }
+
+    /** `updateCall`: the call's every step, from either end. */
+    private fun onCallUpdate(call: JSONObject) {
+        val id = call.optInt("id")
+        val userId = call.optLong("user_id")
+        val outgoing = call.optBoolean("is_outgoing")
+        val state = call.optJSONObject("state") ?: return
+        val type = state.optString("@type")
+        val current = _call.value
+        // A second call while one is going: TDLib has already answered it
+        // busy for us, and it is not this screen's to show.
+        if (current != null && current.phase != CallPhase.Ended && current.id != 0 && current.id != id) return
+        if (current == null || current.phase == CallPhase.Ended || current.id != id) callWasReady = false
+        if (type == "callStateReady") callWasReady = true
+        val phase = callPhaseOf(type, outgoing, state.optBoolean("is_received"), mediaConnected = false)
+        val base = current?.takeIf { it.id == id || (it.id == 0 && outgoing) }
+            ?: callFor(id, userId, outgoing, call.optBoolean("is_video"), phase)
+        _call.value = base.copy(
+            id = id,
+            phase = phase,
+            emojis = state.optJSONArray("emojis")?.let { list -> List(list.length()) { list.optString(it) } } ?: base.emojis,
+            end = if (phase == CallPhase.Ended) {
+                callEndOf(
+                    type,
+                    state.optJSONObject("reason")?.optString("@type"),
+                    outgoing,
+                    callWasReady,
+                    state.optJSONObject("error")?.optString("message")
+                )
+            } else {
+                null
+            }
+        )
+    }
+
+    /**
+     * What this client can speak. The media library will say exactly which
+     * versions it carries; until it is in, the layers Telegram's own
+     * clients have offered since 2021.
+     */
+    private fun callProtocol(): JSONObject =
+        JSONObject()
+            .put("@type", "callProtocol")
+            .put("udp_p2p", true)
+            .put("udp_reflector", true)
+            .put("min_layer", CALL_MIN_LAYER)
+            .put("max_layer", CALL_MAX_LAYER)
+            .put("library_versions", JSONArray(CALL_LIBRARY_VERSIONS))
+
     // ── proxies ──────────────────────────────────────────────────────────
     //
     // No awaitReady in any of these: TDLib takes proxies before sign-in,
@@ -4557,6 +4712,7 @@ class TdLibTelegramClient(
                 val state = update.optJSONObject("authorization_state") ?: return
                 scope.launch { onAuthorizationState(state) }
             }
+            "updateCall" -> update.optJSONObject("call")?.let(::onCallUpdate)
             "updateUser" -> {
                 val user = update.optJSONObject("user") ?: return
                 usersById[user.optLong("id")] = user
@@ -6181,3 +6337,10 @@ private const val MY_MESSAGES_PAGES = 50
 
 /** How long a posted story stays up: a day, as every client posts them. */
 private const val STORY_ACTIVE_SECONDS = 86_400
+
+/** Telegram's call protocol layers, as its own clients offer them. */
+private const val CALL_MIN_LAYER = 65
+private const val CALL_MAX_LAYER = 92
+
+/** Replaced by the media library's own list once it is in (2.9, stage 2). */
+private val CALL_LIBRARY_VERSIONS = listOf("2.7.7", "5.0.0")

@@ -1,5 +1,8 @@
 package com.telegramyou.app.telegram.demo
 
+import com.telegramyou.app.telegram.model.CallEnd
+import com.telegramyou.app.telegram.model.CallInfo
+import com.telegramyou.app.telegram.model.CallPhase
 import com.telegramyou.app.telegram.model.FolderInvite
 import com.telegramyou.app.telegram.model.MAX_SAVED_TAG_LABEL
 import com.telegramyou.app.telegram.model.SavedTag
@@ -229,6 +232,81 @@ class DemoTelegramClient(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var chatter: Job? = null
+
+    // ── calls (2.9) ──────────────────────────────────────────────────────
+    //
+    // Offline there is nobody at the other end, so a call is acted out: it
+    // rings, is answered and runs, and the screen can be seen and its
+    // buttons pressed without an account. No sound goes anywhere.
+
+    private val _call = MutableStateFlow<CallInfo?>(null)
+    override val call: StateFlow<CallInfo?> = _call.asStateFlow()
+    private var callRun: Job? = null
+    private var callIds = 0
+
+    private fun demoCallFor(chatId: Long, outgoing: Boolean, video: Boolean, phase: CallPhase): CallInfo? {
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return null
+        return CallInfo(
+            id = ++callIds,
+            userId = chat.id,
+            name = chat.title,
+            photoPath = chat.photoPath,
+            avatarColor = chat.avatarColor,
+            isOutgoing = outgoing,
+            isVideo = video,
+            phase = phase,
+            emojis = DEMO_CALL_EMOJIS
+        )
+    }
+
+    override suspend fun startCall(chatId: Long, video: Boolean) {
+        if (_call.value?.phase?.let { it != CallPhase.Ended } == true) return
+        _call.value = demoCallFor(chatId, outgoing = true, video = video, phase = CallPhase.Requesting) ?: return
+        callRun?.cancel()
+        callRun = scope.launch {
+            delay(DEMO_CALL_STEP_MS)
+            _call.update { it?.copy(phase = CallPhase.Ringing) }
+            delay(DEMO_CALL_RING_MS)
+            _call.update { it?.copy(phase = CallPhase.Connecting) }
+            delay(DEMO_CALL_STEP_MS)
+            _call.update { it?.copy(phase = CallPhase.Active, connectedAt = System.currentTimeMillis()) }
+        }
+    }
+
+    /** Somebody rings this phone — what a test asks for, there being nobody to. */
+    fun ringNow(chatId: Long = CHATTY_CHAT_ID, video: Boolean = false) {
+        if (_call.value?.phase?.let { it != CallPhase.Ended } == true) return
+        callRun?.cancel()
+        _call.value = demoCallFor(chatId, outgoing = false, video = video, phase = CallPhase.Incoming)
+    }
+
+    override suspend fun acceptCall() {
+        if (_call.value?.phase != CallPhase.Incoming) return
+        _call.update { it?.copy(phase = CallPhase.Connecting) }
+        callRun?.cancel()
+        callRun = scope.launch {
+            delay(DEMO_CALL_STEP_MS)
+            _call.update { it?.copy(phase = CallPhase.Active, connectedAt = System.currentTimeMillis()) }
+        }
+    }
+
+    override suspend fun endCall() {
+        callRun?.cancel()
+        _call.update { current ->
+            current?.takeIf { it.phase != CallPhase.Ended }?.copy(
+                phase = CallPhase.Ended,
+                end = if (current.phase == CallPhase.Incoming) CallEnd.Declined else CallEnd.HungUp
+            ) ?: current
+        }
+    }
+
+    override fun setCallMuted(muted: Boolean) = _call.update { it?.copy(isMuted = muted) }
+
+    override fun setCallSpeaker(on: Boolean) = _call.update { it?.copy(isSpeaker = on) }
+
+    override fun dismissCall() {
+        if (_call.value?.phase == CallPhase.Ended) _call.value = null
+    }
 
     /** Who is signed in to this demo account; see [accountId]. */
     private fun demoMe(phone: String = ""): TelegramUser = when (accountId) {
@@ -3663,3 +3741,12 @@ private val SAVED_SOURCES = mapOf(SAVED_FROM_LINA to 2L, SAVED_FROM_CIRCLE to 3L
 private const val DEMO_SHARED_FOLDER = "Design friends"
 private const val DEMO_FOLDER_CHANNEL = "Material Weekly"
 private const val DEMO_FOLDER_CHANNEL_ID = -77L
+
+/** A call's steps offline: asked, then answered. */
+private const val DEMO_CALL_STEP_MS = 700L
+
+/** How long the demo's other end rings before it answers. */
+private const val DEMO_CALL_RING_MS = 2_500L
+
+/** The key's four emoji, the same at both ends, as a real call shows them. */
+private val DEMO_CALL_EMOJIS = listOf("🎨", "🌊", "🪐", "🍋")

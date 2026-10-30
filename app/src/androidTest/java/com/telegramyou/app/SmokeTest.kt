@@ -871,6 +871,46 @@ class SmokeTest {
      * A whole chat reported (2.8), from its info: Report, a reason picked
      * from Telegram's list, and the thanks.
      */
+    /**
+     * A call (2.9), acted out by the demo: rung from the chat's bar, answered
+     * at the other end, the clock running, muted, put down — and then rung
+     * from the other side, answered here. Nothing is heard; what is checked
+     * is that every step of the screen arrives.
+     */
+    @Test
+    fun aPersonIsCalledAndCallsBack() {
+        signIn()
+        waitFor(By.text("Lina Park"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("Call"), "the call button in Lina's chat")
+        tap(By.desc("Call"))
+        waitFor(By.text("Ringing…"), "the other end ringing")
+        screenshot("140-call-ringing")
+        // Answered: the clock starts at 0:00 and moves.
+        waitFor(By.text(java.util.regex.Pattern.compile("0:0[1-9]")), "the call's clock running")
+        tap(By.desc("Mute"))
+        screenshot("141-call")
+        tap(By.desc("End call"))
+        waitFor(By.text("Call ended"), "the call put down")
+        assertTrue(
+            "the call screen stayed after the call",
+            device.wait(Until.gone(By.desc("Mute")), STEP_TIMEOUT)
+        )
+
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+        (app as? TelegramYouApp)?.demoClient?.ringNow(LINA_CHAT_ID)
+        waitFor(By.text("Incoming call"), "Lina calling")
+        screenshot("142-call-incoming")
+        tap(By.desc("Answer"))
+        waitFor(By.text(java.util.regex.Pattern.compile("0:0[1-9]")), "the answered call running")
+        tap(By.desc("End call"))
+        assertTrue(
+            "the answered call did not go",
+            device.wait(Until.gone(By.desc("Mute")), STEP_TIMEOUT)
+        )
+    }
+
     @Test
     fun aChatIsReportedFromItsInfo() {
         signIn()

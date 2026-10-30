@@ -35,6 +35,7 @@ Palette PersonAdd PhotoLibrary PlayArrow Poll Public PushPin QrCode2 Reply Sched
 Send Settings Share Snooze Stop SwitchCamera Translate SportsEsports Storage SystemUpdate TabletMac Unarchive
 Visibility VisibilityOff VolumeOff VolumeUp VpnKey WorkspacePremium
 Crop Rotate90DegreesCcw PersonCheck Sticker GifBox Cake SpeechToText
+CallEnd MicOff Videocam VideocamOff
 """.split()
 
 BASE = "https://raw.githubusercontent.com/google/material-design-icons/master/symbols/android"
