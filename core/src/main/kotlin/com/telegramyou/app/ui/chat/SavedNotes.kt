@@ -50,3 +50,31 @@ fun noteHasPicture(message: ChatMessage): Boolean = when (message.contentType) {
     MessageContentType.Video, MessageContentType.Animation, MessageContentType.VideoNote -> message.video != null
     else -> false
 }
+
+/**
+ * Saved messages put together into notes (2.9): one after another within
+ * [NOTE_GAP_SECONDS] of each other make one note, as a thought jotted in
+ * three messages is one thought. Something forwarded stays with what came
+ * from the same place — two sources are two notes, however close in time.
+ * Oldest first in, and in each note; the notes themselves newest first,
+ * as the grid shows them.
+ */
+fun groupNotes(messages: List<ChatMessage>, gapSeconds: Long = NOTE_GAP_SECONDS): List<List<ChatMessage>> {
+    val notes = mutableListOf<MutableList<ChatMessage>>()
+    for (message in messages) {
+        val last = notes.lastOrNull()?.last()
+        val joins = last != null &&
+            last.date > 0L && message.date > 0L &&
+            message.date - last.date in 0..gapSeconds &&
+            last.forwardedFrom == message.forwardedFrom
+        if (joins) notes.last().add(message) else notes.add(mutableListOf(message))
+    }
+    return notes.asReversed()
+}
+
+/** The words of a note of several messages, each message its own paragraph. */
+fun noteBody(note: List<ChatMessage>): String =
+    note.map(::noteBody).filter(String::isNotEmpty).joinToString("\n\n")
+
+/** How close saved messages must be to make one note: two minutes, a pause in a thought. */
+const val NOTE_GAP_SECONDS = 120L

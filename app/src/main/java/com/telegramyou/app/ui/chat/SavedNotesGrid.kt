@@ -72,11 +72,12 @@ internal fun SavedNotesGrid(
     hasMoreOlder: Boolean,
     onLoadOlder: () -> Unit,
     contentPadding: PaddingValues,
-    onOpen: (ChatMessage) -> Unit,
+    onOpen: (List<ChatMessage>) -> Unit,
     onPhotoVisible: (ChatMessage) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val newestFirst = remember(messages) { messages.asReversed() }
+    // Messages saved one after another, close in time, as one note.
+    val notes = remember(messages) { groupNotes(messages) }
     val grid = rememberLazyStaggeredGridState()
     val nearEnd by remember {
         derivedStateOf {
@@ -95,11 +96,11 @@ internal fun SavedNotesGrid(
         verticalItemSpacing = 8.dp,
         modifier = modifier.fillMaxSize()
     ) {
-        items(newestFirst, key = { it.id }) { message ->
+        items(notes, key = { it.first().id }) { note ->
             NoteCard(
-                message = message,
-                onOpen = { onOpen(message) },
-                onPhotoVisible = { onPhotoVisible(message) },
+                note = note,
+                onOpen = { onOpen(note) },
+                onPhotoVisible = onPhotoVisible,
                 modifier = Modifier.animateItem(
                     fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                     placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
@@ -113,13 +114,15 @@ internal fun SavedNotesGrid(
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NoteCard(
-    message: ChatMessage,
+    note: List<ChatMessage>,
     onOpen: () -> Unit,
-    onPhotoVisible: () -> Unit,
+    onPhotoVisible: (ChatMessage) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val body = noteBody(message)
-    val tone = noteTone(message)
+    val message = note.first()
+    val body = noteBody(note)
+    val tone = noteTone(note)
+    val pictures = note.filter(::noteHasPicture)
     Card(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = tone.first, contentColor = tone.second),
@@ -128,7 +131,24 @@ private fun NoteCard(
             .clip(MaterialTheme.shapes.large)
             .combinedClickable(onClick = onOpen, onLongClick = onOpen)
     ) {
-        if (noteHasPicture(message)) NotePicture(message, onPhotoVisible)
+        pictures.firstOrNull()?.let { first ->
+            Box {
+                NotePicture(first) { onPhotoVisible(first) }
+                // More pictures in the note than the card shows: how many.
+                if (pictures.size > 1) {
+                    androidx.compose.material3.Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = Color.Black.copy(alpha = 0.45f),
+                        contentColor = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(8.dp)
+                    ) {
+                        Text("+${pictures.size - 1}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+            }
+        }
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
             message.forwardedFrom?.let { from ->
                 Text(
@@ -153,23 +173,23 @@ private fun NoteCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            noteAttachment(message)?.let { line ->
-                if (body.isNotEmpty()) Spacer(Modifier.height(6.dp))
+            note.mapNotNull { part -> noteAttachment(part)?.let { part to it } }.take(3).forEachIndexed { index, (part, line) ->
+                if (body.isNotEmpty() || index > 0) Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(attachmentIcon(message), contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(attachmentIcon(part), contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(line, style = MaterialTheme.typography.labelLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                message.reactions.take(3).forEach { reaction ->
-                    ReactionGlyph(reaction.emoji, size = 16.dp, animate = false)
+                note.flatMap { it.reactions }.map { it.emoji }.distinct().take(3).forEach { emoji ->
+                    ReactionGlyph(emoji, size = 16.dp, animate = false)
                     Spacer(Modifier.width(4.dp))
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    message.timeLabel,
+                    note.last().timeLabel,
                     style = MaterialTheme.typography.labelSmall,
                     color = tone.second.copy(alpha = 0.7f)
                 )
@@ -209,9 +229,9 @@ private fun NotePicture(message: ChatMessage, onPhotoVisible: () -> Unit) {
 
 /** A note's colour: the card's own surface, or — tagged — a container colour chosen by the tag. */
 @Composable
-private fun noteTone(message: ChatMessage): Pair<Color, Color> {
+private fun noteTone(note: List<ChatMessage>): Pair<Color, Color> {
     val scheme = MaterialTheme.colorScheme
-    val tag = message.reactions.firstOrNull()?.emoji ?: return scheme.surfaceContainerHigh to scheme.onSurface
+    val tag = note.firstNotNullOfOrNull { it.reactions.firstOrNull()?.emoji } ?: return scheme.surfaceContainerHigh to scheme.onSurface
     return when (Math.floorMod(tag.hashCode(), 3)) {
         0 -> scheme.primaryContainer to scheme.onPrimaryContainer
         1 -> scheme.secondaryContainer to scheme.onSecondaryContainer
@@ -235,10 +255,10 @@ private fun attachmentIcon(message: ChatMessage): ImageVector = when (message.co
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NoteSheet(
-    message: ChatMessage,
+    note: List<ChatMessage>,
     onDismiss: () -> Unit,
     onShowInChat: () -> Unit,
-    onOpenPicture: () -> Unit,
+    onOpenPicture: (ChatMessage) -> Unit,
     onCopy: () -> Unit,
     onEdit: (() -> Unit)?,
     onTag: () -> Unit,
@@ -250,26 +270,26 @@ internal fun NoteSheet(
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
         ) {
-            if (noteHasPicture(message)) {
+            note.filter(::noteHasPicture).forEach { picture ->
                 Box(
                     Modifier
                         .padding(horizontal = 16.dp)
                         .clip(MaterialTheme.shapes.large)
-                        .combinedClickable(onClick = onOpenPicture)
-                ) { NotePicture(message, onPhotoVisible = {}) }
+                        .combinedClickable(onClick = { onOpenPicture(picture) })
+                ) { NotePicture(picture, onPhotoVisible = {}) }
                 Spacer(Modifier.height(12.dp))
             }
-            val body = noteBody(message)
+            val body = noteBody(note)
             if (body.isNotEmpty()) {
                 SelectionContainer {
                     Text(body, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 24.dp))
                 }
             }
-            noteAttachment(message)?.let { line ->
+            note.mapNotNull(::noteAttachment).forEach { line ->
                 Text(line, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
             }
             Text(
-                message.timeLabel,
+                note.last().timeLabel,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)

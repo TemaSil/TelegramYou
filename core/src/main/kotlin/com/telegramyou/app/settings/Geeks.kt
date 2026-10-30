@@ -60,7 +60,13 @@ data class GeekSettings(
     val ghostReading: Boolean = false,
     val ghostOnline: Boolean = false,
     /** Stories watched without their posters seeing it (2.8). */
-    val ghostStories: Boolean = false
+    val ghostStories: Boolean = false,
+    /**
+     * Saved Messages as notes, as Google Keep lays them out (2.9): an
+     * experiment, on unless turned off; off, Saved Messages is the chat it
+     * always was.
+     */
+    val savedNotes: Boolean = true
 )
 
 /** What [GeekSettings.messageExtras] puts in a message's menu. */

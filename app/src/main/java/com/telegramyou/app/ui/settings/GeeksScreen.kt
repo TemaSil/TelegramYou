@@ -261,6 +261,11 @@ fun GeeksScreen(
 
             SettingsGroup(tr("Experiments", "Эксперименты")) {
                 switch(
+                    title = tr("Saved Messages as notes", "Избранное как заметки"),
+                    summary = tr("Cards in a grid, as Google Keep shows notes; off, Saved Messages is a chat", "Карточки сеткой, как заметки в Google Keep; если выключить, Избранное — обычный чат"),
+                    checked = settings.savedNotes
+                ) { on -> onChange { it.copy(savedNotes = on) } }
+                switch(
                     title = tr("Music library", "Музыкальная библиотека"),
                     summary = tr("Every chat's music as albums, artists and playlists, in the chat list's menu", "Музыка из всех чатов — альбомы, исполнители и плейлисты в меню списка чатов"),
                     checked = settings.musicLibrary

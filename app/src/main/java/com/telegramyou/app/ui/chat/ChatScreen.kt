@@ -909,42 +909,55 @@ fun ChatScreen(
     val detail = state.detail
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
-    // Saved Messages as notes (2.9): the grid by default, the chat a tap away.
+    // Saved Messages as notes (2.9) — an experiment in For geeks, on by
+    // default: the grid, with the chat a tap away; off, the chat alone.
+    val notesAllowed = com.telegramyou.app.settings.LocalGeekSettings.current.savedNotes &&
+        detail?.chat?.isSavedMessages == true
     var notesView by rememberSaveable { mutableStateOf(true) }
-    val savedNotes = notesView && detail?.chat?.isSavedMessages == true && !state.selection.isActive
-    var openNote by remember { mutableStateOf<ChatMessage?>(null) }
+    val savedNotes = notesAllowed && notesView && !state.selection.isActive
+    var openNote by remember { mutableStateOf<List<ChatMessage>?>(null) }
     openNote?.let { note ->
+        val single = note.singleOrNull()
         NoteSheet(
-            message = note,
+            note = note,
             onDismiss = { openNote = null },
             onShowInChat = {
                 openNote = null
                 notesView = false
-                onJumpToMessage(note.id)
+                onJumpToMessage(note.first().id)
             },
-            onOpenPicture = {
+            onOpenPicture = { picture ->
                 openNote = null
-                if (note.contentType == MessageContentType.Photo) onPhotoOpened(note) else onVideoOpened(note)
+                if (picture.contentType == MessageContentType.Photo) onPhotoOpened(picture) else onVideoOpened(picture)
             },
             onCopy = {
                 openNote = null
                 copyToClipboard(noteBody(note))
             },
-            onEdit = if (note.canBeEdited && noteBody(note).isNotEmpty()) {
+            // Only a note of one message: an edit is of one message's words.
+            onEdit = if (single != null && single.canBeEdited && noteBody(single).isNotEmpty()) {
                 {
                     openNote = null
-                    onEdit(note)
+                    onEdit(single)
                 }
             } else {
                 null
             },
+            // The tag goes on the note's last message, which colours it.
             onTag = {
                 openNote = null
-                onReactionsRequested(note)
+                onReactionsRequested(note.last())
             },
+            // A note of several is deleted whole, through the same question
+            // a selection of messages is asked.
             onDelete = {
                 openNote = null
-                onDeleteRequested(note)
+                if (single != null) {
+                    onDeleteRequested(single)
+                } else {
+                    note.forEach { if (it.id !in state.selection) onSelectionToggled(it) }
+                    onSelectionDeleteRequested()
+                }
             }
         )
     }
@@ -1083,7 +1096,7 @@ fun ChatScreen(
                 actions = {
                     // Saved Messages as notes, as Google Keep lays them out,
                     // or as the conversation it also is (2.9).
-                    if (detail?.chat?.isSavedMessages == true) {
+                    if (notesAllowed) {
                         IconButton(onClick = { notesView = !notesView }) {
                             Icon(
                                 if (notesView) Symbols.ViewAgenda else Symbols.GridView,
