@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.8.1
+
+- **Round video messages and GIFs play again.** Since videos began to stream in 1.9, the fetch that brings a whole file was skipped for every kind of video, and a round message or a GIF — which play only once whole — waited for bytes nobody asked for.
+- **Videos in the photo picker.** The picker offered pictures only; it shows videos now, and they go in the same album as the photos, as videos, with their size and length. In the tray a video shows its first frame and a play mark.
+- **A video is swiped away like a photo**, down and it goes; a caption cut to two lines is pulled up to read, as well as tapped.
+
 ## 2.8
 
 - **Two panes on a tablet and an unfolded phone.** From 840dp — a tablet, an unfolded phone on its side — the whole chat list stands beside the open chat, the open one lit. Narrower, as an unfolded phone held upright, the list has the screen until a chat opens and then folds to a column of avatars with their unread counts, the rail's icons beside it, as Telegram's desktop app folds its own. Folding the phone takes the open chat along.

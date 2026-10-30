@@ -1,7 +1,5 @@
-# Made for tablets and foldables, and a ghost mode
-- On a tablet or an unfolded phone, chats open right beside the list
-- Narrower screens fold the list into avatars, like Telegram Desktop
-- Drag photos and files from another app straight into a chat
-- Ghost mode in Settings: no "typing", no read marks, never online
-- Watch stories unseen — always, or for 15 minutes from the eye
-- Report a whole chat from its info
+# Round videos play, and the gallery has videos
+- Round video messages and GIFs play again
+- The photo picker shows your videos too, sent in the same album
+- Swipe a video down to close it, just like a photo
+- Pull a long video caption up to read all of it

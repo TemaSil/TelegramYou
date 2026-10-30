@@ -55,13 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.8 · 28 October 2026
+## Latest: 2.8.1 · 30 October 2026
 
-On a tablet or an unfolded phone the chat opens beside the list, which
-folds to avatars where the screen is narrower; photos drop into a chat from
-another window; and ghost mode hides typing, read marks, being online and
-story views. 2.7 before it brought voice to text and Saved Messages by
-chat. See the [changelog](CHANGELOG.md).
+Round video messages and GIFs play again; the photo picker shows videos
+and sends them in the same album; and a video is swiped away like a photo,
+its caption pulled up to read. 2.8 before it brought two panes on tablets
+and foldables, and ghost mode. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

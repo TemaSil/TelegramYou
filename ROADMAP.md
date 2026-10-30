@@ -112,6 +112,12 @@ and leave the forks' extras for later.
 
 By how soon they would notice, not by how hard it is.
 
+- [ ] **Calls — 2.9, the owner's word of 30 October 2026.** TDLib carries
+      only the signalling; the voice and the picture need `tgcalls` and
+      WebRTC, a second native stack built in CI as TDLib is. The screen in
+      the manner of the Pixel's own dialer, in Material 3 Expressive —
+      voice first, then video. A real call needs two real phones to test.
+
 - [x] **Photos edited before they go** (2.2) — a photo in the tray, tapped,
       turns and crops (PhotoEditor) and goes under a spoiler; the held send
       button offers Send without sound, Send when online, Send as files and
@@ -209,7 +215,6 @@ is in the AyuGram and Nekogram sections below.
 
 ### Not planned
 
-Calls need `tgcalls`, a second native stack TDLib does not carry.
 Payments, Premium and Business are out of scope. Of AyuGram's features,
 those that break Telegram's terms are out for good — the reasons are in its
 section.
