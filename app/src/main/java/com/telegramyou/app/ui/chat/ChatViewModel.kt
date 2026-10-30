@@ -2171,10 +2171,12 @@ class ChatViewModel(
 
     /** The video file itself, once, into the message and into the open player. */
     private fun fetchVideo(message: ChatMessage) {
-        // Played as it downloads where the backend can (VideoPage): fetching
-        // it whole here as well would compete with the stream for the
-        // connection, and make the first frame wait for the last byte.
-        if (repository.canStream) return
+        // A video plays as it downloads where the backend can (VideoPage):
+        // fetching it whole here as well would compete with the stream for
+        // the connection. A GIF and a round video play in their bubble from
+        // a file, and are fetched whatever the backend can; see
+        // fetchesVideoWhole.
+        if (!fetchesVideoWhole(message.contentType, repository.canStream)) return
         val video = message.video ?: return
         val fileId = video.fileId ?: return
         if (video.path != null || !requestedVideos.add(fileId)) return
