@@ -4,6 +4,7 @@ import android.graphics.Matrix
 import android.view.TextureView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
@@ -14,6 +15,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.delay
 
 /**
  * A video playing inside a message — a GIF on its loop, a round video
@@ -36,7 +38,12 @@ fun InlineVideo(
     muted: Boolean,
     loop: Boolean,
     modifier: Modifier = Modifier,
-    onEnded: () -> Unit = {}
+    onEnded: () -> Unit = {},
+    /** How far it has played, 0 to 1, a few times a second while it plays (2.8.2). */
+    onProgress: ((Float) -> Unit)? = null,
+    /** A share of the way through to go to, once; [onSeeked] says it was done. */
+    seekTo: Float? = null,
+    onSeeked: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val ended = rememberUpdatedState(onEnded)
@@ -78,6 +85,21 @@ fun InlineVideo(
         val focus = if (playing && !muted) com.telegramyou.app.music.AudioFocus.duck() else null
         onDispose { focus?.release() }
     }
+    val progress = rememberUpdatedState(onProgress)
+    LaunchedEffect(player, playing) {
+        if (progress.value == null) return@LaunchedEffect
+        while (playing) {
+            val length = player.duration
+            if (length > 0) progress.value?.invoke((player.currentPosition.toFloat() / length).coerceIn(0f, 1f))
+            delay(PROGRESS_TICK_MS)
+        }
+    }
+    LaunchedEffect(player, seekTo) {
+        val to = seekTo ?: return@LaunchedEffect
+        val length = player.duration
+        if (length > 0) player.seekTo((to * length).toLong())
+        onSeeked()
+    }
     LifecycleResumeEffect(player, playing) {
         player.playWhenReady = playing
         onPauseOrDispose { player.playWhenReady = false }
@@ -116,3 +138,6 @@ private class TextureHolder {
         view.setTransform(matrix)
     }
 }
+
+/** How often a playing circle's ring catches up with it. */
+private const val PROGRESS_TICK_MS = 40L

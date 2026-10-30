@@ -195,6 +195,17 @@ internal fun JSONObject.withSendOptions(options: SendOptions): JSONObject = appl
 internal fun inputPhoto(path: String): JSONObject =
     JSONObject().put("@type", "inputPhoto").put("photo", localFile(path))
 
+/** A video file on this phone, with its length and size, as TDLib's `inputVideo`. */
+internal fun inputVideo(path: String, durationSeconds: Int, width: Int, height: Int): JSONObject =
+    JSONObject()
+        .put("@type", "inputVideo")
+        .put("video", localFile(path))
+        .put("added_sticker_file_ids", JSONArray())
+        .put("duration", durationSeconds)
+        .put("width", width)
+        .put("height", height)
+        .put("supports_streaming", true)
+
 /** A TDLib `userStatus`, read into the tested model in :core. */
 internal fun presenceOf(user: JSONObject): Presence {
     val status = user.optJSONObject("status") ?: return Presence.Unknown

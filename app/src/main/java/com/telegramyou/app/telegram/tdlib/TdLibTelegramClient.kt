@@ -3144,13 +3144,12 @@ class TdLibTelegramClient(
         // before a byte has loaded, so both are read here rather than left
         // for the server to discover.
         val (width, height, seconds) = videoShape(item.path)
+        // The file and its shape in an inputVideo, as a photo's are in an
+        // inputPhoto: TDLib's inputMessageVideo takes no bare InputFile, and
+        // given one it answered "InputFile is not specified" (2.8.2).
         return JSONObject()
             .put("@type", "inputMessageVideo")
-            .put("video", localFile(item.path))
-            .put("duration", seconds)
-            .put("width", width)
-            .put("height", height)
-            .put("supports_streaming", true)
+            .put("video", inputVideo(item.path, seconds, width, height))
             .put("has_spoiler", item.spoiler)
             .put("caption", text)
     }

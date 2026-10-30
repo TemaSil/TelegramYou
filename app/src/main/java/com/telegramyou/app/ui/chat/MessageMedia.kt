@@ -19,6 +19,8 @@ import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.awaitEachGesture
 import com.telegramyou.app.ui.icons.Symbols
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -725,6 +727,11 @@ internal fun VideoNoteMessage(
     // A tap while the file is still arriving is kept, not dropped: the
     // circle starts as soon as there is something to play.
     var playing by remember { mutableStateOf(false) }
+    // How far it has played, round the edge; and where a finger on the
+    // edge has wound it to, sent to the player once (2.8.2).
+    var played by remember { mutableFloatStateOf(0f) }
+    var seekTo by remember { mutableStateOf<Float?>(null) }
+    var winding by remember { mutableStateOf(false) }
     val duration = formatDuration(note.durationSeconds.toLong())
     val description = if (playing && note.path != null) tr("Video message, playing", "Видеосообщение, играет") else tr("Video message, $duration", "Видеосообщение, $duration")
     Box(
@@ -753,7 +760,28 @@ internal fun VideoNoteMessage(
                 muted = false,
                 loop = false,
                 modifier = Modifier.fillMaxSize(),
-                onEnded = { playing = false }
+                onEnded = {
+                    playing = false
+                    played = 0f
+                },
+                onProgress = { if (!winding) played = it },
+                seekTo = seekTo,
+                onSeeked = { seekTo = null }
+            )
+        }
+        // The ring: Material's own determinate indicator, as large as the
+        // circle, filling clockwise from the top as it plays — and, held at
+        // the edge, wound by the finger.
+        if (playing || winding) {
+            CircularProgressIndicator(
+                progress = { played },
+                strokeWidth = 4.dp,
+                trackColor = Color.Black.copy(alpha = 0.25f),
+                color = Color.White,
+                gapSize = 0.dp,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(3.dp)
             )
         }
         when {
@@ -803,9 +831,35 @@ internal fun VideoNoteMessage(
         // View inside Compose takes the touches that land on it — so a tap
         // on a loaded circle did nothing, and only one made before the file
         // arrived ever started it. Drawn last, this sees the tap first.
+        // A finger set on the edge while it plays winds it: round the ring
+        // to where it should be, as in Telegram's own circles. One set in
+        // the middle, or on a paused circle, is left to the tap and to the
+        // conversation's scrolling.
         Box(
             Modifier
                 .matchParentSize()
+                .pointerInput(note.path) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val centre = Offset(size.width / 2f, size.height / 2f)
+                        val at = down.position - centre
+                        if (!playing || !onRing(at.x, at.y, size.width / 2f)) return@awaitEachGesture
+                        val slop = awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
+                            ?: return@awaitEachGesture
+                        winding = true
+                        fun windTo(position: Offset) {
+                            val d = position - centre
+                            played = ringFraction(d.x, d.y)
+                            seekTo = played
+                        }
+                        windTo(slop.position)
+                        drag(slop.id) { change ->
+                            windTo(change.position)
+                            change.consume()
+                        }
+                        winding = false
+                    }
+                }
                 .clickable {
                     playing = !playing
                     if (playing) onPlayed()
