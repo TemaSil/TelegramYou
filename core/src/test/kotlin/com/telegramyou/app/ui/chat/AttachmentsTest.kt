@@ -2,7 +2,9 @@ package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AttachmentsTest {
@@ -75,5 +77,18 @@ class AttachmentsTest {
     fun `photos joined keep the spoilers of both`() {
         val joined = photos("a").withSpoiler("a", true).plus(photos("b").withSpoiler("b", true)) as AttachmentDraft.Photos
         assertEquals(setOf("a", "b"), joined.spoilered)
+    }
+
+    @Test
+    fun `videos from the gallery stay videos through a join, a removal and send as files`() {
+        val video = AttachmentDraft.Photos(listOf("v"), videos = setOf("v"))
+        val joined = photos("a").plus(video) as AttachmentDraft.Photos
+        assertEquals(setOf("v"), joined.videos)
+        assertTrue(joined.isVideo("v"))
+        assertFalse(joined.isVideo("a"))
+        assertEquals(listOf("photo-1.jpg", "video-2.mp4"), joined.asFiles().names)
+        assertEquals(emptySet<String>(), (joined.without(1) as AttachmentDraft.Photos).videos)
+        assertEquals(setOf("v"), (joined.without(0) as AttachmentDraft.Photos).videos)
+        assertEquals(setOf("v"), joined.moved(1, 0).let { (it as AttachmentDraft.Photos).videos })
     }
 }

@@ -106,6 +106,7 @@ import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import com.telegramyou.app.ui.chat.formatDuration
+import com.telegramyou.app.ui.chat.isVideo
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -1749,6 +1750,19 @@ class DemoTelegramClient(
             }
             is AttachmentDraft.Photos -> {
                 draft.uris.forEachIndexed { index, uri ->
+                    // A video from the gallery (2.8.1) plays from its Uri,
+                    // as a photo is drawn from one; no poster offline.
+                    if (draft.isVideo(uri)) {
+                        appendOutgoing(
+                            chatId = chatId,
+                            text = caption.takeIf { index == 0 }.orEmpty().ifBlank { "Video" },
+                            type = MessageContentType.Video,
+                            replyToId = replyToId.takeIf { index == 0 },
+                            video = VideoContent(path = uri),
+                            hasSpoiler = uri in draft.spoilered
+                        )
+                        return@forEachIndexed
+                    }
                     appendOutgoing(
                         chatId = chatId,
                         text = caption.takeIf { index == 0 }.orEmpty().ifBlank { "Photo" },

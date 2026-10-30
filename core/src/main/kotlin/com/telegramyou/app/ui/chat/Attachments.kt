@@ -21,7 +21,11 @@ const val ALBUM_LIMIT = 10
 fun AttachmentDraft?.plus(added: AttachmentDraft): AttachmentDraft = when {
     this is AttachmentDraft.Photos && added is AttachmentDraft.Photos -> {
         val merged = (uris + added.uris.filter { it !in uris }).take(ALBUM_LIMIT)
-        AttachmentDraft.Photos(merged, (spoilered + added.spoilered).filterTo(mutableSetOf()) { it in merged })
+        AttachmentDraft.Photos(
+            merged,
+            (spoilered + added.spoilered).filterTo(mutableSetOf()) { it in merged },
+            (videos + added.videos).filterTo(mutableSetOf()) { it in merged }
+        )
     }
     this is AttachmentDraft.Files && added is AttachmentDraft.Files -> {
         val pairs = (uris.zip(names) + added.uris.zip(added.names).filter { (uri, _) -> uri !in uris })
@@ -49,7 +53,13 @@ val AttachmentDraft.count: Int
 /** All but the one at [index]; null once nothing is left. */
 fun AttachmentDraft.without(index: Int): AttachmentDraft? = when (this) {
     is AttachmentDraft.Photos -> uris.filterIndexed { i, _ -> i != index }.takeIf { it.isNotEmpty() }
-        ?.let { kept -> AttachmentDraft.Photos(kept, spoilered.filterTo(mutableSetOf()) { it in kept }) }
+        ?.let { kept ->
+            AttachmentDraft.Photos(
+                kept,
+                spoilered.filterTo(mutableSetOf()) { it in kept },
+                videos.filterTo(mutableSetOf()) { it in kept }
+            )
+        }
     is AttachmentDraft.Files -> {
         val kept = uris.indices.filter { it != index }
         if (kept.isEmpty()) null else AttachmentDraft.Files(kept.map { uris[it] }, kept.map { names[it] })
@@ -85,7 +95,8 @@ fun AttachmentDraft.Photos.replaced(old: String, new: String): AttachmentDraft.P
     if (at < 0 || new in uris) return this
     return AttachmentDraft.Photos(
         uris = uris.toMutableList().apply { set(at, new) },
-        spoilered = if (old in spoilered) spoilered - old + new else spoilered
+        spoilered = if (old in spoilered) spoilered - old + new else spoilered,
+        videos = if (old in videos) videos - old + new else videos
     )
 }
 
@@ -95,4 +106,10 @@ fun AttachmentDraft.Photos.replaced(old: String, new: String): AttachmentDraft.P
  * photo's uri says nothing a person would call it.
  */
 fun AttachmentDraft.Photos.asFiles(): AttachmentDraft.Files =
-    AttachmentDraft.Files(uris, uris.indices.map { "photo-${it + 1}.jpg" })
+    AttachmentDraft.Files(
+        uris,
+        uris.mapIndexed { i, uri -> if (uri in videos) "video-${i + 1}.mp4" else "photo-${i + 1}.jpg" }
+    )
+
+/** Whether the one at [uri] is a video rather than a photo (2.8.1). */
+fun AttachmentDraft.Photos.isVideo(uri: String): Boolean = uri in videos

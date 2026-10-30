@@ -54,6 +54,7 @@ import com.telegramyou.app.telegram.model.CallbackAnswer
 import com.telegramyou.app.telegram.model.ReplyKeyboard
 import com.telegramyou.app.ui.auth.codeDeliveryText
 import com.telegramyou.app.ui.chat.applying
+import com.telegramyou.app.ui.chat.isVideo
 import com.telegramyou.app.ui.format.chatListTimeLabel
 import com.telegramyou.app.ui.format.isOnline
 import com.telegramyou.app.ui.format.memberCountLabel
@@ -3051,15 +3052,28 @@ class TdLibTelegramClient(
             // and the quote belong to the first; each photo used to carry
             // both, so a three-photo send said the same words three times.
             is AttachmentDraft.Photos -> {
-                val paths = draft.uris.map { uri ->
-                    copyUriToCache(uri, "photo_${System.currentTimeMillis()}.jpg")
+                // Videos picked from the same gallery go in the same album,
+                // as videos (2.8.1); under a spoiler, one by one, as the
+                // editor left each (2.2).
+                val media = draft.uris.map { uri ->
+                    val video = draft.isVideo(uri)
+                    AlbumItem(
+                        path = copyUriToCache(uri, "${if (video) "video" else "photo"}_${System.currentTimeMillis()}.${if (video) "mp4" else "jpg"}"),
+                        video = video,
+                        spoiler = uri in draft.spoilered
+                    )
                 }
-                // Under a spoiler, photo by photo, as the editor left each (2.2).
-                val spoilers = draft.uris.map { it in draft.spoilered }
-                if (paths.size == 1) {
-                    sendLocalFile(chatId, paths.single(), caption, photo = true, replyToId = replyToId, spoiler = spoilers.single())
+                if (media.size == 1) {
+                    requireEngine().send(
+                        JSONObject()
+                            .put("@type", "sendMessage")
+                            .put("chat_id", chatId)
+                            .inOpenTopic(chatId)
+                            .withReplyTo(replyToId)
+                            .put("input_message_content", albumContent(media.single(), caption))
+                    )
                 } else {
-                    sendPhotoAlbums(chatId, paths, caption, replyToId, spoilers)
+                    sendPhotoAlbums(chatId, media, caption, replyToId)
                 }
             }
             // Files one by one, with the caption and the quote on the first
@@ -3074,7 +3088,7 @@ class TdLibTelegramClient(
                     if (isAudioFileName(name)) {
                         sendAudio(chatId, path, fileCaption, quoted)
                     } else {
-                        sendLocalFile(chatId, path, fileCaption, photo = false, replyToId = quoted)
+                        sendLocalFile(chatId, path, fileCaption, replyToId = quoted)
                     }
                 }
             // No copy here: a recording is already a file this app wrote, in
@@ -3113,33 +3127,67 @@ class TdLibTelegramClient(
         }
     }
 
+    /** A photo or a video picked from the gallery, copied and ready to go. */
+    private class AlbumItem(val path: String, val video: Boolean, val spoiler: Boolean)
+
+    /** One photo or video of an album, as TDLib takes it. */
+    private fun albumContent(item: AlbumItem, caption: String): JSONObject {
+        val text = JSONObject().put("@type", "formattedText").put("text", caption)
+        if (!item.video) {
+            return JSONObject()
+                .put("@type", "inputMessagePhoto")
+                .put("photo", inputPhoto(item.path))
+                .put("has_spoiler", item.spoiler)
+                .put("caption", text)
+        }
+        // Telegram draws the bubble at the video's size and shows its length
+        // before a byte has loaded, so both are read here rather than left
+        // for the server to discover.
+        val (width, height, seconds) = videoShape(item.path)
+        return JSONObject()
+            .put("@type", "inputMessageVideo")
+            .put("video", localFile(item.path))
+            .put("duration", seconds)
+            .put("width", width)
+            .put("height", height)
+            .put("supports_streaming", true)
+            .put("has_spoiler", item.spoiler)
+            .put("caption", text)
+    }
+
+    /** A video file's width, height — turned as it plays — and whole seconds. */
+    private fun videoShape(path: String): Triple<Int, Int, Int> {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(path)
+            fun read(key: Int) = retriever.extractMetadata(key)?.toIntOrNull() ?: 0
+            val width = read(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+            val height = read(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+            val turned = read(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION) % 180 != 0
+            val seconds = ((retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L) / 1000).toInt()
+            if (turned) Triple(height, width, seconds) else Triple(width, height, seconds)
+        } catch (_: RuntimeException) {
+            Triple(0, 0, 0)
+        } finally {
+            retriever.release()
+        }
+    }
+
     /**
      * `sendMessageAlbum`, in groups of ten — the most Telegram puts in one.
      * Only the very first photo carries the caption and answers the quote.
      */
     private suspend fun sendPhotoAlbums(
         chatId: Long,
-        paths: List<String>,
+        media: List<AlbumItem>,
         caption: String,
-        replyToId: Long?,
-        spoilers: List<Boolean> = emptyList()
+        replyToId: Long?
     ) {
-        paths.chunked(ALBUM_LIMIT).forEachIndexed { chunkIndex, chunk ->
+        media.chunked(ALBUM_LIMIT).forEachIndexed { chunkIndex, chunk ->
             val contents = JSONArray()
-            chunk.forEachIndexed { index, path ->
+            chunk.forEachIndexed { index, item ->
                 val first = chunkIndex == 0 && index == 0
-                contents.put(
-                    JSONObject()
-                        .put("@type", "inputMessagePhoto")
-                        .put("photo", inputPhoto(path))
-                        .put("has_spoiler", spoilers.getOrElse(chunkIndex * ALBUM_LIMIT + index) { false })
-                        .put(
-                            "caption",
-                            JSONObject()
-                                .put("@type", "formattedText")
-                                .put("text", if (first) caption else "")
-                        )
-                )
+                contents.put(albumContent(item, if (first) caption else ""))
             }
             requireEngine().send(
                 JSONObject()
@@ -4478,33 +4526,20 @@ class TdLibTelegramClient(
         chatId: Long,
         path: String,
         caption: String,
-        photo: Boolean,
-        replyToId: Long? = null,
-        spoiler: Boolean = false
+        replyToId: Long? = null
     ) {
-        val content = if (photo) {
-            JSONObject()
-                .put("@type", "inputMessagePhoto")
-                .put("photo", inputPhoto(path))
-                .put("has_spoiler", spoiler)
-                .put(
-                    "caption",
-                    JSONObject().put("@type", "formattedText").put("text", caption)
-                )
-        } else {
-            JSONObject()
-                .put("@type", "inputMessageDocument")
-                .put(
-                    "document",
-                    JSONObject()
-                        .put("@type", "inputDocument")
-                        .put("document", localFile(path))
-                )
-                .put(
-                    "caption",
-                    JSONObject().put("@type", "formattedText").put("text", caption)
-                )
-        }
+        val content = JSONObject()
+            .put("@type", "inputMessageDocument")
+            .put(
+                "document",
+                JSONObject()
+                    .put("@type", "inputDocument")
+                    .put("document", localFile(path))
+            )
+            .put(
+                "caption",
+                JSONObject().put("@type", "formattedText").put("text", caption)
+            )
         requireEngine().send(
             JSONObject()
                 .put("@type", "sendMessage")

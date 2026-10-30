@@ -2,6 +2,13 @@ package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.i18n.tr
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import android.os.Build
+import android.util.Size
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -28,17 +35,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -50,8 +61,10 @@ import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.ui.icons.Symbols
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * What is about to go, just above the composer (2.0): each photo as a small
@@ -169,7 +182,9 @@ internal fun AttachmentTray(
                         // A tap puts the crosses away when they are up, and
                         // otherwise opens a photo to be edited (2.2).
                         detectTapGestures(onTap = {
-                            if (editing) editing = false else if (name == null) onEdit(uri)
+                            if (editing) editing = false
+                            // A video is not a picture the editor can crop.
+                            else if (name == null && !(draft is AttachmentDraft.Photos && draft.isVideo(uri))) onEdit(uri)
                         })
                     }
                     .pointerInput(uri) {
@@ -204,7 +219,9 @@ internal fun AttachmentTray(
                         )
                     }
             ) {
-                if (name == null) {
+                if (name == null && draft is AttachmentDraft.Photos && draft.isVideo(uri)) {
+                    VideoFrame(uri, tr("Video ${index + 1}", "Видео ${index + 1}"))
+                } else if (name == null) {
                     AsyncImage(
                         model = uri,
                         contentDescription = tr("Photo ${index + 1}", "Фото ${index + 1}"),
@@ -304,3 +321,53 @@ private val TILE_GAP = 8.dp
 /** Inside the field the pictures are larger, and taller than wide, as in the reference. */
 private val FIELD_TILE_WIDTH = 96.dp
 private val FIELD_TILE_HEIGHT = 112.dp
+
+/**
+ * A video waiting in the tray (2.8.1): its first frame, read by the platform
+ * — Coil here decodes pictures only — with a play mark over it, so it does
+ * not pass for a photo.
+ */
+@Composable
+private fun VideoFrame(uri: String, description: String) {
+    val context = LocalContext.current
+    val frame by produceState<ImageBitmap?>(null, uri) {
+        value = withContext(Dispatchers.IO) { videoFrame(context, Uri.parse(uri))?.asImageBitmap() }
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .semantics { contentDescription = description }
+    ) {
+        frame?.let {
+            Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        }
+        Surface(
+            shape = CircleShape,
+            color = Color.Black.copy(alpha = 0.45f),
+            contentColor = Color.White,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Symbols.PlayArrowFilled, contentDescription = null, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+private fun videoFrame(context: Context, uri: Uri): Bitmap? = try {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        context.contentResolver.loadThumbnail(uri, Size(320, 320), null)
+    } else {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(context, uri)
+            retriever.frameAtTime
+        } finally {
+            retriever.release()
+        }
+    }
+} catch (_: Exception) {
+    null
+}

@@ -667,9 +667,15 @@ sealed interface AttachmentDraft {
     /**
      * Photos waiting to go, in order; [spoilered] the ones to go under a
      * spoiler (2.2), by their uri — which stays a photo's own through a move
-     * or another's removal, where an index would not.
+     * or another's removal, where an index would not. [videos] the ones that
+     * are videos, picked from the same gallery (2.8.1): they go in the same
+     * album, as videos rather than photos.
      */
-    data class Photos(val uris: List<String>, val spoilered: Set<String> = emptySet()) : AttachmentDraft
+    data class Photos(
+        val uris: List<String>,
+        val spoilered: Set<String> = emptySet(),
+        val videos: Set<String> = emptySet()
+    ) : AttachmentDraft
 
     /**
      * A recording made in the composer.

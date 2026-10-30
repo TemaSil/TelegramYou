@@ -828,7 +828,12 @@ fun ChatScreen(
         ActivityResultContracts.PickMultipleVisualMedia(ALBUM_LIMIT)
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) return@rememberLauncherForActivityResult
-        onAttachmentPicked(AttachmentDraft.Photos(uris.map { it.toString() }))
+        // Videos come from the same picker (2.8.1) and go in the same album;
+        // which ones they are is asked now, while the grant is fresh.
+        val videos = uris.filter { context.contentResolver.getType(it)?.startsWith("video/") == true }
+        onAttachmentPicked(
+            AttachmentDraft.Photos(uris.map { it.toString() }, videos = videos.mapTo(mutableSetOf()) { it.toString() })
+        )
     }
 
     // Keyed on the newest message, not on the count. Paging older history in
@@ -1874,7 +1879,7 @@ fun ChatScreen(
                     bottomInset = navBarHeight,
                     onPickPhoto = {
                         photoPicker.launch(
-                            androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                         )
                     },
                     onPickFile = { filePicker.launch(arrayOf("*/*")) },

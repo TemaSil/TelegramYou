@@ -220,7 +220,9 @@ internal fun AttachmentChip(draft: AttachmentDraft?, onClear: () -> Unit) {
             "${draft.names.size} file(s): ${draft.names.firstOrNull().orEmpty()}",
             "Файлов: ${draft.names.size}: ${draft.names.firstOrNull().orEmpty()}"
         )
-        is AttachmentDraft.Photos -> tr("${draft.uris.size} photo(s)", "Фото: ${draft.uris.size}")
+        is AttachmentDraft.Photos ->
+            if (draft.videos.isEmpty()) tr("${draft.uris.size} photo(s)", "Фото: ${draft.uris.size}")
+            else tr("${draft.uris.size} photo(s) and video(s)", "Фото и видео: ${draft.uris.size}")
         // A recording is sent the moment the finger lifts, so this chip is
         // only ever seen for the instant between the two — named anyway,
         // because a `when` over a sealed type is where a new case should
