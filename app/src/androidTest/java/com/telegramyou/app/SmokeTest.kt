@@ -898,6 +898,12 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.desc("Return to call"), "the call's bar over the chat")
         screenshot("143-call-bar")
+        // A band, not a screen: it once took the whole height and hid the app.
+        val band = device.findObject(By.desc("Return to call")).visibleBounds
+        assertTrue(
+            "the call's bar is ${band.height()}px of ${device.displayHeight}px: it should be a band",
+            band.height() < device.displayHeight / 5
+        )
         tap(By.desc("Return to call"))
         waitFor(By.desc("End call"), "the call opened again")
         tap(By.desc("End call"))
