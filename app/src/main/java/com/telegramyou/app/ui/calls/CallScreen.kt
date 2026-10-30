@@ -66,7 +66,11 @@ import kotlinx.coroutines.launch
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CallOverlay(repository: TelegramRepository) {
+fun CallOverlay(
+    repository: TelegramRepository,
+    /** Whether the bar is up, so the app below moves down by [CALL_BAR_HEIGHT] and nothing is under it. */
+    onBarShown: (Boolean) -> Unit = {}
+) {
     val call by repository.call.collectAsStateWithLifecycle()
     // The last call shown, kept through the slide away once it is gone.
     var shown by remember { mutableStateOf<CallInfo?>(null) }
@@ -78,6 +82,8 @@ fun CallOverlay(repository: TelegramRepository) {
     var minimized by rememberSaveable(call?.id) { mutableStateOf(false) }
     val canMinimize = call?.phase.let { it != null && it != CallPhase.Incoming && it != CallPhase.Ended }
     if (!canMinimize) minimized = false
+    val barShown = call != null && minimized
+    LaunchedEffect(barShown) { onBarShown(barShown) }
     AnimatedVisibility(
         visible = call != null && minimized,
         enter = slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { -it } +
@@ -322,9 +328,11 @@ private fun CallToggle(
 }
 
 /**
- * The call put away (2.9): a pill at the top of the app with who and how
- * long, as a call keeps a bar over the screens of every phone app; a tap
- * opens it again.
+ * The call put away (2.9): a band across the top of the app — under the
+ * status bar and as deep again as [CALL_BAR_HEIGHT] — with who and how
+ * long, as a call keeps a bar over every phone app's screens. The app
+ * moves down to make room rather than sitting under it; a tap opens the
+ * call again.
  */
 @Composable
 private fun CallBar(call: CallInfo, onOpen: () -> Unit) {
@@ -335,27 +343,37 @@ private fun CallBar(call: CallInfo, onOpen: () -> Unit) {
             delay(1000)
         }
     }
-    Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
-        Surface(
-            onClick = onOpen,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shadowElevation = 3.dp,
-            modifier = Modifier.semantics { contentDescription = tr("Return to call", "Вернуться к звонку") }
+    Surface(
+        onClick = onOpen,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { contentDescription = tr("Return to call", "Вернуться к звонку") }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            modifier = Modifier
+                .statusBarsPadding()
+                .height(CALL_BAR_HEIGHT)
+                .padding(horizontal = 16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
-            ) {
-                Icon(Symbols.PhoneFilled, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text(call.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(callStatusLabel(call.phase, elapsed, call.end, call.isVideo), style = MaterialTheme.typography.labelLarge)
-            }
+            Icon(Symbols.PhoneFilled, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(
+                call.name,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Text(callStatusLabel(call.phase, elapsed, call.end, call.isVideo), style = MaterialTheme.typography.labelLarge)
         }
     }
 }
+
+/** How much deeper than the status bar the call's bar is; the app moves down by this. */
+val CALL_BAR_HEIGHT = 40.dp
 
 /** How long "Call ended" stays before the screen slides away. */
 private const val ENDED_SHOWN_MS = 1_500L

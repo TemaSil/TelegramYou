@@ -37,6 +37,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -225,8 +226,15 @@ open class MainActivity : ComponentActivity() {
                                 lockShown = false
                             }
                         }
+                        // A call put away is a band across the top (2.9); the
+                        // app moves down under it rather than being covered.
+                        var callBar by androidx.compose.runtime.remember { mutableStateOf(false) }
+                        val callBarSpace by androidx.compose.animation.core.animateDpAsState(
+                            if (callBar) com.telegramyou.app.ui.calls.CALL_BAR_HEIGHT else androidx.compose.ui.unit.Dp(0f),
+                            label = "callBar"
+                        )
                         Box(
-                            (if (locked) Modifier.clearAndSetSemantics {} else Modifier).graphicsLayer {
+                            (if (locked) Modifier.clearAndSetSemantics {} else Modifier).padding(top = callBarSpace).graphicsLayer {
                                 val depth = 1f - opened.value
                                 scaleX = 1f - UNLOCK_DEPTH * depth
                                 scaleY = 1f - UNLOCK_DEPTH * depth
@@ -279,7 +287,7 @@ open class MainActivity : ComponentActivity() {
                         // over the app's own lock too, as a phone's ringing
                         // call is over its lock screen: it shows who is
                         // calling and nothing of the chats underneath.
-                        com.telegramyou.app.ui.calls.CallOverlay(repository)
+                        com.telegramyou.app.ui.calls.CallOverlay(repository, onBarShown = { callBar = it })
                         // What Recents shows of the app: nothing, while the
                         // lock is on and asked to hide it. FLAG_SECURE on
                         // every version, as the official client does, though
