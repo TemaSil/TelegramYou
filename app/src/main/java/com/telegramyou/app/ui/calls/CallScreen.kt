@@ -343,6 +343,9 @@ private fun CallBar(call: CallInfo, onOpen: () -> Unit) {
             delay(1000)
         }
     }
+    // A Box of its own, at the top: whatever this sits in may hand down its
+    // whole size as a minimum, and the band would fill the screen.
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     Surface(
         onClick = onOpen,
         color = MaterialTheme.colorScheme.primaryContainer,
@@ -369,6 +372,7 @@ private fun CallBar(call: CallInfo, onOpen: () -> Unit) {
             )
             Text(callStatusLabel(call.phase, elapsed, call.end, call.isVideo), style = MaterialTheme.typography.labelLarge)
         }
+    }
     }
 }
 
