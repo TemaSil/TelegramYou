@@ -1759,6 +1759,17 @@ class SmokeTest {
         fail("no notification from $NOTIFYING_CHAT ever arrived")
     }
 
+    /**
+     * Saved Messages shown as the chat it also is, for a test of what a
+     * conversation does: it opens as notes since 2.9.
+     */
+    private fun savedMessagesAsChat() {
+        if (device.wait(Until.hasObject(By.desc("Show as chat")), SHORT_WAIT) == true) {
+            tap(By.desc("Show as chat"))
+            waitFor(By.desc("Show as notes"), "Saved Messages as a chat")
+        }
+    }
+
     /** The demo chat's next line, now; this test runs in the app's process. */
     private fun demoSpeakNow() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
@@ -2148,6 +2159,7 @@ class SmokeTest {
             // A double tap replies; then a forward to the same chat is a copy.
             tap(By.desc("More"))
             tap(By.text("Saved Messages"))
+            savedMessagesAsChat()
             val line = By.text("Color tokens & springs")
             waitFor(line, "Saved Messages")
             repeat(3) {
@@ -2415,6 +2427,7 @@ class SmokeTest {
         }
         waitFor(By.text("Saved Messages"), "the chat list again")
         tap(By.text("Saved Messages"))
+        savedMessagesAsChat()
         waitFor(By.text("Expressive Motion"), "the music file")
         // It plays, and while it plays it has a position to drag.
         tap(By.desc("Play Expressive Motion"))
