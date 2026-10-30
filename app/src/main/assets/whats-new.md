@@ -1,4 +1,5 @@
-# Videos send, and round videos wind
+# Saved Messages turn into notes
+- Saved Messages is a grid of notes now, like Google Keep
+- Tagged notes take a colour, and a tap opens one whole
 - Videos picked from the gallery send again
-- Round video messages show how far they've played
-- Drag along the edge of a round video to skip around
+- Round videos show how far they've played, and wind by the edge

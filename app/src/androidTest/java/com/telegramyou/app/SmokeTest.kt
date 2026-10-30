@@ -966,6 +966,30 @@ class SmokeTest {
     }
 
     /**
+     * Saved Messages as notes (2.9): a grid of cards, as Google Keep lays
+     * notes out; a note opens whole in a sheet, Show in chat goes to it in
+     * the conversation, and the header's button brings the grid back.
+     */
+    @Test
+    fun savedMessagesAreNotes() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.desc("More"))
+        tap(By.text("Saved Messages"))
+        waitFor(By.desc("Show as chat"), "Saved Messages as notes")
+        waitFor(By.text("Color tokens & springs"), "a note")
+        screenshot("144-saved-notes")
+        tap(By.text("Color tokens & springs"))
+        waitFor(By.text("Show in chat"), "the note opened")
+        screenshot("145-saved-note")
+        tap(By.text("Show in chat"))
+        waitFor(By.desc("Show as notes"), "the conversation")
+        tap(By.desc("Show as notes"))
+        waitFor(By.desc("Show as chat"), "the notes again")
+    }
+
+    /**
      * Saved Messages' tags (2.7): the heart on a note is a tag called Ideas,
      * which shows only what carries it, and is renamed from its pencil —
      * and named back, so the next test finds it as it was.

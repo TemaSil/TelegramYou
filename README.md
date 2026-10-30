@@ -57,8 +57,10 @@ wallpaper.
 
 ## Latest: 2.9 · 30 October 2026
 
-Videos picked from the gallery send again, and round video messages show
-how far they have played round their edge, wound by a finger along it.
+Saved Messages opens as notes, in a grid the way Google Keep lays them
+out, tagged notes coloured by their tag. Videos picked from the gallery
+send again, and round video messages show how far they have played round
+their edge, wound by a finger along it.
 2.8.1 before it made round videos play and put videos in the photo
 picker; 2.8 brought two panes on tablets and foldables, and ghost mode.
 See the [changelog](CHANGELOG.md).

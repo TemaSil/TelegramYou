@@ -11,6 +11,7 @@ README.md.
 
 ## 2.9
 
+- **Saved Messages as notes.** Saved Messages opens as a grid of cards, the way Google Keep lays out notes: newest first, a picture across the top of the ones that have one, the first line of a longer note as its title, and its tags at the foot. A tagged note takes one of the theme's container colours by its tag, so notes tagged alike look alike. A tap opens a note whole, with Show in chat, Copy, Edit, Tag and Delete; the composer still adds a note; and the header's button shows it all as the chat it also is.
 - **Videos from the gallery send.** 2.8.1 let the picker choose them and then sent each without its file — "InputFile is not specified" — because TDLib wants a video wrapped in an `inputVideo`, as it wants a photo in an `inputPhoto`.
 - **Round video messages have their ring**: how far one has played runs round its edge while it plays, and a finger moved along the edge winds it there, as in Telegram's own app.
 

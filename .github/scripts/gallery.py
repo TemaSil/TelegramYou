@@ -74,6 +74,7 @@ SHOWCASE = [
     ("13-rail", "Tablet"),
     ("129-two-panes", "Tablet, two panes"),
     ("130-two-panes-foldable", "Foldable, two panes"),
+    ("144-saved-notes", "Saved Messages as notes"),
 ]
 
 WIDTH = 540

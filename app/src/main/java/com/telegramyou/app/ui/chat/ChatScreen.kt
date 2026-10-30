@@ -909,6 +909,45 @@ fun ChatScreen(
     val detail = state.detail
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
+    // Saved Messages as notes (2.9): the grid by default, the chat a tap away.
+    var notesView by rememberSaveable { mutableStateOf(true) }
+    val savedNotes = notesView && detail?.chat?.isSavedMessages == true && !state.selection.isActive
+    var openNote by remember { mutableStateOf<ChatMessage?>(null) }
+    openNote?.let { note ->
+        NoteSheet(
+            message = note,
+            onDismiss = { openNote = null },
+            onShowInChat = {
+                openNote = null
+                notesView = false
+                onJumpToMessage(note.id)
+            },
+            onOpenPicture = {
+                openNote = null
+                if (note.contentType == MessageContentType.Photo) onPhotoOpened(note) else onVideoOpened(note)
+            },
+            onCopy = {
+                openNote = null
+                copyToClipboard(noteBody(note))
+            },
+            onEdit = if (note.canBeEdited && noteBody(note).isNotEmpty()) {
+                {
+                    openNote = null
+                    onEdit(note)
+                }
+            } else {
+                null
+            },
+            onTag = {
+                openNote = null
+                onReactionsRequested(note)
+            },
+            onDelete = {
+                openNote = null
+                onDeleteRequested(note)
+            }
+        )
+    }
     // A file fetched and ready: handed to whichever app on the phone reads it.
     val fileContext = LocalContext.current
     state.fileToOpen?.let { file ->
@@ -1042,6 +1081,16 @@ fun ChatScreen(
                     }
                 },
                 actions = {
+                    // Saved Messages as notes, as Google Keep lays them out,
+                    // or as the conversation it also is (2.9).
+                    if (detail?.chat?.isSavedMessages == true) {
+                        IconButton(onClick = { notesView = !notesView }) {
+                            Icon(
+                                if (notesView) Symbols.ViewAgenda else Symbols.GridView,
+                                contentDescription = if (notesView) tr("Show as chat", "Показать как чат") else tr("Show as notes", "Показать как заметки")
+                            )
+                        }
+                    }
                     // Saved Messages as a whole opens by chat, as the
                     // official client lists it (2.7).
                     if (state.canOpenSavedTopics) {
@@ -1178,6 +1227,21 @@ fun ChatScreen(
                 // being composed until 19 September, under the narrow
                 // exception CLAUDE.md granted for exactly that; the owner
                 // looked at it on a phone and withdrew it.
+                if (savedNotes) {
+                    SavedNotesGrid(
+                        messages = state.messages,
+                        hasMoreOlder = state.hasMoreOlder,
+                        onLoadOlder = onLoadOlder,
+                        contentPadding = PaddingValues(
+                            start = 12.dp,
+                            end = 12.dp,
+                            top = 12.dp,
+                            bottom = composerRoom + 16.dp + botPanelPadding + playerBarPadding + composerLift
+                        ),
+                        onOpen = { openNote = it },
+                        onPhotoVisible = onPhotoVisible
+                    )
+                } else {
                 Box(modifier = Modifier.fillMaxSize()) {
                 LazyColumn(
                     state = listState,
@@ -1443,6 +1507,7 @@ fun ChatScreen(
                             }
                         }
                     }
+                }
                 }
 
                 }
