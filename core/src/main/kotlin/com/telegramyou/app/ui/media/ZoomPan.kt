@@ -77,6 +77,32 @@ fun dismissProgress(dragY: Float, viewportHeight: Float): Float {
 fun shouldDismiss(dragY: Float, viewportHeight: Float): Boolean =
     dismissProgress(dragY, viewportHeight) >= 1f
 
+/** What letting go of a vertical drag on a playing video does (2.8.1). */
+enum class VideoDrag { Dismiss, OpenCaption, CloseCaption, Stay }
+
+/**
+ * A video is thrown away by a drag, as a photo is (2.8.1) — and a caption
+ * cut short is pulled up the same way it is tapped open. An open caption is
+ * pushed back down before the video can go: it is being read.
+ */
+fun videoDragOutcome(dragY: Float, viewportHeight: Float, captionOpen: Boolean, captionLong: Boolean): VideoDrag {
+    if (viewportHeight <= 0f) return VideoDrag.Stay
+    val pulled = abs(dragY) >= viewportHeight * CAPTION_PULL_FRACTION
+    return when {
+        captionOpen -> if (dragY > 0f && pulled) VideoDrag.CloseCaption else VideoDrag.Stay
+        dragY < 0f && captionLong -> if (pulled) VideoDrag.OpenCaption else VideoDrag.Stay
+        shouldDismiss(dragY, viewportHeight) -> VideoDrag.Dismiss
+        else -> VideoDrag.Stay
+    }
+}
+
+/** Whether a drag this way moves the video itself, rather than its caption. */
+fun videoDragMoves(dragY: Float, captionOpen: Boolean, captionLong: Boolean): Boolean =
+    !captionOpen && !(dragY < 0f && captionLong)
+
+/** A short pull: the caption follows a flick, not a deliberate drag. */
+private const val CAPTION_PULL_FRACTION = 0.06f
+
 /**
  * A fifth of the screen.
  *

@@ -490,7 +490,15 @@ class SmokeTest {
         // plays as it downloads rather than after — the demo writes it into
         // the cache a slice at a time, as TDLib does — so the player runs,
         // and its clock moves, before the file is whole.
-        device.pressBack()
+        // Closed by a drag down, as a photo is (2.8.1), not by back.
+        device.swipe(
+            device.displayWidth / 2, (device.displayHeight * 0.3).toInt(),
+            device.displayWidth / 2, (device.displayHeight * 0.75).toInt(), 20
+        )
+        assertTrue(
+            "a drag down did not close the video",
+            device.wait(Until.gone(By.desc("Playback speed 1×")), STEP_TIMEOUT)
+        )
         waitFor(By.descContains("Composer, one take"), "the second video")
         tap(By.descContains("Composer, one take"))
         waitFor(By.desc("Pause"), "the streamed video, playing")

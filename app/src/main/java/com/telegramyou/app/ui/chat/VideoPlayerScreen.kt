@@ -92,6 +92,16 @@ import com.telegramyou.app.ui.media.playbackLabel
 import com.telegramyou.app.ui.media.playbackProgress
 import com.telegramyou.app.ui.media.seekTarget
 import kotlinx.coroutines.delay
+import androidx.compose.animation.core.animate
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntSize
+import com.telegramyou.app.ui.media.VideoDrag
+import com.telegramyou.app.ui.media.dismissProgress
+import com.telegramyou.app.ui.media.videoDragMoves
+import com.telegramyou.app.ui.media.videoDragOutcome
 
 /** How often the bar catches up with the player while it is running. */
 private const val PROGRESS_TICK_MS = 250L
@@ -146,7 +156,9 @@ fun VideoPage(
      * them. Null on its own, where the page holds it itself.
      */
     chrome: Boolean? = null,
-    onToggleChrome: (() -> Unit)? = null
+    onToggleChrome: (() -> Unit)? = null,
+    /** The gallery is shrinking it back into its bubble; see PhotoPage. */
+    closing: Boolean = false
 ) {
     var ownChrome by remember { mutableStateOf(true) }
     val chromeShown = chrome ?: ownChrome
@@ -155,6 +167,21 @@ fun VideoPage(
     // client does it; open, it scrolls, and the picture dims under it.
     var captionOpen by remember(title) { mutableStateOf(false) }
     var captionLong by remember(title) { mutableStateOf(false) }
+    // Thrown away by a drag down, as a photo is; a long caption pulled up
+    // by a drag the other way (2.8.1). See videoDragOutcome.
+    var dragY by remember { mutableFloatStateOf(0f) }
+    var viewport by remember { mutableStateOf(IntSize.Zero) }
+    val dragProgress = if (videoDragMoves(dragY, captionOpen, captionLong)) {
+        dismissProgress(dragY, viewport.height.toFloat())
+    } else {
+        0f
+    }
+    val settle = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
+    LaunchedEffect(closing) {
+        if (closing && dragY != 0f) {
+            animate(dragY, 0f, animationSpec = settle) { value, _ -> dragY = value }
+        }
+    }
     ImmersiveWhile(active && !chromeShown)
     val context = LocalContext.current
     val files = (context.applicationContext as TelegramYouApp).telegramRepository
@@ -253,7 +280,8 @@ fun VideoPage(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .onSizeChanged { viewport = it }
+            .background(Color.Black.copy(alpha = 1f - 0.92f * dragProgress))
             // One tap on the picture: every control away, and the system's
             // bars with them, so the video has the whole screen; another,
             // and they are back. An open caption closes first.
@@ -261,9 +289,41 @@ fun VideoPage(
                 detectTapGestures(onTap = {
                     if (captionOpen) captionOpen = false else toggleChrome()
                 })
+            }
+            // Down and it goes, as a photo does; up and a caption cut
+            // short opens, as a tap on it does. The scrubber and an open
+            // caption's scroll take their own drags before this sees them.
+            .pointerInput(active) {
+                detectVerticalDragGestures(
+                    onDragEnd = {
+                        val outcome = videoDragOutcome(dragY, size.height.toFloat(), captionOpen, captionLong)
+                        // Left where the finger let go only when it goes:
+                        // the gallery shrinks it into its bubble from there.
+                        if (outcome != VideoDrag.Dismiss) dragY = 0f
+                        when (outcome) {
+                            VideoDrag.Dismiss -> onClose()
+                            VideoDrag.OpenCaption -> captionOpen = true
+                            VideoDrag.CloseCaption -> captionOpen = false
+                            VideoDrag.Stay -> Unit
+                        }
+                    },
+                    onDragCancel = { dragY = 0f }
+                ) { _, delta -> dragY += delta }
             },
         contentAlignment = Alignment.Center
     ) {
+      Box(
+          contentAlignment = Alignment.Center,
+          modifier = Modifier
+              .fillMaxSize()
+              .graphicsLayer {
+                  val moved = videoDragMoves(dragY, captionOpen, captionLong)
+                  val scale = 1f - dragProgress * 0.2f
+                  scaleX = scale
+                  scaleY = scale
+                  translationY = if (moved) dragY else 0f
+              }
+      ) {
         if (player == null && !active) {
             // A neighbour in the gallery: its poster, until it is swiped to.
             video.thumbPath?.let { poster ->
@@ -340,6 +400,7 @@ fun VideoPage(
             )
             if (buffering) LoadingIndicator()
         }
+      }
 
         // Read over a dimmed picture while the caption is open.
         AnimatedVisibility(
@@ -356,7 +417,7 @@ fun VideoPage(
             visible = !inPip && chromeShown,
             enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
             exit = fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec()),
-            modifier = Modifier.matchParentSize()
+            modifier = Modifier.matchParentSize().alpha(1f - dragProgress)
         ) {
           Box(Modifier.fillMaxSize()) {
             if (showClose) {
@@ -420,7 +481,7 @@ fun VideoPage(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = CAPTION_MAX)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState(), enabled = captionOpen)
                             .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
                             .clickable(
                                 enabled = captionLong || captionOpen,

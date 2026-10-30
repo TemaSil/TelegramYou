@@ -117,4 +117,21 @@ class ZoomPanTest {
         assertEquals(0f, dismissProgress(100f, 0f), 0f)
         assertFalse(shouldDismiss(100f, 0f))
     }
+
+    @Test
+    fun `a video goes down as a photo does, and a long caption comes up instead`() {
+        val h = 1000f
+        assertEquals(VideoDrag.Dismiss, videoDragOutcome(250f, h, captionOpen = false, captionLong = true))
+        assertEquals(VideoDrag.Stay, videoDragOutcome(100f, h, captionOpen = false, captionLong = false))
+        assertEquals(VideoDrag.OpenCaption, videoDragOutcome(-80f, h, captionOpen = false, captionLong = true))
+        assertEquals(VideoDrag.Stay, videoDragOutcome(-30f, h, captionOpen = false, captionLong = true))
+        // No caption to pull: up throws it away, as it does a photo.
+        assertEquals(VideoDrag.Dismiss, videoDragOutcome(-250f, h, captionOpen = false, captionLong = false))
+        // An open caption is closed first, however far the drag went.
+        assertEquals(VideoDrag.CloseCaption, videoDragOutcome(400f, h, captionOpen = true, captionLong = true))
+        assertEquals(VideoDrag.Stay, videoDragOutcome(-400f, h, captionOpen = true, captionLong = true))
+        assertTrue(videoDragMoves(50f, captionOpen = false, captionLong = true))
+        assertFalse(videoDragMoves(-50f, captionOpen = false, captionLong = true))
+        assertFalse(videoDragMoves(50f, captionOpen = true, captionLong = true))
+    }
 }

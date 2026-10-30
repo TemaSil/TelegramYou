@@ -221,7 +221,8 @@ fun MediaGallery(
                             onClose = close,
                             showClose = false,
                             chrome = chrome,
-                            onToggleChrome = { chrome = !chrome }
+                            onToggleChrome = { chrome = !chrome },
+                            closing = closing
                         )
                     } else {
                         PhotoPage(
