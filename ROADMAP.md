@@ -112,7 +112,8 @@ and leave the forks' extras for later.
 
 By how soon they would notice, not by how hard it is.
 
-- [ ] **Calls — 2.9, the owner's word of 30 October 2026.** TDLib carries
+- [ ] **Calls — 3.0, the owner's word of 30 October 2026** (first set for
+      2.9, moved the same day; 2.9 is Saved Messages as notes). TDLib carries
       only the signalling; the voice and the picture need `tgcalls` and
       WebRTC, a second native stack built in CI as TDLib is. The screen in
       the manner of the Pixel's own dialer, in Material 3 Expressive —

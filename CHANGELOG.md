@@ -9,7 +9,7 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
-## 2.8.2
+## 2.9
 
 - **Videos from the gallery send.** 2.8.1 let the picker choose them and then sent each without its file — "InputFile is not specified" — because TDLib wants a video wrapped in an `inputVideo`, as it wants a photo in an `inputPhoto`.
 - **Round video messages have their ring**: how far one has played runs round its edge while it plays, and a finger moved along the edge winds it there, as in Telegram's own app.

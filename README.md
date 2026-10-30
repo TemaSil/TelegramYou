@@ -55,7 +55,7 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.8.2 · 30 October 2026
+## Latest: 2.9 · 30 October 2026
 
 Videos picked from the gallery send again, and round video messages show
 how far they have played round their edge, wound by a finger along it.
