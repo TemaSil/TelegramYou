@@ -259,6 +259,8 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** A note in Saved Messages sent back to Saved Messages at a time, as a reminder (2.9). */
+    onRemind: (List<ChatMessage>, Long) -> Unit = { _, _ -> },
     onSavedTagNaming: (com.telegramyou.app.telegram.model.SavedTag?) -> Unit = {},
     onSavedTagNamed: (String) -> Unit = {},
     onVoiceSeek: (ChatMessage, Float) -> Unit,
@@ -916,49 +918,17 @@ fun ChatScreen(
     var notesView by rememberSaveable { mutableStateOf(true) }
     val savedNotes = notesAllowed && notesView && !state.selection.isActive
     var openNote by remember { mutableStateOf<List<ChatMessage>?>(null) }
-    openNote?.let { note ->
-        val single = note.singleOrNull()
-        NoteSheet(
-            note = note,
-            onDismiss = { openNote = null },
-            onShowInChat = {
-                openNote = null
-                notesView = false
-                onJumpToMessage(note.first().id)
+    // Where each note's card is, for it to open out of (NoteOpened).
+    val noteBounds = remember { mutableMapOf<Long, androidx.compose.ui.geometry.Rect>() }
+    // A note being given a reminder: the two pickers, then a scheduled copy.
+    var remindingNote by remember { mutableStateOf<List<ChatMessage>?>(null) }
+    remindingNote?.let { note ->
+        SchedulePicker(
+            onPicked = { at ->
+                remindingNote = null
+                onRemind(note, at)
             },
-            onOpenPicture = { picture ->
-                openNote = null
-                if (picture.contentType == MessageContentType.Photo) onPhotoOpened(picture) else onVideoOpened(picture)
-            },
-            onCopy = {
-                openNote = null
-                copyToClipboard(noteBody(note))
-            },
-            // Only a note of one message: an edit is of one message's words.
-            onEdit = if (single != null && single.canBeEdited && noteBody(single).isNotEmpty()) {
-                {
-                    openNote = null
-                    onEdit(single)
-                }
-            } else {
-                null
-            },
-            // The tag goes on the note's last message, which colours it.
-            onTag = {
-                openNote = null
-                onReactionsRequested(note.last())
-            },
-            // A note of several is deleted whole, through the same question
-            // a selection of messages is asked.
-            onDelete = {
-                openNote = null
-                if (single != null) {
-                    onDeleteRequested(single)
-                } else {
-                    note.forEach { if (it.id !in state.selection) onSelectionToggled(it) }
-                    onSelectionDeleteRequested()
-                }
-            }
+            onDismiss = { remindingNote = null }
         )
     }
     // A file fetched and ready: handed to whichever app on the phone reads it.
@@ -1252,7 +1222,9 @@ fun ChatScreen(
                             bottom = composerRoom + 16.dp + botPanelPadding + playerBarPadding + composerLift
                         ),
                         onOpen = { openNote = it },
-                        onPhotoVisible = onPhotoVisible
+                        onPhotoVisible = onPhotoVisible,
+                        openId = openNote?.first()?.id,
+                        bounds = noteBounds
                     )
                 } else {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -2078,6 +2050,37 @@ fun ChatScreen(
 
         }
     }
+
+    // A note opened out of its card, over the whole screen (2.9).
+    NoteOpened(
+        note = openNote,
+        from = openNote?.let { noteBounds[it.first().id] },
+        onClosed = { openNote = null },
+        onShowInChat = { note ->
+            notesView = false
+            onJumpToMessage(note.first().id)
+        },
+        onOpenPicture = { picture ->
+            if (picture.contentType == MessageContentType.Photo) onPhotoOpened(picture) else onVideoOpened(picture)
+        },
+        onCopy = { note -> copyToClipboard(noteBody(note)) },
+        // Only a note of one message: an edit is of one message's words.
+        onEdit = { single -> if (single.canBeEdited && noteBody(single).isNotEmpty()) onEdit(single) },
+        // The tag goes on the note's last message, which colours it.
+        onTag = { note -> onReactionsRequested(note.last()) },
+        onRemind = { note -> remindingNote = note },
+        // A note of several is deleted whole, through the same question a
+        // selection of messages is asked.
+        onDelete = { note ->
+            val single = note.singleOrNull()
+            if (single != null) {
+                onDeleteRequested(single)
+            } else {
+                note.forEach { if (it.id !in state.selection) onSelectionToggled(it) }
+                onSelectionDeleteRequested()
+            }
+        }
+    )
 
     // Over everything, the bars included, while a video message records:
     // laid after the Scaffold, so it is drawn on top of it.

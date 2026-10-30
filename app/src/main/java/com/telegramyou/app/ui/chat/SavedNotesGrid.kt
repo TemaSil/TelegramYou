@@ -42,6 +42,10 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -74,7 +78,11 @@ internal fun SavedNotesGrid(
     contentPadding: PaddingValues,
     onOpen: (List<ChatMessage>) -> Unit,
     onPhotoVisible: (ChatMessage) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The note open over the grid, whose card is hidden while it is; see NoteOpened. */
+    openId: Long? = null,
+    /** Where each card is in the window, for its note to open out of. */
+    bounds: MutableMap<Long, Rect> = remember { mutableMapOf() }
 ) {
     // Messages saved one after another, close in time, as one note.
     val notes = remember(messages) { groupNotes(messages) }
@@ -101,11 +109,14 @@ internal fun SavedNotesGrid(
                 note = note,
                 onOpen = { onOpen(note) },
                 onPhotoVisible = onPhotoVisible,
-                modifier = Modifier.animateItem(
-                    fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                    placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                    fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
-                )
+                modifier = Modifier
+                    .animateItem(
+                        fadeInSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                        placementSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                        fadeOutSpec = MaterialTheme.motionScheme.fastEffectsSpec()
+                    )
+                    .onGloballyPositioned { bounds[note.first().id] = it.boundsInWindow() }
+                    .graphicsLayer { alpha = if (openId == note.first().id) 0f else 1f }
             )
         }
     }
@@ -113,7 +124,7 @@ internal fun SavedNotesGrid(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun NoteCard(
+internal fun NoteCard(
     note: List<ChatMessage>,
     onOpen: () -> Unit,
     onPhotoVisible: (ChatMessage) -> Unit,
@@ -199,7 +210,7 @@ private fun NoteCard(
 }
 
 @Composable
-private fun NotePicture(message: ChatMessage, onPhotoVisible: () -> Unit) {
+internal fun NotePicture(message: ChatMessage, onPhotoVisible: () -> Unit) {
     val path = message.photoPath ?: message.video?.thumbPath
     val mini = message.photoMini ?: message.video?.mini
     val aspect = (if (message.contentType == MessageContentType.Photo) message.photoAspect else message.video?.aspect ?: 1f)
@@ -229,7 +240,7 @@ private fun NotePicture(message: ChatMessage, onPhotoVisible: () -> Unit) {
 
 /** A note's colour: the card's own surface, or — tagged — a container colour chosen by the tag. */
 @Composable
-private fun noteTone(note: List<ChatMessage>): Pair<Color, Color> {
+internal fun noteTone(note: List<ChatMessage>): Pair<Color, Color> {
     val scheme = MaterialTheme.colorScheme
     val tag = note.firstNotNullOfOrNull { it.reactions.firstOrNull()?.emoji } ?: return scheme.surfaceContainerHigh to scheme.onSurface
     return when (Math.floorMod(tag.hashCode(), 3)) {
@@ -246,73 +257,6 @@ private fun attachmentIcon(message: ChatMessage): ImageVector = when (message.co
     MessageContentType.Contact -> Symbols.Person
     MessageContentType.Poll -> Symbols.Poll
     else -> Symbols.Description
-}
-
-/**
- * A note opened: all of it, and what can be done with it, in a sheet from
- * the bottom — the way a Keep note opens to be read whole.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun NoteSheet(
-    note: List<ChatMessage>,
-    onDismiss: () -> Unit,
-    onShowInChat: () -> Unit,
-    onOpenPicture: (ChatMessage) -> Unit,
-    onCopy: () -> Unit,
-    onEdit: (() -> Unit)?,
-    onTag: () -> Unit,
-    onDelete: () -> Unit
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            Modifier
-                .verticalScroll(rememberScrollState())
-                .navigationBarsPadding()
-        ) {
-            note.filter(::noteHasPicture).forEach { picture ->
-                Box(
-                    Modifier
-                        .padding(horizontal = 16.dp)
-                        .clip(MaterialTheme.shapes.large)
-                        .combinedClickable(onClick = { onOpenPicture(picture) })
-                ) { NotePicture(picture, onPhotoVisible = {}) }
-                Spacer(Modifier.height(12.dp))
-            }
-            val body = noteBody(note)
-            if (body.isNotEmpty()) {
-                SelectionContainer {
-                    Text(body, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(horizontal = 24.dp))
-                }
-            }
-            note.mapNotNull(::noteAttachment).forEach { line ->
-                Text(line, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp))
-            }
-            Text(
-                note.last().timeLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-            )
-            Spacer(Modifier.height(8.dp))
-            NoteAction(Symbols.Chat, tr("Show in chat", "Показать в чате"), onShowInChat)
-            if (body.isNotEmpty()) NoteAction(Symbols.ContentCopy, tr("Copy", "Копировать"), onCopy)
-            onEdit?.let { NoteAction(Symbols.Edit, tr("Edit", "Изменить"), it) }
-            NoteAction(Symbols.Tag, tr("Tag", "Тег"), onTag)
-            NoteAction(Symbols.Delete, tr("Delete", "Удалить"), onDelete)
-            Spacer(Modifier.height(16.dp))
-        }
-    }
-}
-
-@Composable
-private fun NoteAction(icon: ImageVector, label: String, onClick: () -> Unit) {
-    ListItem(
-        headlineContent = { Text(label) },
-        leadingContent = { Icon(icon, contentDescription = null) },
-        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        modifier = Modifier.clickable(onClick = onClick)
-    )
 }
 
 /** Narrowest a column of notes goes: two on a phone, more on a tablet. */

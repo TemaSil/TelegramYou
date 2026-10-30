@@ -967,8 +967,9 @@ class SmokeTest {
 
     /**
      * Saved Messages as notes (2.9): a grid of cards, as Google Keep lays
-     * notes out; a note opens whole in a sheet, Show in chat goes to it in
-     * the conversation, and the header's button brings the grid back.
+     * notes out; a note opens out of its card to the whole screen and is
+     * swiped back into it; Show in chat goes to it in the conversation, and
+     * the header's button brings the grid back.
      */
     @Test
     fun savedMessagesAreNotes() {
@@ -981,9 +982,21 @@ class SmokeTest {
         waitFor(By.text("Color tokens & springs"), "a note")
         screenshot("144-saved-notes")
         tap(By.text("Color tokens & springs"))
-        waitFor(By.text("Show in chat"), "the note opened")
+        waitFor(By.desc("Close note"), "the note opened out of its card")
+        waitFor(By.desc("Remind me"), "the note's reminder")
         screenshot("145-saved-note")
-        tap(By.text("Show in chat"))
+        // Swiped down, it goes back into its card.
+        device.swipe(
+            device.displayWidth / 2, (device.displayHeight * 0.35).toInt(),
+            device.displayWidth / 2, (device.displayHeight * 0.8).toInt(), 15
+        )
+        assertTrue(
+            "a swipe down did not close the note",
+            device.wait(Until.gone(By.desc("Close note")), STEP_TIMEOUT)
+        )
+        tap(By.text("Color tokens & springs"))
+        waitFor(By.desc("Show in chat"), "the note opened again")
+        tap(By.desc("Show in chat"))
         waitFor(By.desc("Show as notes"), "the conversation")
         tap(By.desc("Show as notes"))
         waitFor(By.desc("Show as chat"), "the notes again")

@@ -1342,6 +1342,31 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * A note in Saved Messages as a reminder (2.9): its words sent to Saved
+     * Messages again at [sendAt], epoch seconds — Telegram's scheduled
+     * message, which arrives with a notification, as the official client's
+     * reminders do. A note with no words is reminded of by what it holds.
+     */
+    fun onRemind(note: List<ChatMessage>, sendAt: Long, nowSeconds: Long = System.currentTimeMillis() / 1000) {
+        if (!isValidSchedule(sendAt, nowSeconds)) {
+            _uiState.update { it.copy(errorMessage = tr("Pick a time in the future", "Выберите время в будущем")) }
+            return
+        }
+        val words = noteBody(note).ifEmpty { note.firstNotNullOfOrNull(::noteAttachment) ?: tr("Note", "Заметка") }
+        val text = "⏰ $words"
+        viewModelScope.launch {
+            val done = attempt(tr("Could not set the reminder", "Не удалось поставить напоминание")) {
+                repository.sendMessage(chatId, text, sendAt = sendAt)
+            }
+            if (done) {
+                _uiState.update {
+                    it.copy(notice = tr("Reminder for ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}", "Напомню ${scheduleLabel(sendAt, nowSeconds, ZoneId.systemDefault())}"))
+                }
+            }
+        }
+    }
+
     fun onScheduledOpen() {
         _uiState.update { it.copy(scheduled = it.scheduled ?: emptyList()) }
         refreshScheduled()
