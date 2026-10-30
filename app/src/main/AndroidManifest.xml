@@ -45,6 +45,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     <!-- Music keeps playing with the app closed; see PlaybackService. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Calls (2.9): the microphone kept while the app is out of sight, and
+         a ringing call over the lock screen, as the phone's own calls are. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".TelegramYouApp"
@@ -267,6 +273,14 @@
             android:name=".telegram.TelegramForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync|remoteMessaging" />
+
+        <service
+            android:name=".telegram.calls.CallService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+        <receiver
+            android:name=".telegram.calls.CallActionReceiver"
+            android:exported="false" />
 
         <!-- Home-screen widgets (2.1); see the widgets package. -->
         <receiver

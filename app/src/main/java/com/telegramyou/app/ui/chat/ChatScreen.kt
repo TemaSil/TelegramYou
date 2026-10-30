@@ -1048,7 +1048,8 @@ fun ChatScreen(
                     // A person can be rung from their chat, first in the
                     // bar, as every messenger puts it (2.9).
                     if (detail?.chat?.isCallable == true) {
-                        IconButton(onClick = onCall) {
+                        val call = com.telegramyou.app.ui.calls.rememberWithMicrophone(onCall)
+                        IconButton(onClick = call) {
                             Icon(Symbols.Phone, contentDescription = tr("Call", "Позвонить"))
                         }
                     }

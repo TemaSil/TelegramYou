@@ -2,6 +2,7 @@ package com.telegramyou.app.telegram.tdlib
 
 import com.telegramyou.app.i18n.tr
 
+import com.telegramyou.app.telegram.calls.CallAudio
 import com.telegramyou.app.telegram.accounts.databaseDirName
 import com.telegramyou.app.telegram.accounts.filesDirName
 import kotlinx.coroutines.withTimeoutOrNull
@@ -3804,15 +3805,71 @@ class TdLibTelegramClient(
     // ── calls (2.9) ──────────────────────────────────────────────────────
     //
     // TDLib rings, answers, agrees the keys and says when it is over; the
-    // sound between the two phones is the media library's, started once the
-    // state is Ready. Until that is wired in, a call here gets as far as
-    // Connecting.
+    // sound between the two phones is CallMedia's, started once the state
+    // is Ready, and the call is Active when CallMedia says it hears.
 
     private val _call = MutableStateFlow<CallInfo?>(null)
     override val call: StateFlow<CallInfo?> = _call.asStateFlow()
 
     /** Whether the call in [_call] ever reached Ready, which decides how its end is told. */
     @Volatile private var callWasReady = false
+
+    /** The call whose media has been connected, so a repeated Ready does not connect twice. */
+    @Volatile private var mediaCallId = 0
+
+    private val callMedia: CallMedia? by lazy {
+        CallMedia.create(
+            context,
+            sendSignaling = { _, data ->
+                val id = _call.value?.id?.takeIf { it != 0 } ?: return@create
+                scope.launch {
+                    try {
+                        requireEngine().send(
+                            JSONObject().put("@type", "sendCallSignalingData").put("call_id", id).put("data", data)
+                        )
+                    } catch (e: TdLibException) {
+                        Log.d(TAG, "sendCallSignalingData: ${e.message}")
+                    }
+                }
+            },
+            onConnection = { _, connected -> onCallMedia(connected) }
+        )
+    }
+
+    private val callAudio by lazy { CallAudio(context) }
+
+    /** The microphone and the audio mode let go of, the call being over. */
+    private fun releaseCallMedia() {
+        callMedia?.stop()
+        callAudio.stop()
+        mediaCallId = 0
+    }
+
+    /** The two ends hear each other — or the line between them has failed. */
+    private fun onCallMedia(connected: Boolean) {
+        val current = _call.value ?: return
+        if (current.phase == CallPhase.Ended) return
+        if (connected) {
+            _call.value = current.copy(phase = CallPhase.Active, connectedAt = current.connectedAt ?: System.currentTimeMillis())
+            return
+        }
+        scope.launch {
+            try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "discardCall")
+                        .put("call_id", current.id)
+                        .put("is_disconnected", true)
+                        .put("invite_link", "")
+                        .put("duration", current.connectedAt?.let { ((System.currentTimeMillis() - it) / 1000).toInt() } ?: 0)
+                        .put("is_video", current.isVideo)
+                        .put("connection_id", 0L)
+                )
+            } catch (e: TdLibException) {
+                Log.d(TAG, "discardCall: ${e.message}")
+            }
+        }
+    }
 
     override suspend fun startCall(chatId: Long, video: Boolean) {
         if (_call.value?.phase?.let { it != CallPhase.Ended } == true) return
@@ -3822,16 +3879,35 @@ class TdLibTelegramClient(
         if (type.optString("@type") != "chatTypePrivate") return
         val userId = type.optLong("user_id")
         _call.value = callFor(id = 0, userId = userId, outgoing = true, video = video, phase = CallPhase.Requesting)
+        callAudio.start()
+        // The microphone opened while it rings, so the first words are not lost.
+        callMedia?.prepare(userId)
         try {
-            requireEngine().send(
+            val created = requireEngine().send(
                 JSONObject()
                     .put("@type", "createCall")
                     .put("user_id", userId)
                     .put("protocol", callProtocol())
                     .put("is_video", video)
             )
+            val id = created.optInt("id")
+            _call.update { if (it != null && it.id == 0) it.copy(id = id) else it }
+            // Put down while the server was still being asked: put down there too.
+            if (_call.value?.phase == CallPhase.Ended) {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "discardCall")
+                        .put("call_id", id)
+                        .put("is_disconnected", false)
+                        .put("invite_link", "")
+                        .put("duration", 0)
+                        .put("is_video", video)
+                        .put("connection_id", 0L)
+                )
+            }
         } catch (e: TdLibException) {
             Log.d(TAG, "createCall: ${e.message}")
+            releaseCallMedia()
             _call.update {
                 it?.copy(
                     phase = CallPhase.Ended,
@@ -3844,6 +3920,8 @@ class TdLibTelegramClient(
     override suspend fun acceptCall() {
         val current = _call.value?.takeIf { it.phase == CallPhase.Incoming } ?: return
         _call.update { it?.copy(phase = CallPhase.Connecting) }
+        callAudio.start()
+        callMedia?.prepare(current.userId)
         try {
             requireEngine().send(
                 JSONObject()
@@ -3861,6 +3939,7 @@ class TdLibTelegramClient(
         if (current.id == 0) {
             // Not yet given an id by the server: there is nothing to put down.
             _call.update { it?.copy(phase = CallPhase.Ended, end = CallEnd.HungUp) }
+            releaseCallMedia()
             return
         }
         val seconds = current.connectedAt?.let { (System.currentTimeMillis() - it) / 1000 } ?: 0L
@@ -3877,13 +3956,20 @@ class TdLibTelegramClient(
             )
         } catch (e: TdLibException) {
             Log.d(TAG, "discardCall: ${e.message}")
+            releaseCallMedia()
             _call.update { it?.copy(phase = CallPhase.Ended, end = CallEnd.HungUp) }
         }
     }
 
-    override fun setCallMuted(muted: Boolean) = _call.update { it?.copy(isMuted = muted) }
+    override fun setCallMuted(muted: Boolean) {
+        callMedia?.setMuted(muted)
+        _call.update { it?.copy(isMuted = muted) }
+    }
 
-    override fun setCallSpeaker(on: Boolean) = _call.update { it?.copy(isSpeaker = on) }
+    override fun setCallSpeaker(on: Boolean) {
+        callAudio.setSpeaker(on)
+        _call.update { it?.copy(isSpeaker = on) }
+    }
 
     override fun dismissCall() {
         if (_call.value?.phase == CallPhase.Ended) _call.value = null
@@ -3915,8 +4001,16 @@ class TdLibTelegramClient(
         // busy for us, and it is not this screen's to show.
         if (current != null && current.phase != CallPhase.Ended && current.id != 0 && current.id != id) return
         if (current == null || current.phase == CallPhase.Ended || current.id != id) callWasReady = false
-        if (type == "callStateReady") callWasReady = true
-        val phase = callPhaseOf(type, outgoing, state.optBoolean("is_received"), mediaConnected = false)
+        if (type == "callStateReady") {
+            callWasReady = true
+            if (mediaCallId != id) {
+                mediaCallId = id
+                callMedia?.connect(userId, outgoing, state)
+            }
+        }
+        val connected = current?.takeIf { it.id == id }?.connectedAt != null
+        val phase = callPhaseOf(type, outgoing, state.optBoolean("is_received"), mediaConnected = connected)
+        if (phase == CallPhase.Ended) releaseCallMedia()
         val base = current?.takeIf { it.id == id || (it.id == 0 && outgoing) }
             ?: callFor(id, userId, outgoing, call.optBoolean("is_video"), phase)
         _call.value = base.copy(
@@ -3938,11 +4032,11 @@ class TdLibTelegramClient(
     }
 
     /**
-     * What this client can speak. The media library will say exactly which
-     * versions it carries; until it is in, the layers Telegram's own
-     * clients have offered since 2021.
+     * What this client can speak: what the media library says it carries,
+     * or — where it will not load — the layers Telegram's own clients have
+     * offered since 2021, so the call still rings.
      */
-    private fun callProtocol(): JSONObject =
+    private fun callProtocol(): JSONObject = CallMedia.protocol() ?:
         JSONObject()
             .put("@type", "callProtocol")
             .put("udp_p2p", true)
@@ -4713,6 +4807,7 @@ class TdLibTelegramClient(
                 scope.launch { onAuthorizationState(state) }
             }
             "updateCall" -> update.optJSONObject("call")?.let(::onCallUpdate)
+            "updateNewCallSignalingData" -> callMedia?.receiveSignaling(update.optString("data"))
             "updateUser" -> {
                 val user = update.optJSONObject("user") ?: return
                 usersById[user.optLong("id")] = user
@@ -6342,5 +6437,5 @@ private const val STORY_ACTIVE_SECONDS = 86_400
 private const val CALL_MIN_LAYER = 65
 private const val CALL_MAX_LAYER = 92
 
-/** Replaced by the media library's own list once it is in (2.9, stage 2). */
+/** Used only where the media library will not load; see callProtocol. */
 private val CALL_LIBRARY_VERSIONS = listOf("2.7.7", "5.0.0")

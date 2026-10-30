@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -34,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,8 +72,23 @@ fun CallOverlay(repository: TelegramRepository) {
     var shown by remember { mutableStateOf<CallInfo?>(null) }
     call?.let { shown = it }
     val scope = rememberCoroutineScope()
+    val answer = rememberWithMicrophone { scope.launch { repository.acceptCall() } }
+    // Put away while it goes on, to use the app; the bar brings it back.
+    // A new call always opens full.
+    var minimized by rememberSaveable(call?.id) { mutableStateOf(false) }
+    val canMinimize = call?.phase.let { it != null && it != CallPhase.Incoming && it != CallPhase.Ended }
+    if (!canMinimize) minimized = false
     AnimatedVisibility(
-        visible = call != null,
+        visible = call != null && minimized,
+        enter = slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { -it } +
+            fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+        exit = slideOutVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { -it } +
+            fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
+    ) {
+        shown?.let { current -> CallBar(current, onOpen = { minimized = false }) }
+    }
+    AnimatedVisibility(
+        visible = call != null && !minimized,
         enter = slideInVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { it } +
             fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
         exit = slideOutVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) { it } +
@@ -79,11 +97,12 @@ fun CallOverlay(repository: TelegramRepository) {
         shown?.let { current ->
             CallScreen(
                 call = current,
-                onAccept = { scope.launch { repository.acceptCall() } },
+                onAccept = answer,
                 onEnd = { scope.launch { repository.endCall() } },
                 onMute = repository::setCallMuted,
                 onSpeaker = repository::setCallSpeaker,
-                onGone = repository::dismissCall
+                onGone = repository::dismissCall,
+                onMinimize = { if (canMinimize) minimized = true }
             )
         }
     }
@@ -96,10 +115,12 @@ fun CallScreen(
     onEnd: () -> Unit,
     onMute: (Boolean) -> Unit,
     onSpeaker: (Boolean) -> Unit,
-    onGone: () -> Unit
+    onGone: () -> Unit,
+    onMinimize: () -> Unit = {}
 ) {
-    // A call is not left by back: it would go on unseen, with no way to it.
-    BackHandler {}
+    // Back puts a call away into the bar rather than leaving it; a ringing
+    // call is answered or declined, not put away.
+    BackHandler(onBack = onMinimize)
     // Said for a moment, and then the screen goes.
     LaunchedEffect(call.phase) {
         if (call.phase == CallPhase.Ended) {
@@ -123,7 +144,13 @@ fun CallScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 32.dp)
         ) {
-            Spacer(Modifier.height(48.dp))
+            Box(Modifier.fillMaxWidth().height(48.dp)) {
+                if (call.phase != CallPhase.Incoming && call.phase != CallPhase.Ended) {
+                    IconButton(onClick = onMinimize, modifier = Modifier.align(Alignment.CenterStart)) {
+                        Icon(Symbols.KeyboardArrowDown, contentDescription = tr("Minimize call", "Свернуть звонок"))
+                    }
+                }
+            }
             AvatarBubble(
                 title = call.name,
                 seed = call.avatarColor,
@@ -291,6 +318,42 @@ private fun CallToggle(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+/**
+ * The call put away (2.9): a pill at the top of the app with who and how
+ * long, as a call keeps a bar over the screens of every phone app; a tap
+ * opens it again.
+ */
+@Composable
+private fun CallBar(call: CallInfo, onOpen: () -> Unit) {
+    val elapsed by produceState(0L, call.connectedAt) {
+        val from = call.connectedAt ?: return@produceState
+        while (true) {
+            value = (System.currentTimeMillis() - from) / 1000
+            delay(1000)
+        }
+    }
+    Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp), contentAlignment = Alignment.TopCenter) {
+        Surface(
+            onClick = onOpen,
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shadowElevation = 3.dp,
+            modifier = Modifier.semantics { contentDescription = tr("Return to call", "Вернуться к звонку") }
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+            ) {
+                Icon(Symbols.PhoneFilled, contentDescription = null, modifier = Modifier.size(18.dp))
+                Text(call.name, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(callStatusLabel(call.phase, elapsed, call.end, call.isVideo), style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
 }
 

@@ -373,6 +373,12 @@ dependencies {
     // alpha until 2.1 — and the theme every screen is built on, so it is
     // worth knowing that is a deliberate trade and not an oversight.
     implementation("androidx.compose.material3:material3:1.5.0-beta01")
+
+    // Calls (2.9): WebRTC and Telegram's call protocol, prebuilt for every
+    // ABI the app ships, LGPL-3.0, loaded as its own libntgcalls.so — which
+    // is what lets an LGPL library sit in an app under another licence.
+    // TDLib carries the signalling; this is the sound. See CallMedia.
+    implementation("io.github.pytgcalls:ntgcalls:3.0.5")
     // The navigation suite, for a rail where there is width for one. Its
     // version moves with material3 rather than with the BOM, so it is pinned
     // to the same pre-release — a mismatch here is two copies of the same

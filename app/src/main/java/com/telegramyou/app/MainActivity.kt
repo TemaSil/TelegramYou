@@ -21,6 +21,9 @@ import com.telegramyou.app.ui.components.LocalShapedAvatars
 import com.telegramyou.app.ui.components.LocalTwoLinePreviews
 import com.telegramyou.app.ui.motion.LocalReduceMotion
 import android.os.Build
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import com.telegramyou.app.settings.LocalGeekSettings
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.platform.LocalDensity
@@ -85,6 +88,8 @@ open class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        showOverLockWhileCalling()
+        if (savedInstanceState == null) answerFrom(intent)
         // Both bars fully transparent, rather than the default. Left to
         // itself, enableEdgeToEdge puts a translucent scrim behind the
         // navigation bar on a light theme below Android 15, which shows as a
@@ -250,8 +255,6 @@ open class MainActivity : ComponentActivity() {
                         )
                         }
                         }
-                        // A call, over every screen while there is one (2.9).
-                        com.telegramyou.app.ui.calls.CallOverlay(repository)
                         }
                         // Over everything, the app still composed beneath:
                         // unlocking puts back exactly the screen that was
@@ -272,6 +275,11 @@ open class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+                        // A call, over every screen while there is one (2.9) —
+                        // over the app's own lock too, as a phone's ringing
+                        // call is over its lock screen: it shows who is
+                        // calling and nothing of the chats underneath.
+                        com.telegramyou.app.ui.calls.CallOverlay(repository)
                         // What Recents shows of the app: nothing, while the
                         // lock is on and asked to hide it. FLAG_SECURE on
                         // every version, as the official client does, though
@@ -348,8 +356,43 @@ open class MainActivity : ComponentActivity() {
         })
     }
 
+    /**
+     * Answer, tapped on a ringing call's notification (2.9): the app comes up
+     * and the call is answered — when the microphone is already allowed;
+     * otherwise the call screen's own Answer asks for it first.
+     */
+    private fun answerFrom(intent: Intent?) {
+        if (intent?.action != com.telegramyou.app.telegram.calls.CallNotifier.ACTION_ANSWER) return
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.RECORD_AUDIO
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (granted) lifecycleScope.launch { (application as TelegramYouApp).telegramRepository.acceptCall() }
+    }
+
+    /**
+     * Over the phone's lock screen, and the screen turned on, while a call
+     * rings or goes on — as the phone's own call screen is — and back to an
+     * ordinary activity after.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun showOverLockWhileCalling() {
+        lifecycleScope.launch {
+            (application as TelegramYouApp).accounts.active
+                .flatMapLatest { it.call }
+                .map { it != null && it.phase != com.telegramyou.app.telegram.model.CallPhase.Ended }
+                .distinctUntilChanged()
+                .collect { calling ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        setShowWhenLocked(calling)
+                        setTurnScreenOn(calling)
+                    }
+                }
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        answerFrom(intent)
         // setIntent so a recreation after this — a rotation, say — does not
         // reopen the chat from the intent this activity was first launched
         // with.

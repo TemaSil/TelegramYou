@@ -149,6 +149,8 @@ class TelegramYouApp : Application() {
         // Every signed-in account open, not only the one in use, so each
         // notifies of its own messages (2.6).
         accounts.openSignedIn()
+        // A call outside the app's screen: its notifications and service (2.9).
+        com.telegramyou.app.telegram.calls.CallNotifier.install(this)
         // Switching accounts (2.3): the music and a voice message playing
         // were the last account's, and stop; the shade's conversations and
         // the shortcuts that name them were its too.
@@ -278,6 +280,31 @@ class TelegramYouApp : Application() {
         ).apply {
             description = getString(R.string.notification_channel_birthdays_desc)
         }
+        // A call ringing (2.9): urgent, with the phone's ringtone, as the
+        // phone's own calls are; and the call going on, silent, its timer
+        // in the status bar.
+        val callsIncoming = NotificationChannel(
+            CHANNEL_CALLS_INCOMING,
+            getString(R.string.notification_channel_calls_incoming_name),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = getString(R.string.notification_channel_calls_incoming_desc)
+            setSound(
+                android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_RINGTONE),
+                android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+            )
+            enableVibration(true)
+        }
+        val callsOngoing = NotificationChannel(
+            CHANNEL_CALLS_ONGOING,
+            getString(R.string.notification_channel_calls_ongoing_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.notification_channel_calls_ongoing_desc)
+        }
         val manager = getSystemService(NotificationManager::class.java)
         // The channel it replaces, which was LOW: a channel's importance
         // cannot be lowered by the app once made, so it is a new channel.
@@ -287,12 +314,16 @@ class TelegramYouApp : Application() {
         messages.forEach(manager::createNotificationChannel)
         manager.createNotificationChannel(downloads)
         manager.createNotificationChannel(birthdays)
+        manager.createNotificationChannel(callsIncoming)
+        manager.createNotificationChannel(callsOngoing)
     }
 
     companion object {
         private const val PREFS = "backend"
         private const val KEY_DEMO = "demo"
         const val CHANNEL_SYNC = "telegram_connection"
+        const val CHANNEL_CALLS_INCOMING = "telegram_calls_incoming"
+        const val CHANNEL_CALLS_ONGOING = "telegram_calls_ongoing"
         private const val OLD_CHANNEL_SYNC = "telegram_sync"
         const val CHANNEL_MESSAGES = "telegram_messages"
         private const val CHANNEL_GROUP_MESSAGES = "telegram_messages_group"

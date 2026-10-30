@@ -879,6 +879,9 @@ class SmokeTest {
      */
     @Test
     fun aPersonIsCalledAndCallsBack() {
+        // A call asks for the microphone first; answered here from the shell.
+        val pkg = InstrumentationRegistry.getInstrumentation().targetContext.packageName
+        device.executeShellCommand("pm grant $pkg android.permission.RECORD_AUDIO")
         signIn()
         waitFor(By.text("Lina Park"), "the chat list")
         awaitNoHeadsUp()
@@ -891,6 +894,12 @@ class SmokeTest {
         waitFor(By.text(java.util.regex.Pattern.compile("0:0[1-9]")), "the call's clock running")
         tap(By.desc("Mute"))
         screenshot("141-call")
+        // Back puts it away into the bar over the chat; the bar opens it.
+        device.pressBack()
+        waitFor(By.desc("Return to call"), "the call's bar over the chat")
+        screenshot("143-call-bar")
+        tap(By.desc("Return to call"))
+        waitFor(By.desc("End call"), "the call opened again")
         tap(By.desc("End call"))
         waitFor(By.text("Call ended"), "the call put down")
         assertTrue(
