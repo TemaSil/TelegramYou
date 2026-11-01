@@ -258,6 +258,8 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** A channel's discussion group opened (2.9.1). */
+    onOpenDiscussion: (Long) -> Unit = {},
     /** In-chat search (2.9.1): a hit older (true) or newer, and the hits as a list or not. */
     onSearchStep: (Boolean) -> Unit = {},
     onSearchAsList: (Boolean) -> Unit = {},
@@ -1815,7 +1817,9 @@ fun ChatScreen(
                             standing = channel.channelStanding,
                             isMuted = channel.isMuted,
                             onMuteToggle = onChannelMuteToggle,
-                            onJoin = onChannelJoin
+                            onJoin = onChannelJoin,
+                            isGroup = channel.isGroup,
+                            onDiscuss = state.detail?.discussionChatId?.let { id -> { onOpenDiscussion(id) } }
                         )
                     } else ComposerBar(
                         placeholder = botKeyboard?.placeholder?.takeIf { it.isNotBlank() } ?: tr("Message", "Сообщение"),

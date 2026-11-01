@@ -591,6 +591,8 @@ data class ChatMessage(
      * message with no comments section — not a channel post, or a channel
      * without a discussion group.
      */
+    /** The last few who commented, for the faces on the comments row (2.9.1). */
+    val commenters: List<CommentFace> = emptyList(),
     val commentCount: Int? = null,
     /** The comment thread it was written in, in a discussion group; 0 otherwise. */
     val threadId: Long = 0,
@@ -610,6 +612,9 @@ data class ChatMessage(
 
 /** Where a channel post's comments live: its discussion group, and the thread in it. */
 data class CommentThread(val chatId: Long, val threadId: Long)
+
+/** Somebody who commented on a channel post lately (2.9.1), as a face on its comments row. */
+data class CommentFace(val id: Long, val name: String, val photoPath: String? = null)
 
 /**
  * One emoji on a message, with how many people chose it.
@@ -663,7 +668,12 @@ data class ChatDetail(
      * fallback is what this replaces: it showed who was talking rather than
      * who was present, and anybody quiet was missing from it.
      */
-    val members: List<TelegramUser> = emptyList()
+    val members: List<TelegramUser> = emptyList(),
+    /**
+     * A channel's discussion group, where its posts' comments live (2.9.1):
+     * the channel's foot has Discuss beside Mute, as Telegram's has.
+     */
+    val discussionChatId: Long? = null
 )
 
 /**

@@ -820,7 +820,23 @@ internal fun MessageBubble(
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Symbols.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                        // The last few who commented, their faces overlapping,
+                        // as Telegram shows them (2.9.1); the icon until anyone has.
+                        if (message.commenters.isEmpty()) {
+                            Icon(Symbols.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                        } else {
+                            Box {
+                                message.commenters.take(3).forEachIndexed { index, face ->
+                                    com.telegramyou.app.ui.components.AvatarBubble(
+                                        title = face.name,
+                                        seed = face.id,
+                                        photoPath = face.photoPath,
+                                        size = COMMENTER_FACE,
+                                        modifier = Modifier.padding(start = COMMENTER_STEP * index)
+                                    )
+                                }
+                            }
+                        }
                         Spacer(Modifier.width(8.dp))
                         Text(commentsLabel(count), modifier = Modifier.weight(1f))
                     }
@@ -1502,3 +1518,7 @@ private fun Modifier.trimSides(each: Dp): Modifier = layout { measurable, constr
         placeable.place(-trim, 0)
     }
 }
+
+/** A commenter's face on a post's comments row, and how far each overlaps the last (2.9.1). */
+private val COMMENTER_FACE = 22.dp
+private val COMMENTER_STEP = 14.dp

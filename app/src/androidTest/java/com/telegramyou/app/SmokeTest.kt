@@ -1020,6 +1020,11 @@ class SmokeTest {
         assertFalse("a post one only reads offered Reply", device.hasObject(By.text("Reply")))
         assertFalse("a post one only reads offered Pin", device.hasObject(By.text("Pin")))
         device.pressBack()
+        // Its foot has Discuss beside Mute (2.9.1), which opens the
+        // channel's discussion group.
+        waitFor(By.text("Discuss"), "Discuss in the channel's foot")
+        tap(By.text("Discuss"))
+        waitFor(By.text("TelegramYou News Chat"), "the channel's discussion group")
     }
 
     /**

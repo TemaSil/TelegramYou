@@ -69,6 +69,7 @@ import com.telegramyou.app.telegram.model.TextEntity
 import com.telegramyou.app.telegram.model.parseMarkdown
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
+import com.telegramyou.app.telegram.model.CommentFace
 import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResult
 import com.telegramyou.app.telegram.model.InlineResultKind
@@ -940,7 +941,9 @@ class DemoTelegramClient(
             isTyping = chat.isTyping,
             // One chat has something pinned, so the bar is visible offline.
             pinnedMessage = if (chatId == 1L) messages.firstOrNull() else null,
-            members = if (chat.isGroup) demoMembers else emptyList()
+            members = if (chat.isGroup) demoMembers else emptyList(),
+            // The news channel's discussion, behind Discuss (2.9.1).
+            discussionChatId = if (chatId == 4L) DISCUSSION_CHAT_ID else null
         )
     }
 
@@ -3300,7 +3303,10 @@ class DemoTelegramClient(
         // discussion group of their own that is not in the chat list —
         // the way Telegram links a channel to its chat.
         chatMessages[4] = mutableListOf(
-            demoMessage(950, 4, DEMO_COMMENTED_POST, false, yesterday, isRead = true).copy(commentCount = 3),
+            demoMessage(950, 4, DEMO_COMMENTED_POST, false, yesterday, isRead = true).copy(
+                commentCount = 3,
+                commenters = listOf(CommentFace(22, "Lina Park"), CommentFace(41, "Ivan"), CommentFace(57, "Noor"))
+            ),
             demoMessage(951, 4, "Which screen should be redesigned next?", false, today - 40 * 60, isRead = true)
                 .copy(commentCount = 0)
         )

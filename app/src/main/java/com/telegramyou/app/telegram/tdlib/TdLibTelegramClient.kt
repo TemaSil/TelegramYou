@@ -1398,8 +1398,58 @@ class TdLibTelegramClient(
             // Neither is worth a chat that will not open: offline, each would
             // wait for the network the way history did.
             pinnedMessage = withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { pinnedMessage(chatId) },
-            members = withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { groupMembers(chat) }.orEmpty()
+            members = withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { groupMembers(chat) }.orEmpty(),
+            discussionChatId = if (preview.isChannel) withTimeoutOrNull(OPEN_EXTRAS_WAIT_MS) { discussionOf(chat) } else null
         )
+    }
+
+    /**
+     * A channel's discussion group (2.9.1): its supergroup's linked chat,
+     * fetched so it is known when Discuss opens it. Null for one without.
+     */
+    private suspend fun discussionOf(chat: JSONObject?): Long? {
+        val type = chat?.optJSONObject("type") ?: return null
+        if (type.optString("@type") != "chatTypeSupergroup") return null
+        return try {
+            val linked = requireEngine().send(
+                JSONObject().put("@type", "getSupergroupFullInfo").put("supergroup_id", type.optLong("supergroup_id"))
+            ).optLong("linked_chat_id").takeIf { it != 0L } ?: return null
+            requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", linked))
+            linked
+        } catch (e: Exception) {
+            Log.d(TAG, "discussionOf: ${e.message}")
+            null
+        }
+    }
+
+    /** Who commented on [message] lately, as TDLib's reply_info names them (2.9.1). */
+    private fun commentersOf(message: JSONObject): List<com.telegramyou.app.telegram.model.CommentFace> {
+        val ids = message.optJSONObject("interaction_info")?.optJSONObject("reply_info")
+            ?.optJSONArray("recent_replier_ids") ?: return emptyList()
+        return (0 until ids.length()).mapNotNull { index ->
+            val sender = ids.optJSONObject(index) ?: return@mapNotNull null
+            when (sender.optString("@type")) {
+                "messageSenderUser" -> {
+                    val id = sender.optLong("user_id")
+                    val user = usersById[id]
+                    com.telegramyou.app.telegram.model.CommentFace(
+                        id = id,
+                        name = user?.let { mapUser(it).displayName }.orEmpty(),
+                        photoPath = user?.let { photoPath(it.optJSONObject("profile_photo")?.optJSONObject("small")) }
+                    )
+                }
+                "messageSenderChat" -> {
+                    val id = sender.optLong("chat_id")
+                    val chat = chatsById[id]
+                    com.telegramyou.app.telegram.model.CommentFace(
+                        id = id,
+                        name = chat?.optString("title").orEmpty(),
+                        photoPath = chat?.let { photoPath(it.optJSONObject("photo")?.optJSONObject("small")) }
+                    )
+                }
+                else -> null
+            }
+        }
     }
 
     /**
@@ -5505,8 +5555,18 @@ class TdLibTelegramClient(
      */
     private fun standingIn(chat: JSONObject): com.telegramyou.app.telegram.model.ChannelStanding {
         val type = chat.optJSONObject("type")
-        if (type?.optString("@type") != "chatTypeSupergroup" || !type.optBoolean("is_channel")) {
-            return com.telegramyou.app.telegram.model.ChannelStanding.Posts
+        if (type?.optString("@type") != "chatTypeSupergroup") return com.telegramyou.app.telegram.model.ChannelStanding.Posts
+        if (!type.optBoolean("is_channel")) {
+            // A group that lets only its members write, which this account
+            // is not in — a channel's discussion opened from a post: Join,
+            // as Telegram shows there (2.9.1).
+            val group = supergroups[type.optLong("supergroup_id")]
+            val left = group?.optJSONObject("status")?.optString("@type") == "chatMemberStatusLeft"
+            return if (left && group?.optBoolean("join_to_send_messages") == true) {
+                com.telegramyou.app.telegram.model.ChannelStanding.Outside
+            } else {
+                com.telegramyou.app.telegram.model.ChannelStanding.Posts
+            }
         }
         val status = supergroups[type.optLong("supergroup_id")]?.optJSONObject("status")
         return com.telegramyou.app.telegram.model.channelStanding(
@@ -5817,6 +5877,7 @@ class TdLibTelegramClient(
             isPinned = message.optBoolean("is_pinned"),
             topicId = topicIdOf(message),
             commentCount = commentCountOf(message),
+            commenters = commentersOf(message),
             threadId = threadIdOf(message),
             savedTopicId = savedTopicIdOf(message)
         )

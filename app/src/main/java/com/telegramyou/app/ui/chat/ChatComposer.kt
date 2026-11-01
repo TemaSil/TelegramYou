@@ -1190,7 +1190,11 @@ internal fun ChannelFooter(
     standing: com.telegramyou.app.telegram.model.ChannelStanding,
     isMuted: Boolean,
     onMuteToggle: () -> Unit,
-    onJoin: () -> Unit
+    onJoin: () -> Unit,
+    /** A group that lets only members write (2.9.1): Join says group, not channel. */
+    isGroup: Boolean = false,
+    /** The channel's discussion group, opened by Discuss beside Mute (2.9.1); null without one. */
+    onDiscuss: (() -> Unit)? = null
 ) {
     val modifier = Modifier
         .fillMaxWidth()
@@ -1198,17 +1202,29 @@ internal fun ChannelFooter(
         .heightIn(min = 56.dp)
     if (standing == com.telegramyou.app.telegram.model.ChannelStanding.Outside) {
         Button(onClick = onJoin, modifier = modifier) {
-            Text(tr("Join channel", "Вступить в канал"), style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (isGroup) tr("Join group", "Вступить в группу") else tr("Join channel", "Вступить в канал"),
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     } else {
-        FilledTonalButton(onClick = onMuteToggle, modifier = modifier) {
-            Icon(
-                if (isMuted) Symbols.Notifications else Symbols.NotificationsOff,
-                contentDescription = null,
-                modifier = Modifier.size(ButtonDefaults.IconSize)
-            )
-            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-            Text(if (isMuted) tr("Unmute", "Включить звук") else tr("Mute", "Выключить звук"), style = MaterialTheme.typography.titleMedium)
+        Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilledTonalButton(onClick = onMuteToggle, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                Icon(
+                    if (isMuted) Symbols.Notifications else Symbols.NotificationsOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.IconSize)
+                )
+                Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                Text(if (isMuted) tr("Unmute", "Включить звук") else tr("Mute", "Выключить звук"), style = MaterialTheme.typography.titleMedium)
+            }
+            onDiscuss?.let { discuss ->
+                FilledTonalButton(onClick = discuss, modifier = Modifier.weight(1f).heightIn(min = 56.dp)) {
+                    Icon(Symbols.Forum, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text(tr("Discuss", "Обсудить"), style = MaterialTheme.typography.titleMedium)
+                }
+            }
         }
     }
 }
