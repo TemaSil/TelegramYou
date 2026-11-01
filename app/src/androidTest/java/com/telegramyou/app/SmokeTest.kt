@@ -238,7 +238,8 @@ class SmokeTest {
     }
 
     /**
-     * A search hit far older than anything opening the chat loads: tapped,
+     * A search hit far older than anything opening the chat loads: shown in
+     * the conversation at once with "1 of 1" (2.9.1), and as a list; tapped,
      * the history around it replaces the latest messages and the hit is on
      * screen; the jump button then brings the latest back. The demo group
      * carries months of history before its visible conversation for this,
@@ -254,6 +255,13 @@ class SmokeTest {
         val field = By.clazz("android.widget.EditText").focused(true)
         waitFor(field, "the search field")
         device.findObject(field).text = OLD_HIT_QUERY
+        // Gone to in the conversation at once, with which of how many it is
+        // (2.9.1), as Telegram shows a search.
+        waitFor(By.text("1 of 1"), "the hit counted")
+        waitFor(By.textContains("first sketches"), "the old message in the conversation")
+        screenshot("28a-search-in-chat")
+        // And as a list, on asking; a hit there opens where it is as before.
+        tap(By.text("Show as list"))
         // The result row; the words are bold inside it, so by containment.
         waitFor(By.textContains("first sketches"), "the old search hit")
         tap(By.textContains("first sketches"))

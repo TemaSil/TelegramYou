@@ -81,7 +81,15 @@ data class ChatSearchState(
     val isOpen: Boolean = false,
     val query: String = "",
     val results: List<ChatMessage> = emptyList(),
-    val isSearching: Boolean = false
+    val isSearching: Boolean = false,
+    /**
+     * The hits as a list, rather than gone through in the conversation
+     * (2.9.1): Telegram shows the newest at once, with "1 of 22" and arrows
+     * for the rest, and a list on asking.
+     */
+    val asList: Boolean = false,
+    /** Which hit is on screen, newest first. */
+    val current: Int = 0
 ) {
     /** A query that found nothing, as opposed to one not yet typed. */
     val isEmpty: Boolean get() = query.isNotBlank() && !isSearching && results.isEmpty()
@@ -2307,10 +2315,24 @@ class ChatViewModel(
             delay(SEARCH_DEBOUNCE_MS)
             val hits = repository.searchChatMessages(chatId, query)
             _uiState.update {
-                it.copy(search = it.search.copy(results = hits, isSearching = false))
+                it.copy(search = it.search.copy(results = hits, isSearching = false, current = 0))
             }
+            // The newest hit, in the conversation, as Telegram shows it.
+            if (!_uiState.value.search.asList) hits.firstOrNull()?.let { onJumpToMessage(it.id) }
         }
     }
+
+    /** The next hit older, or newer, in the conversation (2.9.1). */
+    fun onSearchStep(older: Boolean) {
+        val search = _uiState.value.search
+        val next = searchStep(search.current, search.results.size, older)
+        val hit = search.results.getOrNull(next) ?: return
+        _uiState.update { it.copy(search = it.search.copy(current = next)) }
+        onJumpToMessage(hit.id)
+    }
+
+    /** The hits as a list, or back to going through them in the conversation. */
+    fun onSearchAsList(asList: Boolean) = _uiState.update { it.copy(search = it.search.copy(asList = asList)) }
 
     // ── selecting ────────────────────────────────────────────────────────
 

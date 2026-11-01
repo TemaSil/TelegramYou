@@ -99,3 +99,13 @@ private fun sameYear(a: Long, b: Long): Boolean {
     val second = Calendar.getInstance().apply { timeInMillis = b * 1000L }
     return first.get(Calendar.YEAR) == second.get(Calendar.YEAR)
 }
+
+/**
+ * The search hit after [current] of [count] (2.9.1), newest first as they
+ * come: an older one, or a newer one, stopping at either end rather than
+ * going round, as Telegram's arrows do.
+ */
+fun searchStep(current: Int, count: Int, older: Boolean): Int {
+    if (count <= 0) return 0
+    return (if (older) current + 1 else current - 1).coerceIn(0, count - 1)
+}

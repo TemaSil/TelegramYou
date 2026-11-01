@@ -136,4 +136,13 @@ class MessageGroupingTest {
     fun `no date gives no label`() {
         assertEquals("", dayLabel(0, at(2026, 9, 14)))
     }
+
+    @Test
+    fun `the search arrows go older and newer and stop at the ends`() {
+        assertEquals(1, searchStep(0, 5, older = true))
+        assertEquals(4, searchStep(4, 5, older = true))
+        assertEquals(2, searchStep(3, 5, older = false))
+        assertEquals(0, searchStep(0, 5, older = false))
+        assertEquals(0, searchStep(0, 0, older = true))
+    }
 }

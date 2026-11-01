@@ -690,6 +690,8 @@ fun TelegramYouNavHost(
                     onRemind = { note, at -> chatViewModel.onRemind(note, at) },
                     onVideoNoteToggled = chatViewModel::onVideoNoteToggled,
                     onNextUnread = chatViewModel::onNextUnread,
+                    onSearchStep = chatViewModel::onSearchStep,
+                    onSearchAsList = chatViewModel::onSearchAsList,
                     onVideoNoteEnded = chatViewModel::onVideoNoteEnded,
                     onVoiceSpeed = chatViewModel::onVoiceSpeed,
                     onSavedTagNaming = chatViewModel::onSavedTagNaming,

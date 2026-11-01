@@ -258,6 +258,9 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** In-chat search (2.9.1): a hit older (true) or newer, and the hits as a list or not. */
+    onSearchStep: (Boolean) -> Unit = {},
+    onSearchAsList: (Boolean) -> Unit = {},
     /** The oldest unseen mention, or with true the oldest unseen reaction (2.9.1). */
     onNextUnread: (Boolean) -> Unit = {},
     /** A round video tapped, and one played to its end (2.9.1); see ChatViewModel. */
@@ -1189,7 +1192,7 @@ fun ChatScreen(
             // The list fills the Box now and the composer sits on top, so what
             // shows behind and around the capsule is the conversation.
             Box(modifier = Modifier.weight(1f)) {
-            if (state.search.isOpen && state.search.query.isNotBlank()) {
+            if (state.search.isOpen && state.search.query.isNotBlank() && state.search.asList) {
                 // Results take the conversation's place rather than covering
                 // it. A panel over the messages would put two scrollable lists
                 // one on top of the other, and the one underneath is not what
@@ -1581,6 +1584,16 @@ fun ChatScreen(
                     .fillMaxWidth()
                     .padding(bottom = composerLift)
             ) {
+                // Going through the hits in the conversation (2.9.1): "1 of
+                // 22", older and newer, and the list on asking — in the
+                // composer's place, as Telegram puts it.
+                if (state.search.isOpen && state.search.query.isNotBlank() && !state.search.asList) {
+                    ChatSearchBar(
+                        search = state.search,
+                        onStep = onSearchStep,
+                        onAsList = { onSearchAsList(true) }
+                    )
+                }
                 // Unseen mentions and reactions (2.9.1), as Telegram stacks
                 // them over the arrow down: each goes to the oldest, with
                 // how many there are.
@@ -2473,6 +2486,45 @@ private fun UnreadJump(icon: androidx.compose.ui.graphics.vector.ImageVector, co
             elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
         ) {
             Icon(icon, contentDescription = label)
+        }
+    }
+}
+
+/**
+ * The hits gone through in the conversation (2.9.1): which of how many is
+ * on screen, the arrows to the older and the newer, and the list on asking.
+ */
+@Composable
+private fun ChatSearchBar(search: ChatSearchState, onStep: (Boolean) -> Unit, onAsList: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = CircleShape,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
+            val count = search.results.size
+            IconButton(onClick = { onStep(true) }, enabled = search.current < count - 1) {
+                Icon(Symbols.KeyboardArrowUp, contentDescription = tr("Older match", "Более раннее"))
+            }
+            IconButton(onClick = { onStep(false) }, enabled = search.current > 0) {
+                Icon(Symbols.KeyboardArrowDown, contentDescription = tr("Newer match", "Более позднее"))
+            }
+            Text(
+                when {
+                    search.isSearching -> tr("Searching…", "Поиск…")
+                    count == 0 -> tr("Nothing found", "Ничего не найдено")
+                    else -> tr("${search.current + 1} of $count", "${search.current + 1} из $count")
+                },
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+            )
+            if (count > 0) {
+                TextButton(onClick = onAsList) { Text(tr("Show as list", "Списком")) }
+            }
         }
     }
 }
