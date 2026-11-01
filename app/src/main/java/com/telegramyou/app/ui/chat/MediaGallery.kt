@@ -1,5 +1,15 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import com.telegramyou.app.i18n.tr
 
 import androidx.compose.animation.core.Animatable
@@ -245,6 +255,7 @@ fun MediaGallery(
                 enter = androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
                 exit = androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
             ) {
+            Box(Modifier.fillMaxSize()) {
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -258,20 +269,75 @@ fun MediaGallery(
                 ) {
                     Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"))
                 }
-                if (items.size > 1) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.align(Alignment.Center)
-                    ) {
+                // Where this is among them, and who sent it when (2.9.1),
+                // as Telegram's viewer says under its title.
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.align(Alignment.Center)
+                ) {
+                    if (items.size > 1) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ) {
+                            Text(
+                                tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                    items.getOrNull(pager.currentPage)?.let { shown ->
                         Text(
-                            tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            mediaByline(shown),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.85f),
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
                 }
+            }
+            // The others as a strip along the foot (2.9.1), the one in view
+            // outlined, a tap going to it — over a photo; a video has its
+            // own controls there.
+            val current = items.getOrNull(pager.currentPage)
+            if (items.size > 1 && current?.contentType != MessageContentType.Video) {
+                val strip = androidx.compose.foundation.lazy.rememberLazyListState()
+                LaunchedEffect(pager.currentPage) {
+                    strip.animateScrollToItem((pager.currentPage - 2).coerceAtLeast(0))
+                }
+                androidx.compose.foundation.lazy.LazyRow(
+                    state = strip,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(bottom = 12.dp)
+                        .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
+                ) {
+                    items(items.size, key = { items[it].id }) { index ->
+                        val item = items[index]
+                        val chosen = index == pager.currentPage
+                        AsyncImage(
+                            model = item.photoPath ?: item.video?.thumbPath,
+                            contentDescription = tr("Item ${index + 1}", "Номер ${index + 1}"),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(if (chosen) 52.dp else 44.dp)
+                                .clip(MaterialTheme.shapes.small)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                .then(
+                                    if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                                    else Modifier
+                                )
+                                .clickable { scope.launch { pager.animateScrollToPage(index) } }
+                        )
+                    }
+                }
+            }
             }
             }
         }
@@ -289,3 +355,15 @@ private const val PHOTO_SCRIM = 0.92f
 
 /** About a bubble's corners, which a photo in one is cut to. */
 private val ORIGIN_CORNER = 16.dp
+
+/** Who sent it and when, under the viewer's counter: "Lina Park · 26 Oct, 14:08". */
+private fun mediaByline(message: ChatMessage): String {
+    val who = if (message.isOutgoing) tr("You", "Вы") else message.senderName.orEmpty()
+    val time = if (message.date > 0) {
+        java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm", java.util.Locale.getDefault())
+            .format(java.time.Instant.ofEpochSecond(message.date).atZone(java.time.ZoneId.systemDefault()))
+    } else {
+        message.timeLabel
+    }
+    return listOf(who, time).filter(String::isNotBlank).joinToString(" · ")
+}
