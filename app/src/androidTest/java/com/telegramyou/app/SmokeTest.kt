@@ -966,6 +966,27 @@ class SmokeTest {
     }
 
     /**
+     * A channel one only reads (2.9.1): a post's menu has no Reply, and no
+     * Quote — answering is a chat's, and the channel has no composer to
+     * answer in.
+     */
+    @Test
+    fun aChannelPostIsNotAnswered() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("TelegramYou News"))
+        tap(By.text("TelegramYou News"))
+        val post = By.text("Which screen should be redesigned next?")
+        waitFor(post, "a post in the channel")
+        device.findObject(post).longClick()
+        waitFor(By.text("Copy"), "the post's menu")
+        screenshot("146-channel-post-menu")
+        assertFalse("a post one only reads offered Reply", device.hasObject(By.text("Reply")))
+        device.pressBack()
+    }
+
+    /**
      * Saved Messages as notes (2.9): a grid of cards, as Google Keep lays
      * notes out; a note opens out of its card to the whole screen and is
      * swiped back into it; Show in chat goes to it in the conversation, and
