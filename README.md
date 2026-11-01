@@ -55,14 +55,13 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.9.2 · 1 November 2026
+## Latest: 2.9.3 · 1 November 2026
 
-Fixes for 2.9.1: the heart and the @ mark what they go to as seen, so
-their counts come down and each tap goes on to the next; videos and photos
-with comments or reactions under them keep their bubble; and the heart,
-the @ and the search bar glide in and out. 2.9.1 before it brought
-Telegram's own interactions — round videos that grow, search hit by hit,
-Discuss in channels, checklists. See the [changelog](CHANGELOG.md).
+A hotfix for the media viewer: a photo's or a video's caption sits on a
+band along the foot, three lines until tapped open, instead of running
+over the picture, and a tap on a photo hides everything over it. 2.9.2
+before it marked unseen reactions as seen and kept media with comments in
+its bubble. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.9.3
+
+A hotfix for the media viewer:
+
+- **The caption no longer covers the picture.** A photo's caption was white text straight on the photo, all of it, so a long one ran over the whole picture and was unreadable on anything light. It sits on a dark band along the foot now, above the strip, three lines with a chevron; a tap or a drag up opens it to scroll through on a dimmed photo, and a tap, a drag down, Back or a tap on the photo shuts it. A video's caption and controls have the same band.
+- **A tap on a photo hides the chrome** — the counter, Close, the strip and the caption — and a second brings it back, as a video already did; it used to close the viewer. A drag down still closes it.
+
 ## 2.9.2
 
 Fixes for 2.9.1:

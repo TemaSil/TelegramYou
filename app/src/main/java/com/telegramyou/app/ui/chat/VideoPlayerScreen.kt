@@ -439,8 +439,13 @@ fun VideoPage(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
+                    // The caption and the controls on a dark band of their
+                    // own (2.9.2), as a photo's caption is: white words
+                    // straight on the picture were lost on anything light.
+                    // A solid scrim, not a gradient.
+                    .background(Color.Black.copy(alpha = 0.6f))
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (title.isNotBlank()) {
