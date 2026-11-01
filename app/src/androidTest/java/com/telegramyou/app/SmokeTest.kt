@@ -918,7 +918,9 @@ class SmokeTest {
             device.executeShellCommand("wm size 2560x1600")
             device.executeShellCommand("wm density 320")
             waitFor(By.desc("No chat open"), "the empty pane beside the list")
-            // Groups other tests on this emulator made can stand above her.
+            // Another test on this emulator can leave a folder tab chosen
+            // that she is not in, and groups it made can stand above her.
+            if (device.hasObject(By.text("All"))) tap(By.text("All"))
             scrollChatsTo(By.text("Lina Park"))
             tap(By.text("Lina Park"))
             waitFor(By.text("Message"), "the chat in the pane")
