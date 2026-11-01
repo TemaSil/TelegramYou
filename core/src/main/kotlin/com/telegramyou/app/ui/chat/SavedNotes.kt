@@ -81,3 +81,21 @@ fun noteBody(note: List<ChatMessage>): String =
 
 /** How close saved messages must be to make one note: two minutes, a pause in a thought. */
 const val NOTE_GAP_SECONDS = 120L
+
+/**
+ * When a note was saved, as its card says it (2.9.1): the day and month
+ * with the time — "26 Oct, 14:03" — and for a year before this one the
+ * year in the time's place, "26 Oct 2025", as a notes app dates them.
+ */
+fun noteDateLabel(
+    dateSeconds: Long,
+    nowSeconds: Long,
+    zone: java.time.ZoneId,
+    locale: java.util.Locale = java.util.Locale.getDefault()
+): String {
+    if (dateSeconds <= 0L) return ""
+    val at = java.time.Instant.ofEpochSecond(dateSeconds).atZone(zone)
+    val now = java.time.Instant.ofEpochSecond(nowSeconds).atZone(zone)
+    val pattern = if (at.year == now.year) "d MMM, HH:mm" else "d MMM yyyy"
+    return java.time.format.DateTimeFormatter.ofPattern(pattern, locale).format(at)
+}

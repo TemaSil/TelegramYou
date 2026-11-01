@@ -59,4 +59,15 @@ class SavedNotesTest {
         val photo = at(2, 1010, "Photo").copy(contentType = MessageContentType.Photo)
         assertEquals("Buy milk\n\nand bread", noteBody(listOf(at(1, 1000, "Buy milk"), photo, at(3, 1020, "and bread"))))
     }
+
+    @Test
+    fun `a note is dated by day and month, and by year when it is an older one`() {
+        val zone = java.time.ZoneOffset.UTC
+        val now = java.time.LocalDateTime.of(2026, 11, 1, 12, 0).toEpochSecond(zone)
+        val thisYear = java.time.LocalDateTime.of(2026, 10, 26, 14, 3).toEpochSecond(zone)
+        val lastYear = java.time.LocalDateTime.of(2025, 12, 31, 9, 0).toEpochSecond(zone)
+        assertEquals("26 Oct, 14:03", noteDateLabel(thisYear, now, zone, java.util.Locale.ENGLISH))
+        assertEquals("31 Dec 2025", noteDateLabel(lastYear, now, zone, java.util.Locale.ENGLISH))
+        assertEquals("", noteDateLabel(0, now, zone))
+    }
 }

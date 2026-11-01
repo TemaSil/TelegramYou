@@ -192,7 +192,7 @@ internal fun NoteCard(
                 }
                 Spacer(Modifier.weight(1f))
                 Text(
-                    note.last().timeLabel,
+                    noteDate(note.last()),
                     style = MaterialTheme.typography.labelSmall,
                     color = tone.second.copy(alpha = 0.7f)
                 )
@@ -260,3 +260,8 @@ private const val NOTE_LINES = 10
 
 /** How near the end of the loaded notes the older ones are asked for. */
 private const val LOAD_AHEAD = 6
+
+/** The note's date as its card and its full view say it; see noteDateLabel. */
+internal fun noteDate(message: ChatMessage): String =
+    noteDateLabel(message.date, System.currentTimeMillis() / 1000, java.time.ZoneId.systemDefault())
+        .ifEmpty { message.timeLabel }

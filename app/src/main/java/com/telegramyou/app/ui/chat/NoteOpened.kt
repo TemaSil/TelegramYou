@@ -336,7 +336,7 @@ private fun NoteFull(
                     Text(line, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp))
                 }
                 Text(
-                    note.last().timeLabel,
+                    noteDate(note.last()),
                     style = MaterialTheme.typography.labelMedium,
                     color = contentColor.copy(alpha = 0.7f),
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
