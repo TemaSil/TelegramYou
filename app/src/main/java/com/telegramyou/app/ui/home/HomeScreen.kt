@@ -81,9 +81,6 @@ import com.telegramyou.app.ui.profile.ProfileDraft
 import com.telegramyou.app.settings.ThemeChoice
 import com.telegramyou.app.settings.AppearanceSettings
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -101,8 +98,6 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScope
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.LargeTopAppBar
@@ -119,16 +114,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import com.telegramyou.app.ui.components.LargeTitle
 import com.telegramyou.app.ui.components.withoutBottom
-import androidx.compose.ui.unit.sp
 import com.telegramyou.app.telegram.model.StoryItem
-import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.materialShapeAt
 import com.telegramyou.app.ui.components.SHAPE_COUNT

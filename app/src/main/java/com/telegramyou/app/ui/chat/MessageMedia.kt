@@ -28,7 +28,6 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -81,8 +80,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import com.telegramyou.app.telegram.model.VideoContent
@@ -99,41 +96,13 @@ import com.telegramyou.app.ui.media.zoomToggled
 // What a bubble holds when it is more than words: photos and their viewer, videos, GIFs, round video messages, voice notes and their waveform.
 
 /**
- * One photo, full screen.
- *
- * A `Dialog` rather than a route: it is not somewhere the conversation has
- * navigated to, and back should return to the message rather than to whatever
- * the graph thinks came before. usePlatformDefaultWidth false is what lets it
- * reach the edges — without it a dialog is inset like an alert, which is not
- * what a photo wants.
+ * One photo, full-screen, zoomable and thrown away by a drag down — a page
+ * of MediaGallery. [path] null while the photo is still arriving. One finger
+ * pans only once the photo is zoomed: zoomed out, a sideways drag belongs
+ * to the gallery around it, to go to the next.
  *
  * `ContentScale.Fit`, not Crop: the bubble crops to keep the list tidy, and
  * the whole point of opening it is to see the parts the bubble cut off.
- *
- * Pinch to zoom is not here yet. A photo that fills the screen is most of the
- * way to the thing, and a half-working gesture would be worse than none.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PhotoViewer(
-    path: String,
-    caption: String,
-    onDismiss: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        PhotoPage(path = path, caption = caption, onDismiss = onDismiss)
-    }
-}
-
-/**
- * One photo, full-screen, zoomable and thrown away by a drag down — the
- * viewer's page, on its own in [PhotoViewer] and one of many in
- * MediaGallery. [path] null while the photo is still arriving. One finger
- * pans only once the photo is zoomed: zoomed out, a sideways drag belongs
- * to the gallery around it, to go to the next.
  */
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -184,7 +153,7 @@ fun PhotoPage(
         if (path == null) CircularProgressIndicator(color = Color.White)
         AsyncImage(
             model = path,
-            contentDescription = if (caption.isBlank() || caption == "Photo") tr("Photo", "Фото") else caption,
+            contentDescription = if (!isMediaCaption(caption)) tr("Photo", "Фото") else caption,
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .fillMaxSize()
@@ -250,7 +219,7 @@ fun PhotoPage(
                     )
                 }
         )
-        if (caption.isNotBlank() && caption != "Photo") {
+        if (isMediaCaption(caption)) {
             Text(
                 caption,
                 color = Color.White,
@@ -350,7 +319,7 @@ internal fun PhotoMessage(
             } else {
                 AsyncImage(
                     model = path,
-                    contentDescription = if (caption.isBlank() || caption == "Photo") tr("Photo", "Фото") else caption,
+                    contentDescription = if (!isMediaCaption(caption)) tr("Photo", "Фото") else caption,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -367,7 +336,7 @@ internal fun PhotoMessage(
         }
         // "Photo" is what a message with no caption is called, not something
         // the sender wrote, so it is not repeated under the picture.
-        if (caption.isNotBlank() && caption != "Photo") {
+        if (isMediaCaption(caption)) {
             Spacer(Modifier.height(6.dp))
             Text(
                 caption,
@@ -510,7 +479,7 @@ internal fun VideoMessage(
         if (video.thumbPath == null) onPosterVisible()
     }
     Column {
-        val label = if (caption.isBlank() || caption == "Video") {
+        val label = if (!isMediaCaption(caption)) {
             tr("Video, ${formatDuration(video.durationSeconds.toLong())}", "Видео, ${formatDuration(video.durationSeconds.toLong())}")
         } else {
             tr("Video, $caption", "Видео, $caption")
@@ -592,7 +561,7 @@ internal fun VideoMessage(
         }
         // As with a photo: "Video" is what an untitled one is called, not
         // something the sender wrote.
-        if (caption.isNotBlank() && caption != "Video") {
+        if (isMediaCaption(caption)) {
             Spacer(Modifier.height(6.dp))
             Text(
                 caption,
@@ -642,7 +611,7 @@ internal fun AnimationMessage(
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 .combinedClickable(onClick = onOpen, onLongClick = onLongClick)
                 .semantics(mergeDescendants = true) {
-                    contentDescription = if (caption.isBlank() || caption == "GIF") "GIF" else tr("GIF, $caption", "GIF, $caption")
+                    contentDescription = if (!isMediaCaption(caption)) "GIF" else tr("GIF, $caption", "GIF, $caption")
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -693,7 +662,7 @@ internal fun AnimationMessage(
             }
             if (spoiler && originId != null) SpoilerCover(originId, gif.mini, gif.thumbPath)
         }
-        if (caption.isNotBlank() && caption != "GIF") {
+        if (isMediaCaption(caption)) {
             Spacer(Modifier.height(6.dp))
             Text(
                 caption,

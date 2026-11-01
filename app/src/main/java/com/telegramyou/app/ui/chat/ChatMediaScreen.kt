@@ -547,7 +547,7 @@ internal fun MediaTile(
         // when it was tapped, which is the kind of surprise a list of
         // thumbnails should never contain.
         message.video?.let { video ->
-            VideoTile(video = video, caption = message.text, transfer = transfer)
+            VideoTile(video = video, caption = writtenCaption(message), transfer = transfer)
             return@Surface
         }
         val path = message.photoPath

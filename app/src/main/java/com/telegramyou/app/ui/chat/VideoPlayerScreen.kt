@@ -47,7 +47,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -68,7 +67,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -80,8 +78,6 @@ import com.telegramyou.app.ui.media.playbackSpeedLabel
 import com.telegramyou.app.ui.media.nextPlaybackSpeed
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.TextButton
 import com.telegramyou.app.telegram.model.VideoContent
 import androidx.compose.material3.LinearProgressIndicator
 import com.telegramyou.app.ui.media.FileTransfer
@@ -107,37 +103,14 @@ import com.telegramyou.app.ui.media.videoDragOutcome
 private const val PROGRESS_TICK_MS = 250L
 
 /**
- * A video, full screen, with Material's own controls over it.
- *
- * Media3 plays it and draws nothing: the surface is a plain `SurfaceView`,
- * and the play button, the scrubber and the time are this app's. Media3 ships
- * a player view of its own, with its own look — using it would put a second
- * design language on the screen, which is the thing this client exists not to
- * do.
- *
- * A `Dialog` rather than a route, like the photo viewer next to it: opening a
- * video is a look at something, not a place to come back from.
- */
-@Composable
-fun VideoPlayerScreen(
-    video: VideoContent,
-    title: String,
-    /** The file's transfer, while it is still coming. */
-    transfer: FileTransfer? = null,
-    onClose: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        VideoPage(video = video, title = title, transfer = transfer, active = true, onClose = onClose)
-    }
-}
-
-/**
- * The player's page: on its own in [VideoPlayerScreen], one of many in
+ * A video, full screen, with Material's own controls over it — a page of
  * MediaGallery. [active] is whether it is the page in view — the player
  * exists only then, and a page beside it shows the video's poster.
+ *
+ * Media3 plays it and draws nothing: the play button, the scrubber and the
+ * time are this app's. Media3 ships a player view of its own, with its own
+ * look — using it would put a second design language on the screen, which
+ * is the thing this client exists not to do.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)

@@ -9,6 +9,12 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.9.1
+
+- **No made-up captions.** A video, a photo, a GIF, a song or a file sent without a caption showed the chat list's word for it underneath — "🎬 Video", "🎵 Разум" — as voice messages did until 2.7.1. One rule for every kind now (writtenCaption): a caption shows only when somebody wrote it, in the bubble and in the viewer alike.
+- **No replying to a channel you only read.** A subscriber was offered Reply on every post — by a swipe, the menu, a double tap, Quote — which is a chat's behaviour. It is there only where a message can be written.
+- **A clean-up**: two unused viewers, a forgotten media loader, 61 unused imports and a few unused resources gone.
+
 ## 2.9
 
 - **Saved Messages as notes.** Saved Messages opens as a grid of cards, the way Google Keep lays out notes: newest first, a picture across the top of the ones that have one, the first line of a longer note as its title, and its tags at the foot. A tagged note takes one of the theme's container colours by its tag, so notes tagged alike look alike. Messages saved one after another, within two minutes, make one note, unless they were forwarded from different places. A tap opens a note out of its card to the whole screen, the way a chat opens out of its row, and a swipe up or down puts it back; it has Show in chat, Copy, Edit, Tag, Remind me — sent back to Saved Messages at the time picked, as Telegram's reminders are — and Delete; the composer still adds a note; and the header's button shows it all as the chat it also is. It is an experiment, on by default: For geeks → Experiments → Saved Messages as notes turns it off, and Saved Messages is the chat it was.

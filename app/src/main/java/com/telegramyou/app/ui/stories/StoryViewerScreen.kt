@@ -276,7 +276,7 @@ private fun TextStory(story: StoryItem, frame: StoryFrame) {
 
 /**
  * A video story, playing once with no controls — the viewer's own progress
- * is its scrubber. A TextureView for the reason VideoPlayerScreen gives: it
+ * is its scrubber. A TextureView for the reason VideoPage gives: it
  * composites with what is drawn over it.
  */
 @Composable

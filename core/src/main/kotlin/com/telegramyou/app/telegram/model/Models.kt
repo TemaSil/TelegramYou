@@ -198,6 +198,14 @@ data class ChatPreview(
 ) {
     /** Whether a message can be written here; see [channelStanding]. */
     val canPost: Boolean get() = channelStanding == ChannelStanding.Posts
+
+    /**
+     * Whether a message here can be answered (2.9.1): only where one can be
+     * written. A channel's subscriber was offered Reply on every post — by
+     * a swipe, the menu, a double tap — which is a chat's behaviour, and
+     * led to a composer the channel has none of.
+     */
+    val canReply: Boolean get() = canPost
 }
 
 /** The account's own last message in a chat, as the row's ticks show it. */

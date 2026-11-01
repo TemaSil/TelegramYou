@@ -5497,7 +5497,6 @@ class TdLibTelegramClient(
         val id = chat.optLong("id")
         val last = chat.optJSONObject("last_message")
         val type = chat.optJSONObject("type")?.optString("@type").orEmpty()
-        val notif = chat.optJSONObject("notification_settings")
         val saved = isSavedMessages(chat)
         return ChatPreview(
             id = id,

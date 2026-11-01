@@ -55,15 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.9 · 30 October 2026
+## Latest: 2.9.1 · 1 November 2026
 
-Saved Messages opens as notes, in a grid the way Google Keep lays them
-out, tagged notes coloured by their tag. Videos picked from the gallery
-send again, and round video messages show how far they have played round
-their edge, wound by a finger along it.
-2.8.1 before it made round videos play and put videos in the photo
-picker; 2.8 brought two panes on tablets and foldables, and ghost mode.
-See the [changelog](CHANGELOG.md).
+A tidy-up: media sent without a caption no longer shows a made-up one, and
+channel posts are not offered for reply where you only read. 2.9 before it
+turned Saved Messages into notes, laid out the way Google Keep lays out its
+own. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

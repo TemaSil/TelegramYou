@@ -168,15 +168,6 @@ data class ChatUiState(
     val reactionOptions: List<ReactionOption> = emptyList(),
     /** Empty until someone chooses Select; non-empty puts the toolbar up. */
     val selection: MessageSelection = MessageSelection(),
-    /**
-     * Every photo in this chat, for the media grid — newest first.
-     *
-     * Fetched when that screen opens rather than with the conversation: it is
-     * a separate request to the server and most conversations are never
-     * browsed that way.
-     */
-    val media: List<ChatMessage> = emptyList(),
-    val isLoadingMedia: Boolean = false,
     /** True while the confirmation for deleting the selection is on screen. */
     val confirmingSelectionDelete: Boolean = false,
     /** Search inside this conversation; see ChatSearchState. */
@@ -1224,10 +1215,7 @@ class ChatViewModel(
             )
         },
         olderMessages = olderMessages.map { if (it.id == messageId) transform(it) else it },
-        detachedWindow = detachedWindow?.map { if (it.id == messageId) transform(it) else it },
-        // The grid's copy too, so a file fetched from one screen is not
-        // fetched again from the other.
-        media = media.map { if (it.id == messageId) transform(it) else it }
+        detachedWindow = detachedWindow?.map { if (it.id == messageId) transform(it) else it }
     )
 
     // ── polls and bots ───────────────────────────────────────────────────
@@ -2520,20 +2508,6 @@ class ChatViewModel(
         _uiState.update { it.copy(hasLeft = false) }
     }
 
-    /**
-     * Fetches every photo in this chat, for the media grid.
-     *
-     * Called when that screen opens rather than with the conversation: it is
-     * a separate request and most chats are never browsed this way. Called
-     * again on each visit, because photos are added while it is closed and a
-     * grid that showed yesterday's set would be quietly wrong.
-     */
-    fun loadMedia() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingMedia = true) }
-            val found = repository.chatMedia(chatId)
-            _uiState.update { it.copy(media = found, isLoadingMedia = false) }
-        }
     }
 
     /**

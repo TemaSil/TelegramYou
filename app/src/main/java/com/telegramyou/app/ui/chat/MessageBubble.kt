@@ -120,7 +120,8 @@ internal fun MessageBubble(
     isFirstInRun: Boolean,
     showAvatar: Boolean,
     onCopy: () -> Unit,
-    onReply: () -> Unit,
+    /** Null where nothing can be answered — a channel one only reads (2.9.1). */
+    onReply: (() -> Unit)?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onReact: () -> Unit,
@@ -286,12 +287,12 @@ internal fun MessageBubble(
                 }
             )
             .offset { IntOffset(offset.roundToInt(), 0) }
-            .pointerInput(message.id, isSelecting) {
-                if (isSelecting) return@pointerInput
+            .pointerInput(message.id, isSelecting, onReply == null) {
+                if (isSelecting || onReply == null) return@pointerInput
                 detectHorizontalDragGestures(
                     onDragEnd = {
                         if (shouldTriggerReply(swipeOffset(rawDrag, maxOffsetPx), triggerOffsetPx)) {
-                            onReply()
+                            onReply?.invoke()
                         }
                         rawDrag = 0f
                     },
@@ -362,15 +363,15 @@ internal fun MessageBubble(
         // time on it. Words — a caption, a quote, "Forwarded from" — bring the
         // bubble back, and the picture fills its top as before.
         val frameless = message.replyToId == null && message.forwardedFrom == null && when (message.contentType) {
-            // "Photo", "Video" and "GIF" are what a message with no caption
-            // is called, not words anyone wrote.
+            // "Photo", "🎬 Video" and "GIF" are what a message with no caption
+            // is called, not words anyone wrote; see writtenCaption.
             MessageContentType.Photo -> if (album != null) {
-                album.none { it.text.isNotBlank() && it.text != "Photo" }
+                album.all { writtenCaption(it).isEmpty() }
             } else {
-                message.text.isBlank() || message.text == "Photo"
+                writtenCaption(message).isEmpty()
             }
-            MessageContentType.Video -> message.video != null && (message.text.isBlank() || message.text == "Video")
-            MessageContentType.Animation -> message.video != null && (message.text.isBlank() || message.text == "GIF")
+            MessageContentType.Video, MessageContentType.Animation ->
+                message.video != null && writtenCaption(message).isEmpty()
             else -> false
         }
         // The time, "edited" and the ticks: under the words in a bubble, or
@@ -469,7 +470,7 @@ internal fun MessageBubble(
                     onDoubleClick = when (geeks.doubleTap) {
                         DoubleTapAction.Nothing -> null
                         DoubleTapAction.React -> ({ if (!isSelecting) onReactionToggled(QUICK_REACTION) })
-                        DoubleTapAction.Reply -> ({ if (!isSelecting) onReply() })
+                        DoubleTapAction.Reply -> onReply?.let { reply -> { if (!isSelecting) reply() } }
                         // Nothing to copy from a photo or a sticker with no
                         // caption, and copying "" emptied the clipboard.
                         DoubleTapAction.Copy -> ({ if (!isSelecting && message.text.isNotBlank()) onCopy() })
@@ -552,9 +553,9 @@ internal fun MessageBubble(
                                 )
                             }
                         }
-                        if (message.text.isNotBlank() && message.text != message.fileName) {
+                        writtenCaption(message).takeIf { it.isNotEmpty() }?.let { caption ->
                             Spacer(Modifier.height(6.dp))
-                            Text(message.text)
+                            Text(caption)
                         }
                     }
                     MessageContentType.Photo -> if (album != null) {
@@ -577,7 +578,7 @@ internal fun MessageBubble(
                             path = message.photoPath,
                             mini = message.photoMini,
                             aspect = message.photoAspect,
-                            caption = message.text,
+                            caption = writtenCaption(message),
                             outgoing = outgoing,
                             onVisible = onPhotoVisible,
                             onOpen = { if (isSelecting) onSelect() else onPhotoOpened() },
@@ -601,7 +602,7 @@ internal fun MessageBubble(
                             VideoMessage(
                                 framed = !frameless,
                                 video = video,
-                                caption = message.text,
+                                caption = writtenCaption(message),
                                 outgoing = outgoing,
                                 // As a photo: flush with the top unless a name
                                 // or a quote sits above it.
@@ -631,7 +632,7 @@ internal fun MessageBubble(
                             AnimationMessage(
                                 framed = !frameless,
                                 gif = gif,
-                                caption = message.text,
+                                caption = writtenCaption(message),
                                 outgoing = outgoing,
                                 bleedTop = message.replyToId == null &&
                                     !(!outgoing && isFirstInRun && sender != null),
@@ -703,10 +704,13 @@ internal fun MessageBubble(
                         } else {
                             Text(message.text.ifBlank { tr("Audio", "Аудио") })
                         }
-                        if (message.text.isNotBlank() && audio != null) {
+                        // A caption somebody wrote — not "🎵 Разум", the
+                        // list's word for the track; see writtenCaption.
+                        val caption = writtenCaption(message)
+                        if (caption.isNotEmpty() && audio != null) {
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                message.text,
+                                caption,
                                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface
                             )
@@ -727,10 +731,10 @@ internal fun MessageBubble(
                         )
                         // A caption someone wrote, under it as an audio file's
                         // is; "🎤 Voice" is the chat list's word, not one.
-                        if (isVoiceCaption(message.text)) {
+                        if (writtenCaption(message).isNotEmpty()) {
                             Spacer(Modifier.height(6.dp))
                             Text(
-                                message.text,
+                                writtenCaption(message),
                                 color = if (outgoing) MaterialTheme.colorScheme.onPrimary
                                 else MaterialTheme.colorScheme.onSurface
                             )
@@ -848,17 +852,20 @@ internal fun MessageBubble(
                     )
                     HorizontalDivider()
                 }
-                DropdownMenuItem(
-                    text = { Text(tr("Reply", "Ответить")) },
-                    leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
-                    onClick = {
-                        onReply()
-                        menuOpen = false
-                    }
-                )
+                onReply?.let { reply ->
+                    DropdownMenuItem(
+                        text = { Text(tr("Reply", "Ответить")) },
+                        leadingIcon = { Icon(Symbols.Reply, contentDescription = null) },
+                        onClick = {
+                            reply()
+                            menuOpen = false
+                        }
+                    )
+                }
                 // Part of it, rather than all of it (2.0): the words chosen
-                // in a dialog, and the reply shows those over itself.
-                if (message.text.length > QUOTE_WORTH_IT) {
+                // in a dialog, and the reply shows those over itself — so
+                // only where a reply can be written.
+                if (onReply != null && message.text.length > QUOTE_WORTH_IT) {
                     DropdownMenuItem(
                         text = { Text(tr("Quote", "Цитировать")) },
                         leadingIcon = { Icon(Symbols.FormatQuote, contentDescription = null) },

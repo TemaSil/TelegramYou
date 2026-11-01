@@ -2,9 +2,6 @@ package com.telegramyou.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** The seed the fallback schemes in Theme.kt are generated from. */
-val TealSeed = Color(0xFF1EE2A8)
-
 val AvatarPalette = listOf(
     Color(0xFF1EE2A8),
     Color(0xFFFF6B4A),

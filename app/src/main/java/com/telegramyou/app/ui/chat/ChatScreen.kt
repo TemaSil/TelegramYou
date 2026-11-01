@@ -61,7 +61,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -1377,7 +1376,11 @@ fun ChatScreen(
                                 onCopy = {
                                     copyToClipboard(message.text)
                                 },
-                                onReply = { onReplyTo(message) },
+                                onReply = if (detail?.chat?.canReply != false) {
+                                    { onReplyTo(message) }
+                                } else {
+                                    null
+                                },
                                 onEdit = { onEdit(message) },
                                 onDelete = { onDeleteRequested(message) },
                                 onReact = { onReactionsRequested(message) },

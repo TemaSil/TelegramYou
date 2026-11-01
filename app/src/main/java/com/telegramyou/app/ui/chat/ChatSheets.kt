@@ -52,7 +52,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -84,7 +83,6 @@ import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.ui.components.AvatarBubble
-import java.io.File
 
 // The sheets, dialogs and bars a conversation opens over itself: forward, attach, search in chat, selection, reactions and deleting.
 

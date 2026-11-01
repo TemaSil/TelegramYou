@@ -72,7 +72,6 @@ import com.telegramyou.app.ui.home.ProfileUiState
 import com.telegramyou.app.ui.settings.IconTone
 import com.telegramyou.app.ui.settings.SettingsGroup
 import com.telegramyou.app.ui.settings.SettingsIcon
-import com.telegramyou.app.ui.settings.SettingsItem
 import com.telegramyou.app.ui.settings.settingsBackground
 
 /**

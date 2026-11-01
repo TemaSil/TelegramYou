@@ -17,8 +17,6 @@ package com.telegramyou.app.telegram.model
 object Waveform {
     /** Samples are 5 bits, so 31 is a full-height bar. */
     const val MAX_SAMPLE = 31
-
-    private const val BITS = 5
 }
 
 /**

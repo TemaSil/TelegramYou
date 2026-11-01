@@ -215,7 +215,7 @@ fun MediaGallery(
                     if (message.contentType == MessageContentType.Video && video != null) {
                         VideoPage(
                             video = video,
-                            title = message.text,
+                            title = writtenCaption(message),
                             transfer = video.fileId?.let { transfers[it] },
                             active = page == pager.currentPage,
                             onClose = close,
@@ -227,7 +227,7 @@ fun MediaGallery(
                     } else {
                         PhotoPage(
                             path = message.photoPath,
-                            caption = message.text,
+                            caption = writtenCaption(message),
                             onDismiss = close,
                             onZoomChanged = { if (page == pager.currentPage) zoomed = it },
                             closing = closing,

@@ -58,7 +58,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
@@ -114,8 +113,6 @@ import com.telegramyou.app.ui.music.MyMusicViewModel
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.telegram.model.SharedMediaKind
 import kotlinx.coroutines.flow.MutableStateFlow
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import com.telegramyou.app.telegram.model.MessageContentType
 import com.telegramyou.app.ui.chat.ChatViewModel
 import com.telegramyou.app.ui.common.telegramViewModelFactory

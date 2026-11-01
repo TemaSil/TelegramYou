@@ -23,7 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 // — Material's tonal-spot variant, 2021 spec — computed at run time by
 // :core's schemeFromSeed with material-color-utilities.
 //
-// It was a hand-written teal scheme before, generated once from TealSeed with
+// It was a hand-written teal scheme before, generated once from teal #1EE2A8 with
 // the same settings; PaletteTest holds the run-time teal to those values, so
 // the default did not move when the choice of accent arrived. Before that it
 // was chosen by hand outright, and showed it: coral for secondary and a

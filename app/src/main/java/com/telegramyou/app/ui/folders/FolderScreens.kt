@@ -3,7 +3,6 @@ package com.telegramyou.app.ui.folders
 import com.telegramyou.app.i18n.tr
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues

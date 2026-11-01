@@ -44,4 +44,13 @@ class ChannelPostingTest {
     fun `not known yet counts as posting`() {
         assertEquals(ChannelStanding.Posts, standing(null))
     }
+
+    @Test
+    fun `a post is answered only where one can be written`() {
+        val chat = ChatPreview(id = 1, title = "News", lastMessage = "", timestampLabel = "", isChannel = true)
+        assertEquals(false, chat.copy(channelStanding = ChannelStanding.Reads).canReply)
+        assertEquals(false, chat.copy(channelStanding = ChannelStanding.Outside).canReply)
+        assertEquals(true, chat.copy(channelStanding = ChannelStanding.Posts).canReply)
+        assertEquals(true, ChatPreview(id = 2, title = "Ann", lastMessage = "", timestampLabel = "").canReply)
+    }
 }

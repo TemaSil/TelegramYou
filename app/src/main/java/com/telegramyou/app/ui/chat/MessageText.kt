@@ -11,7 +11,6 @@ import androidx.compose.ui.text.Placeholder
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.text.InlineTextContent
 import com.telegramyou.app.ui.icons.Symbols
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -209,8 +208,8 @@ internal fun AlbumGrid(
                 }
             }
         }
-        photos.firstOrNull { it.text.isNotBlank() && it.text != "Photo" }?.let { captioned ->
-            Text(captioned.text, color = captionColor, modifier = Modifier.padding(top = 6.dp))
+        photos.firstNotNullOfOrNull { writtenCaption(it).takeIf(String::isNotEmpty) }?.let { caption ->
+            Text(caption, color = captionColor, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
