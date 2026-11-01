@@ -3796,6 +3796,25 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun nextUnread(chatId: Long, reactions: Boolean): Long? {
+        awaitReady()
+        // Newest first: the oldest of what comes back is where to go.
+        val found = requireEngine().send(
+            JSONObject()
+                .put("@type", "searchChatMessages")
+                .put("chat_id", chatId)
+                .put("query", "")
+                .put("from_message_id", 0)
+                .put("offset", 0)
+                .put("limit", UNREAD_JUMP_LIMIT)
+                .put(
+                    "filter",
+                    JSONObject().put("@type", if (reactions) "searchMessagesFilterUnreadReaction" else "searchMessagesFilterUnreadMention")
+                )
+        ).optJSONArray("messages") ?: return null
+        return (0 until found.length()).mapNotNull { found.optJSONObject(it)?.optLong("id") }.minOrNull()
+    }
+
     // ── proxies ──────────────────────────────────────────────────────────
     //
     // No awaitReady in any of these: TDLib takes proxies before sign-in,
@@ -4741,6 +4760,9 @@ class TdLibTelegramClient(
                     "updateChatUnreadMentionCount" -> {
                         chat.put("unread_mention_count", update.optInt("unread_mention_count"))
                     }
+                    "updateChatUnreadReactionCount" -> {
+                        chat.put("unread_reaction_count", update.optInt("unread_reaction_count"))
+                    }
                     "updateChatNotificationSettings" -> {
                         chat.put("notification_settings", update.optJSONObject("notification_settings"))
                     }
@@ -5539,6 +5561,8 @@ class TdLibTelegramClient(
             hasScheduledMessages = chat.optBoolean("has_scheduled_messages"),
             avatarColor = id,
             hasUnreadMention = chat.optInt("unread_mention_count") > 0,
+            unreadMentionCount = chat.optInt("unread_mention_count"),
+            unreadReactionCount = chat.optInt("unread_reaction_count"),
             isArchived = positions.isArchived(id),
             canDeleteForEveryone = chat.optBoolean("can_be_deleted_for_all_users"),
             isForum = type == "chatTypeSupergroup" &&
@@ -6180,3 +6204,6 @@ private const val MY_MESSAGES_PAGES = 50
 
 /** How long a posted story stays up: a day, as every client posts them. */
 private const val STORY_ACTIVE_SECONDS = 86_400
+
+/** How many unseen mentions or reactions are looked through for the oldest. */
+private const val UNREAD_JUMP_LIMIT = 100

@@ -1796,6 +1796,25 @@ class DemoTelegramClient(
 
     // Lina's voice messages say what the demo has her say; anything else
     // recorded offline is answered with a line saying so.
+    /** The demo's one unseen reaction and one unseen mention (2.9.1), each seen once gone to. */
+    override suspend fun nextUnread(chatId: Long, reactions: Boolean): Long? {
+        val target = when {
+            reactions && chatId == 2L -> 11L
+            !reactions && chatId == 3L -> 1902L
+            else -> return null
+        }
+        _chats.update { list ->
+            list.map {
+                when {
+                    it.id != chatId -> it
+                    reactions -> it.copy(unreadReactionCount = 0)
+                    else -> it.copy(unreadMentionCount = 0, hasUnreadMention = false)
+                }
+            }
+        }
+        return target
+    }
+
     override suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? {
         delay(900)
         val bucket = chatMessages[chatId] ?: return null
@@ -2745,11 +2764,15 @@ class DemoTelegramClient(
             2, "Lina Park", "typing… wait, almost", "11:02", unreadCount = 1,
             // Always typing, so the morph is on screen from the first look.
             isOnline = true, isTyping = true, avatarColor = 22,
+            // Her heart on a message of ours, not yet seen (2.9.1).
+            unreadReactionCount = 1,
             folderIds = setOf(FOLDER_PEOPLE)
         ),
         ChatPreview(
             3, "Design Circle", "New Figma dump in #files", "Yesterday",
             isGroup = true, unreadCount = 18, avatarColor = 33,
+            // Somebody naming this account, not yet seen (2.9.1).
+            unreadMentionCount = 1,
             folderIds = setOf(FOLDER_WORK)
         ),
         ChatPreview(
@@ -3110,7 +3133,8 @@ class DemoTelegramClient(
                 contentType = MessageContentType.Location)
                 .copy(location = LocationContent(37.7793, -122.4193, title = "Blue Bottle Coffee", address = "66 Mint St, San Francisco")),
             demoMessage(10, 2, "Did you try the expressive loading indicator?", false, yesterday, "Lina Park"),
-            demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true),
+            demoMessage(11, 2, "Yes — and the split send button feels great.", true, yesterday + 180, isRead = true,
+                reactions = listOf(MessageReaction("❤️", 1))),
             // A track Lina sent: what the music library's "From your chats"
             // is for — music from people, not channels.
             demoMessage(905, 2, "", false, yesterday + 190, "Lina Park").copy(
@@ -3187,7 +3211,7 @@ class DemoTelegramClient(
             // Older than the rest, so the chat reads as it always did, and
             // enough of each kind for the shared media tabs to have rows.
             demoMessage(1901, 3, "Expressive-guidelines.pdf", false, now - 3 * day, "Noor", contentType = MessageContentType.Document, fileName = "Expressive-guidelines.pdf", fileSizeLabel = "2.1 MB").copy(documentFileId = DEMO_GUIDE_FILE_ID, mimeType = "application/pdf"),
-            demoMessage(1902, 3, "The motion spec, if anyone wants it: m3.material.io/styles/motion", false, now - 3 * day + 120, "Noor"),
+            demoMessage(1902, 3, "@telegramyou the motion spec, if anyone wants it: m3.material.io/styles/motion", false, now - 3 * day + 120, "Noor"),
             demoMessage(1903, 3, "release-notes.txt", true, now - 3 * day + 240, isRead = true, contentType = MessageContentType.Document, fileName = "release-notes.txt", fileSizeLabel = "1 KB").copy(documentFileId = DEMO_NOTES_FILE_ID, mimeType = "text/plain"),
             demoMessage(20, 3, "Drop assets in the thread", false, now - 2 * day, "Maya"),
             demoMessage(21, 3, "brand-kit.zip", false, now - 2 * day + 30, "Maya", contentType = MessageContentType.Document, fileName = "brand-kit.zip", fileSizeLabel = "4.8 MB").copy(documentFileId = DEMO_KIT_FILE_ID, mimeType = "application/zip"),

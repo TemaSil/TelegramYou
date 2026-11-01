@@ -1959,6 +1959,18 @@ class ChatViewModel(
         next?.let { onContentOpened(it.id) }
     }
 
+    /**
+     * The oldest unseen mention here, or with [reactions] the oldest of our
+     * messages with an unseen reaction, gone to (2.9.1). Telegram counts it
+     * seen once it is on screen.
+     */
+    fun onNextUnread(reactions: Boolean) {
+        viewModelScope.launch {
+            val target = runCatching { repository.nextUnread(chatId, reactions) }.getOrNull()
+            if (target != null) onJumpToMessage(target)
+        }
+    }
+
     /** Voice and round videos one step faster: 1×, 1.5×, 2×. */
     fun onVoiceSpeed() = voice.cycleSpeed()
 

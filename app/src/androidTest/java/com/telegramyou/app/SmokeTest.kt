@@ -966,6 +966,33 @@ class SmokeTest {
     }
 
     /**
+     * Unseen reactions (2.9.1): a heart over Lina's conversation goes to our
+     * message she reacted to, and is gone once it has; and an @ in the group
+     * goes to where this account is named.
+     */
+    @Test
+    fun unseenReactionsAndMentionsAreGoneTo() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("Unread reactions"), "the heart for an unseen reaction")
+        screenshot("147-unread-reactions")
+        tap(By.desc("Unread reactions"))
+        waitFor(By.text("Yes — and the split send button feels great."), "the message reacted to")
+        assertTrue(
+            "the heart stayed after its reaction was seen",
+            device.wait(Until.gone(By.desc("Unread reactions")), STEP_TIMEOUT)
+        )
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.text(GROUP_CHAT))
+        waitFor(GROUP_OPEN, "the group")
+        waitFor(By.desc("Unread mentions"), "the @ for an unseen mention")
+        tap(By.desc("Unread mentions"))
+        waitFor(By.textContains("the motion spec"), "the message naming this account")
+    }
+
+    /**
      * A channel one only reads (2.9.1): a post's menu has no Reply, no
      * Quote and no Pin — answering and pinning are for those who write
      * there, and the channel has no composer to answer in.

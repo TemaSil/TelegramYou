@@ -258,6 +258,8 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** The oldest unseen mention, or with true the oldest unseen reaction (2.9.1). */
+    onNextUnread: (Boolean) -> Unit = {},
     /** A round video tapped, and one played to its end (2.9.1); see ChatViewModel. */
     onVideoNoteToggled: (ChatMessage) -> Unit = {},
     onVideoNoteEnded: (ChatMessage) -> Unit = {},
@@ -1579,6 +1581,18 @@ fun ChatScreen(
                     .fillMaxWidth()
                     .padding(bottom = composerLift)
             ) {
+                // Unseen mentions and reactions (2.9.1), as Telegram stacks
+                // them over the arrow down: each goes to the oldest, with
+                // how many there are.
+                UnreadJumps(
+                    mentions = detail?.chat?.unreadMentionCount ?: 0,
+                    reactions = detail?.chat?.unreadReactionCount ?: 0,
+                    onMention = { onNextUnread(false) },
+                    onReaction = { onNextUnread(true) },
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 16.dp, bottom = 4.dp)
+                )
                 // Back to the newest message, once the conversation has been
                 // scrolled away from it — with how many are unread on it,
                 // as Telegram does. Here, at the top of the composer's own
@@ -2423,3 +2437,42 @@ private class ShownPanel {
  */
 private val PANEL_RISE = tween<IntSize>(durationMillis = 285, easing = CubicBezierEasing(0.2f, 0f, 0f, 1f))
 private val PANEL_FALL = tween<IntSize>(durationMillis = 200, easing = CubicBezierEasing(0.4f, 0f, 1f, 1f))
+
+/**
+ * Buttons over the conversation for what is unseen besides messages
+ * (2.9.1): an @ for mentions and a heart for reactions, each with its
+ * count, each a small FAB as the arrow down is — and gone when there are
+ * none.
+ */
+@Composable
+private fun UnreadJumps(
+    mentions: Int,
+    reactions: Int,
+    onMention: () -> Unit,
+    onReaction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (mentions > 0) UnreadJump(Symbols.AlternateEmail, mentions, tr("Unread mentions", "Непрочитанные упоминания"), onMention)
+        if (reactions > 0) UnreadJump(Symbols.FavoriteFilled, reactions, tr("Unread reactions", "Непрочитанные реакции"), onReaction)
+    }
+}
+
+@Composable
+private fun UnreadJump(icon: androidx.compose.ui.graphics.vector.ImageVector, count: Int, label: String, onClick: () -> Unit) {
+    BadgedBox(
+        badge = {
+            Badge(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) { Text(if (count > 99) "99+" else count.toString()) }
+        }
+    ) {
+        SmallFloatingActionButton(
+            onClick = onClick,
+            elevation = FloatingActionButtonDefaults.elevation(0.dp, 0.dp, 0.dp, 0.dp)
+        ) {
+            Icon(icon, contentDescription = label)
+        }
+    }
+}

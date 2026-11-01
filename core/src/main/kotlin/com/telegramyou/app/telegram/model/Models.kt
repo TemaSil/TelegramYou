@@ -159,6 +159,13 @@ data class ChatPreview(
     val avatarColor: Long = id,
     val hasUnreadMention: Boolean = false,
     /**
+     * Messages here mentioning this account, and messages of its own with
+     * reactions, not yet seen (2.9.1): each a button over the conversation
+     * that goes to the oldest, as in Telegram's own app.
+     */
+    val unreadMentionCount: Int = 0,
+    val unreadReactionCount: Int = 0,
+    /**
      * In the archive rather than the main list.
      *
      * A flag on the chat rather than a second list, because every screen that
