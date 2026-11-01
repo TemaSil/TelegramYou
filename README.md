@@ -4,6 +4,59 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 2.9.3-785
+
+2026-11-01 · [`4758070`](https://github.com/TemaSil/TelegramYou/commit/47580709d1acf6a3c19c0038149b3975e0aa5cbd)
+
+<p>
+  <img src="builds/2.9.3-785/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/2.9.3-785/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/2.9.3-785/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/2.9.3-785/84-library.jpg" width="160" alt="Music library" title="Music library">
+  <img src="builds/2.9.3-785/78-player.jpg" width="160" alt="Music player" title="Music player">
+  <img src="builds/2.9.3-785/79-queue.jpg" width="160" alt="Queue" title="Queue">
+  <img src="builds/2.9.3-785/80-my-music.jpg" width="160" alt="My music" title="My music">
+  <img src="builds/2.9.3-785/81-search-music.jpg" width="160" alt="Music in search" title="Music in search">
+  <img src="builds/2.9.3-785/76-shared-files.jpg" width="160" alt="Shared files" title="Shared files">
+  <img src="builds/2.9.3-785/82-downloads.jpg" width="160" alt="Downloads" title="Downloads">
+  <img src="builds/2.9.3-785/73-forum-topics.jpg" width="160" alt="Forum topics" title="Forum topics">
+  <img src="builds/2.9.3-785/70-group-members.jpg" width="160" alt="Admins" title="Admins">
+  <img src="builds/2.9.3-785/72-invite-links.jpg" width="160" alt="Invite links" title="Invite links">
+  <img src="builds/2.9.3-785/57b-panel-expanded.jpg" width="160" alt="Emoji, GIFs and stickers" title="Emoji, GIFs and stickers">
+  <img src="builds/2.9.3-785/52c-appearance-chat-background.jpg" width="160" alt="Chat background" title="Chat background">
+  <img src="builds/2.9.3-785/52-appearance.jpg" width="160" alt="Appearance" title="Appearance">
+  <img src="builds/2.9.3-785/62-app-lock.jpg" width="160" alt="App lock" title="App lock">
+  <img src="builds/2.9.3-785/65-selection.jpg" width="160" alt="Selecting messages" title="Selecting messages">
+  <img src="builds/2.9.3-785/63-contact-and-place.jpg" width="160" alt="Contacts and places" title="Contacts and places">
+  <img src="builds/2.9.3-785/66-jumbo-emoji.jpg" width="160" alt="Emoji" title="Emoji">
+  <img src="builds/2.9.3-785/44a-message-menu.jpg" width="160" alt="Reactions" title="Reactions">
+  <img src="builds/2.9.3-785/60-gallery.jpg" width="160" alt="Photo viewer" title="Photo viewer">
+  <img src="builds/2.9.3-785/56-folders.jpg" width="160" alt="Folders" title="Folders">
+  <img src="builds/2.9.3-785/31-video-note.jpg" width="160" alt="Video messages" title="Video messages">
+  <img src="builds/2.9.3-785/34-poll.jpg" width="160" alt="Polls" title="Polls">
+  <img src="builds/2.9.3-785/35-bot.jpg" width="160" alt="Bot buttons" title="Bot buttons">
+  <img src="builds/2.9.3-785/37-post-search.jpg" width="160" alt="Post search" title="Post search">
+  <img src="builds/2.9.3-785/28-old-search-hit.jpg" width="160" alt="Search in chat" title="Search in chat">
+  <img src="builds/2.9.3-785/36-search.jpg" width="160" alt="Search" title="Search">
+  <img src="builds/2.9.3-785/21-story.jpg" width="160" alt="Stories" title="Stories">
+  <img src="builds/2.9.3-785/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/2.9.3-785/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/2.9.3-785/32-privacy.jpg" width="160" alt="Privacy" title="Privacy">
+  <img src="builds/2.9.3-785/29-devices.jpg" width="160" alt="Devices" title="Devices">
+  <img src="builds/2.9.3-785/30-storage.jpg" width="160" alt="Data and storage" title="Data and storage">
+  <img src="builds/2.9.3-785/41-settings.jpg" width="160" alt="Settings" title="Settings">
+  <img src="builds/2.9.3-785/42-profile.jpg" width="160" alt="Profile" title="Profile">
+  <img src="builds/2.9.3-785/25-updates.jpg" width="160" alt="App update" title="App update">
+  <img src="builds/2.9.3-785/33-for-geeks.jpg" width="160" alt="For geeks" title="For geeks">
+  <img src="builds/2.9.3-785/26-qr-login.jpg" width="160" alt="QR login" title="QR login">
+  <img src="builds/2.9.3-785/27-email-code.jpg" width="160" alt="Email login" title="Email login">
+  <img src="builds/2.9.3-785/23-proxy.jpg" width="160" alt="Proxy" title="Proxy">
+  <img src="builds/2.9.3-785/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+  <img src="builds/2.9.3-785/129-two-panes.jpg" width="160" alt="Tablet, two panes" title="Tablet, two panes">
+  <img src="builds/2.9.3-785/130-two-panes-foldable.jpg" width="160" alt="Foldable, two panes" title="Foldable, two panes">
+  <img src="builds/2.9.3-785/144-saved-notes.jpg" width="160" alt="Saved Messages as notes" title="Saved Messages as notes">
+</p>
+
 ## 2.9.2-778
 
 2026-11-01 · [`6fb8172`](https://github.com/TemaSil/TelegramYou/commit/6fb81720335a2adab2fca87ec4ab428f5d7c4b10)
