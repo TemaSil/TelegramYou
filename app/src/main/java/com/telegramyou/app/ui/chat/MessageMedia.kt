@@ -119,7 +119,16 @@ fun PhotoPage(
      */
     closing: Boolean = false,
     /** Off in the gallery, which draws its own Close over every page. */
-    showClose: Boolean = true
+    showClose: Boolean = true,
+    /**
+     * What a tap on the photo does; closing it when null. The gallery
+     * passes its chrome's toggle (2.9.2), so a tap puts the counter, the
+     * strip and the caption away and brings them back, as Google Photos
+     * and Telegram do — the quick way to see the picture without words on it.
+     */
+    onTap: (() -> Unit)? = null,
+    /** Off in the gallery, which draws the caption itself over every page; see ViewerCaption. */
+    showCaption: Boolean = true
 ) {
     // Where the photo is and how big, and how far a drag has taken it towards
     // being let go. Both are remembered per photo rather than hoisted: a
@@ -215,12 +224,12 @@ fun PhotoPage(
                         // A tap while zoomed does not: the photo is being
                         // looked at, and a stray finger should not end
                         // that.
-                        onTap = { if (!zoom.isZoomed) onDismiss() },
+                        onTap = { if (onTap != null) onTap() else if (!zoom.isZoomed) onDismiss() },
                         onDoubleTap = { zoom = zoomToggled(zoom) }
                     )
                 }
         )
-        if (isMediaCaption(caption)) {
+        if (showCaption && isMediaCaption(caption)) {
             Text(
                 caption,
                 color = Color.White,

@@ -3068,6 +3068,38 @@ class SmokeTest {
     }
 
     /**
+     * 2.9.2: a photo's long caption in the viewer sits on a band along the
+     * foot, three lines until tapped open, and opened it dims the photo —
+     * it used to run over the whole picture in white. Back shuts it before
+     * it shuts the viewer.
+     */
+    @Test
+    fun aLongCaptionInTheViewerFoldsAway() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("TelegramYou News"))
+        tap(By.text("TelegramYou News"))
+        waitFor(By.text("3 comments"), "the channel")
+        val photo = By.desc(LONG_CAPTION)
+        scrollBackTo(photo, "the photo with a long caption")
+        tap(photo)
+        waitFor(By.desc("Close"), "the viewer")
+        SystemClock.sleep(600)
+        screenshot("104-viewer-caption")
+        // The viewer's own, at the foot of the screen: the bubble's is under it.
+        device.findObjects(By.text(LONG_CAPTION)).maxByOrNull { it.visibleBounds.bottom }!!.click()
+        device.waitForIdle(IDLE_TIMEOUT)
+        SystemClock.sleep(600)
+        screenshot("104b-viewer-caption-open")
+        device.pressBack()
+        device.waitForIdle(IDLE_TIMEOUT)
+        assertTrue("Back closed the viewer instead of the caption", device.hasObject(By.desc("Close")))
+        device.pressBack()
+        waitFor(By.text("3 comments"), "the channel again")
+    }
+
+    /**
      * 2.0: a channel post's comments — the count under the post, the thread
      * opened from it with the comments already there, one written, and the
      * count gone up when back on the channel.
@@ -4871,6 +4903,15 @@ class SmokeTest {
          * also what its poster is published as.
          */
         const val VIDEO_CAPTION = "Expressive motion, slowed down"
+
+        /** The demo's long-captioned channel photo (DEMO_LONG_CAPTION in the demo client). */
+        const val LONG_CAPTION = "Field notes from the redesign week. " +
+            "The team spent five days rebuilding the conversation screen around Material 3 Expressive: " +
+            "springs instead of curves for every motion, shapes that morph as a button is pressed, " +
+            "and colour taken from the wallpaper rather than from a palette of our own. " +
+            "What came out of it is a list of small things that add up: bubbles that group by sender, " +
+            "a composer that floats, and a viewer that keeps its words out of the picture. " +
+            "More next week, with the screens side by side."
 
         /** Distinctive enough that finding it in the list cannot be luck. */
         const val NEW_GROUP_NAME = "Smoke test crit"

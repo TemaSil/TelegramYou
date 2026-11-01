@@ -3336,6 +3336,13 @@ class DemoTelegramClient(
             // what a frameless picture drew straight over the conversation
             // and the next post until 2.9.2. "🎬 Video" and "🖼 Photo" are
             // the words the live client gives them, not captions.
+            // A photo under a long caption, as news channels post them: the
+            // viewer shows it on a band along the foot, three lines until
+            // opened (2.9.2), rather than over the whole picture.
+            demoMessage(
+                947, 4, DEMO_LONG_CAPTION, false, yesterday - 2_400, isRead = true,
+                contentType = MessageContentType.Photo
+            ).copy(photoPath = DEMO_VIDEO_POSTER, photoAspect = 360f / 202f),
             demoMessage(
                 948, 4, "🎬 Video", false, yesterday - 1_800, isRead = true,
                 contentType = MessageContentType.Video,
@@ -3689,6 +3696,13 @@ private const val BOT_CHAT_ID = 11L
 private const val DISCUSSION_CHAT_ID = 40L
 
 /** The news channel's post with comments already under it. */
+private const val DEMO_LONG_CAPTION = "Field notes from the redesign week. " +
+    "The team spent five days rebuilding the conversation screen around Material 3 Expressive: " +
+    "springs instead of curves for every motion, shapes that morph as a button is pressed, " +
+    "and colour taken from the wallpaper rather than from a palette of our own. " +
+    "What came out of it is a list of small things that add up: bubbles that group by sender, " +
+    "a composer that floats, and a viewer that keeps its words out of the picture. " +
+    "More next week, with the screens side by side."
 private const val DEMO_COMMENTED_POST = "TelegramYou 2.0 is on its way: comments under posts, and more"
 
 /** Telegram's limit on a message's text, which the demo cuts at as the live backend does. */

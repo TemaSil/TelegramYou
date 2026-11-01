@@ -1,6 +1,11 @@
 package com.telegramyou.app.ui.chat
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -169,7 +174,14 @@ fun MediaGallery(
         // The controls, up or tapped away on a video (2.0); back with each
         // new page, so a photo swiped to is never left without its Close.
         var chrome by remember { mutableStateOf(true) }
-        LaunchedEffect(pager.currentPage) { chrome = true }
+        // A photo's caption, three lines until it is opened (2.9.2); shut
+        // again on every new page, so the next photo is not under words.
+        var captionOpen by remember { mutableStateOf(false) }
+        LaunchedEffect(pager.currentPage) {
+            chrome = true
+            captionOpen = false
+        }
+        androidx.activity.compose.BackHandler(enabled = captionOpen) { captionOpen = false }
 
         val current = items.getOrNull(pager.currentPage)
         // Where the page in view goes back to: taken when the close begins,
@@ -241,7 +253,11 @@ fun MediaGallery(
                             onDismiss = close,
                             onZoomChanged = { if (page == pager.currentPage) zoomed = it },
                             closing = closing,
-                            showClose = false
+                            showClose = false,
+                            onTap = {
+                                if (captionOpen) captionOpen = false else chrome = !chrome
+                            },
+                            showCaption = false
                         )
                     }
                 }
@@ -256,6 +272,28 @@ fun MediaGallery(
                 exit = androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
             ) {
             Box(Modifier.fillMaxSize()) {
+            val shownCaption = items.getOrNull(pager.currentPage)
+                ?.takeIf { it.contentType != MessageContentType.Video }
+                ?.let(::writtenCaption)
+                .orEmpty()
+            // The photo dimmed while its caption is open, so the words are
+            // read on a quiet ground; a tap on it puts them away.
+            androidx.compose.animation.AnimatedVisibility(
+                visible = captionOpen && shownCaption.isNotEmpty(),
+                enter = androidx.compose.animation.fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                exit = androidx.compose.animation.fadeOut(MaterialTheme.motionScheme.fastEffectsSpec())
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = CAPTION_DIM))
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null,
+                            onClickLabel = tr("Show less", "Свернуть")
+                        ) { captionOpen = false }
+                )
+            }
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -302,6 +340,20 @@ fun MediaGallery(
             // outlined, a tap going to it — over a photo; a video has its
             // own controls there.
             val current = items.getOrNull(pager.currentPage)
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
+            ) {
+            if (shownCaption.isNotEmpty()) {
+                ViewerCaption(
+                    text = shownCaption,
+                    open = captionOpen,
+                    onOpenChange = { captionOpen = it }
+                )
+            }
             if (items.size > 1 && current?.contentType != MessageContentType.Video) {
                 val strip = androidx.compose.foundation.lazy.rememberLazyListState()
                 LaunchedEffect(pager.currentPage) {
@@ -312,11 +364,8 @@ fun MediaGallery(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .navigationBarsPadding()
-                        .padding(bottom = 12.dp)
-                        .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
+                        .padding(top = 8.dp, bottom = 12.dp)
                 ) {
                     items(items.size, key = { items[it].id }) { index ->
                         val item = items[index]
@@ -340,10 +389,88 @@ fun MediaGallery(
             }
             }
             }
+            }
         }
         }
     }
 }
+
+/**
+ * A photo's caption in the viewer (2.9.2): on a dark band of its own along
+ * the foot, never straight on the picture — white words on a photo were
+ * unreadable on anything light, and a long caption covered the whole of it.
+ * Three lines, then an ellipsis and a chevron; a tap, or a drag up, opens
+ * it to scroll through on the dimmed photo, and a tap, a drag down, Back or
+ * a tap on the photo shuts it. A tap on the photo with it shut puts it
+ * away with the rest of the chrome.
+ *
+ * A solid scrim, not a gradient and not a blur: Material's own way of
+ * putting words over an image.
+ */
+@Composable
+private fun ViewerCaption(text: String, open: Boolean, onOpenChange: (Boolean) -> Unit) {
+    var long by remember(text) { mutableStateOf(false) }
+    var travel by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val dragState = androidx.compose.foundation.gestures.rememberDraggableState { delta -> travel += delta }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Color.Black.copy(alpha = CAPTION_SCRIM))
+            .clickable(
+                enabled = long || open,
+                onClickLabel = if (open) tr("Show less", "Свернуть") else tr("Show more", "Показать полностью")
+            ) { onOpenChange(!open) }
+            .draggable(
+                state = dragState,
+                orientation = androidx.compose.foundation.gestures.Orientation.Vertical,
+                onDragStarted = { travel = 0f },
+                onDragStopped = {
+                    when {
+                        travel < -CAPTION_DRAG && !open && long -> onOpenChange(true)
+                        travel > CAPTION_DRAG && open -> onOpenChange(false)
+                    }
+                }
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
+    ) {
+        Text(
+            text,
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+            maxLines = if (open) Int.MAX_VALUE else CAPTION_LINES,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            onTextLayout = { layout -> if (!open) long = layout.hasVisualOverflow },
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = CAPTION_OPEN_MAX)
+                .verticalScroll(rememberScrollState(), enabled = open)
+        )
+        if (long || open) {
+            Icon(
+                if (open) Symbols.KeyboardArrowDown else Symbols.KeyboardArrowUp,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .size(20.dp)
+            )
+        }
+    }
+}
+
+/** Lines of a photo's caption before it is opened. */
+private const val CAPTION_LINES = 3
+
+/** The band under a caption, and the photo's dimming while one is open. */
+private const val CAPTION_SCRIM = 0.6f
+private const val CAPTION_DIM = 0.55f
+
+/** How tall an open caption grows before it scrolls. */
+private val CAPTION_OPEN_MAX = 360.dp
+
+/** How far a drag on the caption goes before it opens or shuts it, in pixels. */
+private const val CAPTION_DRAG = 48f
 
 /** A photo's or a video's width over its height, as the bubble reserved it. */
 private fun aspectOf(message: ChatMessage): Float =
