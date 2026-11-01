@@ -3331,6 +3331,27 @@ class DemoTelegramClient(
         // discussion group of their own that is not in the chat list —
         // the way Telegram links a channel to its chat.
         chatMessages[4] = mutableListOf(
+            // A video and a photo posted with nothing written on them, as
+            // channels post them, with comments and reactions under each:
+            // what a frameless picture drew straight over the conversation
+            // and the next post until 2.9.2. "🎬 Video" and "🖼 Photo" are
+            // the words the live client gives them, not captions.
+            demoMessage(
+                948, 4, "🎬 Video", false, yesterday - 1_800, isRead = true,
+                contentType = MessageContentType.Video,
+                reactions = listOf(MessageReaction("🔥", 14), MessageReaction("❤", 5)),
+                video = VideoContent(
+                    durationSeconds = 4,
+                    aspect = 360f / 202f,
+                    thumbPath = DEMO_VIDEO_POSTER,
+                    path = DEMO_VIDEO
+                )
+            ).copy(commentCount = 2),
+            demoMessage(
+                949, 4, "🖼 Photo", false, yesterday - 1_200, isRead = true,
+                contentType = MessageContentType.Photo,
+                reactions = listOf(MessageReaction("👍", 8))
+            ).copy(photoPath = DEMO_VIDEO_POSTER, photoAspect = 360f / 202f, commentCount = 1),
             demoMessage(950, 4, DEMO_COMMENTED_POST, false, yesterday, isRead = true).copy(
                 commentCount = 3,
                 commenters = listOf(CommentFace(22, "Lina Park"), CommentFace(41, "Ivan"), CommentFace(57, "Noor"))

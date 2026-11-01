@@ -55,13 +55,14 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.9.1 · 1 November 2026
+## Latest: 2.9.2 · 1 November 2026
 
-Telegram's own way of doing things, taken in: round videos that grow and
-play one after another, buttons to unseen reactions and mentions, search
-that walks through a chat hit by hit, Discuss in channels, and
-checklists — plus no made-up captions under media. 2.9 before it turned
-Saved Messages into notes. See the [changelog](CHANGELOG.md).
+Fixes for 2.9.1: the heart and the @ mark what they go to as seen, so
+their counts come down and each tap goes on to the next; videos and photos
+with comments or reactions under them keep their bubble; and the heart,
+the @ and the search bar glide in and out. 2.9.1 before it brought
+Telegram's own interactions — round videos that grow, search hit by hit,
+Discuss in channels, checklists. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

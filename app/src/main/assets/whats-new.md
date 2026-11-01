@@ -1,7 +1,5 @@
-# Round videos grow, search walks through, channels discuss
-- Round videos grow while they play, go one after another, and can be written down
-- A heart and an @ take you to unseen reactions and mentions
-- Search a chat hit by hit, "1 of 22", or as a list
-- Channels: Discuss beside Mute, and who commented on each post
-- Send and tick off checklists; the viewer shows who sent what, when
-- No more made-up captions under media, no Reply where you only read
+# The heart counts down, and things glide in
+- The heart and the @ now mark what you've seen, so the count goes down
+- Each tap goes to the next one, and other apps see them as read too
+- Videos and photos with comments or reactions keep their bubble again
+- The heart, the @ and the search bar slide in and out instead of blinking

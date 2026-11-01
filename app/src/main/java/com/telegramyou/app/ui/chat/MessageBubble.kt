@@ -372,7 +372,13 @@ internal fun MessageBubble(
         // message by itself: no bubble colour round it, its own corners, the
         // time on it. Words — a caption, a quote, "Forwarded from" — bring the
         // bubble back, and the picture fills its top as before.
-        val frameless = message.replyToId == null && message.forwardedFrom == null && when (message.contentType) {
+        // Anything drawn under the picture needs the bubble to stand on, too:
+        // a channel post's comments row and a reaction row, on a frameless
+        // video, were drawn straight over the conversation and the next
+        // message's preview (2.9.1, the owner's report).
+        val frameless = message.replyToId == null && message.forwardedFrom == null &&
+            message.commentCount == null && message.reactions.isEmpty() &&
+            message.linkPreview == null && when (message.contentType) {
             // "Photo", "🎬 Video" and "GIF" are what a message with no caption
             // is called, not words anyone wrote; see writtenCaption.
             MessageContentType.Photo -> if (album != null) {

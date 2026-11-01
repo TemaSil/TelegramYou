@@ -3046,6 +3046,28 @@ class SmokeTest {
     }
 
     /**
+     * 2.9.2: a video and a photo posted with nothing written on them, with
+     * comments and reactions under each. Those used to lose their bubble,
+     * and the comments row and the reactions were drawn straight over the
+     * conversation and the next post; the bubble stays now. The picture is
+     * for a person to judge; this proves the posts and their rows arrive.
+     */
+    @Test
+    fun aChannelsUncaptionedMediaKeepsItsRowsInABubble() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        scrollChatsTo(By.text("TelegramYou News"))
+        tap(By.text("TelegramYou News"))
+        waitFor(By.text("3 comments"), "the channel")
+        scrollBackTo(By.text("2 comments"), "the video post's comments")
+        // No caption under either: "🎬 Video" is what an untitled one is called.
+        assertFalse("the video drew its placeholder as a caption", device.hasObject(By.text("🎬 Video")))
+        assertFalse("the photo drew its placeholder as a caption", device.hasObject(By.text("🖼 Photo")))
+        screenshot("103-channel-media")
+    }
+
+    /**
      * 2.0: a channel post's comments — the count under the post, the thread
      * opened from it with the comments already there, one written, and the
      * count gone up when back on the channel.

@@ -9,6 +9,14 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.9.2
+
+Fixes for 2.9.1:
+
+- **Unseen reactions and mentions are marked seen.** The heart and the @ went to the oldest one and told Telegram nothing, so its count never came down, every tap landed on the same message, and other clients still showed it unseen. The message gone to is viewed now (not in ghost mode), so the count drops and the next tap goes on.
+- **Uncaptioned media keeps its bubble when something is under it.** A video or photo with no caption lost its bubble in 2.9.1, and a channel post's comments row and its reactions were then drawn straight over the conversation and the next post. Comments, reactions or a link preview bring the bubble back.
+- **The heart, the @ and the search bar animate** in and out — growing, fading and sliding the rest along — instead of blinking, as the arrow down already did.
+
 ## 2.9.1
 
 What Telegram's own app does, taken in, as it behaves rather than as it looks:

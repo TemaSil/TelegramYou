@@ -1604,9 +1604,21 @@ fun ChatScreen(
                 // Going through the hits in the conversation (2.9.1): "1 of
                 // 22", older and newer, and the list on asking — in the
                 // composer's place, as Telegram puts it.
-                if (state.search.isOpen && state.search.query.isNotBlank() && !state.search.asList) {
+                // Rising out of the composer and sinking back into it (2.9.2)
+                // rather than blinking in and out; the last state stays on it
+                // while it goes, so it does not empty itself on the way.
+                val searchShown = state.search.isOpen && state.search.query.isNotBlank() && !state.search.asList
+                var lastSearch by remember { mutableStateOf(state.search) }
+                if (searchShown) lastSearch = state.search
+                AnimatedVisibility(
+                    visible = searchShown,
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+                    exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec(), shrinkTowards = Alignment.Bottom)
+                ) {
                     ChatSearchBar(
-                        search = state.search,
+                        search = lastSearch,
                         onStep = onSearchStep,
                         onAsList = { onSearchAsList(true) }
                     )
@@ -1635,10 +1647,15 @@ fun ChatScreen(
                     modifier = Modifier
                         .align(Alignment.End)
                         .padding(end = 16.dp, bottom = 4.dp),
+                    // Its room opens and closes with it (2.9.2), so the heart
+                    // and the @ stacked over it ride up and down rather than
+                    // jumping a button's height at once.
                     enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
-                        scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()),
+                        scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) +
+                        expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Top),
                     exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
-                        scaleOut(MaterialTheme.motionScheme.fastEffectsSpec())
+                        scaleOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+                        shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Top)
                 ) {
                     val unread = detail?.chat?.unreadCount ?: 0
                     BadgedBox(
@@ -2489,9 +2506,36 @@ private fun UnreadJumps(
     onReaction: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (mentions > 0) UnreadJump(Symbols.AlternateEmail, mentions, tr("Unread mentions", "Непрочитанные упоминания"), onMention)
-        if (reactions > 0) UnreadJump(Symbols.FavoriteFilled, reactions, tr("Unread reactions", "Непрочитанные реакции"), onReaction)
+    Column(modifier, horizontalAlignment = Alignment.End) {
+        AnimatedJump(mentions, Symbols.AlternateEmail, tr("Unread mentions", "Непрочитанные упоминания"), onMention)
+        AnimatedJump(reactions, Symbols.FavoriteFilled, tr("Unread reactions", "Непрочитанные реакции"), onReaction)
+    }
+}
+
+/**
+ * One of the jumps, growing in and shrinking away as the arrow down does
+ * (2.9.2) — they used to blink. The count it last had stays on it while it
+ * goes, so it does not read 0 on the way out.
+ */
+@Composable
+private fun androidx.compose.foundation.layout.ColumnScope.AnimatedJump(
+    count: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    var shown by remember { mutableStateOf(count) }
+    if (count > 0) shown = count
+    AnimatedVisibility(
+        visible = count > 0,
+        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) +
+            scaleIn(MaterialTheme.motionScheme.fastSpatialSpec()) +
+            expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), expandFrom = Alignment.Bottom),
+        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+            scaleOut(MaterialTheme.motionScheme.fastEffectsSpec()) +
+            shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec(), shrinkTowards = Alignment.Bottom)
+    ) {
+        Box(Modifier.padding(top = 8.dp)) { UnreadJump(icon, shown, label, onClick) }
     }
 }
 

@@ -3928,7 +3928,30 @@ class TdLibTelegramClient(
                     JSONObject().put("@type", if (reactions) "searchMessagesFilterUnreadReaction" else "searchMessagesFilterUnreadMention")
                 )
         ).optJSONArray("messages") ?: return null
-        return (0 until found.length()).mapNotNull { found.optJSONObject(it)?.optLong("id") }.minOrNull()
+        val target = (0 until found.length()).mapNotNull { found.optJSONObject(it)?.optLong("id") }.minOrNull()
+            ?: return null
+        // Gone to is seen. Until 2.9.2 nothing told Telegram so: only the
+        // chat's newest message was ever viewed, which reads the messages
+        // but not the reactions and mentions on older ones. The heart's
+        // count never came down, every tap landed on the same message, and
+        // the official client still showed them unseen. Viewing the one
+        // jumped to clears its reaction or mention, TDLib sends the smaller
+        // count, and the next search starts past it. Not in ghost mode,
+        // which is the whole of ghost mode.
+        if (!com.telegramyou.app.settings.GhostMode.hideReading) {
+            try {
+                requireEngine().send(
+                    JSONObject()
+                        .put("@type", "viewMessages")
+                        .put("chat_id", chatId)
+                        .put("message_ids", JSONArray().put(target))
+                        .put("force_read", true)
+                )
+            } catch (e: TdLibException) {
+                Log.d(TAG, "nextUnread view: ${e.message}")
+            }
+        }
+        return target
     }
 
     // ── proxies ──────────────────────────────────────────────────────────
