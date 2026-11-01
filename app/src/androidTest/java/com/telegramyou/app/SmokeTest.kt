@@ -700,7 +700,13 @@ class SmokeTest {
         waitFor(By.textStartsWith("Unseen ·"), "the line saying it is unseen")
         screenshot("131-story-unseen")
         tap(By.desc("Be seen again"))
-        waitFor(By.desc("Watch unseen for 15 minutes"), "the eye open again")
+        // The story can run out and close while the test is in it; what is
+        // checked is the setting, which the eye shows on opening it again.
+        if (!device.wait(Until.hasObject(By.desc("Watch unseen for 15 minutes")), STEP_TIMEOUT)) {
+            waitFor(By.text(STORY_AUTHOR), "the stories rail again")
+            tap(By.text(STORY_AUTHOR))
+            waitFor(By.desc("Watch unseen for 15 minutes"), "the eye open again")
+        }
     }
 
     /**
@@ -912,6 +918,8 @@ class SmokeTest {
             device.executeShellCommand("wm size 2560x1600")
             device.executeShellCommand("wm density 320")
             waitFor(By.desc("No chat open"), "the empty pane beside the list")
+            // Groups other tests on this emulator made can stand above her.
+            scrollChatsTo(By.text("Lina Park"))
             tap(By.text("Lina Park"))
             waitFor(By.text("Message"), "the chat in the pane")
             assertTrue("the list went when the chat opened", device.hasObject(By.text("Material Design")))
@@ -3096,7 +3104,9 @@ class SmokeTest {
         device.waitForIdle(IDLE_TIMEOUT)
         assertTrue("Back closed the viewer instead of the caption", device.hasObject(By.desc("Close")))
         device.pressBack()
-        waitFor(By.text("3 comments"), "the channel again")
+        // Back on the channel where it was, scrolled up to the photo.
+        waitFor(By.desc(LONG_CAPTION), "the channel again")
+        assertFalse("the viewer stayed open", device.hasObject(By.desc("Close")))
     }
 
     /**
