@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.combine
 import com.telegramyou.app.settings.AutoTranslate
 import com.telegramyou.app.telegram.model.CommentThread
+import com.telegramyou.app.telegram.model.toggled
+import com.telegramyou.app.telegram.model.checklistDraft
 import com.telegramyou.app.settings.MessageExtra
 import com.telegramyou.app.telegram.model.downloadedFileId
 import com.telegramyou.app.telegram.model.TelegramUser
@@ -1237,6 +1239,43 @@ class ChatViewModel(
      * refusal puts the poll back as it was; an acceptance needs nothing,
      * since the server's counts arrive as a [MessageUpdate.PollChanged].
      */
+    /** A checklist's task ticked or unticked (2.9.1), drawn at once and undone if Telegram refuses. */
+    fun onChecklistToggle(message: ChatMessage, taskId: Int) {
+        val before = message.checklist ?: return
+        val task = before.tasks.firstOrNull { it.id == taskId } ?: return
+        if (!before.canMarkDone) return
+        _uiState.update { state ->
+            state.mapMessage(message.id) { it.copy(checklist = before.toggled(taskId, tr("You", "Вы"))) }
+        }
+        viewModelScope.launch {
+            val done = attempt(tr("Could not tick it off", "Не удалось отметить")) {
+                repository.markChecklistTask(chatId, message.id, taskId, !task.isDone)
+            }
+            if (!done) _uiState.update { state -> state.mapMessage(message.id) { it.copy(checklist = before) } }
+        }
+    }
+
+    /**
+     * A checklist sent (2.9.1): a title and a task a line. Making one is
+     * Premium on Telegram's side, which the error says when it is not.
+     */
+    fun onSendChecklist(title: String, lines: String) {
+        val (name, tasks) = checklistDraft(title, lines) ?: return
+        viewModelScope.launch {
+            runCatching { repository.sendChecklist(chatId, name, tasks) }.onFailure { failure ->
+                _uiState.update {
+                    it.copy(
+                        errorMessage = if (failure.message.orEmpty().contains("PREMIUM", ignoreCase = true)) {
+                            tr("Checklists need Telegram Premium", "Чек-листы — в Telegram Premium")
+                        } else {
+                            tr("Could not send the checklist", "Не удалось отправить чек-лист")
+                        }
+                    )
+                }
+            }
+        }
+    }
+
     fun onVote(message: ChatMessage, chosen: Set<Int>) {
         val before = message.poll ?: return
         _uiState.update { state ->

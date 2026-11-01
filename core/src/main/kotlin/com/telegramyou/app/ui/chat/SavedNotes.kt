@@ -21,6 +21,8 @@ private val MARKERS = setOf("Photo", "Video", "GIF", "Voice", "Video message", "
 fun noteBody(message: ChatMessage): String {
     val text = message.text.trim()
     if (text in MARKERS) return ""
+    // A poll's or a checklist's text is its title, which the line under says.
+    if (message.contentType == MessageContentType.Poll || message.contentType == MessageContentType.Checklist) return ""
     if (message.contentType != MessageContentType.Text && message.mediaEmoji != null && text.startsWith(message.mediaEmoji)) {
         // "🎤 Voice"-style labels from the chat list.
         return ""
@@ -41,6 +43,7 @@ fun noteAttachment(message: ChatMessage): String? = when (message.contentType) {
     MessageContentType.Location -> tr("Location", "Место")
     MessageContentType.Contact -> message.contact?.let { "${it.firstName} ${it.lastName}".trim() } ?: tr("Contact", "Контакт")
     MessageContentType.Poll -> message.poll?.question ?: tr("Poll", "Опрос")
+    MessageContentType.Checklist -> message.checklist?.let { "${it.title} · ${it.doneCount}/${it.tasks.size}" } ?: tr("Checklist", "Чек-лист")
     else -> null
 }
 

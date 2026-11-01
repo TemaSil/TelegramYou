@@ -161,6 +161,8 @@ internal fun MessageBubble(
     onAlbumPhotoOpened: (ChatMessage) -> Unit = {},
     onMention: (String) -> Unit = {},
     onHashtag: (String) -> Unit = {},
+    /** A checklist's task ticked or unticked (2.9.1). */
+    onChecklistToggle: (Int) -> Unit = {},
     /** This round video is the one playing; see ChatViewModel.onVideoNoteToggled (2.9.1). */
     notePlaying: Boolean = false,
     onNoteToggle: () -> Unit = {},
@@ -693,6 +695,10 @@ internal fun MessageBubble(
                     MessageContentType.Location -> {
                         val location = message.location
                         if (location != null) LocationCard(location, outgoing) else Text(message.text)
+                    }
+                    MessageContentType.Checklist -> {
+                        val list = message.checklist
+                        if (list != null) ChecklistMessage(list, outgoing, onChecklistToggle) else Text(message.text)
                     }
                     MessageContentType.Poll -> {
                         val poll = message.poll

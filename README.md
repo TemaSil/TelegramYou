@@ -57,10 +57,11 @@ wallpaper.
 
 ## Latest: 2.9.1 · 1 November 2026
 
-A tidy-up: media sent without a caption no longer shows a made-up one, and
-channel posts are not offered for reply where you only read. 2.9 before it
-turned Saved Messages into notes, laid out the way Google Keep lays out its
-own. See the [changelog](CHANGELOG.md).
+Telegram's own way of doing things, taken in: round videos that grow and
+play one after another, buttons to unseen reactions and mentions, search
+that walks through a chat hit by hit, Discuss in channels, and
+checklists — plus no made-up captions under media. 2.9 before it turned
+Saved Messages into notes. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

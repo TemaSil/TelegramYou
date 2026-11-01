@@ -355,7 +355,9 @@ enum class MessageContentType {
     /** Somebody's card — a name and a number; [ChatMessage.contact] holds it. */
     Contact,
     /** A place, or a venue with a name; [ChatMessage.location] holds it. */
-    Location
+    Location,
+    /** A list of tasks to tick off (2.9.1); [ChatMessage.checklist] holds it. */
+    Checklist
 }
 
 /**
@@ -552,6 +554,8 @@ data class ChatMessage(
      */
     val video: VideoContent? = null,
     /** The poll, when this message is one. */
+    /** A checklist (2.9.1), for [MessageContentType.Checklist]. */
+    val checklist: ChecklistContent? = null,
     val poll: PollContent? = null,
     /** The card, when this message is a contact. */
     val contact: ContactContent? = null,

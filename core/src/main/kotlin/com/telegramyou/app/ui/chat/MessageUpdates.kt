@@ -56,6 +56,10 @@ fun List<ChatMessage>.applying(
         if (it.poll == update.poll) it else it.copy(poll = update.poll)
     }
 
+    is MessageUpdate.ChecklistChanged -> mapMessage(update.messageId) {
+        if (it.checklist == update.checklist) it else it.copy(checklist = update.checklist)
+    }
+
     is MessageUpdate.ButtonsChanged -> mapMessage(update.messageId) {
         if (it.inlineKeyboard == update.buttons) it else it.copy(inlineKeyboard = update.buttons)
     }

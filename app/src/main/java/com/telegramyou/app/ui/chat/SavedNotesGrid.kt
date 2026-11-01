@@ -248,6 +248,7 @@ private fun attachmentIcon(message: ChatMessage): ImageVector = when (message.co
     MessageContentType.Location -> Symbols.LocationOn
     MessageContentType.Contact -> Symbols.Person
     MessageContentType.Poll -> Symbols.Poll
+    MessageContentType.Checklist -> Symbols.Checklist
     else -> Symbols.Description
 }
 

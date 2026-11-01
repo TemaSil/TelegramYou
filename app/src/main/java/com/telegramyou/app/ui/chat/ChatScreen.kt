@@ -258,6 +258,9 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** A checklist's task ticked, and a checklist sent (2.9.1). */
+    onChecklistToggle: (ChatMessage, Int) -> Unit = { _, _ -> },
+    onSendChecklist: (String, String) -> Unit = { _, _ -> },
     /** A channel's discussion group opened (2.9.1). */
     onOpenDiscussion: (Long) -> Unit = {},
     /** In-chat search (2.9.1): a hit older (true) or newer, and the hits as a list or not. */
@@ -430,6 +433,17 @@ fun ChatScreen(
             } else {
                 null
             }
+        )
+    }
+    // A checklist being written (2.9.1).
+    var checklistWriting by rememberSaveable { mutableStateOf(false) }
+    if (checklistWriting) {
+        ChecklistComposer(
+            onSend = { title, lines ->
+                checklistWriting = false
+                onSendChecklist(title, lines)
+            },
+            onDismiss = { checklistWriting = false }
         )
     }
     // The two pickers for scheduling, one after the other; see SchedulePicker.
@@ -1446,6 +1460,7 @@ fun ChatScreen(
                                     else -> VoiceState.Idle
                                 },
                                 onVoiceToggled = { onVoiceToggled(message) },
+                                onChecklistToggle = { task -> onChecklistToggle(message, task) },
                                 notePlaying = state.playingNoteId == message.id,
                                 onNoteToggle = { onVideoNoteToggled(message) },
                                 onNoteEnded = { onVideoNoteEnded(message) },
@@ -1991,6 +2006,11 @@ fun ChatScreen(
                         onExpressionTab(ExpressionTab.Stickers)
                     },
                     onPoll = if (state.canSendPolls) onPollOpen else null,
+                    onChecklist = if (detail?.chat?.canPost != false) {
+                        { checklistWriting = true }
+                    } else {
+                        null
+                    },
                     onContact = onContactPickerOpen,
                     onLocation = {
                         onAttachmentSheetOpenChange(false)

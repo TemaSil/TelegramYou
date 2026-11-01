@@ -3424,6 +3424,72 @@ class TdLibTelegramClient(
         }
     }
 
+    override suspend fun sendChecklist(chatId: Long, title: String, tasks: List<String>) {
+        awaitReady()
+        fun words(text: String) = JSONObject().put("@type", "formattedText").put("text", text)
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "sendMessage")
+                .put("chat_id", chatId)
+                .inOpenTopic(chatId)
+                .put(
+                    "input_message_content",
+                    JSONObject()
+                        .put("@type", "inputMessageChecklist")
+                        .put(
+                            "checklist",
+                            JSONObject()
+                                .put("@type", "inputChecklist")
+                                .put("title", words(title))
+                                .put("tasks", JSONArray(tasks.mapIndexed { index, task ->
+                                    JSONObject().put("@type", "inputChecklistTask").put("id", index + 1).put("text", words(task))
+                                }))
+                                .put("others_can_add_tasks", false)
+                                .put("others_can_mark_tasks_as_done", true)
+                        )
+                )
+        )
+    }
+
+    override suspend fun markChecklistTask(chatId: Long, messageId: Long, taskId: Int, done: Boolean) {
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "markChecklistTasksAsDone")
+                .put("chat_id", chatId)
+                .put("message_id", messageId)
+                .put("marked_as_done_task_ids", JSONArray(if (done) listOf(taskId) else emptyList()))
+                .put("marked_as_not_done_task_ids", JSONArray(if (done) emptyList() else listOf(taskId)))
+        )
+    }
+
+    /** TDLib's `checklist`, as the bubble draws it (2.9.1): who ticked each task off. */
+    private fun checklistOf(list: JSONObject): com.telegramyou.app.telegram.model.ChecklistContent {
+        val tasks = list.optJSONArray("tasks") ?: JSONArray()
+        return com.telegramyou.app.telegram.model.ChecklistContent(
+            title = list.optJSONObject("title")?.optString("text").orEmpty(),
+            tasks = (0 until tasks.length()).mapNotNull { index ->
+                val task = tasks.optJSONObject(index) ?: return@mapNotNull null
+                val by = task.optJSONObject("completed_by")
+                val done = task.optInt("completion_date") > 0
+                com.telegramyou.app.telegram.model.ChecklistTask(
+                    id = task.optInt("id"),
+                    text = task.optJSONObject("text")?.optString("text").orEmpty(),
+                    doneBy = if (done) by?.let(::senderName) else null,
+                    isDone = done
+                )
+            },
+            canMarkDone = list.optBoolean("can_mark_tasks_as_done")
+        )
+    }
+
+    /** A MessageSender's name, as far as this client knows it. */
+    private fun senderName(sender: JSONObject): String? = when (sender.optString("@type")) {
+        "messageSenderUser" -> usersById[sender.optLong("user_id")]?.let { mapUser(it).displayName }
+        "messageSenderChat" -> chatsById[sender.optLong("chat_id")]?.optString("title")
+        else -> null
+    }
+
     override suspend fun votePoll(chatId: Long, messageId: Long, optionIds: List<Int>) {
         awaitReady()
         requireEngine().send(
@@ -4929,6 +4995,12 @@ class TdLibTelegramClient(
                     emitUpdate(MessageUpdate.PollChanged(chatId, messageId, poll))
                     return
                 }
+                // A task ticked, by anyone: like a vote, not an edit (2.9.1).
+                if (newContent?.optString("@type") == "messageChecklist") {
+                    val list = newContent.optJSONObject("list")?.let(::checklistOf) ?: return
+                    emitUpdate(MessageUpdate.ChecklistChanged(chatId, messageId, list))
+                    return
+                }
                 val text = contentText(update.optJSONObject("new_content"))
                     ?.takeIf { it.isNotBlank() }
                     ?: return
@@ -5725,6 +5797,7 @@ class TdLibTelegramClient(
                 MessageContentType.Text
             }
             "messagePoll" -> MessageContentType.Poll
+            "messageChecklist" -> MessageContentType.Checklist
             "messageContact" -> MessageContentType.Contact
             "messageLocation", "messageVenue" -> MessageContentType.Location
             "messageAudio" -> MessageContentType.Audio
@@ -5840,6 +5913,7 @@ class TdLibTelegramClient(
             photoMini = content?.takeIf { type == "messagePhoto" }?.optJSONObject("photo")?.miniThumbnail(),
             video = videoContent(content),
             poll = content?.takeIf { type == "messagePoll" }?.optJSONObject("poll")?.let(::pollOf),
+            checklist = content?.takeIf { type == "messageChecklist" }?.optJSONObject("list")?.let(::checklistOf),
             contact = content?.takeIf { type == "messageContact" }?.optJSONObject("contact")?.let(::contactOf),
             location = content?.let(::locationOf),
             inlineKeyboard = inlineKeyboardOf(message.optJSONObject("reply_markup")),

@@ -11,6 +11,14 @@ README.md.
 
 ## 2.9.1
 
+What Telegram's own app does, taken in, as it behaves rather than as it looks:
+
+- **Round videos** grow while they play, go one after another down the chat, play at the voice messages' speed with a chip on the circle to step it, and can be written down like a voice message.
+- **Unseen reactions and mentions** each have a button over the conversation — a heart and an @, with their counts — that goes to the oldest.
+- **Search in a chat** goes to the newest hit at once and walks through the rest with arrows — "1 of 22" — or shows them as a list.
+- **Channels**: Discuss beside Mute opens the discussion group; a post's comments row shows who commented last; and a discussion that lets only members write has Join group where the composer would be.
+- **The media viewer** says who sent the photo and when, and strips the others along its foot to jump to.
+- **Checklists**: sent from the attach panel as a title and a task a line (Premium on Telegram's side), and ticked off in the bubble by whoever may, each tick saying who.
 - **No made-up captions.** A video, a photo, a GIF, a song or a file sent without a caption showed the chat list's word for it underneath — "🎬 Video", "🎵 Разум" — as voice messages did until 2.7.1. One rule for every kind now (writtenCaption): a caption shows only when somebody wrote it, in the bubble and in the viewer alike.
 - **No replying to a channel you only read.** A subscriber was offered Reply on every post — by a swipe, the menu, a double tap, Quote — which is a chat's behaviour; and Pin with it. Both are there only where a message can be written.
 - **A clean-up**: two unused viewers, a forgotten media loader, 61 unused imports and a few unused resources gone.

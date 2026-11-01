@@ -692,6 +692,8 @@ fun TelegramYouNavHost(
                     onNextUnread = chatViewModel::onNextUnread,
                     onSearchStep = chatViewModel::onSearchStep,
                     onOpenDiscussion = { id -> navController.navigateTo(chatRoute(id)) },
+                    onChecklistToggle = chatViewModel::onChecklistToggle,
+                    onSendChecklist = chatViewModel::onSendChecklist,
                     onSearchAsList = chatViewModel::onSearchAsList,
                     onVideoNoteEnded = chatViewModel::onVideoNoteEnded,
                     onVoiceSpeed = chatViewModel::onVoiceSpeed,

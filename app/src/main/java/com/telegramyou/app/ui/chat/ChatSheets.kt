@@ -251,7 +251,9 @@ internal fun AttachPanel(
     /** Where this phone is, sent once. */
     onLocation: () -> Unit = {},
     /** What is typed, sent later; null where there is nothing typed to send. */
-    onSchedule: (() -> Unit)? = null
+    onSchedule: (() -> Unit)? = null,
+    /** A list of tasks to tick off (2.9.1); null where one cannot be sent. */
+    onChecklist: (() -> Unit)? = null
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -277,6 +279,7 @@ internal fun AttachPanel(
                 add(AttachAction(tr("Location", "Геопозиция"), Symbols.LocationOn, onLocation))
                 add(AttachAction(tr("Contacts", "Контакты"), Symbols.Person, onContact))
                 if (onPoll != null) add(AttachAction(tr("Poll", "Опрос"), Symbols.Poll, onPoll))
+                if (onChecklist != null) add(AttachAction(tr("Checklist", "Чек-лист"), Symbols.Checklist, onChecklist))
                 if (onSchedule != null) add(AttachAction(tr("Schedule send", "Отложить"), Symbols.Schedule, onSchedule))
             }
             actions.chunked(ATTACH_COLUMNS).forEach { row ->

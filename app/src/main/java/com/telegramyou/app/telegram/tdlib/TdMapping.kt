@@ -242,6 +242,8 @@ internal fun previewText(message: JSONObject?): String {
             ?.takeIf { it.isNotBlank() } ?: tr("Contact", "Контакт"))
         "messageLocation" -> tr("📍 Location", "📍 Геопозиция")
         "messageVenue" -> "📍 " + (content.optJSONObject("venue")?.optString("title")?.takeIf { it.isNotBlank() } ?: tr("Location", "Геопозиция"))
+        "messageChecklist" -> "☑️ " + (content.optJSONObject("list")?.optJSONObject("title")?.optString("text")
+            ?.takeIf { it.isNotBlank() } ?: tr("Checklist", "Чек-лист"))
         "messagePoll" -> "📊 " + (content.optJSONObject("poll")?.textOf("question")
             ?.takeIf { it.isNotBlank() } ?: tr("Poll", "Опрос"))
         else -> content.optString("@type").removePrefix("message")

@@ -126,6 +126,12 @@ interface TelegramMessages {
     /** Sends a poll; [PollDraft.canSend] has already said it may go. */
     suspend fun sendPoll(chatId: Long, draft: PollDraft)
 
+    /** Sends a checklist of [tasks] under [title] (2.9.1); Premium on Telegram's side. */
+    suspend fun sendChecklist(chatId: Long, title: String, tasks: List<String>) {}
+
+    /** Ticks a checklist's task off, or back on (2.9.1). */
+    suspend fun markChecklistTask(chatId: Long, messageId: Long, taskId: Int, done: Boolean) {}
+
     /**
      * The messages waiting to go out in this chat, soonest first — a list
      * of their own, never part of the conversation until they are sent.

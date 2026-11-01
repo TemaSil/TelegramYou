@@ -70,6 +70,9 @@ import com.telegramyou.app.telegram.model.parseMarkdown
 import com.telegramyou.app.telegram.model.AudioContent
 import com.telegramyou.app.telegram.model.MessageReaction
 import com.telegramyou.app.telegram.model.CommentFace
+import com.telegramyou.app.telegram.model.ChecklistContent
+import com.telegramyou.app.telegram.model.ChecklistTask
+import com.telegramyou.app.telegram.model.toggled
 import com.telegramyou.app.telegram.model.InlineBot
 import com.telegramyou.app.telegram.model.InlineResult
 import com.telegramyou.app.telegram.model.InlineResultKind
@@ -1934,6 +1937,29 @@ class DemoTelegramClient(
         )
     }
 
+    override suspend fun sendChecklist(chatId: Long, title: String, tasks: List<String>) {
+        delay(160)
+        appendOutgoing(
+            chatId = chatId,
+            text = title,
+            type = MessageContentType.Checklist,
+            checklist = ChecklistContent(
+                title = title,
+                tasks = tasks.mapIndexed { index, task -> ChecklistTask(index + 1, task) },
+                canMarkDone = true
+            )
+        )
+    }
+
+    override suspend fun markChecklistTask(chatId: Long, messageId: Long, taskId: Int, done: Boolean) {
+        delay(80)
+        val bucket = chatMessages[chatId] ?: return
+        val index = bucket.indexOfFirst { it.id == messageId }
+        val list = bucket.getOrNull(index)?.checklist ?: return
+        val now = list.tasks.firstOrNull { it.id == taskId } ?: return
+        if (now.isDone != done) bucket[index] = bucket[index].copy(checklist = list.toggled(taskId, "You"))
+    }
+
     override suspend fun scheduledMessages(chatId: Long): List<ChatMessage> {
         delay(80)
         return scheduled[chatId].orEmpty().sortedBy { it.scheduledAt }
@@ -2686,6 +2712,7 @@ class DemoTelegramClient(
         photoFileId: Int? = null,
         sticker: StickerContent? = null,
         poll: PollContent? = null,
+        checklist: ChecklistContent? = null,
         entities: List<TextEntity> = emptyList(),
         video: VideoContent? = null,
         contact: ContactContent? = null,
@@ -2721,6 +2748,7 @@ class DemoTelegramClient(
             photoFileId = photoFileId,
             sticker = sticker,
             poll = poll,
+            checklist = checklist,
             entities = entities,
             video = video,
             contact = contact,

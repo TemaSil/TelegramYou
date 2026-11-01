@@ -97,6 +97,13 @@ sealed interface MessageUpdate {
         val poll: PollContent
     ) : MessageUpdate
 
+    /** A checklist's tasks ticked or unticked, by anyone (2.9.1); like a poll, not an edit. */
+    data class ChecklistChanged(
+        override val chatId: Long,
+        val messageId: Long,
+        val checklist: ChecklistContent
+    ) : MessageUpdate
+
     /** A bot replaced the buttons under one of its messages. */
     data class ButtonsChanged(
         override val chatId: Long,

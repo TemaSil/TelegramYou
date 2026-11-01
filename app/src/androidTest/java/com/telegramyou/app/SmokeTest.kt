@@ -974,6 +974,34 @@ class SmokeTest {
     }
 
     /**
+     * A checklist (2.9.1): written from the attach panel as a title and a
+     * task a line, sent, and a task ticked off in the bubble.
+     */
+    @Test
+    fun aChecklistIsSentAndTicked() {
+        signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        tap(By.text("Lina Park"))
+        waitFor(By.desc("Attach"), "the composer")
+        tap(By.desc("Attach"))
+        allowPhotos()
+        tap(By.desc("Checklist"))
+        waitFor(By.text("New checklist"), "the checklist form")
+        val fields = device.findObjects(By.clazz("android.widget.EditText"))
+        assertTrue("the form has ${fields.size} fields", fields.size >= 2)
+        fields[0].text = "Trip"
+        fields[1].text = "Tickets\nHotel"
+        device.waitForIdle(IDLE_TIMEOUT)
+        tap(By.text("Send"))
+        waitFor(By.text("Tickets"), "the checklist in the chat")
+        waitFor(By.text("0 of 2 done"), "nothing done yet")
+        tap(By.text("Tickets"))
+        waitFor(By.text("1 of 2 done"), "a task ticked off")
+        screenshot("148-checklist")
+    }
+
+    /**
      * Unseen reactions (2.9.1): a heart over Lina's conversation goes to our
      * message she reacted to, and is gone once it has; and an @ in the group
      * goes to where this account is named.
