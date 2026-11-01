@@ -3381,7 +3381,9 @@ class DemoTelegramClient(
         senderName = senderName,
         senderId = senderName?.hashCode()?.toLong(),
         canBeEdited = isOutgoing,
-        canBeDeletedForSelf = true,
+        // A channel one only reads has nothing one may delete, as Telegram
+        // says of a real one.
+        canBeDeletedForSelf = chatId !in DEMO_READ_CHANNELS,
         canBeDeletedForEveryone = isOutgoing,
         isRead = isRead,
         contentType = contentType,
@@ -3663,3 +3665,6 @@ private val SAVED_SOURCES = mapOf(SAVED_FROM_LINA to 2L, SAVED_FROM_CIRCLE to 3L
 private const val DEMO_SHARED_FOLDER = "Design friends"
 private const val DEMO_FOLDER_CHANNEL = "Material Weekly"
 private const val DEMO_FOLDER_CHANNEL_ID = -77L
+
+/** The demo's channels one only reads: TelegramYou News and the music channel. */
+private val DEMO_READ_CHANNELS = setOf(4L, MUSIC_CHANNEL_ID)

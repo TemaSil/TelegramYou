@@ -12,7 +12,7 @@ README.md.
 ## 2.9.1
 
 - **No made-up captions.** A video, a photo, a GIF, a song or a file sent without a caption showed the chat list's word for it underneath — "🎬 Video", "🎵 Разум" — as voice messages did until 2.7.1. One rule for every kind now (writtenCaption): a caption shows only when somebody wrote it, in the bubble and in the viewer alike.
-- **No replying to a channel you only read.** A subscriber was offered Reply on every post — by a swipe, the menu, a double tap, Quote — which is a chat's behaviour. It is there only where a message can be written.
+- **No replying to a channel you only read.** A subscriber was offered Reply on every post — by a swipe, the menu, a double tap, Quote — which is a chat's behaviour; and Pin with it. Both are there only where a message can be written.
 - **A clean-up**: two unused viewers, a forgotten media loader, 61 unused imports and a few unused resources gone.
 
 ## 2.9

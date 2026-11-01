@@ -161,7 +161,8 @@ internal fun MessageBubble(
     onAlbumPhotoOpened: (ChatMessage) -> Unit = {},
     onMention: (String) -> Unit = {},
     onHashtag: (String) -> Unit = {},
-    onPinToggled: () -> Unit = {},
+    /** Null where nothing can be pinned — a channel one only reads (2.9.1). */
+    onPinToggled: (() -> Unit)? = {},
     /** Our answer to a poll, by the options' positions; empty takes it back. */
     onVote: (Set<Int>) -> Unit = {},
     /** One of a bot's buttons under this message. */
@@ -917,14 +918,16 @@ internal fun MessageBubble(
                         menuOpen = false
                     }
                 )
-                DropdownMenuItem(
-                    text = { Text(if (message.isPinned) tr("Unpin", "Открепить") else tr("Pin", "Закрепить")) },
-                    leadingIcon = { Icon(Symbols.PushPinFilled, contentDescription = null) },
-                    onClick = {
-                        onPinToggled()
-                        menuOpen = false
-                    }
-                )
+                onPinToggled?.let { pin ->
+                    DropdownMenuItem(
+                        text = { Text(if (message.isPinned) tr("Unpin", "Открепить") else tr("Pin", "Закрепить")) },
+                        leadingIcon = { Icon(Symbols.PushPinFilled, contentDescription = null) },
+                        onClick = {
+                            pin()
+                            menuOpen = false
+                        }
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text(tr("Select", "Выбрать")) },
                     leadingIcon = {

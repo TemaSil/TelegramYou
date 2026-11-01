@@ -966,9 +966,9 @@ class SmokeTest {
     }
 
     /**
-     * A channel one only reads (2.9.1): a post's menu has no Reply, and no
-     * Quote — answering is a chat's, and the channel has no composer to
-     * answer in.
+     * A channel one only reads (2.9.1): a post's menu has no Reply, no
+     * Quote and no Pin — answering and pinning are for those who write
+     * there, and the channel has no composer to answer in.
      */
     @Test
     fun aChannelPostIsNotAnswered() {
@@ -983,6 +983,7 @@ class SmokeTest {
         waitFor(By.text("Copy"), "the post's menu")
         screenshot("146-channel-post-menu")
         assertFalse("a post one only reads offered Reply", device.hasObject(By.text("Reply")))
+        assertFalse("a post one only reads offered Pin", device.hasObject(By.text("Pin")))
         device.pressBack()
     }
 

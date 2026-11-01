@@ -1456,7 +1456,12 @@ fun ChatScreen(
                                     onSearchOpenChange(true)
                                     onSearchQueryChange(tag)
                                 },
-                                onPinToggled = { onPinToggled(message) },
+                                // Pinning is for those who may write here, as answering is.
+                                onPinToggled = if (detail?.chat?.canReply != false) {
+                                    { onPinToggled(message) }
+                                } else {
+                                    null
+                                },
                                 transfers = state.transfers,
                                 onVote = { chosen -> onVote(message, chosen) },
                                 onButton = { button ->
