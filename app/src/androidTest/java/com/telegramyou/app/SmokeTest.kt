@@ -2957,13 +2957,18 @@ class SmokeTest {
         openMenuOf(sent, By.text("Repeat"))
         screenshot("88-message-extras")
         tap(By.text("Repeat"))
+        // The copy may come in translated — "[en] Translate me please" — when
+        // the chat-translation test ran on this emulator first; it is still
+        // the copy.
+        val copies = By.text(Pattern.compile("(\\[\\w+] )?Translate me please"))
         val deadline = System.currentTimeMillis() + 15_000L
-        while (device.findObjects(sent).size < 2 && System.currentTimeMillis() < deadline) {
+        while (device.findObjects(copies).size < 2 && System.currentTimeMillis() < deadline) {
             Thread.sleep(250)
         }
-        if (device.findObjects(sent).size < 2) {
+        if (device.findObjects(copies).size < 2) {
             screenshot("failed-waiting-for-the-repeat")
-            error("the message was not repeated")
+            val shown = device.findObjects(By.clazz("android.widget.TextView")).mapNotNull { it.text }.takeLast(12)
+            error("the message was not repeated; on screen: $shown")
         }
 
         // Off again: the tests share one install, and the longer menu would
