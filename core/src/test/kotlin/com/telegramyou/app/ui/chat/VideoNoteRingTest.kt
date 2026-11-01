@@ -23,4 +23,19 @@ class VideoNoteRingTest {
         assertFalse(onRing(20f, 20f, radius = 100f))
         assertFalse(onRing(0f, 0f, radius = 0f))
     }
+
+    @Test
+    fun `the next circle after one is the next round video, not the next message`() {
+        fun m(id: Long, type: com.telegramyou.app.telegram.model.MessageContentType) =
+            com.telegramyou.app.telegram.model.ChatMessage(
+                id = id, chatId = 1, text = "", isOutgoing = false, timeLabel = "", contentType = type,
+                video = com.telegramyou.app.telegram.model.VideoContent()
+            )
+        val note = com.telegramyou.app.telegram.model.MessageContentType.VideoNote
+        val text = com.telegramyou.app.telegram.model.MessageContentType.Text
+        val messages = listOf(m(1, note), m(2, text), m(3, note), m(4, note))
+        assertEquals(3L, nextVideoNote(messages, 1)?.id)
+        assertEquals(4L, nextVideoNote(messages, 3)?.id)
+        assertEquals(null, nextVideoNote(messages, 4))
+    }
 }

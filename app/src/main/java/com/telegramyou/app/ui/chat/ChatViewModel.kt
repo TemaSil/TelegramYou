@@ -174,6 +174,10 @@ data class ChatUiState(
     val search: ChatSearchState = ChatSearchState(),
     /** The voice message currently playing, if any. */
     val playingVoiceId: Long? = null,
+    /** The round video playing (2.9.1): one at a time, the next after it when it ends. */
+    val playingNoteId: Long? = null,
+    /** The speed voice messages play at, which round ones share. */
+    val voiceSpeed: Float = 1f,
     /** A voice message whose file is still arriving. */
     val loadingVoiceId: Long? = null,
     /** How far through the playing message is, 0..1. */
@@ -1882,7 +1886,10 @@ class ChatViewModel(
                 _uiState.update {
                     it.copy(
                         playingVoiceId = if (here && now.isPlaying) now.messageId else null,
-                        voiceProgress = if (here) now.progress else 0f
+                        voiceProgress = if (here) now.progress else 0f,
+                        voiceSpeed = now.speed,
+                        // A voice message started stops a round video.
+                        playingNoteId = if (now.isPlaying) null else it.playingNoteId
                     )
                 }
             }
@@ -1927,6 +1934,33 @@ class ChatViewModel(
             }
         }
     }
+
+    /**
+     * A round video tapped (2.9.1): it plays, in place of a voice message or
+     * another circle, or stops if it was the one playing.
+     */
+    fun onVideoNoteToggled(message: ChatMessage) {
+        if (_uiState.value.playingNoteId == message.id) {
+            _uiState.update { it.copy(playingNoteId = null) }
+            return
+        }
+        if (voice.state.value.isPlaying) voice.stop()
+        _uiState.update { it.copy(playingNoteId = message.id) }
+        onContentOpened(message.id)
+    }
+
+    /**
+     * A round video played to its end: the next one below it plays, as in
+     * Telegram's own app — a run of circles is watched as one.
+     */
+    fun onVideoNoteEnded(message: ChatMessage) {
+        val next = nextVideoNote(_uiState.value.messages, message.id)
+        _uiState.update { if (it.playingNoteId == message.id) it.copy(playingNoteId = next?.id) else it }
+        next?.let { onContentOpened(it.id) }
+    }
+
+    /** Voice and round videos one step faster: 1×, 1.5×, 2×. */
+    fun onVoiceSpeed() = voice.cycleSpeed()
 
     /**
      * Moves playback within the message that is playing.

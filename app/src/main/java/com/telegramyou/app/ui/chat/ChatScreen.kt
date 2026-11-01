@@ -258,6 +258,10 @@ fun ChatScreen(
     /** Saved Messages by chat (2.7), and its tags. */
     onOpenSavedTopics: () -> Unit = {},
     onSavedTagSelected: (String) -> Unit = {},
+    /** A round video tapped, and one played to its end (2.9.1); see ChatViewModel. */
+    onVideoNoteToggled: (ChatMessage) -> Unit = {},
+    onVideoNoteEnded: (ChatMessage) -> Unit = {},
+    onVoiceSpeed: () -> Unit = {},
     /** A note in Saved Messages sent back to Saved Messages at a time, as a reminder (2.9). */
     onRemind: (List<ChatMessage>, Long) -> Unit = { _, _ -> },
     onSavedTagNaming: (com.telegramyou.app.telegram.model.SavedTag?) -> Unit = {},
@@ -1435,6 +1439,11 @@ fun ChatScreen(
                                     else -> VoiceState.Idle
                                 },
                                 onVoiceToggled = { onVoiceToggled(message) },
+                                notePlaying = state.playingNoteId == message.id,
+                                onNoteToggle = { onVideoNoteToggled(message) },
+                                onNoteEnded = { onVideoNoteEnded(message) },
+                                voiceSpeed = state.voiceSpeed,
+                                onVoiceSpeed = onVoiceSpeed,
                                 voiceProgress = when {
                                     message.audio != null && music.track?.messageId == message.id -> music.progress
                                     message.id == state.playingVoiceId -> state.voiceProgress

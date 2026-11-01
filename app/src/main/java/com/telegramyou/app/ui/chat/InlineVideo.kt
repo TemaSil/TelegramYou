@@ -43,7 +43,9 @@ fun InlineVideo(
     onProgress: ((Float) -> Unit)? = null,
     /** A share of the way through to go to, once; [onSeeked] says it was done. */
     seekTo: Float? = null,
-    onSeeked: () -> Unit = {}
+    onSeeked: () -> Unit = {},
+    /** How fast it plays — a round video at the voice messages' speed (2.9.1). */
+    speed: Float = 1f
 ) {
     val context = LocalContext.current
     val ended = rememberUpdatedState(onEnded)
@@ -85,6 +87,7 @@ fun InlineVideo(
         val focus = if (playing && !muted) com.telegramyou.app.music.AudioFocus.duck() else null
         onDispose { focus?.release() }
     }
+    LaunchedEffect(player, speed) { player.setPlaybackSpeed(speed) }
     val progress = rememberUpdatedState(onProgress)
     LaunchedEffect(player, playing) {
         if (progress.value == null) return@LaunchedEffect

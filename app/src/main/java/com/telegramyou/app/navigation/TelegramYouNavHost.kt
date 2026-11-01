@@ -688,6 +688,9 @@ fun TelegramYouNavHost(
                     onOpenSavedTopics = { navController.navigateTo(Route.SavedTopics(openedChatId)) },
                     onSavedTagSelected = chatViewModel::onSavedTagSelected,
                     onRemind = { note, at -> chatViewModel.onRemind(note, at) },
+                    onVideoNoteToggled = chatViewModel::onVideoNoteToggled,
+                    onVideoNoteEnded = chatViewModel::onVideoNoteEnded,
+                    onVoiceSpeed = chatViewModel::onVoiceSpeed,
                     onSavedTagNaming = chatViewModel::onSavedTagNaming,
                     onSavedTagNamed = chatViewModel::onSavedTagNamed,
                     // A track goes to the music player, with this chat's music

@@ -1013,8 +1013,9 @@ class TdLibTelegramClient(
             val message = engine.send(
                 JSONObject().put("@type", "getMessage").put("chat_id", chatId).put("message_id", messageId)
             )
-            val result = message.optJSONObject("content")
-                ?.optJSONObject("voice_note")
+            // A voice message's, or a round video's (2.9.1): both carry it.
+            val content = message.optJSONObject("content")
+            val result = (content?.optJSONObject("voice_note") ?: content?.optJSONObject("video_note"))
                 ?.optJSONObject("speech_recognition_result")
             when (result?.optString("@type")) {
                 "speechRecognitionResultText" -> return result.optString("text").takeIf { it.isNotBlank() }
@@ -5734,7 +5735,7 @@ class TdLibTelegramClient(
                 ?.takeIf { it.isNotBlank() },
             waveform = parseWaveform(content),
             voiceDurationSeconds = content?.optJSONObject("voice_note")?.optInt("duration") ?: 0,
-            transcript = content?.optJSONObject("voice_note")
+            transcript = (content?.optJSONObject("voice_note") ?: content?.optJSONObject("video_note"))
                 ?.optJSONObject("speech_recognition_result")
                 ?.takeIf { it.optString("@type") == "speechRecognitionResultText" }
                 ?.optString("text")

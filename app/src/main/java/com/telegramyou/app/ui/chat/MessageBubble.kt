@@ -161,6 +161,13 @@ internal fun MessageBubble(
     onAlbumPhotoOpened: (ChatMessage) -> Unit = {},
     onMention: (String) -> Unit = {},
     onHashtag: (String) -> Unit = {},
+    /** This round video is the one playing; see ChatViewModel.onVideoNoteToggled (2.9.1). */
+    notePlaying: Boolean = false,
+    onNoteToggle: () -> Unit = {},
+    onNoteEnded: () -> Unit = {},
+    /** The speed voice and round videos play at, and a step of it. */
+    voiceSpeed: Float = 1f,
+    onVoiceSpeed: () -> Unit = {},
     /** Null where nothing can be pinned — a channel one only reads (2.9.1). */
     onPinToggled: (() -> Unit)? = {},
     /** Our answer to a poll, by the options' positions; empty takes it back. */
@@ -659,7 +666,14 @@ internal fun MessageBubble(
                                 note = note,
                                 transfer = note.fileId?.let { transfers[it] },
                                 onVisible = onPhotoVisible,
-                                onPlayed = onContentOpened
+                                playing = notePlaying,
+                                onToggle = onNoteToggle,
+                                onEnded = onNoteEnded,
+                                speed = voiceSpeed,
+                                onSpeed = onVoiceSpeed,
+                                transcript = transcript,
+                                transcribing = transcribing,
+                                onTranscribe = onTranscribe
                             )
                         }
                     }

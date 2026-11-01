@@ -687,15 +687,32 @@ internal fun VideoNoteMessage(
     note: VideoContent,
     transfer: FileTransfer?,
     onVisible: () -> Unit,
-    /** Started playing: the conversation tells Telegram it was watched. */
-    onPlayed: () -> Unit = {}
+    /**
+     * Whether this circle is the one playing (2.9.1): held by the chat, so
+     * the next round video plays when this one ends and only one plays at a
+     * time, as in Telegram's own app. A tap while the file is still
+     * arriving is kept: the circle starts as soon as there is something.
+     */
+    playing: Boolean,
+    onToggle: () -> Unit,
+    onEnded: () -> Unit,
+    /** The speed voice messages play at, which round ones share; a tap on its chip steps it. */
+    speed: Float = 1f,
+    onSpeed: () -> Unit = {},
+    /** Its words, once Telegram has written them down (2.9.1), as a voice message's. */
+    transcript: String? = null,
+    transcribing: Boolean = false,
+    onTranscribe: (() -> Unit)? = null
 ) {
     LaunchedEffect(note.path, note.thumbPath) {
         if (note.path == null || note.thumbPath == null) onVisible()
     }
-    // A tap while the file is still arriving is kept, not dropped: the
-    // circle starts as soon as there is something to play.
-    var playing by remember { mutableStateOf(false) }
+    // Larger while it plays, as Telegram's circle grows to be watched.
+    val size by androidx.compose.animation.core.animateDpAsState(
+        if (playing) VIDEO_NOTE_PLAYING_SIZE else VIDEO_NOTE_SIZE,
+        MaterialTheme.motionScheme.defaultSpatialSpec(),
+        label = "videoNoteSize"
+    )
     // How far it has played, round the edge; and where a finger on the
     // edge has wound it to, sent to the player once (2.8.2).
     var played by remember { mutableFloatStateOf(0f) }
@@ -703,9 +720,11 @@ internal fun VideoNoteMessage(
     var winding by remember { mutableStateOf(false) }
     val duration = formatDuration(note.durationSeconds.toLong())
     val description = if (playing && note.path != null) tr("Video message, playing", "Видеосообщение, играет") else tr("Video message, $duration", "Видеосообщение, $duration")
+    Column {
+    Row(verticalAlignment = Alignment.Bottom) {
     Box(
         modifier = Modifier
-            .size(VIDEO_NOTE_SIZE)
+            .size(size)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             // Read here, in composition, and handed over as a value: a state
@@ -730,9 +749,10 @@ internal fun VideoNoteMessage(
                 loop = false,
                 modifier = Modifier.fillMaxSize(),
                 onEnded = {
-                    playing = false
                     played = 0f
+                    onEnded()
                 },
+                speed = speed,
                 onProgress = { if (!winding) played = it },
                 seekTo = seekTo,
                 onSeeked = { seekTo = null }
@@ -829,11 +849,50 @@ internal fun VideoNoteMessage(
                         winding = false
                     }
                 }
-                .clickable {
-                    playing = !playing
-                    if (playing) onPlayed()
-                }
+                .clickable(onClick = onToggle)
         )
+        // The speed, while it plays: a tap steps it, as on a voice message.
+        if (playing) {
+            Surface(
+                onClick = onSpeed,
+                shape = MaterialTheme.shapes.small,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 14.dp)
+            ) {
+                Text(
+                    com.telegramyou.app.ui.media.playbackSpeedLabel(speed),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+    // Voice to text for a round video too (2.9.1), beside the circle.
+    if (onTranscribe != null) {
+        if (transcribing) {
+            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(8.dp).size(24.dp))
+        } else {
+            IconButton(onClick = onTranscribe) {
+                Icon(
+                    if (transcript != null) Symbols.SpeechToTextFilled else Symbols.SpeechToText,
+                    contentDescription = if (transcript != null) tr("Hide the words", "Скрыть текст") else tr("Write it down", "Расшифровать")
+                )
+            }
+        }
+    }
+    }
+    transcript?.let { words ->
+        Text(
+            words,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .widthIn(max = VIDEO_NOTE_PLAYING_SIZE)
+        )
+    }
     }
 }
 
@@ -1004,6 +1063,9 @@ internal fun Waveform(
 
 /** A round video message's diameter: a little under the bubble's widest, as Telegram draws it. */
 internal val VIDEO_NOTE_SIZE = 220.dp
+
+/** A round video playing: larger, as Telegram's circle grows to be watched (2.9.1). */
+internal val VIDEO_NOTE_PLAYING_SIZE = 300.dp
 
 /**
  * Where a photo, a video or a GIF meets the edge of its message. [framed]:

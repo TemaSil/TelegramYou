@@ -31,3 +31,13 @@ fun onRing(dx: Float, dy: Float, radius: Float): Boolean =
 
 /** How far out from the centre, as a share of the radius, the ring is held. */
 private const val RING_REACH = 0.55f
+
+/**
+ * The round video after [afterId] in [messages], oldest first (2.9.1): what
+ * plays next when one ends, so a run of circles is watched as one. Null at
+ * the last.
+ */
+fun nextVideoNote(messages: List<com.telegramyou.app.telegram.model.ChatMessage>, afterId: Long) =
+    messages
+        .filter { it.id > afterId && it.contentType == com.telegramyou.app.telegram.model.MessageContentType.VideoNote && it.video != null }
+        .minByOrNull { it.id }
