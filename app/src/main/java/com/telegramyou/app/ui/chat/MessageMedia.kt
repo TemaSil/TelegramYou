@@ -62,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -708,11 +709,13 @@ internal fun VideoNoteMessage(
         if (note.path == null || note.thumbPath == null) onVisible()
     }
     // Larger while it plays, as Telegram's circle grows to be watched.
-    val size by androidx.compose.animation.core.animateDpAsState(
+    val circle by androidx.compose.animation.core.animateDpAsState(
         if (playing) VIDEO_NOTE_PLAYING_SIZE else VIDEO_NOTE_SIZE,
         MaterialTheme.motionScheme.defaultSpatialSpec(),
         label = "videoNoteSize"
     )
+    // Read fresh by the winding gesture, which outlives a recomposition.
+    val isPlaying by rememberUpdatedState(playing)
     // How far it has played, round the edge; and where a finger on the
     // edge has wound it to, sent to the player once (2.8.2).
     var played by remember { mutableFloatStateOf(0f) }
@@ -724,7 +727,7 @@ internal fun VideoNoteMessage(
     Row(verticalAlignment = Alignment.Bottom) {
     Box(
         modifier = Modifier
-            .size(size)
+            .size(circle)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             // Read here, in composition, and handed over as a value: a state
@@ -832,7 +835,7 @@ internal fun VideoNoteMessage(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val centre = Offset(size.width / 2f, size.height / 2f)
                         val at = down.position - centre
-                        if (!playing || !onRing(at.x, at.y, size.width / 2f)) return@awaitEachGesture
+                        if (!isPlaying || !onRing(at.x, at.y, size.width / 2f)) return@awaitEachGesture
                         val slop = awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
                             ?: return@awaitEachGesture
                         winding = true
