@@ -2508,8 +2508,6 @@ class ChatViewModel(
         _uiState.update { it.copy(hasLeft = false) }
     }
 
-    }
-
     /**
      * Asks for the page before the oldest message on screen.
      *
