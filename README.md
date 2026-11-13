@@ -6,7 +6,7 @@ Written by `.github/scripts/gallery.py`; do not edit by hand.
 
 ## 2.9.3-785
 
-2026-11-01 · [`4758070`](https://github.com/TemaSil/TelegramYou/commit/47580709d1acf6a3c19c0038149b3975e0aa5cbd)
+2026-11-13 · [`4758070`](https://github.com/TemaSil/TelegramYou/commit/47580709d1acf6a3c19c0038149b3975e0aa5cbd)
 
 <p>
   <img src="builds/2.9.3-785/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
