@@ -3271,24 +3271,43 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW)
-                .setClassName(context.packageName, "com.telegramyou.app.BubbleActivity")
-                .putExtra("com.telegramyou.app.EXTRA_CHAT_ID", 1L)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
-        )
-        waitFor(By.text("Welcome to TelegramYou"), "the chat in its bubble's screen")
-        assertTrue("the bubble's activity is not in front", bubbleInFront())
-        screenshot("97-bubble-chat")
-        // Back until it has gone — past the keyboard, if the field took
-        // focus. Had the chat had Home under it, Back would land there and
-        // the bubble's activity would still be in front.
-        repeat(3) {
-            if (!bubbleInFront()) return@repeat
-            device.pressBack()
-            SystemClock.sleep(SETTLE_MS * 2)
+        val app = context.applicationContext as TelegramYouApp
+        val notificationId = PostedNotifications.notificationId(1L, app.accounts.activeId)
+        val manager = context.getSystemService(NotificationManager::class.java)
+        // A real system bubble depends on its notification staying alive.
+        // Launching only the activity used to miss its immediate cancellation.
+        manager.notify(notificationId, NotificationCompat.Builder(context, TelegramYouApp.CHANNEL_MESSAGES)
+            .setSmallIcon(com.telegramyou.app.R.drawable.ic_launcher_foreground)
+            .setContentTitle("Bubble notification regression")
+            .setSilent(true)
+            .build())
+        assertTrue("the supporting notification was not posted", manager.activeNotifications.any { it.id == notificationId })
+        try {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW)
+                    .setClassName(context.packageName, "com.telegramyou.app.BubbleActivity")
+                    .putExtra("com.telegramyou.app.EXTRA_CHAT_ID", 1L)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            )
+            waitFor(By.text("Welcome to TelegramYou"), "the chat in its bubble's screen")
+            assertTrue("the bubble's activity is not in front", bubbleInFront())
+            assertTrue(
+                "opening the bubble cancelled the notification that keeps it alive",
+                manager.activeNotifications.any { it.id == notificationId }
+            )
+            screenshot("97-bubble-chat")
+            // Back until it has gone — past the keyboard, if the field took
+            // focus. Had the chat had Home under it, Back would land there and
+            // the bubble's activity would still be in front.
+            repeat(3) {
+                if (!bubbleInFront()) return@repeat
+                device.pressBack()
+                SystemClock.sleep(SETTLE_MS * 2)
+            }
+            assertFalse("Back from the bubble's chat went somewhere else in it", bubbleInFront())
+        } finally {
+            manager.cancel(notificationId)
         }
-        assertFalse("Back from the bubble's chat went somewhere else in it", bubbleInFront())
     }
 
     /** Whether the bubble's activity is the one resumed. */

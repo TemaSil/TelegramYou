@@ -4,3 +4,4 @@
 - Filenames and attachment labels stay out of note text
 - Long search terms keep their full match in search results
 - Typing avatars keep their whole shape as they morph and turn
+- Android chat bubbles keep their supporting notification when opened

@@ -445,7 +445,7 @@ class TelegramForegroundService : Service() {
                     // And a bubble, where the person has let this app or
                     // this conversation have them: the chat itself, floating
                     // over whatever is open. Android shows it only then.
-                    setBubbleMetadata(bubble(latest.chatId, icon))
+                    setBubbleMetadata(bubble(latest.chatId, account, icon))
                 }
             }
             // Which account, under the chat's name, with more than one.
@@ -506,13 +506,14 @@ class TelegramForegroundService : Service() {
      * The chat in a bubble (2.1): BubbleActivity on it. Mutable, as a
      * bubble's intent must be — the system adds to it as it expands.
      */
-    private fun bubble(chatId: Long, icon: IconCompat): NotificationCompat.BubbleMetadata {
+    private fun bubble(chatId: Long, accountId: Int, icon: IconCompat): NotificationCompat.BubbleMetadata {
         val intent = Intent(this, com.telegramyou.app.BubbleActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
             .putExtra(EXTRA_CHAT_ID, chatId)
+            .putExtra(EXTRA_ACCOUNT_ID, accountId)
         val pending = PendingIntent.getActivity(
             this,
-            PostedNotifications.notificationId(chatId),
+            PostedNotifications.notificationId(chatId, accountId),
             intent,
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )

@@ -491,8 +491,12 @@ fun TelegramYouNavHost(
             openChat?.let { id ->
                 // This account's notification for it, not another's (2.6).
                 val account = accounts?.activeId ?: 0
-                NotificationManagerCompat.from(context)
-                    .cancel(PostedNotifications.notificationId(id, account))
+                // Android owns a bubble through this notification. Cancelling
+                // it as the chat opens also removes the floating conversation.
+                if (!singleChat) {
+                    NotificationManagerCompat.from(context)
+                        .cancel(PostedNotifications.notificationId(id, account))
+                }
                 PostedNotifications.clear(id, account)
             }
             onDispose { AppVisibility.openChatId = null }
