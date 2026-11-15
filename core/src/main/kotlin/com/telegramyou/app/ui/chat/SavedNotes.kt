@@ -20,9 +20,18 @@ private val MARKERS = setOf("Photo", "Video", "GIF", "Voice", "Video message", "
  */
 fun noteBody(message: ChatMessage): String {
     val text = message.text.trim()
+    // A plain note may literally say "Photo" or "File". Only attachments
+    // carry placeholder descriptions; never hide somebody's text as one.
+    if (message.contentType == MessageContentType.Text) return text
     if (text in MARKERS) return ""
     // A poll's or a checklist's text is its title, which the line under says.
     if (message.contentType == MessageContentType.Poll || message.contentType == MessageContentType.Checklist) return ""
+    when (message.contentType) {
+        MessageContentType.Photo, MessageContentType.Video, MessageContentType.Animation,
+        MessageContentType.Voice, MessageContentType.VideoNote,
+        MessageContentType.Audio, MessageContentType.Document -> return writtenCaption(message)
+        else -> Unit
+    }
     if (message.contentType != MessageContentType.Text && message.mediaEmoji != null && text.startsWith(message.mediaEmoji)) {
         // "🎤 Voice"-style labels from the chat list.
         return ""

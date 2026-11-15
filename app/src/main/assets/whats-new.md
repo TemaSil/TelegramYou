@@ -1,5 +1,5 @@
-# Captions step aside for the picture
-- Photos and videos open with the picture first and the caption below it
-- A long caption folds to three lines; tap it to read it all on a dimmed photo
-- Tap the photo to hide everything over it, and tap again to bring it back
-- The caption and the video's controls sit on a dark band, readable on any picture
+# Clearer saved notes and search
+- Text notes keep words like Photo and File
+- Captions starting with an emoji stay visible in saved notes
+- Filenames and attachment labels stay out of note text
+- Long search terms keep their full match in search results

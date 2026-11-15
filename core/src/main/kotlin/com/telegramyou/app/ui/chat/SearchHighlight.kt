@@ -47,8 +47,12 @@ fun snippet(
     val first = matchRanges(text, query).firstOrNull()
         ?: return Snippet(text.take(length), matchStart = 0, matchLength = 0)
 
-    val start = maxOf(0, first.first - before)
-    val end = minOf(text.length, start + length)
+    // Context gives way to the match: a long query must not leave a
+    // highlight range pointing beyond the text returned to the UI.
+    val windowLength = maxOf(length, query.length)
+    val contextBefore = minOf(before, windowLength - query.length)
+    val start = maxOf(0, first.first - contextBefore)
+    val end = minOf(text.length, start + windowLength)
     val head = if (start > 0) "…" else ""
     val tail = if (end < text.length) "…" else ""
     return Snippet(

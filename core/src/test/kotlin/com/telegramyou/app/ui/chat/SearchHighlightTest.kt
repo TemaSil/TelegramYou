@@ -7,6 +7,16 @@ import org.junit.Test
 class SearchHighlightTest {
 
     @Test
+    fun `long search terms remain whole with a valid highlight range`() {
+        for (size in listOf(80, 96, 120)) {
+            val query = "q".repeat(size)
+            val result = snippet("x".repeat(200) + query + "y".repeat(200), query)
+            assertTrue("highlight must fit in the displayed text", result.matchStart + result.matchLength <= result.text.length)
+            assertEquals(query, result.text.substring(result.matchStart, result.matchStart + result.matchLength))
+        }
+    }
+
+    @Test
     fun `a blank query matches nothing`() {
         assertTrue(matchRanges("anything at all", "   ").isEmpty())
     }

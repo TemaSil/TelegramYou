@@ -55,13 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.9.3 · 1 November 2026
+## Latest: 2.9.4 · 15 November 2026
 
-A hotfix for the media viewer: a photo's or a video's caption sits on a
-band along the foot, three lines until tapped open, instead of running
-over the picture, and a tap on a photo hides everything over it. 2.9.2
-before it marked unseen reactions as seen and kept media with comments in
-its bubble. See the [changelog](CHANGELOG.md).
+Saved notes keep their text and attachment captions, without filenames or
+placeholder labels appearing as note text. Long search terms keep their full
+match in result snippets. See the [changelog](CHANGELOG.md).
+
 
 ## Screenshots
 

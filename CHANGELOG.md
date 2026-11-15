@@ -9,6 +9,14 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 2.9.4
+
+Fixes for saved notes and search:
+
+- **Saved notes keep their text.** Plain text such as "Photo" or "File" no longer disappears as if it were an attachment label.
+- **Attachment captions in notes follow the conversation's rules.** Written captions starting with an emoji stay visible; filenames and translated attachment descriptions no longer appear as note text.
+- **Long search terms keep their full match** in the result snippet, with the highlight confined to the displayed text.
+
 ## 2.9.3
 
 A hotfix for the media viewer:

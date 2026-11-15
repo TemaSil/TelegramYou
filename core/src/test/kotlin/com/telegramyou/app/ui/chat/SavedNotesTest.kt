@@ -11,6 +11,21 @@ import org.junit.Test
 
 class SavedNotesTest {
 
+    @Test
+    fun `plain text notes are never mistaken for attachment markers`() {
+        for (text in listOf("Photo", "File", "Audio", "Sticker", "Video")) {
+            assertEquals(text, noteBody(note(text)))
+        }
+    }
+
+    @Test
+    fun `media notes preserve written emoji captions and omit attachment descriptions`() {
+        assertEquals("🎬 Our trip", noteBody(note("🎬 Our trip", MessageContentType.Video).copy(mediaEmoji = "🎬")))
+        assertEquals("📎 Sign page two", noteBody(note("📎 Sign page two", MessageContentType.Document).copy(mediaEmoji = "📎", fileName = "plan.pdf")))
+        assertEquals("", noteBody(note("plan.pdf", MessageContentType.Document).copy(fileName = "plan.pdf")))
+        assertEquals("", noteBody(note("🖼 Фото", MessageContentType.Photo)))
+    }
+
     private fun note(text: String, type: MessageContentType = MessageContentType.Text) =
         ChatMessage(id = 1, chatId = 1, text = text, isOutgoing = true, timeLabel = "", contentType = type)
 
