@@ -69,6 +69,20 @@ class SmokeTest {
         // none of those, and LiveClientTest is its test instead.
         assumeTrue("the smoke test drives the demo client", BuildConfig.USE_DEMO_CLIENT)
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        // Every shard mixes phone, tablet and foldable tests. Start each
+        // test on the real phone display with gestures, and recreate the
+        // launcher so a tablet taskbar cannot leak into phone screenshots.
+        device.executeShellCommand("wm size reset")
+        device.executeShellCommand("wm density reset")
+        device.executeShellCommand(
+            "cmd overlay enable-exclusive --user current --category com.android.internal.systemui.navbar.gestural"
+        )
+        assertTrue(
+            "gesture navigation must be enabled for the phone screenshots",
+            device.executeShellCommand("cmd overlay list --user current")
+                .contains("[x] com.android.internal.systemui.navbar.gestural")
+        )
+        device.executeShellCommand("am force-stop ${device.launcherPackageName}")
         // Heads-up notifications off for the run, and this is the fix rather
         // than a convenience. The demo chat speaks every twenty-five seconds
         // and its heads-up lands across the app bar; UiAutomator finds the
@@ -95,7 +109,15 @@ class SmokeTest {
         // it, so the list is the list the rest were written against.
         setBirthdayCardHidden(true)
         device.pressHome()
+        assertTrue(
+            "the phone launcher did not return after resetting the display",
+            device.wait(Until.hasObject(By.pkg(device.launcherPackageName)), LAUNCH_TIMEOUT)
+        )
         launchApp()
+        assertTrue(
+            "a previous test left the phone with a tablet configuration",
+            InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.smallestScreenWidthDp < 600
+        )
     }
 
     /** The chat list's birthday card put away for today, or given back. */
