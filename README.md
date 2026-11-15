@@ -57,7 +57,8 @@ wallpaper.
 
 ## Latest: 2.9.4 · 15 November 2026
 
-Saved notes keep their text and attachment captions, without filenames or
+Typing avatars morph without clipped edges. Saved notes keep their text
+and attachment captions, without filenames or
 placeholder labels appearing as note text. Long search terms keep their full
 match in result snippets. See the [changelog](CHANGELOG.md).
 

@@ -167,19 +167,29 @@ fun cyclingShape(
 }
 
 /** One moment of a morph, turned by [degrees], scaled to whatever it clips. */
-private class MorphShape(
+internal class MorphShape(
     private val morph: Morph,
     private val progress: Float,
     private val degrees: Float
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
-        // The polygons live in the unit square; turned about its centre, then
-        // stretched to the avatar.
+        // A polygon fits the unit square at rest, but its corners can leave
+        // that square when rotated. Fit the rotated path about the same
+        // centre before mapping it to the avatar's clipping layer.
         val path = morph.toPath(progress)
         val matrix = android.graphics.Matrix().apply {
             setRotate(degrees, 0.5f, 0.5f)
-            postScale(size.width, size.height)
         }
+        path.transform(matrix)
+        val bounds = android.graphics.RectF()
+        path.computeBounds(bounds, true)
+        val reach = maxOf(
+            kotlin.math.abs(bounds.left - 0.5f), kotlin.math.abs(bounds.right - 0.5f),
+            kotlin.math.abs(bounds.top - 0.5f), kotlin.math.abs(bounds.bottom - 0.5f)
+        )
+        val fit = if (reach > 0.5f) 0.5f / reach else 1f
+        matrix.setScale(fit, fit, 0.5f, 0.5f)
+        matrix.postScale(size.width, size.height)
         path.transform(matrix)
         return Outline.Generic(path.asComposePath())
     }

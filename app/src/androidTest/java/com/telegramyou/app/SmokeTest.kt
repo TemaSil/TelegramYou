@@ -62,6 +62,40 @@ class SmokeTest {
 
     private lateinit var device: UiDevice
 
+    @Test
+    fun typingAvatarMorphsStayInsideTheirClippingLayer() {
+        // Exercise the real Android Path transformations, including each
+        // return-home morph. Unit-square normalization alone does not keep
+        // a rotating triangle or square inside the avatar's layer.
+        val count = com.telegramyou.app.ui.components.SHAPE_COUNT
+        for (start in 0 until count) {
+            val stops = List(4) { (start + it * 3) % count }
+            val pairs = stops.indices.map { stops[it] to stops[(it + 1) % stops.size] } +
+                stops.map { it to start }
+            for ((from, to) in pairs) {
+                val morph = androidx.graphics.shapes.Morph(
+                    com.telegramyou.app.ui.components.materialPolygon(from),
+                    com.telegramyou.app.ui.components.materialPolygon(to)
+                )
+                for (step in 0..4) for (degrees in 0 until 360 step 15) {
+                    val outline = com.telegramyou.app.ui.components.MorphShape(morph, step / 4f, degrees.toFloat())
+                        .createOutline(
+                            androidx.compose.ui.geometry.Size(96f, 96f),
+                            androidx.compose.ui.unit.LayoutDirection.Ltr,
+                            androidx.compose.ui.unit.Density(1f)
+                        ) as androidx.compose.ui.graphics.Outline.Generic
+                    val bounds = outline.path.getBounds()
+                    assertTrue(
+                        "morph $from to $to at $step/4 and $degrees degrees leaves its layer: $bounds",
+                        bounds.left >= -0.01f && bounds.top >= -0.01f &&
+                            bounds.right <= 96.01f && bounds.bottom <= 96.01f
+                    )
+                    assertTrue("the morph must remain visible", bounds.width > 0f && bounds.height > 0f)
+                }
+            }
+        }
+    }
+
     @Before
     fun launchFromCold() {
         // Every test here drives the demo backend — the code 12345, the

@@ -11,11 +11,13 @@ README.md.
 
 ## 2.9.4
 
-Fixes for saved notes and search:
+Fixes for avatars, saved notes and search:
 
 - **Saved notes keep their text.** Plain text such as "Photo" or "File" no longer disappears as if it were an attachment label.
 - **Attachment captions in notes follow the conversation's rules.** Written captions starting with an emoji stay visible; filenames and translated attachment descriptions no longer appear as note text.
 - **Long search terms keep their full match** in the result snippet, with the highlight confined to the displayed text.
+- **Typing avatars keep their whole outline** as they morph and turn; rotating corners no longer get cut off by the avatar bounds.
+
 
 ## 2.9.3
 
