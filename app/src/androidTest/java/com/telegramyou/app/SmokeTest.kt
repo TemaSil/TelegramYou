@@ -105,8 +105,10 @@ class SmokeTest {
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         // Every shard mixes phone, tablet and foldable tests. Start each
         // test on the real phone display with gestures, so a tablet taskbar
-        // cannot leak into phone screenshots. Do not force-stop the launcher:
-        // Android may then resolve Home to a fallback activity instead.
+        // cannot leak into phone screenshots. Launcher3 can retain its
+        // taskbar after the display returns to phone size; restart its real
+        // Home component explicitly, since pressing Home after force-stop
+        // can resolve to Android's fallback activity instead.
         device.executeShellCommand("wm size reset")
         device.executeShellCommand("wm density reset")
         device.executeShellCommand(
@@ -116,6 +118,15 @@ class SmokeTest {
             "gesture navigation must be enabled for the phone screenshots",
             device.executeShellCommand("cmd overlay list --user current")
                 .contains("[x] com.android.internal.systemui.navbar.gestural")
+        )
+        val home = device.executeShellCommand(
+            "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME"
+        ).lineSequence().lastOrNull { it.contains('/') }?.trim()
+            ?: error("the emulator has no Home activity")
+        val launcher = home.substringBefore('/')
+        device.executeShellCommand("am force-stop $launcher")
+        device.executeShellCommand(
+            "am start -W -n $home -a android.intent.action.MAIN -c android.intent.category.HOME"
         )
         // Heads-up notifications off for the run, and this is the fix rather
         // than a convenience. The demo chat speaks every twenty-five seconds
@@ -148,6 +159,10 @@ class SmokeTest {
         assertTrue(
             "a previous test left the phone with a tablet configuration",
             InstrumentationRegistry.getInstrumentation().targetContext.resources.configuration.smallestScreenWidthDp < 600
+        )
+        assertTrue(
+            "the launcher's tablet taskbar stayed on the phone",
+            device.wait(Until.gone(By.res(launcher, "taskbar_view")), STEP_TIMEOUT)
         )
     }
 
@@ -849,6 +864,8 @@ class SmokeTest {
         signIn()
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
+        tap(By.text("All"))
+        waitFor(By.text("Lina Park"), "the All folder before unfolding")
         val recording = recordScreen()
         try {
             SystemClock.sleep(VIDEO_BEAT)
@@ -920,6 +937,7 @@ class SmokeTest {
             // On its side: the whole list beside the chat.
             device.executeShellCommand("wm size 2208x1840")
             waitFor(By.text("Lina Park"), "the whole list on the unfolded phone on its side")
+            waitFor(By.selected(true).hasDescendant(By.text("All")), "the All folder still selected after turning")
             SystemClock.sleep(VIDEO_BEAT * 2)
 
             // Folded again: the chat comes along as a phone's screen.
@@ -3151,6 +3169,11 @@ class SmokeTest {
         waitFor(By.text("3 comments"), "the channel")
         val photo = By.desc(LONG_CAPTION)
         scrollBackTo(photo, "the photo with a long caption")
+        // The first visible sliver can sit behind the sticky date chip.
+        // Bring the picture below it before tapping, rather than opening
+        // the date picker at the sliver's centre.
+        device.findObject(By.scrollable(true))?.scroll(Direction.UP, 0.25f)
+        device.waitForIdle(IDLE_TIMEOUT)
         tap(photo)
         waitFor(By.desc("Close"), "the viewer")
         SystemClock.sleep(600)
@@ -4571,6 +4594,9 @@ class SmokeTest {
         waitFor(By.text("Material Design"), "the chat list")
         awaitNoHeadsUp()
         tap(By.text("Lina Park"))
+        val repository = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp)
+            .telegramRepository
+        val savedBefore = kotlinx.coroutines.runBlocking { repository.savedGifs().map { it.id }.toSet() }
         scrollBackTo(By.desc("GIF"), "the GIF")
         repeat(3) {
             if (device.hasObject(By.text("Add to GIFs"))) return@repeat
@@ -4581,7 +4607,16 @@ class SmokeTest {
             device.wait(Until.hasObject(By.text("Add to GIFs")), SHORT_WAIT)
         }
         tap(By.text("Add to GIFs"))
-        waitFor(By.text("Added to GIFs"), "the GIF kept")
+        // UiAutomator can spend the entire short snackbar lifetime waiting
+        // for an accessibility snapshot. Verify the lasting result of the
+        // menu action, including the saved animation itself.
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        var added = false
+        while (!added && SystemClock.uptimeMillis() < deadline) {
+            added = kotlinx.coroutines.runBlocking { repository.savedGifs().any { it.id !in savedBefore } }
+            if (!added) SystemClock.sleep(100)
+        }
+        assertTrue("the GIF was not added to saved GIFs", added)
         backTo(By.text("Material Design"), "the chat list")
     }
 

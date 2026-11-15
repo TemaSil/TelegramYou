@@ -18,6 +18,7 @@ Fixes for avatars, saved notes and search:
 - **Long search terms keep their full match** in the result snippet, with the highlight confined to the displayed text.
 - **Typing avatars keep their whole outline** as they morph and turn; rotating corners no longer get cut off by the avatar bounds.
 - **Android chat bubbles keep their notification when opened**, so the system does not remove the bubble immediately. Bubble intents also keep the account they belong to.
+- **The chat list restores the selected folder before accepting pager updates**, including when an unfolded phone returns from the avatar column to the full list.
 
 
 ## 2.9.3

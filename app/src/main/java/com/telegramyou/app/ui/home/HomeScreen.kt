@@ -530,6 +530,11 @@ fun HomeScreen(
             val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
             val scope = rememberCoroutineScope()
             LaunchedEffect(pager, tabs) {
+                // Home leaves composition while a narrow unfolded window
+                // shows only chat avatars. On returning, a restored pager
+                // page must follow the ViewModel's folder before reporting
+                // anything back to it, or it can select an old folder.
+                pager.scrollToPage(selectedIndex)
                 snapshotFlow { pager.settledPage }.collect { page ->
                     tabs.getOrNull(page)?.let { onFolderSelected(it.id) }
                 }
