@@ -110,7 +110,8 @@ The owner selected this milestone after a hands-on review of official Telegram:
 shared-media tabs inside a collapsing profile, remembered per-chat navigation
 positions, tile-to-viewer transitions from shared media, and double-tap zoom at
 the point touched. Implementation and validation are in progress; these are not
-yet marked as shipped. The second part of the review may refine the plan.
+yet marked as shipped. The owner is keeping 3.0 open for additional features
+from the second part of the review and explicitly asked not to release it yet.
 
 
 What is left after 2.0, in the order it seems worth doing. The owner's
