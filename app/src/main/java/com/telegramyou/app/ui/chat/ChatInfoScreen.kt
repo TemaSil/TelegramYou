@@ -4,6 +4,17 @@ import com.telegramyou.app.i18n.tr
 
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material3.TwoRowsTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.PrimaryScrollableTabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import com.telegramyou.app.telegram.model.SharedMediaKind
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.ui.platform.LocalContext
@@ -85,7 +96,7 @@ import kotlinx.coroutines.launch
  * already ship, down to the tonal colour that makes leaving read as the one
  * action on the screen to be careful with.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChatInfoScreen(
     detail: ChatDetail?,
@@ -138,7 +149,9 @@ fun ChatInfoScreen(
     report: ReportFlow? = null,
     onReport: () -> Unit = {},
     onReportAnswer: (String, String) -> Unit = { _, _ -> },
-    onReportDismissed: () -> Unit = {}
+    onReportDismissed: () -> Unit = {},
+    /** Shared components with the full media screen, including file and player actions. */
+    mediaContent: (@Composable (SharedMediaKind, Boolean) -> Unit)? = null
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -148,6 +161,9 @@ fun ChatInfoScreen(
     var confirmingRenew by rememberSaveable { mutableStateOf(false) }
     var confirmingDeleteMine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val kinds = SharedMediaKind.entries
+    val pager = rememberPagerState { kinds.size + 1 }
+    val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     if (confirmingRenew) {
         AlertDialog(
@@ -259,30 +275,82 @@ fun ChatInfoScreen(
     }
 
     Scaffold(
+        modifier = if (mediaContent != null) Modifier.nestedScroll(collapse.nestedScrollConnection) else Modifier,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            TopAppBar(
-                title = { Text(tr("Info", "Информация")) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Symbols.ArrowBack,
-                            contentDescription = tr("Back", "Назад")
+            if (mediaContent == null) {
+                TopAppBar(
+                    title = { Text(tr("Info", "Информация")) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
+                    }
+                )
+            } else Column {
+                // Material owns both rows, their crossfade and nested scroll.
+                // The compact row retains who this is while the grid is read.
+                TwoRowsTopAppBar(
+                    title = { expanded ->
+                        if (expanded) {
+                            com.telegramyou.app.ui.people.ProfileHeader(
+                                color = person?.user?.profileColor,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    Modifier.fillMaxWidth().padding(12.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    AvatarBubble(
+                                        title = chat?.title.orEmpty(), seed = chat?.avatarColor ?: 1,
+                                        size = 72.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath
+                                    )
+                                    com.telegramyou.app.ui.people.NameWithStatus(
+                                        name = chat?.title ?: tr("Info", "Информация"),
+                                        emojiStatusId = person?.user?.emojiStatusId,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        statusSize = 24.dp
+                                    )
+                                    detail?.memberCountLabel?.let {
+                                        Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+                            }
+                        } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            AvatarBubble(
+                                title = chat?.title.orEmpty(), seed = chat?.avatarColor ?: 1,
+                                size = 32.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath
+                            )
+                            Text(chat?.title ?: tr("Info", "Информация"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    },
+                    expandedHeight = 248.dp,
+                    navigationIcon = {
+                        IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
+                    },
+                    scrollBehavior = collapse
+                )
+                PrimaryScrollableTabRow(selectedTabIndex = pager.targetPage, edgePadding = 0.dp, minTabWidth = 72.dp) {
+                    for (index in 0..kinds.size) {
+                        Tab(
+                            selected = pager.targetPage == index,
+                            onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                            text = { Text(if (index == 0) tr("Info", "Информация") else kinds[index - 1].label) }
                         )
                     }
                 }
-            )
+            }
         }
     ) { padding ->
+        val info: @Composable () -> Unit = {
         // For geeks → Translate chats offers the switch below; see AutoTranslate.
         val translateOffered = com.telegramyou.app.settings.LocalGeekSettings.current.autoTranslate
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(if (mediaContent == null) padding else PaddingValues(0.dp)),
             contentPadding = PaddingValues(bottom = 32.dp)
         ) {
-            item {
+            if (mediaContent == null) item {
                 // On the person's own profile colour where they chose one,
                 // their emoji status after their name.
                 val profileColor = person?.user?.profileColor
@@ -644,6 +712,17 @@ fun ChatInfoScreen(
                 }
             }
 
+        }
+        }
+        if (mediaContent == null) info() else {
+            HorizontalPager(
+                state = pager,
+                key = { page -> if (page == 0) "info" else kinds[page - 1].name },
+                beyondViewportPageCount = 0,
+                modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
+            ) { page ->
+                if (page == 0) info() else mediaContent(kinds[page - 1], page == pager.currentPage)
+            }
         }
     }
 }

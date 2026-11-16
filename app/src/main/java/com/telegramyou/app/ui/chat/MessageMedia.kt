@@ -62,6 +62,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -78,6 +79,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.IntSize
@@ -92,7 +94,10 @@ import com.telegramyou.app.ui.media.Zoom
 import com.telegramyou.app.ui.media.dismissProgress
 import com.telegramyou.app.ui.media.shouldDismiss
 import com.telegramyou.app.ui.media.zoomAfterGesture
-import com.telegramyou.app.ui.media.zoomToggled
+import com.telegramyou.app.ui.media.zoomAtPoint
+import com.telegramyou.app.ui.motion.LocalReduceMotion
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 // What a bubble holds when it is more than words: photos and their viewer, videos, GIFs, round video messages, voice notes and their waveform.
 
@@ -134,9 +139,24 @@ fun PhotoPage(
     // being let go. Both are remembered per photo rather than hoisted: a
     // viewer that reopened at yesterday's zoom would be answering a question
     // nobody asked.
-    var zoom by remember { mutableStateOf(Zoom()) }
+    var zoom by remember(path) { mutableStateOf(Zoom()) }
+    var intrinsic by remember(path) { mutableStateOf(Size.Zero) }
+    var zoomAnimation by remember { mutableStateOf<Job?>(null) }
+    val zoomScope = rememberCoroutineScope()
+    val reduceMotion = LocalReduceMotion.current
     var dragY by remember { mutableFloatStateOf(0f) }
     var viewport by remember { mutableStateOf(IntSize.Zero) }
+    val fit = if (intrinsic.width > 0f && intrinsic.height > 0f) {
+        minOf(viewport.width / intrinsic.width, viewport.height / intrinsic.height)
+    } else 1f
+    val contentWidth = if (intrinsic.width > 0f) intrinsic.width * fit else viewport.width.toFloat()
+    val contentHeight = if (intrinsic.height > 0f) intrinsic.height * fit else viewport.height.toFloat()
+    // Rotation and a decoded image can change the letterboxing. Never keep
+    // an offset that was legal for the previous fitted dimensions.
+    LaunchedEffect(viewport, intrinsic) {
+        zoomAnimation?.cancel()
+        zoom = zoomAfterGesture(zoom, 1f, 0f, 0f, viewport.width.toFloat(), viewport.height.toFloat(), contentWidth, contentHeight)
+    }
 
     val progress = dismissProgress(dragY, viewport.height.toFloat())
     // The scrim thins and the photo shrinks together, so letting go halfway is
@@ -165,8 +185,18 @@ fun PhotoPage(
             model = path,
             contentDescription = if (!isMediaCaption(caption)) tr("Photo", "Фото") else caption,
             contentScale = ContentScale.Fit,
+            onSuccess = { loaded ->
+                intrinsic = Size(loaded.result.image.width.toFloat(), loaded.result.image.height.toFloat())
+            },
             modifier = Modifier
                 .fillMaxSize()
+                .semantics {
+                    stateDescription = when {
+                        intrinsic.width <= 0f -> tr("Loading image", "Загрузка изображения")
+                        zoom.isZoomed -> tr("Zoomed in", "Увеличено")
+                        else -> tr("Original size", "Исходный размер")
+                    }
+                }
                 .graphicsLayer {
                     scaleX = zoom.scale * dismissScale
                     scaleY = zoom.scale * dismissScale
@@ -176,13 +206,14 @@ fun PhotoPage(
                 // Pinch and drag, in one gesture detector because they are
                 // one gesture: two fingers scale, one pans, and which is
                 // happening changes mid-stroke.
-                .pointerInput(path) {
+                .pointerInput(path, contentWidth, contentHeight) {
                     // Two fingers always; one only once zoomed in. A
                     // single finger on a photo at rest is a swipe to the
                     // next in the gallery, and taking it here would stop
                     // the pager from ever seeing it.
                     awaitEachGesture {
                         awaitFirstDown(requireUnconsumed = false)
+                        zoomAnimation?.cancel()
                         do {
                             val event = awaitPointerEvent()
                             val fingers = event.changes.count { it.pressed }
@@ -194,7 +225,9 @@ fun PhotoPage(
                                     panX = pan.x,
                                     panY = pan.y,
                                     viewportWidth = size.width.toFloat(),
-                                    viewportHeight = size.height.toFloat()
+                                    viewportHeight = size.height.toFloat(),
+                                    contentWidth = contentWidth,
+                                    contentHeight = contentHeight
                                 )
                                 event.changes.forEach { if (it.positionChanged()) it.consume() }
                             }
@@ -218,14 +251,33 @@ fun PhotoPage(
                         onDragCancel = { dragY = 0f }
                     ) { _, delta -> dragY += delta }
                 }
-                .pointerInput(path) {
+                .pointerInput(path, contentWidth, contentHeight, reduceMotion) {
                     detectTapGestures(
                         // A tap on the photo closes it, as it always has.
                         // A tap while zoomed does not: the photo is being
                         // looked at, and a stray finger should not end
                         // that.
                         onTap = { if (onTap != null) onTap() else if (!zoom.isZoomed) onDismiss() },
-                        onDoubleTap = { zoom = zoomToggled(zoom) }
+                        onDoubleTap = { point ->
+                            zoomAnimation?.cancel()
+                            val from = zoom
+                            val target = zoomAtPoint(from, point.x, point.y, size.width.toFloat(), size.height.toFloat(), contentWidth, contentHeight)
+                            zoomAnimation = zoomScope.launch {
+                                if (!reduceMotion) {
+                                    animate(0f, 1f, animationSpec = settle) { fraction, _ ->
+                                        val p = fraction.coerceIn(0f, 1f)
+                                        zoom = zoomAfterGesture(
+                                            Zoom(
+                                                from.scale + (target.scale - from.scale) * p,
+                                                from.offsetX + (target.offsetX - from.offsetX) * p,
+                                                from.offsetY + (target.offsetY - from.offsetY) * p
+                                            ), 1f, 0f, 0f, size.width.toFloat(), size.height.toFloat(), contentWidth, contentHeight
+                                        )
+                                    }
+                                }
+                                zoom = target
+                            }
+                        }
                     )
                 }
         )

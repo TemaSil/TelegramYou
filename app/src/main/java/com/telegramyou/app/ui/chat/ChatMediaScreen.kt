@@ -25,6 +25,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,30 +113,36 @@ fun ChatMediaScreen(
     onPlayToggled: (ChatMessage) -> Unit = {},
     /** This chat's music being downloaded for offline, or null. */
     offline: OfflineProgress? = null,
-    onDownloadAll: () -> Unit = {}
+    onDownloadAll: () -> Unit = {},
+    /** A profile supplies its own app bar and tabs. */
+    embeddedKind: SharedMediaKind? = null,
+    active: Boolean = true
 ) {
-    val kinds = SharedMediaKind.entries
+    val kinds = embeddedKind?.let { listOf(it) } ?: SharedMediaKind.entries
     val pager = rememberPagerState { kinds.size }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val host = remember { SnackbarHostState() }
     // The tab in view asks for its first page; the others wait to be seen.
-    LaunchedEffect(pager.currentPage) { onTabShown(kinds[pager.currentPage]) }
-    state.fileToOpen?.let { file ->
+    LaunchedEffect(pager.currentPage, active) { if (active) onTabShown(kinds[pager.currentPage]) }
+    state.fileToOpen?.takeIf { active }?.let { file ->
         LaunchedEffect(file) {
             if (MediaActions.openFile(context, file.path, file.mime, file.name)) onFileOpened() else onFileRefused(file.name)
         }
     }
-    state.errorMessage?.let { message ->
+    state.errorMessage?.takeIf { active }?.let { message ->
         LaunchedEffect(message) {
             host.showSnackbar(message)
             onErrorShown()
         }
     }
+    val origins = remember { MediaOrigins() }
+    CompositionLocalProvider(LocalMediaOrigins provides origins) {
     Scaffold(
+        contentWindowInsets = if (embeddedKind != null) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
         snackbarHost = { SnackbarHost(host) },
         topBar = {
-            Column {
+            if (embeddedKind == null) Column {
                 TopAppBar(
                     title = {
                         Column {
@@ -172,6 +181,7 @@ fun ChatMediaScreen(
     ) { padding ->
         HorizontalPager(
             state = pager,
+            userScrollEnabled = embeddedKind == null,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -180,8 +190,21 @@ fun ChatMediaScreen(
         ) { page ->
             val kind = kinds[page]
             val tab = state.tab(kind)
+            val tabActive = active && page == pager.currentPage
+            val grid = rememberLazyGridState()
+            val list = rememberLazyListState()
+            val isGrid = kind == SharedMediaKind.Media || kind == SharedMediaKind.Gifs
+            val position = if (isGrid) grid.firstVisibleItemIndex else list.firstVisibleItemIndex
+            val prefix = if (kind == SharedMediaKind.Music) 1 else 0
+            // A saved deep position may need several network pages. Keep the
+            // loading surface until those items exist instead of measuring a
+            // short list and silently clamping away the restored position.
+            val restoring = tab.isLoaded && !tab.isComplete && tab.items.size + prefix <= position
+            LaunchedEffect(tabActive, restoring, tab.items.size, tab.isLoading) {
+                if (tabActive && restoring) onNearEnd(kind)
+            }
             when {
-                !tab.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                !tab.isLoaded || restoring -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
                 tab.items.isEmpty() -> Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -196,8 +219,7 @@ fun ChatMediaScreen(
                     )
                 }
                 kind == SharedMediaKind.Media || kind == SharedMediaKind.Gifs -> {
-                    val grid = rememberLazyGridState()
-                    NearEnd(grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { onNearEnd(kind) }
+                    NearEnd(grid.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { if (tabActive) onNearEnd(kind) }
                     LazyVerticalGrid(
                         state = grid,
                         columns = GridCells.Adaptive(minSize = 112.dp),
@@ -216,8 +238,7 @@ fun ChatMediaScreen(
                     }
                 }
                 else -> {
-                    val list = rememberLazyListState()
-                    NearEnd(list.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { onNearEnd(kind) }
+                    NearEnd(list.layoutInfo.visibleItemsInfo.lastOrNull()?.index, tab.items.size) { if (tabActive) onNearEnd(kind) }
                     LazyColumn(
                         state = list,
                         modifier = Modifier.fillMaxSize(),
@@ -276,7 +297,7 @@ fun ChatMediaScreen(
 
         // The conversation's gallery, not a second one: opened from the
         // grid, it pages through the grid's photos and videos the same way.
-        (viewingPhoto ?: viewingVideo)?.let { opened ->
+        (viewingPhoto ?: viewingVideo)?.takeIf { active }?.let { opened ->
             val media = state.tab(SharedMediaKind.Media).items + state.tab(SharedMediaKind.Gifs).items
             val gallery = remember(media, opened) { galleryOf(media, opened) }
             MediaGallery(
@@ -290,6 +311,7 @@ fun ChatMediaScreen(
                 }
             )
         }
+    }
     }
 }
 
@@ -540,6 +562,7 @@ internal fun MediaTile(
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = Modifier
             .aspectRatio(1f)
+            .mediaOrigin(message.id, corner = 0.dp)
             .clickable(onClick = onClick)
     ) {
         // A video tile is the poster with a play badge on it. Without the

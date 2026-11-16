@@ -190,7 +190,7 @@ fun MediaGallery(
             current?.let { origins?.get(it.id) }
         }
         val transition = MediaTransition(
-            origin = if (reduceMotion) null else target,
+            origin = if (reduceMotion) null else target?.bounds,
             aspect = current?.let(::aspectOf) ?: 1f,
             viewport = viewport
         )
@@ -210,7 +210,7 @@ fun MediaGallery(
                     .graphicsLayer {
                         val p = progress.value
                         clip = true
-                        shape = transition.clipShape(p, size, ORIGIN_CORNER.toPx())
+                        shape = transition.clipShape(p, size, target?.cornerPx ?: ORIGIN_CORNER.toPx())
                         // Nothing until the window has been measured: the
                         // first frame does not yet know where to start from.
                         alpha = if (viewport == null) 0f else transition.contentAlpha(p)

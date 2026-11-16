@@ -75,6 +75,9 @@ SHOWCASE = [
     ("129-two-panes", "Tablet, two panes"),
     ("130-two-panes-foldable", "Foldable, two panes"),
     ("144-saved-notes", "Saved Messages as notes"),
+    ("146-profile-info", "Chat profile"),
+    ("147-profile-media", "Media in a profile"),
+    ("148-profile-files", "Files in a profile"),
 ]
 
 WIDTH = 540

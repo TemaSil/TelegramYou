@@ -3863,6 +3863,90 @@ class SmokeTest {
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player under search")
     }
 
+    /** A profile keeps its tabs, gallery and position in one navigation entry (3.0). */
+    @Test
+    fun aProfileKeepsItsMediaTabWhenReopened() {
+        val photos = seedGallery(1)
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        awaitNoHeadsUp()
+        sharePhotos(photos, GROUP_CHAT_ID)
+        waitFor(By.desc("Attachments, 1"), "the profile test's photo")
+        type("Profile gallery regression")
+        tap(By.desc("Send"))
+        assertTrue("the test photo stayed in the composer", device.wait(Until.gone(By.descStartsWith("Attachments,")), STEP_TIMEOUT))
+        tapTopmost(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the profile information tab")
+        screenshot("146-profile-info")
+        // Scrolling the information collapses the stock top bar. Tabs must
+        // stay available without navigating to another screen.
+        scrollDownTo(By.text("Shared media"))
+        tap(By.text("Media"))
+        val photo = By.desc("Profile gallery regression")
+        waitFor(photo, "the photo in the profile's grid")
+        screenshot("147-profile-media")
+        val recording = recordScreen()
+        try {
+            tap(photo)
+            waitFor(By.desc("Close"), "the profile's media viewer")
+            assertEquals("more than one cached profile page opened a viewer", 1, device.findObjects(By.desc("Close")).size)
+            awaitPhotoScale("Profile gallery regression", "Original size")
+            val x = (device.displayWidth * 0.3f).toInt()
+            val y = device.displayHeight / 2
+            device.click(x, y)
+            device.click(x, y)
+            awaitPhotoScale("Profile gallery regression", "Zoomed in")
+            SystemClock.sleep(700)
+            screenshot("147b-profile-viewer-zoom")
+            device.click(x, y)
+            device.click(x, y)
+            awaitPhotoScale("Profile gallery regression", "Original size")
+            device.pressBack()
+            waitFor(photo, "the same profile grid after the viewer closes")
+        } finally {
+            stopRecording(recording, "150-profile-media")
+        }
+        tap(By.text("Files"))
+        waitFor(By.text("Expressive-guidelines.pdf"), "files inside the profile")
+        screenshot("148-profile-files")
+        device.setOrientationLeft()
+        waitFor(By.text("Expressive-guidelines.pdf"), "the profile tab after rotation")
+        device.setOrientationNatural()
+        waitFor(By.text("Expressive-guidelines.pdf"), "the profile tab upright again")
+        device.pressBack()
+        waitFor(GROUP_OPEN, "the conversation after leaving its profile")
+        tapTopmost(By.text(GROUP_CHAT))
+        waitFor(By.text("Expressive-guidelines.pdf"), "the restored profile files tab")
+        waitFor(By.selected(true).hasDescendant(By.text("Files")), "Files still selected in this profile")
+        screenshot("149-profile-restored")
+        device.pressBack()
+        backTo(By.text("Material Design"), "the chat list")
+        tap(By.text("Lina Park"))
+        waitFor(By.text("Message"), "Lina's conversation")
+        tapTopmost(By.text("Lina Park"))
+        waitFor(By.selected(true).hasDescendant(By.text("Info")), "another person's own profile state")
+        assertFalse("another chat inherited the group's media files", device.hasObject(By.text("Expressive-guidelines.pdf")))
+    }
+
+    /** Read the same image state TalkBack announces, not a pixel comparison. */
+    private fun awaitPhotoScale(caption: String, expected: String) {
+        if (Build.VERSION.SDK_INT < 30) return
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        fun contains(node: android.view.accessibility.AccessibilityNodeInfo?): Boolean {
+            if (node == null) return false
+            if (node.contentDescription?.toString() == caption && node.stateDescription?.toString() == expected) return true
+            return (0 until node.childCount).any { contains(node.getChild(it)) }
+        }
+        val deadline = SystemClock.uptimeMillis() + STEP_TIMEOUT
+        while (SystemClock.uptimeMillis() < deadline) {
+            if (Build.VERSION.SDK_INT >= 34) automation.clearCache()
+            if (contains(automation.rootInActiveWindow)) return
+            SystemClock.sleep(150)
+        }
+        screenshot("failed-photo-scale")
+        fail("the loaded photo never reached $expected")
+    }
+
     /**
      * A chat's shared media, a tab per kind: its files, one of them opened in
      * whatever the phone reads it with; its links; and a tab with nothing in

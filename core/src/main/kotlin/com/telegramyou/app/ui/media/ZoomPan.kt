@@ -34,9 +34,10 @@ const val MIN_SCALE = 1f
  * does it — and the arithmetic that prevents both is two lines that are easy
  * to write backwards.
  *
- * The bound is half the overhang: at scale s the content is s times the
- * viewport, so (s - 1) of a viewport sticks out, half on each side. Moving
- * further than that would show a gap.
+ * The bound is half the overhang of the scaled fitted image beyond the
+ * viewport. Passing the fitted dimensions keeps letterboxing fixed on an
+ * axis the image does not yet fill; callers without letterboxing may omit
+ * them. Moving further than the overhang would expose an image edge.
  */
 fun zoomAfterGesture(
     current: Zoom,
@@ -44,7 +45,9 @@ fun zoomAfterGesture(
     panX: Float,
     panY: Float,
     viewportWidth: Float,
-    viewportHeight: Float
+    viewportHeight: Float,
+    contentWidth: Float = viewportWidth,
+    contentHeight: Float = viewportHeight
 ): Zoom {
     val scale = (current.scale * scaleChange).coerceIn(MIN_SCALE, MAX_SCALE)
     // Snapping back to fully zoomed out drops the offset with it, rather than
@@ -52,14 +55,42 @@ fun zoomAfterGesture(
     if (scale <= MIN_SCALE) return Zoom()
     return Zoom(
         scale = scale,
-        offsetX = clampOffset(current.offsetX + panX, scale, viewportWidth),
-        offsetY = clampOffset(current.offsetY + panY, scale, viewportHeight)
+        offsetX = clampOffset(current.offsetX + panX, scale, viewportWidth, contentWidth),
+        offsetY = clampOffset(current.offsetY + panY, scale, viewportHeight, contentHeight)
     )
 }
 
 /** Double tap: all the way out if zoomed at all, otherwise part of the way in. */
 fun zoomToggled(current: Zoom): Zoom =
     if (current.isZoomed) Zoom() else Zoom(scale = DOUBLE_TAP_SCALE)
+
+/**
+ * Double tap around the point under the finger. The point stays under it
+ * unless an image edge would be exposed. Content dimensions are the fitted
+ * image, excluding letterboxing, before zoom is applied.
+ */
+fun zoomAtPoint(
+    current: Zoom,
+    x: Float,
+    y: Float,
+    viewportWidth: Float,
+    viewportHeight: Float,
+    contentWidth: Float = viewportWidth,
+    contentHeight: Float = viewportHeight
+): Zoom {
+    if (current.isZoomed) return Zoom()
+    if (viewportWidth <= 0f || viewportHeight <= 0f || contentWidth <= 0f || contentHeight <= 0f) return Zoom()
+    return zoomAfterGesture(
+        current = Zoom(),
+        scaleChange = DOUBLE_TAP_SCALE,
+        panX = (viewportWidth / 2f - x.coerceIn(0f, viewportWidth)) * (DOUBLE_TAP_SCALE - 1f),
+        panY = (viewportHeight / 2f - y.coerceIn(0f, viewportHeight)) * (DOUBLE_TAP_SCALE - 1f),
+        viewportWidth = viewportWidth,
+        viewportHeight = viewportHeight,
+        contentWidth = contentWidth,
+        contentHeight = contentHeight
+    )
+}
 
 /**
  * How far a vertical drag has taken the photo towards being dismissed, 0 to 1.
@@ -111,7 +142,7 @@ private const val CAPTION_PULL_FRACTION = 0.06f
  */
 private const val DISMISS_FRACTION = 0.2f
 
-private fun clampOffset(offset: Float, scale: Float, viewport: Float): Float {
-    val overhang = max(0f, viewport * (scale - 1f) / 2f)
+private fun clampOffset(offset: Float, scale: Float, viewport: Float, content: Float): Float {
+    val overhang = max(0f, (content * scale - viewport) / 2f)
     return offset.coerceIn(-overhang, overhang)
 }

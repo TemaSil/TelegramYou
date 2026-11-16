@@ -104,6 +104,15 @@ black, wallpapers and Less motion — Material 3 Expressive throughout.
 
 ## The plan
 
+### Current work — 3.0 profiles and media, 16 November 2026
+
+The owner selected this milestone after a hands-on review of official Telegram:
+shared-media tabs inside a collapsing profile, remembered per-chat navigation
+positions, tile-to-viewer transitions from shared media, and double-tap zoom at
+the point touched. Implementation and validation are in progress; these are not
+yet marked as shipped. The second part of the review may refine the plan.
+
+
 What is left after 2.0, in the order it seems worth doing. The owner's
 word on 7 October: close the base first — what the official client has —
 and leave the forks' extras for later.
@@ -112,8 +121,10 @@ and leave the forks' extras for later.
 
 By how soon they would notice, not by how hard it is.
 
-- [ ] **Calls — 3.0, the owner's word of 30 October 2026** (first set for
-      2.9, moved the same day; 2.9 is Saved Messages as notes). TDLib carries
+- [ ] **Calls — a future milestone.** Previously reserved for 3.0 by the
+      owner on 30 October 2026 (first set for 2.9, moved the same day).
+      On 16 November the owner chose profiles and media polish for 3.0;
+      calls remain planned separately. TDLib carries
       only the signalling; the voice and the picture need `tgcalls` and
       WebRTC, a second native stack built in CI as TDLib is. The screen in
       the manner of the Pixel's own dialer, in Material 3 Expressive —

@@ -27,6 +27,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.key
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -780,6 +781,72 @@ fun TelegramYouNavHost(
         }
     }
 
+    // A profile and the full media destination have identical download,
+    // player and viewer behavior. Only the surrounding app bar differs.
+    val mediaPane: @Composable (ChatViewModel, SharedMediaViewModel, SharedMediaKind?, Boolean, () -> Unit) -> Unit =
+        { chatViewModel, mediaViewModel, kind, active, back ->
+            val state by chatViewModel.uiState.collectAsStateWithLifecycle()
+            val media by mediaViewModel.uiState.collectAsStateWithLifecycle()
+            ChatMediaScreen(
+                title = state.detail?.chat?.title ?: media.title.ifBlank { tr("Media", "Медиа") },
+                state = media,
+                onTabShown = mediaViewModel::onTabShown,
+                onNearEnd = mediaViewModel::onNearEnd,
+                onFileTapped = mediaViewModel::onFileTapped,
+                onFileOpened = mediaViewModel::onFileOpened,
+                onFileRefused = mediaViewModel::onFileRefused,
+                onErrorShown = mediaViewModel::onErrorShown,
+                // The chat's own player for now: one voice note or track at
+                // a time, the same as in the conversation.
+                // A round video message opens in the player; a voice note or
+                // a track plays in place.
+                onPlayToggled = { message ->
+                    val musicTab = media.tab(SharedMediaKind.Music)
+                    when {
+                        message.contentType == MessageContentType.VideoNote -> chatViewModel.onVideoOpened(message)
+                        // The tab's tracks are the queue, as far as they are
+                        // loaded; the player pages in the rest itself.
+                        message.audio != null -> playTrack(
+                            message,
+                            state.detail?.chat?.title ?: media.title,
+                            musicTab.items,
+                            musicTab.isComplete
+                        )
+                        else -> chatViewModel.onVoiceToggled(message)
+                    }
+                },
+                playingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isPlaying } ?: state.playingVoiceId,
+                loadingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isLoading } ?: state.loadingVoiceId,
+                progress = if (nowPlaying.track != null && nowPlaying.isPlaying) nowPlaying.progress else state.voiceProgress,
+                offline = nowPlaying.offline?.takeIf { it.chatId == state.detail?.chat?.id },
+                onDownloadAll = { state.detail?.chat?.id?.let { music?.downloadChat(it) } },
+                // In a bubble the chat has nothing under it: the arrow folds
+                // the bubble, as Back does (2.1).
+                onBack = back,
+                // One entry point, two kinds of thing behind it: the grid
+                // holds photos and videos alike, and which viewer opens is
+                // the message's business rather than the tile's.
+                onOpen = { message ->
+                    if (message.video != null) {
+                        chatViewModel.onVideoOpened(message)
+                    } else {
+                        chatViewModel.onPhotoOpened(message)
+                    }
+                },
+                viewingPhoto = state.viewingPhoto,
+                onPhotoClosed = chatViewModel::onPhotoClosed,
+                viewingVideo = state.viewingVideo,
+                onVideoClosed = chatViewModel::onVideoClosed,
+                transfers = state.transfers,
+                onGalleryPage = chatViewModel::onGalleryPage,
+                embeddedKind = kind,
+                active = active
+            )
+        }
+    // Account-scoped with this graph. Retain small UI positions across a
+    // trip back to a chat, without retaining repositories or loaded files.
+    val profilePositions = rememberSaveableStateHolder()
+
     NavHost(
         navController = navController,
         startDestination = Route.Auth.PATTERN,
@@ -1441,62 +1508,10 @@ fun TelegramYouNavHost(
             arguments = Route.ChatMedia.arguments
         ) {
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
-            val state by chatViewModel.uiState.collectAsStateWithLifecycle()
             val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
-            val media by mediaViewModel.uiState.collectAsStateWithLifecycle()
-            ChatMediaScreen(
-                title = state.detail?.chat?.title ?: media.title.ifBlank { tr("Media", "Медиа") },
-                state = media,
-                onTabShown = mediaViewModel::onTabShown,
-                onNearEnd = mediaViewModel::onNearEnd,
-                onFileTapped = mediaViewModel::onFileTapped,
-                onFileOpened = mediaViewModel::onFileOpened,
-                onFileRefused = mediaViewModel::onFileRefused,
-                onErrorShown = mediaViewModel::onErrorShown,
-                // The chat's own player for now: one voice note or track at
-                // a time, the same as in the conversation.
-                // A round video message opens in the player; a voice note or
-                // a track plays in place.
-                onPlayToggled = { message ->
-                    val musicTab = media.tab(SharedMediaKind.Music)
-                    when {
-                        message.contentType == MessageContentType.VideoNote -> chatViewModel.onVideoOpened(message)
-                        // The tab's tracks are the queue, as far as they are
-                        // loaded; the player pages in the rest itself.
-                        message.audio != null -> playTrack(
-                            message,
-                            state.detail?.chat?.title ?: media.title,
-                            musicTab.items,
-                            musicTab.isComplete
-                        )
-                        else -> chatViewModel.onVoiceToggled(message)
-                    }
-                },
-                playingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isPlaying } ?: state.playingVoiceId,
-                loadingId = nowPlaying.track?.messageId?.takeIf { nowPlaying.isLoading } ?: state.loadingVoiceId,
-                progress = if (nowPlaying.track != null && nowPlaying.isPlaying) nowPlaying.progress else state.voiceProgress,
-                offline = nowPlaying.offline?.takeIf { it.chatId == state.detail?.chat?.id },
-                onDownloadAll = { state.detail?.chat?.id?.let { music?.downloadChat(it) } },
-                // In a bubble the chat has nothing under it: the arrow folds
-                // the bubble, as Back does (2.1).
-                onBack = { if (!navController.popBackStack()) navController.context.findActivity()?.finish() },
-                // One entry point, two kinds of thing behind it: the grid
-                // holds photos and videos alike, and which viewer opens is
-                // the message's business rather than the tile's.
-                onOpen = { message ->
-                    if (message.video != null) {
-                        chatViewModel.onVideoOpened(message)
-                    } else {
-                        chatViewModel.onPhotoOpened(message)
-                    }
-                },
-                viewingPhoto = state.viewingPhoto,
-                onPhotoClosed = chatViewModel::onPhotoClosed,
-                viewingVideo = state.viewingVideo,
-                onVideoClosed = chatViewModel::onVideoClosed,
-                transfers = state.transfers,
-                onGalleryPage = chatViewModel::onGalleryPage
-            )
+            mediaPane(chatViewModel, mediaViewModel, null, true) {
+                if (!navController.popBackStack()) navController.context.findActivity()?.finish()
+            }
         }
 
         composable(route = Route.GroupPermissions.PATTERN, arguments = Route.GroupPermissions.arguments) {
@@ -1588,7 +1603,7 @@ fun TelegramYouNavHost(
         composable(
             route = Route.ChatInfo.PATTERN,
             arguments = Route.ChatInfo.arguments
-        ) {
+        ) { profileEntry ->
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
             val state by chatViewModel.uiState.collectAsStateWithLifecycle()
             // On every visit: an invite link can be revoked, and a member can
@@ -1618,7 +1633,13 @@ fun TelegramYouNavHost(
                     groupViewModel.loadJoinRequests()
                 }
             }
+            val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
+            val profileChatId = profileEntry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
+            profilePositions.SaveableStateProvider(profileChatId) {
             ChatInfoScreen(
+                mediaContent = { kind, active ->
+                    mediaPane(chatViewModel, mediaViewModel, kind, active) { navController.popBackStack() }
+                },
                 report = state.report,
                 onReport = chatViewModel::onReportChat,
                 onReportAnswer = { option, text -> chatViewModel.onReportAnswer(option, text) },
@@ -1670,6 +1691,7 @@ fun TelegramYouNavHost(
                 notice = state.notice,
                 onNoticeShown = chatViewModel::onNoticeShown
             )
+        }
         }
 
         composable(

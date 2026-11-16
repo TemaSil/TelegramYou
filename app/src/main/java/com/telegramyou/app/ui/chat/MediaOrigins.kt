@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 
 /**
@@ -28,13 +32,15 @@ import androidx.compose.ui.unit.toSize
  * gallery is a dialog — a window of its own — and screen coordinates are
  * the ones the two share.
  */
+data class MediaOrigin(val bounds: Rect, val cornerPx: Float)
+
 class MediaOrigins {
-    private val bounds = HashMap<Long, Rect>()
+    private val bounds = HashMap<Long, MediaOrigin>()
 
-    operator fun get(messageId: Long): Rect? = bounds[messageId]
+    operator fun get(messageId: Long): MediaOrigin? = bounds[messageId]
 
-    internal fun put(messageId: Long, rect: Rect) {
-        bounds[messageId] = rect
+    internal fun put(messageId: Long, rect: Rect, cornerPx: Float) {
+        bounds[messageId] = MediaOrigin(rect, cornerPx)
     }
 
     internal fun remove(messageId: Long) {
@@ -42,7 +48,7 @@ class MediaOrigins {
     }
 }
 
-/** The open chat's [MediaOrigins]; null outside a conversation. */
+/** The current conversation or shared-media page's [MediaOrigins]. */
 val LocalMediaOrigins = staticCompositionLocalOf<MediaOrigins?> { null }
 
 /**
@@ -51,14 +57,22 @@ val LocalMediaOrigins = staticCompositionLocalOf<MediaOrigins?> { null }
  * place with it, and the gallery then closes into a fade instead.
  */
 @Composable
-internal fun Modifier.mediaOrigin(messageId: Long?): Modifier {
+internal fun Modifier.mediaOrigin(messageId: Long?, corner: Dp = 16.dp): Modifier {
     val origins = LocalMediaOrigins.current
     if (origins == null || messageId == null) return this
+    val cornerPx = with(LocalDensity.current) { corner.toPx() }
     DisposableEffect(origins, messageId) {
         onDispose { origins.remove(messageId) }
     }
     return onGloballyPositioned { coordinates ->
-        origins.put(messageId, Rect(coordinates.positionOnScreen(), coordinates.size.toSize()))
+        val visible = coordinates.boundsInWindow()
+        // Lazy containers also compose prefetched and partly clipped items.
+        // A transition must not fly behind a toolbar or into an offscreen cell.
+        if (visible.width + 0.5f < coordinates.size.width || visible.height + 0.5f < coordinates.size.height) {
+            origins.remove(messageId)
+        } else {
+            origins.put(messageId, Rect(coordinates.positionOnScreen(), coordinates.size.toSize()), cornerPx)
+        }
     }
 }
 

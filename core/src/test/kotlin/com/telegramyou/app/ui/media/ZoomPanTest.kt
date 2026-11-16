@@ -88,6 +88,35 @@ class ZoomPanTest {
     }
 
     @Test
+    fun `double tap keeps the tapped image point under the finger`() {
+        val x = 250f
+        val y = 600f
+        val result = zoomAtPoint(Zoom(), x, y, width, height)
+        assertEquals(x, width / 2 + (x - width / 2) * result.scale + result.offsetX, 0.001f)
+        assertEquals(y, height / 2 + (y - height / 2) * result.scale + result.offsetY, 0.001f)
+        assertEquals(Zoom(), zoomAtPoint(result, x, y, width, height))
+    }
+
+    @Test
+    fun `a letterboxed panorama stays centred until it fills an axis`() {
+        val result = zoomAtPoint(Zoom(), 0f, 0f, width, height, width, 300f)
+        assertEquals(750f, result.offsetX, 0.001f)
+        assertEquals(0f, result.offsetY, 0f)
+        val panned = zoomAfterGesture(result, 1f, 90_000f, -90_000f, width, height, width, 300f)
+        assertEquals(750f, panned.offsetX, 0.001f)
+        assertEquals(0f, panned.offsetY, 0f)
+    }
+
+    @Test
+    fun `a portrait is bounded by its fitted width and recentred on zoom out`() {
+        val result = zoomAtPoint(Zoom(), width, height, width, height, 500f, height)
+        assertEquals(-125f, result.offsetX, 0.001f)
+        assertEquals(-1500f, result.offsetY, 0.001f)
+        assertEquals(Zoom(), zoomAfterGesture(result, 0.1f, 0f, 0f, width, height, 500f, height))
+        assertEquals(Zoom(), zoomAtPoint(Zoom(), 10f, 10f, 0f, 0f))
+    }
+
+    @Test
     fun `a short drag is only part of the way to dismissing`() {
         // A fifth of the height is the whole gesture, so a tenth is half.
         assertEquals(0.5f, dismissProgress(200f, height), 0.001f)

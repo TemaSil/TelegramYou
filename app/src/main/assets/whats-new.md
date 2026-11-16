@@ -1,7 +1,6 @@
-# Smoother avatars and clearer saved notes
-- Text notes keep words like Photo and File
-- Captions starting with an emoji stay visible in saved notes
-- Filenames and attachment labels stay out of note text
-- Long search terms keep their full match in search results
-- Typing avatars keep their whole shape as they morph and turn
-- Android chat bubbles keep their supporting notification when opened
+# Profiles bring your shared media closer
+- Photos, files and music live in tabs inside each chat profile
+- The profile header folds away while you browse
+- Returning to a profile restores its tab and position
+- Photos open out of their tiles in shared media
+- Double tap zooms around the place you touched

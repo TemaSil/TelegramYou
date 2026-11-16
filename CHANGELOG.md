@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 3.0 (in development)
+
+- **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.
+- **A profile remembers its place** when returning from a conversation, separately for each chat and account. Saved deep media positions load enough pages before showing the grid again.
+- **Shared media opens out of its own tile**, with the tile's square corners, and returns to an available visible tile on closing. An offscreen source falls back to a fade.
+- **Double-tap zoom follows the point touched**, animates on the theme's motion scheme, and bounds panning by the fitted image rather than by letterboxing. Less motion skips the zoom animation.
+
 ## 2.9.4
 
 Fixes for avatars, saved notes and search:
