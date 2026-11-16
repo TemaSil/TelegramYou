@@ -3881,6 +3881,8 @@ class SmokeTest {
         // Scrolling the information collapses the stock top bar. Tabs must
         // stay available without navigating to another screen.
         scrollDownTo(By.text("Shared media"))
+        device.swipe(device.displayWidth / 2, device.displayHeight * 3 / 4,
+            device.displayWidth / 2, device.displayHeight / 2, 20)
         tap(By.text("Media"))
         val photo = By.desc("Profile gallery regression")
         waitFor(photo, "the photo in the profile's grid")
@@ -3893,13 +3895,11 @@ class SmokeTest {
             awaitPhotoScale("Profile gallery regression", "Original size")
             val x = (device.displayWidth * 0.3f).toInt()
             val y = device.displayHeight / 2
-            device.click(x, y)
-            device.click(x, y)
+            doubleTapAt(x, y)
             awaitPhotoScale("Profile gallery regression", "Zoomed in")
             SystemClock.sleep(700)
             screenshot("147b-profile-viewer-zoom")
-            device.click(x, y)
-            device.click(x, y)
+            doubleTapAt(x, y)
             awaitPhotoScale("Profile gallery regression", "Original size")
             device.pressBack()
             waitFor(photo, "the same profile grid after the viewer closes")
@@ -3926,6 +3926,13 @@ class SmokeTest {
         tapTopmost(By.text("Lina Park"))
         waitFor(By.selected(true).hasDescendant(By.text("Info")), "another person's own profile state")
         assertFalse("another chat inherited the group's media files", device.hasObject(By.text("Expressive-guidelines.pdf")))
+    }
+
+    /** Android rejects a second down before its minimum double-tap interval. */
+    private fun doubleTapAt(x: Int, y: Int) {
+        assertTrue(device.click(x, y))
+        SystemClock.sleep(80)
+        assertTrue(device.click(x, y))
     }
 
     /** Read the same image state TalkBack announces, not a pixel comparison. */
