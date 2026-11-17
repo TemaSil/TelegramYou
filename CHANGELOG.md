@@ -11,6 +11,14 @@ README.md.
 
 ## 3.0 (in development)
 
+- **Common groups are a tap from a contact's info.** The server's full list pages as it is read; a group opens above it, preserving the way back to the contact.
+- **Search photos, videos and files across chats.** Media and Files use server filters and page through all results. A result opens its original message, including its forum topic; returning keeps the query and category.
+- **Your own profile folds into a compact Material header** as the details scroll, with QR and the menu still reachable and space reserved for larger system text.
+- **Video scrubbing previews its destination.** A Material card shows the target time and, for an available local video on Android 8.1+, a bounded preview frame. Streaming keeps a time preview without fetching the whole video for thumbnails.
+- **Long captions open in a full-screen editor.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
+- **Forum topics keep their chosen emoji icons**, in the topic list and conversation header, with Material fallback icons when none is set.
+- **Connecting is visible on Home.** The title follows the backend connection state and opens proxies when tapped while connecting. The proxy app bar uses the page's background in either theme.
+
 - **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.
 - **A profile remembers its place** when returning from a conversation, separately for each chat and account. Saved deep media positions load enough pages before showing the grid again.
 - **Shared media opens out of its own tile**, with the tile's square corners, and returns to an available visible tile on closing. An offscreen source falls back to a fade.

@@ -202,6 +202,14 @@ sealed interface Route {
         }
     }
 
+    data class CommonGroups(val userId: Long) : Route {
+        override val path = "person/$userId/groups"
+        companion object {
+            const val PATTERN = "person/{${Person.ARG_USER_ID}}/groups"
+            val arguments = Person.arguments
+        }
+    }
+
     /** Getting into somebody else's chat through its invite link. */
     data object JoinLink : Route {
         const val PATTERN = "join"

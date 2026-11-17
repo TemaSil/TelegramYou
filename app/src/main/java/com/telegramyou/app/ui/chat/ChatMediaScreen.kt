@@ -61,6 +61,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
@@ -116,7 +117,9 @@ fun ChatMediaScreen(
     onDownloadAll: () -> Unit = {},
     /** A profile supplies its own app bar and tabs. */
     embeddedKind: SharedMediaKind? = null,
-    active: Boolean = true
+    active: Boolean = true,
+    initialPosition: Pair<Int, Int> = 0 to 0,
+    onPositionChanged: (Pair<Int, Int>) -> Unit = {}
 ) {
     val kinds = embeddedKind?.let { listOf(it) } ?: SharedMediaKind.entries
     val pager = rememberPagerState { kinds.size }
@@ -191,9 +194,17 @@ fun ChatMediaScreen(
             val kind = kinds[page]
             val tab = state.tab(kind)
             val tabActive = active && page == pager.currentPage
-            val grid = rememberLazyGridState()
-            val list = rememberLazyListState()
+            val grid = rememberLazyGridState(initialPosition.first, initialPosition.second)
+            val list = rememberLazyListState(initialPosition.first, initialPosition.second)
             val isGrid = kind == SharedMediaKind.Media || kind == SharedMediaKind.Gifs
+            LaunchedEffect(tabActive, grid, list) {
+                if (tabActive && embeddedKind != null) {
+                    snapshotFlow {
+                        if (isGrid) grid.firstVisibleItemIndex to grid.firstVisibleItemScrollOffset
+                        else list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset
+                    }.collect { onPositionChanged(it) }
+                }
+            }
             val position = if (isGrid) grid.firstVisibleItemIndex else list.firstVisibleItemIndex
             val prefix = if (kind == SharedMediaKind.Music) 1 else 0
             // A saved deep position may need several network pages. Keep the

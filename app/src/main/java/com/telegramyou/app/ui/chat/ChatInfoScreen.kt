@@ -63,6 +63,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.telegramyou.app.ui.common.rememberTextCopier
@@ -151,7 +153,12 @@ fun ChatInfoScreen(
     onReportAnswer: (String, String) -> Unit = { _, _ -> },
     onReportDismissed: () -> Unit = {},
     /** Shared components with the full media screen, including file and player actions. */
-    mediaContent: (@Composable (SharedMediaKind, Boolean) -> Unit)? = null
+    mediaContent: (@Composable (SharedMediaKind, Boolean) -> Unit)? = null,
+    initialPage: Int = 0,
+    onPageChanged: (Int) -> Unit = {},
+    initialInfoPosition: Pair<Int, Int> = 0 to 0,
+    onInfoPositionChanged: (Pair<Int, Int>) -> Unit = {},
+    onOpenCommonGroups: (Long) -> Unit = {}
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -162,7 +169,15 @@ fun ChatInfoScreen(
     var confirmingDeleteMine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val kinds = SharedMediaKind.entries
-    val pager = rememberPagerState { kinds.size + 1 }
+    val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, kinds.size)) { kinds.size + 1 }
+    val infoList = rememberLazyListState(initialInfoPosition.first, initialInfoPosition.second)
+    LaunchedEffect(pager) {
+        snapshotFlow { pager.targetPage }.collect { onPageChanged(it) }
+    }
+    LaunchedEffect(infoList) {
+        snapshotFlow { infoList.firstVisibleItemIndex to infoList.firstVisibleItemScrollOffset }
+            .collect { onInfoPositionChanged(it) }
+    }
     val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     if (confirmingRenew) {
@@ -323,7 +338,10 @@ fun ChatInfoScreen(
                             Text(chat?.title ?: tr("Info", "Информация"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     },
-                    expandedHeight = 248.dp,
+                    expandedHeight = 200.dp + with(androidx.compose.ui.platform.LocalDensity.current) {
+                        (MaterialTheme.typography.headlineSmall.lineHeight * 2).toDp() +
+                            MaterialTheme.typography.bodyMedium.lineHeight.toDp()
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                     },
@@ -345,6 +363,7 @@ fun ChatInfoScreen(
         // For geeks → Translate chats offers the switch below; see AutoTranslate.
         val translateOffered = com.telegramyou.app.settings.LocalGeekSettings.current.autoTranslate
         LazyColumn(
+            state = infoList,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(if (mediaContent == null) padding else PaddingValues(0.dp)),
@@ -402,6 +421,9 @@ fun ChatInfoScreen(
                 personRows(profile) { what, text ->
                     copyToClipboard(text)
                     scope.launch { snackbarHostState.showSnackbar(tr("$what copied", "$what: скопировано")) }
+                }
+                item(key = "common-groups") {
+                    com.telegramyou.app.ui.people.CommonGroupsRow(profile) { onOpenCommonGroups(profile.user.id) }
                 }
             }
 

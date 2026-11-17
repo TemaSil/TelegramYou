@@ -24,6 +24,13 @@ import kotlinx.coroutines.flow.StateFlow
 
 /** What can be done to a message once a conversation is open. */
 interface TelegramMessages {
+    /** Server-filtered, paged results, never a local filter of a short text search. */
+    suspend fun searchMedia(
+        query: String,
+        kind: com.telegramyou.app.telegram.model.MediaSearchKind,
+        cursor: String = "",
+        limit: Int = 40
+    ): com.telegramyou.app.telegram.model.MediaSearchPage = com.telegramyou.app.telegram.model.MediaSearchPage(emptyList())
     /**
      * Messages as they arrive, from every chat.
      *

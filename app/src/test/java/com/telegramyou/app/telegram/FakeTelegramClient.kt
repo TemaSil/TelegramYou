@@ -57,6 +57,28 @@ class FakeTelegramClient(
     private val searchableMessages: List<MessageHit> = emptyList()
 ) : TelegramClient {
 
+    val mutableConnection = MutableStateFlow(true)
+    override val isConnected: StateFlow<Boolean> = mutableConnection
+    val commonGroupPages = mutableListOf<com.telegramyou.app.telegram.model.CommonGroupsPage>()
+    val commonGroupCalls = mutableListOf<Pair<Long, Long>>()
+    var commonGroupFailure: Exception? = null
+    override suspend fun commonGroups(userId: Long, offsetChatId: Long, limit: Int): com.telegramyou.app.telegram.model.CommonGroupsPage {
+        commonGroupCalls += userId to offsetChatId
+        commonGroupFailure?.let { throw it }
+        return if (commonGroupPages.isEmpty()) com.telegramyou.app.telegram.model.CommonGroupsPage(emptyList()) else commonGroupPages.removeAt(0)
+    }
+
+    val mediaSearchCalls = mutableListOf<Triple<String, com.telegramyou.app.telegram.model.MediaSearchKind, String>>()
+    val mediaSearchPages = mutableListOf<com.telegramyou.app.telegram.model.MediaSearchPage>()
+    var mediaSearchFailure: Exception? = null
+    var mediaSearchReply: (suspend (String, com.telegramyou.app.telegram.model.MediaSearchKind, String) -> com.telegramyou.app.telegram.model.MediaSearchPage)? = null
+    override suspend fun searchMedia(query: String, kind: com.telegramyou.app.telegram.model.MediaSearchKind, cursor: String, limit: Int): com.telegramyou.app.telegram.model.MediaSearchPage {
+        mediaSearchCalls += Triple(query, kind, cursor)
+        mediaSearchFailure?.let { throw it }
+        return mediaSearchReply?.invoke(query, kind, cursor)
+            ?: if (mediaSearchPages.isEmpty()) com.telegramyou.app.telegram.model.MediaSearchPage(emptyList()) else mediaSearchPages.removeAt(0)
+    }
+
     var openChatCount = 0
         private set
     var loadOlderCount = 0

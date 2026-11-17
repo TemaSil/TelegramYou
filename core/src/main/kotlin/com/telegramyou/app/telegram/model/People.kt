@@ -15,7 +15,15 @@ data class PersonProfile(
     val isContact: Boolean,
     /** On this account's block list: they cannot write here or call. */
     val isBlocked: Boolean,
-    val isBot: Boolean = false
+    val isBot: Boolean = false,
+    val commonGroupCount: Int? = null
+)
+
+/** A server page, whose cursor also advances past chats no longer available. */
+data class CommonGroupsPage(
+    val groups: List<ChatPreview>,
+    val nextOffset: Long? = null,
+    val totalCount: Int? = null
 )
 
 /**

@@ -20,6 +20,8 @@ enum class SearchScope(private val labelEn: String, private val labelRu: String)
     Posts("Posts", "Публикации"),
     /** Tracks from every chat, by title and performer. */
     Music("Music", "Музыка"),
+    Media("Media", "Медиа"),
+    Files("Files", "Файлы"),
     Channels("Channels", "Каналы"),
     Groups("Groups", "Группы"),
     Bots("Bots", "Боты");
@@ -34,14 +36,26 @@ enum class SearchScope(private val labelEn: String, private val labelRu: String)
         Groups -> chat.isGroup
         Channels -> chat.isChannel
         Bots -> chat.isBot
-        Messages, Posts, Music -> false
+        Messages, Posts, Music, Media, Files -> false
     }
 
-    val showsChats: Boolean get() = this != Messages && this != Posts && this != Music
+    val showsChats: Boolean get() = this != Messages && this != Posts && this != Music && !showsMedia
     val showsMessages: Boolean get() = this == All || this == Messages
     val showsPosts: Boolean get() = this == Posts
     val showsMusic: Boolean get() = this == Music
+    val showsMedia: Boolean get() = this == Media || this == Files
+    val mediaKind: MediaSearchKind get() = if (this == Files) MediaSearchKind.Files else MediaSearchKind.Media
 }
+
+enum class MediaSearchKind {
+    Media, Files;
+    fun admits(type: MessageContentType): Boolean = when (this) {
+        Media -> type == MessageContentType.Photo || type == MessageContentType.Video
+        Files -> type == MessageContentType.Document
+    }
+}
+
+data class MediaSearchPage(val items: List<MessageHit>, val nextOffset: String? = null)
 
 /**
  * Chats found by name: the ones this account is in first, then public ones

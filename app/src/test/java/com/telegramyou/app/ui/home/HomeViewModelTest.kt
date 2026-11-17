@@ -33,6 +33,79 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
+    @Test
+    fun `home follows connection loss and recovery without replacing its chats`() = runTest {
+        val (vm, client) = viewModel()
+        client.setChats(listOf(chat(1, "Lina")))
+        advanceUntilIdle()
+        client.mutableConnection.value = false
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.isConnected)
+        assertEquals("Lina", vm.uiState.value.chats.single().title)
+        client.mutableConnection.value = true
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.isConnected)
+    }
+
+    @Test
+    fun `media search pages on the server and keeps equal message ids from different chats`() = runTest {
+        val (vm, client) = viewModel()
+        val first = MessageHit(chat(1, "One"), message(7, "photo"))
+        val second = MessageHit(chat(2, "Two"), message(7, "another photo"))
+        client.mediaSearchPages += com.telegramyou.app.telegram.model.MediaSearchPage(listOf(first), "older")
+        client.mediaSearchPages += com.telegramyou.app.telegram.model.MediaSearchPage(listOf(first, second))
+        vm.onSearchQueryChange("photo")
+        vm.onSearchScopeChange(com.telegramyou.app.telegram.model.SearchScope.Media)
+        advanceUntilIdle()
+        vm.onMediaSearchNearEnd()
+        vm.onMediaSearchNearEnd()
+        advanceUntilIdle()
+        assertEquals(listOf("", "older"), client.mediaSearchCalls.map { it.third })
+        val state = vm.uiState.value.search.media.getValue(com.telegramyou.app.telegram.model.MediaSearchKind.Media)
+        assertEquals(listOf(first, second), state.items)
+        assertNull(state.nextOffset)
+    }
+
+    @Test
+    fun `retrying a failed media page keeps the previous hits and cursor`() = runTest {
+        val (vm, client) = viewModel()
+        val hit = MessageHit(chat(1, "One"), message(7, "paper.pdf"))
+        val kind = com.telegramyou.app.telegram.model.MediaSearchKind.Files
+        client.mediaSearchPages += com.telegramyou.app.telegram.model.MediaSearchPage(listOf(hit), "page2")
+        vm.onSearchQueryChange("paper")
+        vm.onSearchScopeChange(com.telegramyou.app.telegram.model.SearchScope.Files)
+        advanceUntilIdle()
+        client.mediaSearchFailure = IllegalStateException("offline")
+        vm.onMediaSearchNearEnd()
+        advanceUntilIdle()
+        assertEquals(listOf(hit), vm.uiState.value.search.media.getValue(kind).items)
+        assertTrue(vm.uiState.value.search.media.getValue(kind).error != null)
+        client.mediaSearchFailure = null
+        client.mediaSearchPages += com.telegramyou.app.telegram.model.MediaSearchPage(emptyList())
+        vm.onMediaSearchRetry()
+        advanceUntilIdle()
+        assertEquals(listOf("", "page2", "page2"), client.mediaSearchCalls.map { it.third })
+        assertNull(vm.uiState.value.search.media.getValue(kind).error)
+    }
+
+    @Test
+    fun `an old media response cannot replace a newer query`() = runTest {
+        val (vm, client) = viewModel()
+        val old = kotlinx.coroutines.CompletableDeferred<com.telegramyou.app.telegram.model.MediaSearchPage>()
+        val fresh = MessageHit(chat(1, "One"), message(7, "new"))
+        client.mediaSearchReply = { query, _, _ ->
+            if (query == "old") kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { old.await() }
+            else com.telegramyou.app.telegram.model.MediaSearchPage(listOf(fresh))
+        }
+        vm.onSearchQueryChange("old")
+        vm.onSearchScopeChange(com.telegramyou.app.telegram.model.SearchScope.Media)
+        runCurrent()
+        vm.onSearchQueryChange("new")
+        advanceUntilIdle()
+        old.complete(com.telegramyou.app.telegram.model.MediaSearchPage(emptyList()))
+        advanceUntilIdle()
+        assertEquals(listOf(fresh), vm.uiState.value.search.media.getValue(com.telegramyou.app.telegram.model.MediaSearchKind.Media).items)
+    }
 
     private val dispatcher = StandardTestDispatcher()
 

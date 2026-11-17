@@ -24,6 +24,47 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class PeopleViewModelsTest {
 
+    @Test
+    fun `common groups follow the server cursor and ignore duplicate loading requests`() = runTest {
+        val client = client()
+        val first = com.telegramyou.app.telegram.model.ChatPreview(1, "One", "", "")
+        val second = com.telegramyou.app.telegram.model.ChatPreview(2, "Two", "", "")
+        client.commonGroupPages += com.telegramyou.app.telegram.model.CommonGroupsPage(listOf(first), 1)
+        client.commonGroupPages += com.telegramyou.app.telegram.model.CommonGroupsPage(listOf(first, second))
+        val vm = CommonGroupsViewModel(TelegramRepository(client), SavedStateHandle(mapOf(Route.Person.ARG_USER_ID to lina.id)))
+        vm.onNearEnd()
+        advanceUntilIdle()
+        vm.onNearEnd()
+        vm.onNearEnd()
+        advanceUntilIdle()
+        assertEquals(listOf(lina.id to 0L, lina.id to 1L), client.commonGroupCalls)
+        assertEquals(listOf(first, second), vm.uiState.value.groups)
+        assertTrue(vm.uiState.value.isComplete)
+        vm.onNearEnd()
+        advanceUntilIdle()
+        assertEquals(2, client.commonGroupCalls.size)
+    }
+
+    @Test
+    fun `a refused common group page remains retryable without discarding earlier groups`() = runTest {
+        val client = client()
+        val group = com.telegramyou.app.telegram.model.ChatPreview(1, "One", "", "")
+        client.commonGroupPages += com.telegramyou.app.telegram.model.CommonGroupsPage(listOf(group), 1)
+        val vm = CommonGroupsViewModel(TelegramRepository(client), SavedStateHandle(mapOf(Route.Person.ARG_USER_ID to lina.id)))
+        advanceUntilIdle()
+        client.commonGroupFailure = IllegalStateException("offline")
+        vm.onNearEnd()
+        advanceUntilIdle()
+        assertEquals(listOf(group), vm.uiState.value.groups)
+        assertTrue(vm.uiState.value.error != null)
+        client.commonGroupFailure = null
+        vm.onRetry()
+        advanceUntilIdle()
+        assertEquals(listOf(lina.id to 0L, lina.id to 1L, lina.id to 1L), client.commonGroupCalls)
+        assertNull(vm.uiState.value.error)
+        assertTrue(vm.uiState.value.isComplete)
+    }
+
     private val dispatcher = StandardTestDispatcher()
 
     @Before

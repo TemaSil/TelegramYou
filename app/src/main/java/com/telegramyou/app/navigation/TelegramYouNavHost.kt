@@ -27,7 +27,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import com.telegramyou.app.ui.chat.ProfileNavigationState
 import androidx.compose.runtime.key
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -280,9 +280,9 @@ fun TelegramYouNavHost(
     // A chat to open at one message — a track's, from the player or the
     // library. Held here until the conversation is up, which takes it and
     // scrolls there (ChatViewModel.onJumpToMessage).
-    var pendingJump by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    var pendingJump by remember { mutableStateOf<Pair<Route.Chat, Long>?>(null) }
     val openChatAt: (Long, Long?) -> Unit = { chatId, messageId ->
-        pendingJump = messageId?.let { chatId to it }
+        pendingJump = messageId?.let { Route.Chat(chatId) to it }
         navController.navigateTo(chatRoute(chatId))
     }
     // Two panes (2.8): on a window this wide — a tablet, an unfolded phone —
@@ -460,16 +460,17 @@ fun TelegramYouNavHost(
     // [animatedScope] is the route's, for the container transform out of
     // its row, and null in the pane.
     val chatPane: @Composable (
-        openedChatId: Long,
+        destination: Route.Chat,
         chatViewModel: ChatViewModel,
         animatedScope: AnimatedVisibilityScope?,
         onBack: () -> Unit
-    ) -> Unit = { openedChatId, chatViewModel, animatedScope, onBack ->
+    ) -> Unit = { destination, chatViewModel, animatedScope, onBack ->
+        val openedChatId = destination.chatId
         val state by chatViewModel.uiState.collectAsStateWithLifecycle()
         // Opened at a track's message, from the player or the library:
         // taken once, here, and scrolled to and lit as a search hit is.
-        LaunchedEffect(openedChatId) {
-            val jump = pendingJump?.takeIf { it.first == openedChatId } ?: return@LaunchedEffect
+        LaunchedEffect(destination, pendingJump) {
+            val jump = pendingJump?.takeIf { it.first == destination } ?: return@LaunchedEffect
             pendingJump = null
             chatViewModel.onJumpToMessage(jump.second)
         }
@@ -781,10 +782,12 @@ fun TelegramYouNavHost(
         }
     }
 
+    val profilePositions = rememberSaveable(saver = ProfileNavigationState.Saver) { ProfileNavigationState() }
+
     // A profile and the full media destination have identical download,
     // player and viewer behavior. Only the surrounding app bar differs.
-    val mediaPane: @Composable (ChatViewModel, SharedMediaViewModel, SharedMediaKind?, Boolean, () -> Unit) -> Unit =
-        { chatViewModel, mediaViewModel, kind, active, back ->
+    val mediaPane: @Composable (ChatViewModel, SharedMediaViewModel, SharedMediaKind?, Long?, Boolean, () -> Unit) -> Unit =
+        { chatViewModel, mediaViewModel, kind, profileChatId, active, back ->
             val state by chatViewModel.uiState.collectAsStateWithLifecycle()
             val media by mediaViewModel.uiState.collectAsStateWithLifecycle()
             ChatMediaScreen(
@@ -840,12 +843,13 @@ fun TelegramYouNavHost(
                 transfers = state.transfers,
                 onGalleryPage = chatViewModel::onGalleryPage,
                 embeddedKind = kind,
-                active = active
+                active = active,
+                initialPosition = if (profileChatId != null && kind != null) profilePositions.scroll(profileChatId, kind.ordinal + 1) else 0 to 0,
+                onPositionChanged = { position ->
+                    if (profileChatId != null && kind != null) profilePositions.scrollTo(profileChatId, kind.ordinal + 1, position)
+                }
             )
         }
-    // Account-scoped with this graph. Retain small UI positions across a
-    // trip back to a chat, without retaining repositories or loaded files.
-    val profilePositions = rememberSaveableStateHolder()
 
     NavHost(
         navController = navController,
@@ -980,6 +984,21 @@ fun TelegramYouNavHost(
                 },
                 onSearchQueryChange = homeViewModel::onSearchQueryChange,
                 searchActions = SearchActions(
+                    onMediaNearEnd = homeViewModel::onMediaSearchNearEnd,
+                    onMediaRetry = homeViewModel::onMediaSearchRetry,
+                    onOpenMessage = { hit ->
+                        homeViewModel.onSearchResultOpened(hit.chat.id)
+                        val destination = Route.Chat(hit.chat.id,
+                            topicId = hit.message.topicId, threadId = hit.message.threadId,
+                            savedTopicId = hit.message.savedTopicId)
+                        pendingJump = destination to hit.message.id
+                        if (twoPanes && destination.topicId == 0 && destination.threadId == 0L &&
+                            destination.savedTopicId == 0L && !hit.chat.isForum) {
+                            openChat(hit.chat.id)
+                        } else {
+                            navController.navigateTo(destination)
+                        }
+                    },
                     onScopeChange = homeViewModel::onSearchScopeChange,
                     onSubmit = homeViewModel::onSearchSubmit,
                     onSearchPosts = homeViewModel::onSearchPosts,
@@ -1115,7 +1134,7 @@ fun TelegramYouNavHost(
                                     key(pane) {
                                         ChatPaneStore(pane) {
                                             val paneViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
-                                            chatPane(pane, paneViewModel, null) { paneChatId = null }
+                                            chatPane(Route.Chat(pane), paneViewModel, null) { paneChatId = null }
                                         }
                                     }
                                 }
@@ -1434,7 +1453,19 @@ fun TelegramYouNavHost(
                 onSendMessage = personViewModel::onSendMessage,
                 onOpenChat = { navController.navigateTo(chatRoute(it)) },
                 onChatOpened = personViewModel::onChatOpened,
-                onMessageShown = personViewModel::onMessageShown
+                onMessageShown = personViewModel::onMessageShown,
+                onOpenCommonGroups = { navController.navigateTo(Route.CommonGroups(it)) }
+            )
+        }
+        composable(Route.CommonGroups.PATTERN, arguments = Route.CommonGroups.arguments) {
+            val groups: com.telegramyou.app.ui.people.CommonGroupsViewModel = viewModel(factory = viewModelFactory)
+            val state by groups.uiState.collectAsStateWithLifecycle()
+            com.telegramyou.app.ui.people.CommonGroupsScreen(
+                state = state,
+                onBack = { navController.popBackStack() },
+                onOpenChat = { navController.navigateTo(chatRoute(it)) },
+                onNearEnd = groups::onNearEnd,
+                onRetry = groups::onRetry
             )
         }
         composable(Route.NotificationSettings.PATTERN) {
@@ -1509,7 +1540,7 @@ fun TelegramYouNavHost(
         ) {
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
             val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
-            mediaPane(chatViewModel, mediaViewModel, null, true) {
+            mediaPane(chatViewModel, mediaViewModel, null, null, true) {
                 if (!navController.popBackStack()) navController.context.findActivity()?.finish()
             }
         }
@@ -1635,10 +1666,14 @@ fun TelegramYouNavHost(
             }
             val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
             val profileChatId = profileEntry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
-            profilePositions.SaveableStateProvider(profileChatId) {
             ChatInfoScreen(
+                onOpenCommonGroups = { navController.navigateTo(Route.CommonGroups(it)) },
+                initialPage = profilePositions.page(profileChatId),
+                onPageChanged = { profilePositions.select(profileChatId, it) },
+                initialInfoPosition = profilePositions.scroll(profileChatId, 0),
+                onInfoPositionChanged = { profilePositions.scrollTo(profileChatId, 0, it) },
                 mediaContent = { kind, active ->
-                    mediaPane(chatViewModel, mediaViewModel, kind, active) { navController.popBackStack() }
+                    mediaPane(chatViewModel, mediaViewModel, kind, profileChatId, active) { navController.popBackStack() }
                 },
                 report = state.report,
                 onReport = chatViewModel::onReportChat,
@@ -1692,7 +1727,6 @@ fun TelegramYouNavHost(
                 onNoticeShown = chatViewModel::onNoticeShown
             )
         }
-        }
 
         composable(
             route = Route.Chat.PATTERN,
@@ -1712,7 +1746,11 @@ fun TelegramYouNavHost(
             // state, so the conversation survives process death with the rest
             // of its state rather than only as long as this composition.
             val chatViewModel: ChatViewModel = viewModel(factory = viewModelFactory)
-            chatPane(openedChatId, chatViewModel, this@composable) { navController.popBackStack() }
+            val destination = Route.Chat(openedChatId,
+                topicId = entry.arguments?.getInt(Route.Chat.ARG_TOPIC_ID) ?: 0,
+                threadId = entry.arguments?.getLong(Route.Chat.ARG_THREAD_ID) ?: 0L,
+                savedTopicId = entry.arguments?.getLong(Route.Chat.ARG_SAVED_TOPIC_ID) ?: 0L)
+            chatPane(destination, chatViewModel, this@composable) { navController.popBackStack() }
         }
         composable(
             route = Route.Story.PATTERN,

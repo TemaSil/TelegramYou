@@ -72,14 +72,19 @@ import com.telegramyou.app.ui.components.AvatarBubble
 import com.telegramyou.app.ui.components.ChatListRow
 import com.telegramyou.app.ui.components.personShape
 import com.telegramyou.app.ui.chat.formatDuration
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.material3.FilledTonalIconButton
 
 /**
  * What search can do besides take a query — grouped, because there are
- * eight of them and HomeScreen's parameter list is long enough already.
+ * several of them and HomeScreen's parameter list is long enough already.
  * Every one defaults to nothing, for previews and tests.
  */
 data class SearchActions(
+    val onOpenMessage: (MessageHit) -> Unit = {},
+    val onMediaNearEnd: () -> Unit = {},
+    val onMediaRetry: () -> Unit = {},
     val onScopeChange: (SearchScope) -> Unit = {},
     val onSubmit: () -> Unit = {},
     val onSearchPosts: () -> Unit = {},
@@ -123,7 +128,9 @@ internal fun SearchPage(
     // Settings → For geeks says to open search without it.
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val withoutKeyboard = LocalGeekSettings.current.searchWithoutKeyboard
+    val mediaPositions = key(search.query) { rememberSaveableStateHolder() }
     // Once for each time search is opened, not each time it is composed: Home
     // is composed again under a chat closing back into it, and when the app
     // returns, and each of those brought the keyboard up over the page
@@ -158,6 +165,12 @@ internal fun SearchPage(
             Modifier
         }
     }
+    val messageActions = actions.copy(onOpenMessage = { hit ->
+        opened = "msg-${hit.message.id}:${hit.chat.id}"
+        focusManager.clearFocus()
+        keyboard?.hide()
+        actions.onOpenMessage(hit)
+    })
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -183,7 +196,7 @@ internal fun SearchPage(
             placeholder = { Text(tr("Search Telegram", "Поиск в Telegram")) },
             leadingIcon = { Icon(Symbols.Search, contentDescription = null) },
             trailingIcon = {
-                if (search.isSearching) {
+                if (search.isSearching || (search.scope.showsMedia && search.media[search.scope.mediaKind]?.isLoading == true)) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 } else if (search.query.isNotEmpty()) {
                     IconButton(onClick = { onQueryChange("") }) {
@@ -201,7 +214,7 @@ internal fun SearchPage(
                 selectedTabIndex = search.scope.ordinal,
                 edgePadding = 16.dp,
                 containerColor = settingsBackground(),
-                // As wide as their names, as the folders are: eight tabs at
+                // As wide as their names, as the folders are: fixed-width tabs at
                 // 90dp each was two screens of strip.
                 minTabWidth = 0.dp
             ) {
@@ -213,7 +226,13 @@ internal fun SearchPage(
                     )
                 }
             }
-            SearchResults(search = search, actions = actions, open = open, grows = grows, padding = bottom)
+            if (search.scope.showsMedia) {
+                mediaPositions.SaveableStateProvider(search.scope.name) {
+                    SearchMediaResults(search, messageActions, bottom)
+                }
+            } else {
+                SearchResults(search = search, actions = messageActions, open = open, grows = grows, padding = bottom)
+            }
         }
     }
 }
@@ -372,7 +391,7 @@ private fun SearchResults(
                     hit = hit,
                     index = index,
                     count = search.messages.size,
-                    onClick = { open("msg-${hit.message.id}", hit.chat.id) },
+                    onClick = { actions.onOpenMessage(hit) },
                     modifier = grows("msg-${hit.message.id}", hit.chat.id)
                 )
             }

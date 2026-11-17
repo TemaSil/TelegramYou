@@ -319,6 +319,7 @@ internal fun ComposerBar(
      * send, and a photo is.
      */
     hasAttachment: Boolean,
+    onExpandCaption: (() -> Unit)? = null,
     /** Held by the screen, so replying can put the caret in the field. */
     focusRequester: FocusRequester,
     /** The bot's placeholder, when it set one. */
@@ -375,6 +376,11 @@ internal fun ComposerBar(
     // What stands at the end of the field: the bot's keyboard, the smiley or
     // the keyboard key, and — without a capsule — the camera.
     val fieldActions: @Composable () -> Unit = {
+        if (onExpandCaption != null && (value.length > 120 || '\n' in value)) {
+            IconButton(onClick = onExpandCaption) {
+                Icon(Symbols.OpenInNew, contentDescription = tr("Expand caption", "Развернуть подпись"))
+            }
+        }
         if (botKeyboardShown != null) {
             IconButton(onClick = onBotKeyboardToggle) {
                 Icon(

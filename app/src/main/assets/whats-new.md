@@ -1,6 +1,7 @@
-# Profiles bring your shared media closer
-- Photos, files and music live in tabs inside each chat profile
-- The profile header folds away while you browse
-- Returning to a profile restores its tab and position
-- Photos open out of their tiles in shared media
-- Double tap zooms around the place you touched
+# Profiles, search and media come together
+- Profiles fold as you scroll, with media tabs and common groups close by
+- Find photos, videos and files across chats and jump to their messages
+- Preview where a video will land while you scrub
+- Expand long captions and keep every word when you return
+- Topic emoji and photos opening from their tiles make browsing feel familiar
+- Connecting opens proxies, whose header now matches the page

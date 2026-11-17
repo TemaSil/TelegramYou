@@ -1,6 +1,8 @@
 package com.telegramyou.app.ui.home
 
 import com.telegramyou.app.i18n.tr
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.semantics.liveRegion
 
 import com.telegramyou.app.ui.theme.centreOnScreen
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -574,6 +576,7 @@ fun HomeScreen(
                     CollapsingHeader(header.state) {
                         HomeTitleBar(
                             windowInsets = WindowInsets(0),
+                            isConnected = state.isConnected,
                             isDark = isDark(settings.theme, isSystemInDarkTheme()),
                             onThemeChange = onThemeChange,
                             onOpenProxy = onOpenProxy,
@@ -901,6 +904,7 @@ private fun ChatListPage(
 private fun HomeTitleBar(
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
+    isConnected: Boolean = true,
     isDark: Boolean = false,
     onThemeChange: (ThemeChoice) -> Unit = {},
     onOpenProxy: () -> Unit = {},
@@ -1020,15 +1024,29 @@ private fun HomeTitleBar(
             // nothing the screen does not already show, and the
             // avatar that sat beside it repeated the Profile tab two
             // inches below.
+            Row(
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clickable(
+                        enabled = !isConnected,
+                        role = androidx.compose.ui.semantics.Role.Button,
+                        onClickLabel = tr("Open proxies", "Открыть прокси"),
+                        onClick = onOpenProxy
+                    )
+                    .semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             Text(
-                "TelegramYou",
+                if (isConnected) "TelegramYou" else tr("Connecting…", "Подключение…"),
                 // Google Sans Flex, the face Google's own apps set their
                 // names in — see AppTitleStyle. Only the titles: the rest
                 // of the screen stays on the system face, which is what
                 // makes this read as one.
                 style = AppTitleStyle,
-                maxLines = 1
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
+            }
         },
         // Darkest of the three levels on this screen. The bar is the
         // container the screen hangs from, the background sits below

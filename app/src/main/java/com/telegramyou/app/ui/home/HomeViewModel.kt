@@ -11,6 +11,7 @@ import com.telegramyou.app.telegram.model.MessageHit
 import com.telegramyou.app.telegram.model.PostSearch
 import com.telegramyou.app.telegram.model.SearchChats
 import com.telegramyou.app.telegram.model.SearchScope
+import com.telegramyou.app.telegram.model.MediaSearchKind
 import com.telegramyou.app.telegram.model.mergeChatResults
 import com.telegramyou.app.settings.InMemoryQueryHistory
 import com.telegramyou.app.settings.QueryHistory
@@ -43,6 +44,8 @@ import kotlinx.coroutines.launch
  */
 data class HomeUiState(
     val me: TelegramUser? = null,
+    /** TDLib has a usable server connection; the offline demo is always ready. */
+    val isConnected: Boolean = true,
     /**
      * Contacts' birthdays today — or tomorrow, with none today — for the
      * card over the chat list; null with none, or once put away for the day.
@@ -157,6 +160,14 @@ private data class ProfileEditing(
  * [results] can be told apart from "nothing found yet" — otherwise a slow
  * query shows "no results" before it has looked.
  */
+data class MediaSearchState(
+    val items: List<MessageHit> = emptyList(),
+    val nextOffset: String? = null,
+    val isLoaded: Boolean = false,
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+
 data class SearchState(
     val expanded: Boolean = false,
     val query: String = "",
@@ -166,6 +177,7 @@ data class SearchState(
     val chats: SearchChats = SearchChats(),
     val messages: List<MessageHit> = emptyList(),
     val isSearching: Boolean = false,
+    val media: Map<MediaSearchKind, MediaSearchState> = emptyMap(),
     /**
      * Public posts for [query], or null until they have been asked for.
      *
@@ -230,6 +242,8 @@ class HomeViewModel(
 
     /** A music search in flight; see [SearchState.music]. */
     private var musicJob: Job? = null
+    private val mediaJobs = mutableMapOf<MediaSearchKind, Job>()
+    private var searchGeneration = 0L
 
     private val profileEditing = MutableStateFlow(ProfileEditing())
 
@@ -293,6 +307,8 @@ class HomeViewModel(
         home.copy(errorMessage = message)
     }.combine(birthdayCard) { home, card ->
         home.copy(birthdayCard = card)
+    }.combine(repository.isConnected) { home, connected ->
+        home.copy(isConnected = connected)
     // On the main thread, on purpose. Moved to a background dispatcher once,
     // as an optimisation, the folder a swipe chose came back late — and the
     // pager, which follows the chosen folder as well as setting it, was
@@ -303,7 +319,7 @@ class HomeViewModel(
         // Kept briefly past the last subscriber: a rotation unsubscribes and
         // resubscribes, and rebuilding the list for that is wasted work.
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HomeUiState()
+        initialValue = HomeUiState(isConnected = repository.isConnected.value)
     )
 
     /**
@@ -334,6 +350,11 @@ class HomeViewModel(
     }
 
     fun onSearchExpandedChange(expanded: Boolean) {
+        if (!expanded) {
+            searchGeneration++
+            mediaJobs.values.forEach { it.cancel() }
+            mediaJobs.clear()
+        }
         searchJob?.cancel()
         postJob?.cancel()
         search.value = if (expanded) {
@@ -367,6 +388,52 @@ class HomeViewModel(
     fun onSearchScopeChange(scope: SearchScope) {
         search.update { it.copy(scope = scope) }
         if (scope == SearchScope.Music && search.value.music == null) searchMusic(search.value.query)
+        if (scope.showsMedia) searchMediaPage(scope.mediaKind)
+    }
+
+    fun onMediaSearchNearEnd() {
+        val scope = search.value.scope
+        if (!scope.showsMedia) return
+        val page = search.value.media[scope.mediaKind] ?: return
+        if (page.isLoaded && page.nextOffset != null && page.error == null) searchMediaPage(scope.mediaKind, more = true)
+    }
+
+    fun onMediaSearchRetry() {
+        val scope = search.value.scope
+        if (scope.showsMedia) searchMediaPage(scope.mediaKind, more = search.value.media[scope.mediaKind]?.nextOffset != null)
+    }
+
+    private fun searchMediaPage(kind: MediaSearchKind, more: Boolean = false) {
+        val query = search.value.query
+        val previous = search.value.media[kind] ?: MediaSearchState()
+        if (query.isBlank() || previous.isLoading || (!more && previous.isLoaded)) return
+        if (more && previous.nextOffset == null) return
+        val generation = searchGeneration
+        val cursor = if (more) previous.nextOffset.orEmpty() else ""
+        search.update { it.copy(media = it.media + (kind to previous.copy(isLoading = true, error = null))) }
+        mediaJobs[kind] = viewModelScope.launch {
+            try {
+                val page = repository.searchMedia(query, kind, cursor)
+                search.update { current ->
+                    if (generation != searchGeneration || current.query != query) current else {
+                        val loaded = ((if (more) previous.items else emptyList()) + page.items)
+                            .distinctBy { it.chat.id to it.message.id }
+                        current.copy(media = current.media + (kind to MediaSearchState(
+                            items = loaded,
+                            nextOffset = page.nextOffset?.takeIf { it != cursor },
+                            isLoaded = true
+                        )))
+                    }
+                }
+            } catch (e: CancellationException) { throw e }
+              catch (e: Exception) {
+                search.update { current ->
+                    if (generation != searchGeneration || current.query != query) current else
+                        current.copy(media = current.media + (kind to previous.copy(isLoading = false,
+                            error = failureText(tr("Could not search media", "Не удалось найти медиа"), e.message))))
+                }
+            }
+        }
     }
 
     /** Every chat's tracks for [query]; see [SearchState.music]. */
@@ -443,12 +510,16 @@ class HomeViewModel(
     }
 
     fun onSearchQueryChange(query: String) {
+        searchGeneration++
+        mediaJobs.values.forEach { it.cancel() }
+        mediaJobs.clear()
         searchJob?.cancel()
         postJob?.cancel()
         musicJob?.cancel()
         if (query.isBlank()) {
             search.value = search.value.copy(
                 query = query,
+                media = emptyMap(),
                 chats = SearchChats(),
                 messages = emptyList(),
                 posts = null,
@@ -461,29 +532,38 @@ class HomeViewModel(
         }
         search.value = search.value.copy(
             query = query,
+            chats = SearchChats(),
+            messages = emptyList(),
+            media = emptyMap(),
             isSearching = true,
             posts = null,
             isSearchingPosts = false,
             music = null,
             isSearchingMusic = false
         )
+        val generation = searchGeneration
         searchJob = viewModelScope.launch {
-            // Long enough that typing a word is one request rather than five,
-            // short enough that it does not feel like waiting.
             delay(SEARCH_DEBOUNCE_MS)
+            if (search.value.scope.showsMedia) searchMediaPage(search.value.scope.mediaKind)
             if (search.value.scope == SearchScope.Music) searchMusic(query)
-            // Both halves of one search, so the screen never shows chats
-            // while still waiting on messages and looks half-finished.
-            val chats = repository.searchChats(query)
-            // Public chats the account is not in, which is what makes this a
-            // way to find Telegram and not only one's own list.
-            val global = runCatching { repository.searchPublicChats(query) }.getOrDefault(emptyList())
-            val messages = repository.searchMessages(query)
-            search.value = search.value.copy(
-                chats = mergeChatResults(chats, global),
-                messages = messages,
-                isSearching = false
-            )
+            try {
+                val chats = repository.searchChats(query)
+                val global = try { repository.searchPublicChats(query) }
+                    catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { emptyList() }
+                val messages = repository.searchMessages(query)
+                search.update { current ->
+                    if (generation != searchGeneration) current else current.copy(
+                        chats = mergeChatResults(chats, global), messages = messages, isSearching = false
+                    )
+                }
+            } catch (e: CancellationException) { throw e }
+              catch (e: Exception) {
+                if (generation == searchGeneration) {
+                    search.update { it.copy(isSearching = false) }
+                    failure.value = failureText(tr("Could not search Telegram", "Не удалось выполнить поиск в Telegram"), e.message)
+                }
+            }
         }
     }
 

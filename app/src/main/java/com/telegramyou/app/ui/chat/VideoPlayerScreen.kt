@@ -468,6 +468,9 @@ fun VideoPage(
                     )
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.foundation.layout.BoxWithConstraints(
+                        Modifier.padding(end = 12.dp).weight(1f)
+                    ) {
                     Slider(
                         value = if (scrubbing) {
                             scrubFraction
@@ -486,9 +489,20 @@ fun VideoPage(
                         },
                         enabled = player != null && duration > 0,
                         modifier = Modifier
-                            .padding(end = 12.dp)
-                            .weight(1f)
+                            .fillMaxWidth()
+                            .semantics { contentDescription = tr("Video position", "Позиция видео") }
                     )
+                        if (scrubbing) {
+                            val density = androidx.compose.ui.platform.LocalDensity.current
+                            val offset = with(density) {
+                                androidx.compose.ui.unit.IntOffset(
+                                    ((maxWidth - 144.dp).coerceAtLeast(0.dp).toPx() * scrubFraction).toInt(),
+                                    -52.dp.roundToPx()
+                                )
+                            }
+                            VideoSeekPreview(video.path, seekTarget(scrubFraction, duration), offset)
+                        }
+                    }
                     Text(
                         playbackLabel(position, duration, ::formatDuration),
                         color = Color.White,

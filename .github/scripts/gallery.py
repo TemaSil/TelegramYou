@@ -78,6 +78,13 @@ SHOWCASE = [
     ("146-profile-info", "Chat profile"),
     ("147-profile-media", "Media in a profile"),
     ("148-profile-files", "Files in a profile"),
+    ("152-own-profile-collapsed", "Compact profile"),
+    ("153-common-groups", "Common groups"),
+    ("154-connecting", "Connecting"),
+    ("155-proxy-dark", "Proxy settings"),
+    ("158-global-media", "Media in global search"),
+    ("159-global-files", "Files in global search"),
+    ("160-video-seek-preview", "Video seek preview"),
 ]
 
 WIDTH = 540

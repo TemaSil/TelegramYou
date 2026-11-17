@@ -353,6 +353,13 @@ fun ChatScreen(
     val capsule = LocalChatStyle.current.composerCapsule
     val listState = rememberLazyListState()
     val uriHandler = LocalUriHandler.current
+    var expandedCaption by rememberSaveable(state.detail?.chat?.id) { mutableStateOf(false) }
+    LaunchedEffect(state.pendingAttachment) {
+        if (state.pendingAttachment == null) expandedCaption = false
+    }
+    if (expandedCaption && state.pendingAttachment != null) {
+        ExpandedCaptionEditor(state.draft, onDraftChange) { expandedCaption = false }
+    }
 
     // The list is laid out from the bottom (reverseLayout, below), so it
     // holds on to its newest message rather than its oldest. That one choice
@@ -1028,7 +1035,9 @@ fun ChatScreen(
                                 } else {
                                     emptyList()
                                 }
-                                if (members.size > 1) {
+                                if (state.forumTopic != null) {
+                                    com.telegramyou.app.ui.groups.TopicIcon(state.forumTopic)
+                                } else if (members.size > 1) {
                                     AvatarCluster(members = members, size = 34.dp)
                                 } else {
                                     AvatarBubble(
@@ -1863,6 +1872,7 @@ fun ChatScreen(
                             if (botKeyboardShown) keyboardController?.hide()
                         },
                         value = state.draft,
+                        onExpandCaption = if (state.pendingAttachment != null) ({ expandedCaption = true }) else null,
                         onValueChange = onDraftChange,
                         // The plus opens its panel in the keyboard's place,
                         // and, turned into a cross, puts it away (2.2).

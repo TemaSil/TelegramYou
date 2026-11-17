@@ -41,7 +41,8 @@ fun NameWithStatus(
     style: TextStyle,
     statusSize: Dp,
     modifier: Modifier = Modifier,
-    fontWeight: FontWeight? = null
+    fontWeight: FontWeight? = null,
+    maxLines: Int = 2
 ) {
     Row(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -53,7 +54,7 @@ fun NameWithStatus(
             style = style,
             fontWeight = fontWeight,
             textAlign = TextAlign.Center,
-            maxLines = 2,
+            maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false)
         )

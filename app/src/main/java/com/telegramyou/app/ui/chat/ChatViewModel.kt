@@ -119,6 +119,7 @@ data class ChatUiState(
     val detail: ChatDetail? = null,
     /** The forum topic this screen is on, by name; null in any other chat. */
     val topicName: String? = null,
+    val forumTopic: com.telegramyou.app.telegram.model.ForumTopic? = null,
     /** A file in a bubble being fetched before it opens, by message id. */
     val openingFileId: Long? = null,
     /** A file fetched and waiting for the screen to open it. */
@@ -414,6 +415,7 @@ class ChatViewModel(
                 _uiState.update {
                     it.copy(
                         topicName = topic?.name ?: tr("Topic", "Тема"),
+                        forumTopic = topic,
                         draft = if (it.draft.isEmpty()) draft else it.draft
                     )
                 }

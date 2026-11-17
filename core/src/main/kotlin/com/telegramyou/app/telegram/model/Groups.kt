@@ -402,7 +402,9 @@ data class ForumTopic(
     /** The topic every forum has, where anything without a topic goes. */
     val isGeneral: Boolean = false,
     /** What this account had started writing there, or empty. */
-    val draft: String = ""
+    val draft: String = "",
+    /** The chosen emoji is content, distinct from the app's Material icons. */
+    val iconCustomEmojiId: Long? = null
 )
 
 /** What can be done to one topic, in the order its menu offers it. */

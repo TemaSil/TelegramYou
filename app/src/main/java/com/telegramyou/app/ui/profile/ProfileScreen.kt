@@ -2,6 +2,13 @@ package com.telegramyou.app.ui.profile
 
 import com.telegramyou.app.i18n.tr
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TwoRowsTopAppBar
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+
 import com.telegramyou.app.ui.components.withoutBottom
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.auth.PhoneEntry
@@ -91,7 +98,7 @@ import com.telegramyou.app.ui.settings.settingsBackground
  *
  * Content rather than a screen of its own, because it is a tab inside Home.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileContent(
     me: TelegramUser?,
@@ -191,20 +198,37 @@ fun ProfileContent(
         )
     }
 
+    val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val type = MaterialTheme.typography
+    // Reserve two name lines at the actual font scale, including large text.
+    val headerTextHeight = with(LocalDensity.current) {
+        (type.headlineMedium.lineHeight * 2).toDp() + type.bodyLarge.lineHeight.toDp()
+    }
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            // The foot inside the scroll, so the page runs on under a
-            // floating mini player rather than stopping above it.
+        modifier = modifier.fillMaxSize()
             .padding(contentPadding.withoutBottom())
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 24.dp + contentPadding.calculateBottomPadding())
+            .consumeWindowInsets(contentPadding.withoutBottom())
+            .nestedScroll(collapse.nestedScrollConnection)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            IconButton(onClick = { showingQr = true }) {
-                Icon(Symbols.QrCode2, contentDescription = tr("QR code", "QR-код"))
-            }
-            Spacer(Modifier.weight(1f))
+        TwoRowsTopAppBar(
+            windowInsets = WindowInsets(0),
+            expandedHeight = 224.dp + headerTextHeight + if (me.profileColor != null) 40.dp else 0.dp,
+            title = { expanded ->
+                if (expanded) {
+                    ProfileIdentityHeader(me, pickPhoto)
+                } else {
+                    com.telegramyou.app.ui.people.NameWithStatus(
+                        name = me.displayName, emojiStatusId = me.emojiStatusId,
+                        style = type.titleLarge, statusSize = 24.dp, maxLines = 1
+                    )
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = { showingQr = true }) {
+                    Icon(Symbols.QrCode2, contentDescription = tr("QR code", "QR-код"))
+                }
+            },
+            actions = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(Symbols.MoreVert, contentDescription = tr("More", "Ещё"))
@@ -230,45 +254,14 @@ fun ProfileContent(
                     }
                 }
             }
-        }
-
-        // On this account's own profile colour, when it has one, with its
-        // emoji status after the name — what others see on it.
-        com.telegramyou.app.ui.people.ProfileHeader(color = me.profileColor) {
+            },
+            scrollBehavior = collapse
+        )
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = if (me.profileColor != null) 20.dp else 0.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            Modifier.fillMaxWidth().weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(bottom = 24.dp + contentPadding.calculateBottomPadding())
         ) {
-            AvatarBubble(
-                title = me.displayName,
-                seed = me.avatarColor,
-                size = 120.dp,
-                photoPath = me.photoPath,
-                modifier = Modifier.clip(CircleShape).clickable(onClick = pickPhoto)
-            )
-            Spacer(Modifier.height(16.dp))
-            // The account's name, not the draft's: what Telegram currently
-            // thinks you are called, so it changing is the proof of a save.
-            com.telegramyou.app.ui.people.NameWithStatus(
-                name = me.displayName,
-                emojiStatusId = me.emojiStatusId,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-                statusSize = 32.dp
-            )
-            Text(
-                tr("online", "в сети"),
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (me.profileColor != null) {
-                    androidx.compose.material3.LocalContentColor.current
-                } else {
-                    MaterialTheme.colorScheme.primary
-                }
-            )
-        }
-        }
         Spacer(Modifier.height(20.dp))
 
         // Three actions that belong together — an Expressive ButtonGroup,
@@ -380,6 +373,32 @@ fun ProfileContent(
         }
         if (accounts != null) {
             AccountsGroup(accounts = accounts, onSwitch = onSwitchAccount, onAdd = onAddAccount)
+        }
+    }
+    }
+}
+
+@Composable
+private fun ProfileIdentityHeader(me: TelegramUser, pickPhoto: () -> Unit) {
+    com.telegramyou.app.ui.people.ProfileHeader(color = me.profileColor) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = if (me.profileColor != null) 20.dp else 0.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AvatarBubble(
+                title = me.displayName, seed = me.avatarColor, size = 120.dp,
+                photoPath = me.photoPath,
+                modifier = Modifier.clip(CircleShape).clickable(onClick = pickPhoto)
+            )
+            com.telegramyou.app.ui.people.NameWithStatus(
+                name = me.displayName, emojiStatusId = me.emojiStatusId,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold, statusSize = 32.dp
+            )
+            Text(tr("online", "в сети"), style = MaterialTheme.typography.bodyLarge,
+                color = if (me.profileColor != null) androidx.compose.material3.LocalContentColor.current
+                    else MaterialTheme.colorScheme.primary)
         }
     }
 }

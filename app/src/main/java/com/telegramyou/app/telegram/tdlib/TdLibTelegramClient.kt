@@ -313,7 +313,7 @@ class TdLibTelegramClient(
     private val _incomingMessages = MutableSharedFlow<ChatMessage>(extraBufferCapacity = 64)
 
     /** See TelegramChats.isConnected; from TDLib's updateConnectionState. */
-    private val _connected = MutableStateFlow(true)
+    private val _connected = MutableStateFlow(false)
     override val isConnected: StateFlow<Boolean> = _connected.asStateFlow()
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
@@ -1073,6 +1073,35 @@ class TdLibTelegramClient(
         return out to found.optString("next_offset").takeIf { it.isNotBlank() }
     }
 
+    override suspend fun searchMedia(
+        query: String, kind: com.telegramyou.app.telegram.model.MediaSearchKind, cursor: String, limit: Int
+    ): com.telegramyou.app.telegram.model.MediaSearchPage {
+        if (query.isBlank()) return com.telegramyou.app.telegram.model.MediaSearchPage(emptyList())
+        awaitReady()
+        val filter = when (kind) {
+            com.telegramyou.app.telegram.model.MediaSearchKind.Media -> "searchMessagesFilterPhotoAndVideo"
+            com.telegramyou.app.telegram.model.MediaSearchKind.Files -> "searchMessagesFilterDocument"
+        }
+        val page = requireEngine().send(JSONObject().put("@type", "searchMessages")
+            .put("query", query.trim()).put("filter", JSONObject().put("@type", filter))
+            .put("offset", cursor).put("limit", limit.coerceIn(1, 100)))
+        val messages = page.optJSONArray("messages")
+        val hits = mutableListOf<MessageHit>()
+        for (index in 0 until (messages?.length() ?: 0)) {
+            val raw = messages!!.getJSONObject(index)
+            val chatId = raw.optLong("chat_id")
+            val chat = chatsById[chatId] ?: try {
+                requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", chatId))
+                    .also { chatsById[chatId] = it }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+              catch (_: Exception) { continue }
+            hits += MessageHit(toPreview(chat), mapMessage(chatId, raw))
+        }
+        hits.groupBy { it.chat.id }.values.forEach { found -> rememberMessages(found.map { it.message }) }
+        return com.telegramyou.app.telegram.model.MediaSearchPage(hits,
+            page.optString("next_offset").takeIf { it.isNotBlank() && it != cursor })
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         awaitReady()
@@ -1759,7 +1788,34 @@ class TdLibTelegramClient(
             isContact = raw.optBoolean("is_contact"),
             // A BlockList object when blocked, absent when not.
             isBlocked = full?.optJSONObject("block_list") != null,
-            isBot = raw.optJSONObject("type")?.optString("@type") == "userTypeBot"
+            isBot = raw.optJSONObject("type")?.optString("@type") == "userTypeBot",
+            commonGroupCount = full?.takeIf { it.has("group_in_common_count") }?.optInt("group_in_common_count")
+        )
+    }
+
+    override suspend fun commonGroups(userId: Long, offsetChatId: Long, limit: Int): com.telegramyou.app.telegram.model.CommonGroupsPage {
+        awaitReady()
+        val pageSize = limit.coerceIn(1, 100)
+        val page = requireEngine().send(JSONObject().put("@type", "getGroupsInCommon")
+            .put("user_id", userId).put("offset_chat_id", offsetChatId).put("limit", pageSize))
+        val ids = page.optJSONArray("chat_ids")
+        val groups = mutableListOf<ChatPreview>()
+        var last = offsetChatId
+        for (index in 0 until (ids?.length() ?: 0)) {
+            val id = ids!!.getLong(index)
+            last = id
+            // Some groups have not arrived in the account's chat list yet.
+            val chat = chatsById[id] ?: try {
+                requireEngine().send(JSONObject().put("@type", "getChat").put("chat_id", id))
+                    .also { chatsById[id] = it }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+              catch (_: Exception) { continue }
+            groups += toPreview(chat)
+        }
+        return com.telegramyou.app.telegram.model.CommonGroupsPage(
+            groups = groups,
+            nextOffset = last.takeIf { (ids?.length() ?: 0) >= pageSize && it != offsetChatId },
+            totalCount = page.takeIf { it.has("total_count") }?.optInt("total_count")
         )
     }
 
@@ -2474,6 +2530,7 @@ class TdLibTelegramClient(
                 id = info.optInt("forum_topic_id"),
                 name = info.optString("name"),
                 iconColor = info.optJSONObject("icon")?.optInt("color") ?: TOPIC_COLORS.first(),
+                iconCustomEmojiId = info.optJSONObject("icon")?.optLong("custom_emoji_id")?.takeIf { it != 0L },
                 lastMessage = previewText(last),
                 timestampLabel = chatListTimeLabel(
                     epochSeconds = last?.optLong("date") ?: 0L,

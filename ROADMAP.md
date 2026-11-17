@@ -110,8 +110,12 @@ The owner selected this milestone after a hands-on review of official Telegram:
 shared-media tabs inside a collapsing profile, remembered per-chat navigation
 positions, tile-to-viewer transitions from shared media, and double-tap zoom at
 the point touched. Implementation and validation are in progress; these are not
-yet marked as shipped. The owner is keeping 3.0 open for additional features
-from the second part of the review and explicitly asked not to release it yet.
+yet marked as shipped. On 17 November the owner approved common groups, global
+media/file search, seek previews, a collapsing own profile, an expanded caption
+editor and topic emoji icons from the second review. The owner also requested a
+connection title linking to proxies and a proxy app bar matching its page.
+Implementation and validation continue on the feature branch; the owner
+explicitly asked not to release 3.0 yet.
 
 
 What is left after 2.0, in the order it seems worth doing. The owner's

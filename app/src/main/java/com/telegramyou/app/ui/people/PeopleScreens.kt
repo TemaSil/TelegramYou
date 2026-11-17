@@ -122,7 +122,8 @@ fun PersonScreen(
     onSendMessage: () -> Unit,
     onOpenChat: (Long) -> Unit,
     onChatOpened: () -> Unit,
-    onMessageShown: () -> Unit
+    onMessageShown: () -> Unit,
+    onOpenCommonGroups: (Long) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val copyToClipboard = rememberTextCopier()
@@ -188,6 +189,7 @@ fun PersonScreen(
                 copyToClipboard(text)
                 scope.launch { snackbarHostState.showSnackbar(tr("$what copied", "$what: скопировано")) }
             }
+            item(key = "common-groups") { CommonGroupsRow(profile) { onOpenCommonGroups(profile.user.id) } }
             item(key = "message") {
                 ListItem(
                     headlineContent = { Text(tr("Send message", "Написать")) },

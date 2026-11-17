@@ -185,6 +185,12 @@ class DemoTelegramClient(
      * every chat joined it, and all four tabs showed the same count. The
      * compiler says nothing about it; the emulator did.
      */
+    private val connectionAvailable = MutableStateFlow(true)
+    override val isConnected: StateFlow<Boolean> = connectionAvailable
+
+    /** Deterministic connection changes for the offline demo's UI checks. */
+    fun simulateConnection(connected: Boolean) { connectionAvailable.value = connected }
+
     private val DEMO_CUSTOM_EMOJI = 5_000_000_001L
 
     /** The id of the demo's custom-emoji set, and what is in it. */
@@ -606,6 +612,23 @@ class DemoTelegramClient(
         return PostSearch(hits = hits.take(limit), freeLeft = freePostSearches)
     }
 
+    override suspend fun searchMedia(
+        query: String, kind: com.telegramyou.app.telegram.model.MediaSearchKind, cursor: String, limit: Int
+    ): com.telegramyou.app.telegram.model.MediaSearchPage {
+        delay(160)
+        val chats = _chats.value.associateBy { it.id }
+        val hits = chatMessages.entries.flatMap { (chatId, messages) ->
+            val chat = chats[chatId] ?: return@flatMap emptyList()
+            messages.filter { kind.admits(it.contentType) &&
+                (it.text + " " + it.fileName.orEmpty()).contains(query.trim(), ignoreCase = true)
+            }.map { MessageHit(chat, it) }
+        }.sortedByDescending { it.message.date }
+        val offset = cursor.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        val page = hits.drop(offset).take(limit.coerceIn(1, 100))
+        val next = (offset + page.size).takeIf { it < hits.size }?.toString()
+        return com.telegramyou.app.telegram.model.MediaSearchPage(page, next)
+    }
+
     override suspend fun searchMessages(query: String, limit: Int): List<MessageHit> {
         if (query.isBlank()) return emptyList()
         delay(160)
@@ -749,13 +772,24 @@ class DemoTelegramClient(
             user = user,
             isContact = (demoContacts + addedContacts).any { it.id == userId },
             isBlocked = userId in blockedIds,
-            isBot = isBot
+            isBot = isBot,
+            commonGroupCount = if (isBot) 0 else _chats.value.count { it.isGroup }.coerceAtMost(2)
         )
     }
 
     override suspend fun person(userId: Long): PersonProfile? {
         delay(120)
         return profileOf(userId)
+    }
+
+    override suspend fun commonGroups(userId: Long, offsetChatId: Long, limit: Int): com.telegramyou.app.telegram.model.CommonGroupsPage {
+        delay(120)
+        if (profileOf(userId)?.isBot != false) return com.telegramyou.app.telegram.model.CommonGroupsPage(emptyList())
+        val groups = _chats.value.filter { it.isGroup }.take(2)
+        val start = if (offsetChatId == 0L) 0 else groups.indexOfFirst { it.id == offsetChatId }.let { if (it < 0) groups.size else it + 1 }
+        val page = groups.drop(start).take(limit.coerceIn(1, 100))
+        return com.telegramyou.app.telegram.model.CommonGroupsPage(page,
+            page.lastOrNull()?.id?.takeIf { start + page.size < groups.size }, groups.size)
     }
 
     override suspend fun personInChat(chatId: Long): PersonProfile? {
@@ -1307,7 +1341,7 @@ class DemoTelegramClient(
     /** The demo forum's topics, in the order they were started. */
     private val demoTopics = mutableListOf(
         ForumTopic(1, "General", TOPIC_COLORS[0], isGeneral = true),
-        ForumTopic(2, DEMO_FORUM_TOPIC, TOPIC_COLORS[1], isPinned = true, unreadCount = 3),
+        ForumTopic(2, DEMO_FORUM_TOPIC, TOPIC_COLORS[1], isPinned = true, unreadCount = 3, iconCustomEmojiId = DEMO_CUSTOM_EMOJI),
         ForumTopic(3, "Bugs", TOPIC_COLORS[5]),
         ForumTopic(4, "Ideas", TOPIC_COLORS[3])
     )

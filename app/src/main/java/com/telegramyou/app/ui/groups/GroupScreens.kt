@@ -657,6 +657,25 @@ fun TopicsScreen(
     }
 }
 
+/** Telegram's chosen topic emoji, with a Material fallback when none is set. */
+@Composable
+fun TopicIcon(topic: ForumTopic) {
+    val colour = Color(0xFF000000 or topic.iconColor.toLong())
+    Box(
+        Modifier.size(40.dp).background(colour.copy(alpha = 0.22f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        val emoji = topic.iconCustomEmojiId
+        if (emoji != null) {
+            com.telegramyou.app.ui.chat.ReactionGlyph(
+                com.telegramyou.app.telegram.model.customReactionKey(emoji), size = 24.dp
+            )
+        } else {
+            Icon(if (topic.isGeneral) Symbols.Tag else Symbols.Forum, contentDescription = null, tint = colour)
+        }
+    }
+}
+
 @Composable
 private fun TopicRow(
     topic: ForumTopic,
@@ -664,7 +683,6 @@ private fun TopicRow(
     onClick: () -> Unit,
     onAction: (TopicAction) -> Unit
 ) {
-    val colour = Color(0xFF000000 or topic.iconColor.toLong())
     var menu by remember { mutableStateOf(false) }
     ListItem(
         modifier = Modifier.clickable(onClick = onClick),
@@ -689,20 +707,7 @@ private fun TopicRow(
         },
         // The topic's own colour, the one thing that tells two topics apart
         // at a glance; the icon is Material's, not Telegram's drawn bubble.
-        leadingContent = {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .background(colour.copy(alpha = 0.22f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (topic.isGeneral) Symbols.Tag else Symbols.Forum,
-                    contentDescription = null,
-                    tint = colour
-                )
-            }
-        },
+        leadingContent = { TopicIcon(topic) },
         trailingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {

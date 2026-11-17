@@ -14,6 +14,10 @@ import com.telegramyou.app.telegram.model.TelegramUser
  */
 interface TelegramPeople {
 
+    /** Groups this account and the person both belong to, in server order. */
+    suspend fun commonGroups(userId: Long, offsetChatId: Long = 0L, limit: Int = 50): com.telegramyou.app.telegram.model.CommonGroupsPage =
+        com.telegramyou.app.telegram.model.CommonGroupsPage(emptyList())
+
     /** Somebody by their user id, with their bio; null when unknown. */
     suspend fun person(userId: Long): PersonProfile?
 

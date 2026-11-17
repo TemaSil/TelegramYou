@@ -44,6 +44,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -85,6 +86,7 @@ fun ProxyScreen(
     onErrorShown: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val pageColor = MaterialTheme.colorScheme.surfaceContainerLow
     state.errorMessage?.let { message ->
         LaunchedEffect(message) {
             snackbarHostState.showSnackbar(message)
@@ -92,10 +94,15 @@ fun ProxyScreen(
         }
     }
     Scaffold(
+        containerColor = pageColor,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(tr("Proxy", "Прокси")) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = pageColor,
+                    scrolledContainerColor = pageColor
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад"))
@@ -118,7 +125,7 @@ fun ProxyScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .background(pageColor)
                 .padding(padding),
             contentPadding = PaddingValues(bottom = 96.dp)
         ) {

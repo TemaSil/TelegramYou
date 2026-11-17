@@ -75,6 +75,7 @@ fun telegramViewModelFactory(
         initializer { com.telegramyou.app.ui.settings.NotificationsViewModel(repository) }
         initializer { PrivacyViewModel(repository) }
         initializer { PersonViewModel(repository, createSavedStateHandle()) }
+        initializer { com.telegramyou.app.ui.people.CommonGroupsViewModel(repository, createSavedStateHandle()) }
         initializer { BlockedViewModel(repository) }
         initializer { ContactsViewModel(repository) }
         initializer { FoldersViewModel(repository) }

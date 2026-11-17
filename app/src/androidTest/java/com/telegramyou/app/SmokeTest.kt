@@ -3863,6 +3863,190 @@ class SmokeTest {
         waitFor(By.desc("Now playing: Tonal Spot"), "the mini player under search")
     }
 
+    @Test
+    fun connectingTitleOpensProxyAndRecovers() {
+        val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
+        signIn()
+        waitFor(By.text(GROUP_CHAT), "the chat list")
+        try {
+            app.demoClient?.simulateConnection(false)
+            waitFor(By.text("Connecting…"), "the connection state in the home title")
+            screenshot("154-connecting")
+            tap(By.text("Connecting…"))
+            waitFor(By.text("Use proxy"), "the proxy page from the connection title")
+            screenshot("155-proxy-dark")
+            app.demoClient?.simulateConnection(true)
+            device.pressBack()
+            waitFor(By.text("TelegramYou"), "the recovered connection title")
+            tap(By.desc("More"))
+            if (device.hasObject(By.text("Light theme"))) tap(By.text("Light theme")) else device.pressBack()
+            waitFor(By.text("TelegramYou"), "the light home page")
+            tap(By.desc("More"))
+            tap(By.text("Proxy"))
+            waitFor(By.text("Use proxy"), "the light proxy page")
+            screenshot("156-proxy-light")
+            device.pressBack()
+            tap(By.desc("More"))
+            if (device.hasObject(By.text("Dark theme"))) tap(By.text("Dark theme")) else device.pressBack()
+        } finally {
+            app.demoClient?.simulateConnection(true)
+        }
+    }
+
+    @Test
+    fun ownProfileHeaderCollapsesAndKeepsItsActions() {
+        signIn()
+        tap(By.text("Profile"))
+        waitFor(By.text("Set photo"), "the own profile")
+        screenshot("151-own-profile-expanded")
+        device.swipe(device.displayWidth / 2, device.displayHeight * 4 / 5,
+            device.displayWidth / 2, device.displayHeight / 3, 30)
+        assertTrue("the expanded status stayed in the compact header", device.wait(Until.gone(By.text("online")), STEP_TIMEOUT))
+        waitFor(By.desc("QR code"), "QR still available in the compact header")
+        waitFor(By.desc("More"), "the compact profile menu")
+        screenshot("152-own-profile-collapsed")
+        try {
+            device.executeShellCommand("settings put system font_scale 1.6")
+            waitFor(By.desc("QR code"), "the profile after increasing the system font")
+            screenshot("152b-own-profile-large-font")
+        } finally {
+            device.executeShellCommand("settings put system font_scale 1.0")
+        }
+    }
+
+    @Test
+    fun commonGroupsReturnThroughTheContactProfile() {
+        signIn()
+        tap(By.text("Lina Park"))
+        waitFor(By.text("Message"), "Lina's conversation")
+        tapTopmost(By.text("Lina Park"))
+        waitFor(By.text("Info"), "Lina's profile")
+        scrollDownTo(By.text("Common groups"))
+        tap(By.text("Common groups"))
+        waitFor(By.text(GROUP_CHAT), "a server-backed common group")
+        screenshot("153-common-groups")
+        tap(By.text(GROUP_CHAT))
+        waitFor(GROUP_OPEN, "the group opened from common groups")
+        tapTopmost(By.text(GROUP_CHAT))
+        waitFor(By.text("Info"), "the common group's profile")
+        device.pressBack()
+        waitFor(GROUP_OPEN, "the common group again")
+        device.pressBack()
+        waitFor(By.text("Common groups"), "the same common-groups list")
+        waitFor(By.text(GROUP_CHAT), "the group retained in that list")
+        device.pressBack()
+        waitFor(By.text("Common groups"), "the entry in the contact's profile")
+        waitFor(By.selected(true).hasDescendant(By.text("Info")), "the contact's own Info tab")
+    }
+
+    @Test
+    fun expandedCaptionAndGlobalMediaSearchKeepTheirContext() {
+        val photos = seedGallery(1)
+        signIn()
+        sharePhotos(photos, GROUP_CHAT_ID)
+        waitFor(By.desc("Attachments, 1"), "the pending caption test's photo")
+        val initial = "Part two caption regression. " + "A longer caption stays editable. ".repeat(6)
+        type(initial)
+        tap(By.desc("Expand caption"))
+        waitFor(By.text("Caption"), "the expanded caption editor")
+        val caption = "Part two caption regression. " + "The edited text survives keyboard dismissal. ".repeat(6)
+        type(caption)
+        device.pressBack()
+        waitFor(By.text("Done"), "the editor after the keyboard is hidden")
+        tap(By.text("Done"))
+        waitFor(By.desc("Attachments, 1"), "the photo after closing its caption editor")
+        assertEquals("closing the editor lost part of the caption", caption,
+            device.findObject(By.clazz("android.widget.EditText")).text)
+        screenshot("157-expanded-caption-returned")
+        tap(By.desc("Send"))
+        assertTrue(device.wait(Until.gone(By.descStartsWith("Attachments,")), STEP_TIMEOUT))
+        backTo(By.text("Material Design"), "the chat list after sending the caption")
+        waitFor(By.text("Search"), "the home navigation")
+        tap(By.text("Search"))
+        type("Part two caption")
+        val tab = device.findObject(By.text("Posts")) ?: error("the search category strip is missing")
+        device.swipe(device.displayWidth * 9 / 10, tab.visibleCenter.y,
+            device.displayWidth / 5, tab.visibleCenter.y, 25)
+        tap(By.text("Media"))
+        waitFor(By.text(caption), "the caption found by the global media filter")
+        screenshot("158-global-media")
+        tap(By.text(caption))
+        waitFor(GROUP_OPEN, "the result's own conversation")
+        waitFor(By.text(caption), "the result in its original history")
+        device.pressBack()
+        waitFor(By.selected(true).hasDescendant(By.text("Media")), "the same search category after returning")
+        assertEquals("the media query was reset", "Part two caption",
+            device.findObject(By.clazz("android.widget.EditText")).text)
+        tap(By.text("Files"))
+        type("Expressive")
+        waitFor(By.text("Expressive-guidelines.pdf"), "a document found across all chats")
+        screenshot("159-global-files")
+        tap(By.text("Expressive-guidelines.pdf"))
+        waitFor(GROUP_OPEN, "the file's conversation")
+        waitFor(By.text("Expressive-guidelines.pdf"), "the file's original message")
+    }
+
+    @Test
+    fun videoPreviewDecodesTheLocalClip() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val clip = java.io.File(context.cacheDir, "seek-preview-check.mp4")
+        context.resources.openRawResource(R.raw.demo_video).use { input -> clip.outputStream().use { input.copyTo(it) } }
+        val frames = com.telegramyou.app.ui.chat.VideoPreviewFrames(context, clip.absolutePath)
+        try {
+            val frame = kotlinx.coroutines.runBlocking { frames.frame(2) }
+            if (Build.VERSION.SDK_INT < 27) {
+                assertNull("Android 8 keeps a time-only preview", frame)
+            } else {
+                assertTrue("the real video decoder returned no preview frame", frame != null)
+                assertTrue("preview dimensions must remain bounded", frame!!.width in 1..320 && frame.height in 1..180)
+            }
+        } finally {
+            frames.close()
+            clip.delete()
+        }
+    }
+
+    @Test
+    fun videoScrubbingShowsItsDestinationBeforeRelease() {
+        signIn()
+        tap(By.text(NOTIFYING_CHAT))
+        waitFor(By.textContains("ButtonGroup"), "the video conversation")
+        tap(By.desc("Photos in this chat"))
+        val poster = By.descContains(VIDEO_CAPTION)
+        waitFor(poster, "the video in the media grid")
+        tap(poster)
+        waitFor(By.desc("Pause"), "the playing video")
+        tap(By.desc("Pause"))
+        waitFor(By.desc("Play"), "the paused video")
+        val bounds = device.findObject(By.desc("Video position")).visibleBounds
+        val y = bounds.centerY()
+        val startX = bounds.left + bounds.width() / 4
+        val endX = bounds.left + bounds.width() * 3 / 4
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downAt = SystemClock.uptimeMillis()
+        fun touch(action: Int, x: Int) {
+            val event = android.view.MotionEvent.obtain(downAt, SystemClock.uptimeMillis(), action, x.toFloat(), y.toFloat(), 0)
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            try { assertTrue(automation.injectInputEvent(event, true)) } finally { event.recycle() }
+        }
+        touch(android.view.MotionEvent.ACTION_DOWN, startX)
+        try {
+            for (step in 1..18) {
+                touch(android.view.MotionEvent.ACTION_MOVE, startX + (endX - startX) * step / 18)
+                SystemClock.sleep(20)
+            }
+            waitFor(By.descStartsWith("Video preview at "), "the destination preview while the finger is held")
+            screenshot("160-video-seek-preview")
+        } finally {
+            touch(android.view.MotionEvent.ACTION_UP, endX)
+        }
+        assertTrue("the scrub preview stayed open after release",
+            device.wait(Until.gone(By.descStartsWith("Video preview at ")), STEP_TIMEOUT))
+        waitFor(By.desc("Play"), "the video still paused after scrubbing")
+        val time = device.findObject(By.textContains(" / "))?.text
+        assertTrue("scrubbing did not leave the beginning of the clip: $time", time != null && !time.startsWith("0:00"))
+    }
+
     /** A profile keeps its tabs, gallery and position in one navigation entry (3.0). */
     @Test
     fun aProfileKeepsItsMediaTabWhenReopened() {
