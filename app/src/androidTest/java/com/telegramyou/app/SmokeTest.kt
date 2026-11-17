@@ -3950,18 +3950,26 @@ class SmokeTest {
         tapTopmost(By.text("Lina Park"))
         waitFor(By.text("Info"), "Lina's profile")
         scrollDownTo(By.text("Common groups"))
+        // The demo's shared groups follow the current chat list. Groups made
+        // in other scenarios can replace Design Circle in its first page.
+        val repository = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp)
+            .telegramRepository
+        val commonGroup = kotlinx.coroutines.runBlocking {
+            val person = checkNotNull(repository.personInChat(2L))
+            repository.commonGroups(person.user.id).groups.first { !it.isForum }
+        }
         tap(By.text("Common groups"))
-        waitFor(By.text(GROUP_CHAT), "a server-backed common group")
+        waitFor(By.text(commonGroup.title), "a common group returned by the backend")
         screenshot("153-common-groups")
-        tap(By.text(GROUP_CHAT))
-        waitFor(GROUP_OPEN, "the group opened from common groups")
-        tapTopmost(By.text(GROUP_CHAT))
+        tap(By.text(commonGroup.title))
+        waitFor(By.desc("Attach"), "the group opened from common groups")
+        tapTopmost(By.text(commonGroup.title))
         waitFor(By.text("Info"), "the common group's profile")
         device.pressBack()
-        waitFor(GROUP_OPEN, "the common group again")
+        waitFor(By.desc("Attach"), "the common group again")
         device.pressBack()
         waitFor(By.text("Common groups"), "the same common-groups list")
-        waitFor(By.text(GROUP_CHAT), "the group retained in that list")
+        waitFor(By.text(commonGroup.title), "the group retained in that list")
         device.pressBack()
         waitFor(By.text("Common groups"), "the entry in the contact's profile")
         waitFor(By.selected(true).hasDescendant(By.text("Info")), "the contact's own Info tab")
