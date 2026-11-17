@@ -46,6 +46,7 @@ data class HomeUiState(
     val me: TelegramUser? = null,
     /** TDLib has a usable server connection; the offline demo is always ready. */
     val isConnected: Boolean = true,
+    val isWaitingForNetwork: Boolean = false,
     /**
      * Contacts' birthdays today — or tomorrow, with none today — for the
      * card over the chat list; null with none, or once put away for the day.
@@ -309,6 +310,8 @@ class HomeViewModel(
         home.copy(birthdayCard = card)
     }.combine(repository.isConnected) { home, connected ->
         home.copy(isConnected = connected)
+    }.combine(repository.isWaitingForNetwork) { home, waiting ->
+        home.copy(isWaitingForNetwork = waiting, isConnected = home.isConnected && !waiting)
     // On the main thread, on purpose. Moved to a background dispatcher once,
     // as an optimisation, the folder a swipe chose came back late — and the
     // pager, which follows the chosen folder as well as setting it, was
@@ -319,7 +322,10 @@ class HomeViewModel(
         // Kept briefly past the last subscriber: a rotation unsubscribes and
         // resubscribes, and rebuilding the list for that is wasted work.
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = HomeUiState(isConnected = repository.isConnected.value)
+        initialValue = HomeUiState(
+            isConnected = repository.isConnected.value && !repository.isWaitingForNetwork.value,
+            isWaitingForNetwork = repository.isWaitingForNetwork.value
+        )
     )
 
     /**

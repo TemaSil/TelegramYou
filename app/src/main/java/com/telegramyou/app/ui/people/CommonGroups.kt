@@ -14,6 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.telegramyou.app.i18n.tr
 import com.telegramyou.app.navigation.Route
 import com.telegramyou.app.telegram.TelegramRepository
@@ -40,9 +43,9 @@ data class CommonGroupsUiState(
 /** The cursor belongs to this person's route, not to the chat opened from it. */
 class CommonGroupsViewModel(
     private val repository: TelegramRepository,
-    savedStateHandle: SavedStateHandle
-) : ViewModel() {
+    savedStateHandle: SavedStateHandle,
     private val userId: Long = checkNotNull(savedStateHandle[Route.Person.ARG_USER_ID])
+) : ViewModel() {
     private var cursor = 0L
     private val state = MutableStateFlow(CommonGroupsUiState())
     val uiState = state.asStateFlow()
@@ -87,7 +90,12 @@ class CommonGroupsViewModel(
     }
 }
 
-/** A visible entry on Info, so the feature is not hidden after seven tabs. */
+/** Embedded profiles have a chat route; the person id comes from its details. */
+fun commonGroupsViewModelFactory(repository: TelegramRepository, userId: Long) = viewModelFactory {
+    initializer { CommonGroupsViewModel(repository, createSavedStateHandle(), userId) }
+}
+
+/** Entry for standalone contact profiles that do not host media tabs. */
 @Composable
 fun CommonGroupsRow(profile: PersonProfile, onOpen: () -> Unit) {
     if (profile.isBot) return
@@ -103,11 +111,6 @@ fun CommonGroupsRow(profile: PersonProfile, onOpen: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CommonGroupsScreen(state: CommonGroupsUiState, onBack: () -> Unit, onOpenChat: (Long) -> Unit, onNearEnd: () -> Unit, onRetry: () -> Unit) {
-    val list = rememberLazyListState()
-    val last = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-    LaunchedEffect(last, state.groups.size, state.isLoading) {
-        if (state.groups.isEmpty() || last >= state.groups.size - 5) onNearEnd()
-    }
     Scaffold(topBar = {
         TopAppBar(
             title = { Column {
@@ -117,7 +120,47 @@ fun CommonGroupsScreen(state: CommonGroupsUiState, onBack: () -> Unit, onOpenCha
             navigationIcon = { IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, tr("Back", "Назад")) } }
         )
     }) { padding ->
-        LazyColumn(state = list, modifier = Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(bottom = 24.dp)) {
+        CommonGroupsContent(state, onOpenChat, onNearEnd, onRetry, modifier = Modifier.padding(padding))
+    }
+}
+
+/** Shared list for the profile tab and a standalone contact destination. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun CommonGroupsContent(
+    state: CommonGroupsUiState,
+    onOpenChat: (Long) -> Unit,
+    onNearEnd: () -> Unit,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    active: Boolean = true,
+    initialPosition: Pair<Int, Int> = 0 to 0,
+    onPositionChanged: (Pair<Int, Int>) -> Unit = {}
+) {
+    val list = rememberLazyListState(initialPosition.first, initialPosition.second)
+    val last = list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+    // Load a saved position's pages before measuring the list; otherwise a
+    // short first page clamps the saved index to its last row.
+    val restoring = initialPosition.first > 0 && initialPosition.first >= state.groups.size && !state.isComplete
+    LaunchedEffect(active, last, state.groups.size, state.isLoading) {
+        if (active && (restoring || state.groups.isEmpty() || last >= state.groups.size - 5)) onNearEnd()
+    }
+    LaunchedEffect(active, restoring, list) {
+        if (active && !restoring) snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }
+            .collect { onPositionChanged(it) }
+    }
+    if (restoring) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (state.error == null) LoadingIndicator() else Column(
+                Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(state.error)
+                TextButton(onClick = onRetry) { Text(tr("Retry", "Повторить")) }
+            }
+        }
+        return
+    }
+    LazyColumn(state = list, modifier = modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
             items(state.groups, key = { it.id }) { chat ->
                 ListItem(
                     headlineContent = { Text(chat.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
@@ -136,6 +179,5 @@ fun CommonGroupsScreen(state: CommonGroupsUiState, onBack: () -> Unit, onOpenCha
             if (state.isComplete && state.groups.isEmpty()) item {
                 Text(tr("No common groups yet", "Общих групп пока нет"), Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-        }
     }
 }

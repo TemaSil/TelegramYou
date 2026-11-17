@@ -58,7 +58,15 @@ class FakeTelegramClient(
 ) : TelegramClient {
 
     val mutableConnection = MutableStateFlow(true)
+    val musicCalls = mutableListOf<Pair<String, String>>()
+    var musicReply: suspend (String, String, Int) -> Pair<List<ChatMessage>, String?> = { _, _, _ -> emptyList<ChatMessage>() to null }
+    override suspend fun allMusic(query: String, cursor: String, limit: Int): Pair<List<ChatMessage>, String?> {
+        musicCalls += query to cursor
+        return musicReply(query, cursor, limit)
+    }
     override val isConnected: StateFlow<Boolean> = mutableConnection
+    val mutableWaitingForNetwork = MutableStateFlow(false)
+    override val isWaitingForNetwork: StateFlow<Boolean> = mutableWaitingForNetwork
     val commonGroupPages = mutableListOf<com.telegramyou.app.telegram.model.CommonGroupsPage>()
     val commonGroupCalls = mutableListOf<Pair<Long, Long>>()
     var commonGroupFailure: Exception? = null

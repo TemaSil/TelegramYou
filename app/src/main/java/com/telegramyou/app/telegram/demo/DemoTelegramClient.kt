@@ -187,9 +187,14 @@ class DemoTelegramClient(
      */
     private val connectionAvailable = MutableStateFlow(true)
     override val isConnected: StateFlow<Boolean> = connectionAvailable
+    private val networkMissing = MutableStateFlow(false)
+    override val isWaitingForNetwork: StateFlow<Boolean> = networkMissing
 
     /** Deterministic connection changes for the offline demo's UI checks. */
-    fun simulateConnection(connected: Boolean) { connectionAvailable.value = connected }
+    fun simulateConnection(connected: Boolean, waitingForNetwork: Boolean = false) {
+        connectionAvailable.value = connected
+        networkMissing.value = !connected && waitingForNetwork
+    }
 
     private val DEMO_CUSTOM_EMOJI = 5_000_000_001L
 
@@ -1755,6 +1760,8 @@ class DemoTelegramClient(
                         type = MessageContentType.Document,
                         fileName = name,
                         fileSizeLabel = "1.${index + 2} MB",
+                        documentPath = draft.uris.getOrNull(index),
+                        mimeType = if (name.endsWith(".pdf", true)) "application/pdf" else null,
                         replyToId = replyToId.takeIf { index == 0 }
                     )
                 }
@@ -2753,7 +2760,9 @@ class DemoTelegramClient(
         location: LocationContent? = null,
         /** Part of the answered message quoted, shown in place of the whole (2.0). */
         quote: String? = null,
-        hasSpoiler: Boolean = false
+        hasSpoiler: Boolean = false,
+        documentPath: String? = null,
+        mimeType: String? = null
     ) {
         val quoted = replyToId?.let { id ->
             chatMessages[chatId]?.firstOrNull { it.id == id }
@@ -2769,6 +2778,8 @@ class DemoTelegramClient(
             contentType = type,
             fileName = fileName,
             fileSizeLabel = fileSizeLabel,
+            documentPath = documentPath,
+            mimeType = mimeType,
             mediaEmoji = mediaEmoji,
             replyToId = replyToId,
             replyToText = quote ?: quoted?.text,

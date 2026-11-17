@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TwoRowsTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -158,7 +159,8 @@ fun ChatInfoScreen(
     onPageChanged: (Int) -> Unit = {},
     initialInfoPosition: Pair<Int, Int> = 0 to 0,
     onInfoPositionChanged: (Pair<Int, Int>) -> Unit = {},
-    onOpenCommonGroups: (Long) -> Unit = {}
+    onOpenCommonGroups: (Long) -> Unit = {},
+    commonGroupsContent: (@Composable (Long, Boolean) -> Unit)? = null
 ) {
     val chat = detail?.chat
     val copyToClipboard = rememberTextCopier()
@@ -169,7 +171,14 @@ fun ChatInfoScreen(
     var confirmingDeleteMine by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val kinds = SharedMediaKind.entries
-    val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, kinds.size)) { kinds.size + 1 }
+    val commonGroupsPage = kinds.size + 1
+    // Append this page so media indices and their saved positions stay stable.
+    // Keep a private chat's pending page while its person details load.
+    val hasCommonGroups = commonGroupsContent != null && person?.isBot != true &&
+        (person != null || chat?.let { !it.isGroup && !it.isChannel && !it.isSavedMessages } == true ||
+            (chat == null && initialPage == commonGroupsPage))
+    val lastPage = kinds.size + if (hasCommonGroups) 1 else 0
+    val pager = rememberPagerState(initialPage = initialPage.coerceIn(0, lastPage)) { lastPage + 1 }
     val infoList = rememberLazyListState(initialInfoPosition.first, initialInfoPosition.second)
     LaunchedEffect(pager) {
         snapshotFlow { pager.targetPage }.collect { onPageChanged(it) }
@@ -179,6 +188,12 @@ fun ChatInfoScreen(
             .collect { onInfoPositionChanged(it) }
     }
     val collapse = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val headerColors = TopAppBarDefaults.topAppBarColors()
+    val headerColor by animateColorAsState(
+        targetValue = if (collapse.state.overlappedFraction > 0.01f) headerColors.scrolledContainerColor else headerColors.containerColor,
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+        label = "Profile header colour"
+    )
 
     if (confirmingRenew) {
         AlertDialog(
@@ -345,14 +360,19 @@ fun ChatInfoScreen(
                     navigationIcon = {
                         IconButton(onClick = onBack) { Icon(Symbols.ArrowBack, contentDescription = tr("Back", "Назад")) }
                     },
-                    scrollBehavior = collapse
+                    scrollBehavior = collapse,
+                    colors = headerColors.copy(containerColor = headerColor, scrolledContainerColor = headerColor)
                 )
-                PrimaryScrollableTabRow(selectedTabIndex = pager.targetPage, edgePadding = 0.dp, minTabWidth = 72.dp) {
-                    for (index in 0..kinds.size) {
+                PrimaryScrollableTabRow(selectedTabIndex = pager.targetPage.coerceAtMost(lastPage), containerColor = headerColor, edgePadding = 0.dp, minTabWidth = 72.dp) {
+                    for (index in 0..lastPage) {
                         Tab(
                             selected = pager.targetPage == index,
                             onClick = { scope.launch { pager.animateScrollToPage(index) } },
-                            text = { Text(if (index == 0) tr("Info", "Информация") else kinds[index - 1].label) }
+                            text = { Text(when (index) {
+                                0 -> tr("Info", "Информация")
+                                commonGroupsPage -> tr("Common groups", "Общие группы")
+                                else -> kinds[index - 1].label
+                            }) }
                         )
                     }
                 }
@@ -422,7 +442,7 @@ fun ChatInfoScreen(
                     copyToClipboard(text)
                     scope.launch { snackbarHostState.showSnackbar(tr("$what copied", "$what: скопировано")) }
                 }
-                item(key = "common-groups") {
+                if (commonGroupsContent == null) item(key = "common-groups") {
                     com.telegramyou.app.ui.people.CommonGroupsRow(profile) { onOpenCommonGroups(profile.user.id) }
                 }
             }
@@ -739,11 +759,19 @@ fun ChatInfoScreen(
         if (mediaContent == null) info() else {
             HorizontalPager(
                 state = pager,
-                key = { page -> if (page == 0) "info" else kinds[page - 1].name },
+                key = { page -> when (page) {
+                    0 -> "info"
+                    commonGroupsPage -> "common-groups"
+                    else -> kinds[page - 1].name
+                } },
                 beyondViewportPageCount = 0,
                 modifier = Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
             ) { page ->
-                if (page == 0) info() else mediaContent(kinds[page - 1], page == pager.currentPage)
+                when (page) {
+                    0 -> info()
+                    commonGroupsPage -> person?.let { commonGroupsContent?.invoke(it.user.id, page == pager.currentPage) }
+                    else -> mediaContent(kinds[page - 1], page == pager.currentPage)
+                }
             }
         }
     }

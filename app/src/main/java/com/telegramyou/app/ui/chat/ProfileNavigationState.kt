@@ -22,7 +22,7 @@ class ProfileNavigationState private constructor(
         values["$chatId:page"] = listOf(page)
     }
 
-    /** Page zero is information; the others follow SharedMediaKind's order. */
+    /** Info, SharedMediaKind pages, then common groups for private chats. */
     fun scroll(chatId: Long, page: Int): Pair<Int, Int> {
         val value = values["$chatId:scroll:$page"]
         return (value?.getOrNull(0) ?: 0) to (value?.getOrNull(1) ?: 0)

@@ -120,6 +120,9 @@ import com.telegramyou.app.ui.media.formatBytes
 // Aliased: this class has a toggleReaction of its own, with a different job.
 import com.telegramyou.app.telegram.model.toggleReaction as applyReaction
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -315,6 +318,11 @@ class TdLibTelegramClient(
     /** See TelegramChats.isConnected; from TDLib's updateConnectionState. */
     private val _connected = MutableStateFlow(false)
     override val isConnected: StateFlow<Boolean> = _connected.asStateFlow()
+    private val tdlibWaitingForNetwork = MutableStateFlow(false)
+    override val isWaitingForNetwork: StateFlow<Boolean> = combine(
+        tdlibWaitingForNetwork, networkUnavailable(context)
+    ) { waiting, unavailable -> waiting || unavailable }
+        .stateIn(scope, SharingStarted.WhileSubscribed(5_000), false)
     override val incomingMessages: SharedFlow<ChatMessage> = _incomingMessages.asSharedFlow()
 
     // Same buffering, for the same reason: emitted from the update handler.
@@ -1049,7 +1057,7 @@ class TdLibTelegramClient(
 
     override suspend fun allMusic(query: String, cursor: String, limit: Int): Pair<List<ChatMessage>, String?> {
         awaitReady()
-        val found = try {
+        val found =
             requireEngine().send(
                 JSONObject()
                     .put("@type", "searchMessages")
@@ -1060,10 +1068,6 @@ class TdLibTelegramClient(
                     .put("min_date", 0)
                     .put("max_date", 0)
             )
-        } catch (e: TdLibException) {
-            Log.w(TAG, "allMusic: ${e.message}")
-            return emptyList<ChatMessage>() to null
-        }
         val messages = found.optJSONArray("messages")
         val out = mutableListOf<ChatMessage>()
         for (i in 0 until (messages?.length() ?: 0)) {
@@ -4999,7 +5003,9 @@ class TdLibTelegramClient(
             }
             "updateConnectionState" -> {
                 // Online only when TDLib says it is caught up with the server.
-                _connected.value = update.optJSONObject("state")?.optString("@type") == "connectionStateReady"
+                val connection = update.optJSONObject("state")?.optString("@type")
+                _connected.value = connection == "connectionStateReady"
+                tdlibWaitingForNetwork.value = connection == "connectionStateWaitingForNetwork"
             }
             "updateNewMessage" -> {
                 val message = update.optJSONObject("message") ?: return

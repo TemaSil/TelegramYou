@@ -23,9 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import com.telegramyou.app.i18n.tr
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.*
@@ -71,37 +69,33 @@ internal class VideoPreviewFrames(private val context: Context, private val path
     }
 }
 
-/** Time always works; a streamed, unavailable frame never forces a download. */
+/** Fixed-size image, separate from the compact time badge: decoding never moves it. */
 @Composable
-internal fun VideoSeekPreview(path: String?, positionMs: Long, offset: IntOffset) {
+internal fun VideoSeekPreview(path: String, positionMs: Long, modifier: Modifier = Modifier) {
     val context = LocalContext.current.applicationContext
-    val frames = remember(path) {
-        path?.takeIf { Uri.parse(it).scheme in listOf(null, "file", "content", "android.resource") }
-            ?.let { VideoPreviewFrames(context, it) }
-    }
-    DisposableEffect(frames) { onDispose { frames?.close() } }
+    val frames = remember(path) { VideoPreviewFrames(context, path) }
+    DisposableEffect(frames) { onDispose { frames.close() } }
     val bucket = positionMs.coerceAtLeast(0) / 500
     val bitmap by produceState<Bitmap?>(null, frames, bucket) {
-        value = null
-        value = frames?.frame(bucket)
+        // Keep the last frame until the next has decoded. Clearing it here
+        // flashed a small time-only pill between full-size image previews.
+        frames.frame(bucket)?.let { value = it }
     }
+    Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.width(112.dp).height(80.dp)) {
+        bitmap?.let { Image(it.asImageBitmap(), null, Modifier.fillMaxWidth(), contentScale = ContentScale.Fit) }
+    }
+}
+
+/** Natural text width; this badge never reserves a thumbnail's width. */
+@Composable
+internal fun VideoSeekTimeBadge(positionMs: Long, modifier: Modifier = Modifier) {
     val time = formatDuration(positionMs.coerceAtLeast(0) / 1000)
-    Popup(alignment = Alignment.BottomStart, offset = offset) {
-        Surface(
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 6.dp,
-            modifier = Modifier.width(144.dp).semantics(mergeDescendants = true) {
-                contentDescription = tr("Video preview at $time", "Предпросмотр видео: $time")
-            }
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                bitmap?.let { frame ->
-                    Image(frame.asImageBitmap(), contentDescription = null, contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxWidth().height(90.dp))
-                }
-                Text(time, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(8.dp))
-            }
-        }
+    Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        modifier = modifier.semantics(mergeDescendants = true) {
+            contentDescription = tr("Video preview at $time", "Предпросмотр видео: $time")
+        }) {
+        Text(time, style = MaterialTheme.typography.labelLarge.copy(fontFeatureSettings = "tnum"),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp))
     }
 }

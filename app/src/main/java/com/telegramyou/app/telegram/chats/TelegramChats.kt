@@ -80,6 +80,9 @@ interface TelegramChats {
      */
     val isConnected: StateFlow<Boolean> get() = AlwaysConnected
 
+    /** No usable network, rather than a connection to Telegram still in progress. */
+    val isWaitingForNetwork: StateFlow<Boolean> get() = NeverWaitingForNetwork
+
     fun knownChat(chatId: Long): ChatPreview? = chats.value.firstOrNull { it.id == chatId }
 
     /**
@@ -304,3 +307,4 @@ interface TelegramChats {
 
 /** isConnected for a backend with no server to lose. */
 private val AlwaysConnected: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(true)
+private val NeverWaitingForNetwork: StateFlow<Boolean> = kotlinx.coroutines.flow.MutableStateFlow(false)

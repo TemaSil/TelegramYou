@@ -14,6 +14,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import com.telegramyou.app.telegram.model.DownloadEntry
+import com.telegramyou.app.ui.media.FileTransfer
 
 /** One tab's worth of a chat's shared media, as far as it has been paged. */
 data class SharedMediaTab(
@@ -34,7 +38,9 @@ data class SharedMediaUiState(
     /** The file being fetched before it can be opened, by message id. */
     val openingFileId: Long? = null,
     val fileToOpen: FileToOpen? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val transfers: Map<Int, FileTransfer> = emptyMap(),
+    val downloads: Map<Int, DownloadEntry> = emptyMap()
 ) {
     fun tab(kind: SharedMediaKind): SharedMediaTab = tabs[kind] ?: SharedMediaTab()
 }
@@ -58,6 +64,54 @@ class SharedMediaViewModel(
         SharedMediaUiState(title = repository.chats.value.firstOrNull { it.id == chatId }?.title.orEmpty())
     )
     val uiState: StateFlow<SharedMediaUiState> = _uiState.asStateFlow()
+    private var openingJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            var known: Set<Int>? = null
+            repository.observeTransfers().collect { transfers ->
+                _uiState.update { it.copy(transfers = transfers) }
+                if (known != transfers.keys) {
+                    known = transfers.keys.toSet()
+                    refreshDownloads()
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshDownloads() {
+        try {
+            val entries = repository.fileDownloads().associateBy { it.fileId }
+            _uiState.update { it.copy(downloads = entries) }
+        } catch (cancelled: CancellationException) { throw cancelled }
+          catch (_: Exception) { /* Transfer progress still works without the list. */ }
+    }
+
+    fun onFilePaused(message: ChatMessage) {
+        val id = message.documentFileId ?: return
+        viewModelScope.launch {
+            try {
+                repository.setDownloadPaused(id, true)
+                if (_uiState.value.openingFileId == message.id) {
+                    openingJob?.cancel()
+                    _uiState.update { it.copy(openingFileId = null) }
+                }
+                refreshDownloads()
+            } catch (cancelled: CancellationException) { throw cancelled }
+              catch (_: Exception) { _uiState.update { it.copy(errorMessage = tr("Could not pause download", "Не удалось приостановить загрузку")) } }
+        }
+    }
+
+    fun onFileResumed(message: ChatMessage) {
+        viewModelScope.launch {
+            try {
+                message.documentFileId?.let { repository.setDownloadPaused(it, false) }
+                refreshDownloads()
+                onFileTapped(message)
+            } catch (cancelled: CancellationException) { throw cancelled }
+              catch (_: Exception) { _uiState.update { it.copy(errorMessage = tr("Could not resume download", "Не удалось продолжить загрузку")) } }
+        }
+    }
 
     /** The tab has come into view: its first page, once. */
     fun onTabShown(kind: SharedMediaKind) {
@@ -116,9 +170,10 @@ class SharedMediaViewModel(
         }
         if (_uiState.value.openingFileId != null) return
         _uiState.update { it.copy(openingFileId = message.id) }
-        viewModelScope.launch {
-            val outcome = runCatching { repository.downloadToList(message.chatId, message.id, fileId) }
-                .getOrDefault(com.telegramyou.app.telegram.model.DownloadOutcome.Failed)
+        openingJob = viewModelScope.launch {
+            val outcome = try { repository.downloadToList(message.chatId, message.id, fileId) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { com.telegramyou.app.telegram.model.DownloadOutcome.Failed }
             val path = (outcome as? com.telegramyou.app.telegram.model.DownloadOutcome.Done)?.path
             _uiState.update {
                 if (path == null) {

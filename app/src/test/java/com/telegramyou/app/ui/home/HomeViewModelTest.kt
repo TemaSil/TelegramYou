@@ -38,9 +38,20 @@ class HomeViewModelTest {
         val (vm, client) = viewModel()
         client.setChats(listOf(chat(1, "Lina")))
         advanceUntilIdle()
+        // Android can announce a missing network before TDLib disconnects.
+        client.mutableWaitingForNetwork.value = true
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.isWaitingForNetwork)
+        assertFalse(vm.uiState.value.isConnected)
+        assertEquals("Lina", vm.uiState.value.chats.single().title)
+        client.mutableWaitingForNetwork.value = false
+        advanceUntilIdle()
+        assertFalse(vm.uiState.value.isWaitingForNetwork)
+        assertTrue(vm.uiState.value.isConnected)
         client.mutableConnection.value = false
         advanceUntilIdle()
         assertFalse(vm.uiState.value.isConnected)
+        assertFalse(vm.uiState.value.isWaitingForNetwork)
         assertEquals("Lina", vm.uiState.value.chats.single().title)
         client.mutableConnection.value = true
         advanceUntilIdle()

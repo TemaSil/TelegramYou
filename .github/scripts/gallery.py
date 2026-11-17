@@ -85,6 +85,9 @@ SHOWCASE = [
     ("158-global-media", "Media in global search"),
     ("159-global-files", "Files in global search"),
     ("160-video-seek-preview", "Video seek preview"),
+    ("162-waiting-for-network", "Waiting for network"),
+    ("163-pdf-viewer", "PDF viewer"),
+    ("164-media-menu", "Media actions"),
 ]
 
 WIDTH = 540

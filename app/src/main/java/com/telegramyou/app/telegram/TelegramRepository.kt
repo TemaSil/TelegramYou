@@ -11,6 +11,11 @@ import com.telegramyou.app.telegram.model.ChatPreview
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.telegram.model.DownloadOutcome
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +30,8 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 
 class TelegramRepository(
-    private val client: TelegramClient
+    private val client: TelegramClient,
+    downloadDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : TelegramClient by client {
 
     fun observeAuth(): StateFlow<AuthUiState> = authState
@@ -37,7 +43,7 @@ class TelegramRepository(
     // ── downloads a person asked for ─────────────────────────────────────
 
     /** Outlives any one screen: a download started in a chat finishes after it closes. */
-    private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val downloadScope = CoroutineScope(SupervisorJob() + downloadDispatcher)
     private val listRuns = ConcurrentHashMap<Int, Deferred<DownloadOutcome>>()
     private val _listDownloads = MutableStateFlow<Set<Int>>(emptySet())
 
@@ -55,18 +61,48 @@ class TelegramRepository(
      * arrives.
      */
     override suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): DownloadOutcome {
-        val run = listRuns.getOrPut(fileId) {
-            _listDownloads.update { it + fileId }
-            downloadScope.async {
-                try {
+        val run = synchronized(listRuns) {
+            listRuns[fileId]?.takeUnless { it.isCompleted || it.isCancelled } ?: run {
+                val fresh = downloadScope.async(start = CoroutineStart.LAZY) {
                     client.downloadToList(chatId, messageId, fileId)
-                } finally {
-                    listRuns.remove(fileId)
-                    _listDownloads.update { it - fileId }
                 }
+                listRuns[fileId] = fresh
+                _listDownloads.update { it + fileId }
+                fresh.invokeOnCompletion {
+                    synchronized(listRuns) {
+                        // An older stopped attempt must not erase a newer one.
+                        if (listRuns[fileId] === fresh) {
+                            listRuns.remove(fileId)
+                            _listDownloads.update { it - fileId }
+                        }
+                    }
+                }
+                fresh
             }
         }
-        return run.await()
+        run.start()
+        return try { run.await() }
+        catch (cancelled: CancellationException) {
+            if (!currentCoroutineContext().isActive) throw cancelled
+            DownloadOutcome.Stopped
+        }
+    }
+
+    override suspend fun setDownloadPaused(fileId: Int, paused: Boolean) {
+        client.setDownloadPaused(fileId, paused)
+        if (paused) stopDownloadRun(fileId)
+    }
+
+    override suspend fun setAllDownloadsPaused(paused: Boolean) {
+        client.setAllDownloadsPaused(paused)
+        if (paused) listRuns.keys.toList().forEach(::stopDownloadRun)
+    }
+
+    private fun stopDownloadRun(fileId: Int) {
+        val old = synchronized(listRuns) {
+            listRuns.remove(fileId).also { _listDownloads.update { active -> active - fileId } }
+        }
+        old?.cancel()
     }
 
     /** A paused download going again, from the Downloads screen, followed to the end. */

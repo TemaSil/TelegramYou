@@ -279,6 +279,7 @@ fun ChatScreen(
     onVoiceSeek: (ChatMessage, Float) -> Unit,
     /** A file in a bubble tapped; see ChatViewModel.onDocumentOpened. */
     onDocumentOpened: (ChatMessage) -> Unit = {},
+    onDocumentPaused: (ChatMessage) -> Unit = {},
     /** The app's music player, for the tracks in this chat's bubbles. */
     music: NowPlaying = NowPlaying(),
     onMusicSeek: (Float) -> Unit = {},
@@ -295,6 +296,7 @@ fun ChatScreen(
     onVideoClosed: () -> Unit,
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
     onGalleryPage: (ChatMessage) -> Unit = {},
+    onGalleryAction: ((ChatMessage, MediaMessageAction) -> Unit)? = null,
     onSaveGif: (ChatMessage) -> Unit = {},
     /** A track into the player's Up next: first (true) or last. */
     onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
@@ -965,9 +967,7 @@ fun ChatScreen(
     // A file fetched and ready: handed to whichever app on the phone reads it.
     val fileContext = LocalContext.current
     state.fileToOpen?.let { file ->
-        LaunchedEffect(file) {
-            if (MediaActions.openFile(fileContext, file.path, file.mime, file.name)) onFileOpened() else onFileRefused(file.name)
-        }
+        DocumentOpener(file, onFileOpened, onFileRefused)
     }
 
     Scaffold(
@@ -1485,6 +1485,8 @@ fun ChatScreen(
                                 },
                                 onDocumentOpen = { onDocumentOpened(message) },
                                 documentOpening = state.openingFileId == message.id,
+                                documentPaused = message.documentFileId in state.pausedDocuments,
+                                onDocumentPause = { onDocumentPaused(message) },
                                 onPhotoVisible = { onPhotoVisible(message) },
                                 onPhotoOpened = { onPhotoOpened(message) },
                                 onVideoOpened = { onVideoOpened(message) },
@@ -2116,6 +2118,9 @@ fun ChatScreen(
                 MediaGallery(
                     items = gallery,
                     startId = opened.id,
+                    sourceTitle = state.detail?.chat?.title.orEmpty(),
+                    canReply = state.detail?.chat?.canReply != false,
+                    onMessageAction = onGalleryAction,
                     transfers = state.transfers,
                     onPage = onGalleryPage,
                     onDismiss = {

@@ -577,6 +577,7 @@ fun HomeScreen(
                         HomeTitleBar(
                             windowInsets = WindowInsets(0),
                             isConnected = state.isConnected,
+                            isWaitingForNetwork = state.isWaitingForNetwork,
                             isDark = isDark(settings.theme, isSystemInDarkTheme()),
                             onThemeChange = onThemeChange,
                             onOpenProxy = onOpenProxy,
@@ -905,6 +906,7 @@ private fun HomeTitleBar(
     modifier: Modifier = Modifier,
     windowInsets: WindowInsets = TopAppBarDefaults.windowInsets,
     isConnected: Boolean = true,
+    isWaitingForNetwork: Boolean = false,
     isDark: Boolean = false,
     onThemeChange: (ThemeChoice) -> Unit = {},
     onOpenProxy: () -> Unit = {},
@@ -1037,7 +1039,11 @@ private fun HomeTitleBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
             Text(
-                if (isConnected) "TelegramYou" else tr("Connecting…", "Подключение…"),
+                when {
+                    isWaitingForNetwork -> tr("Waiting for network…", "Ожидание сети…")
+                    isConnected -> "TelegramYou"
+                    else -> tr("Connecting…", "Подключение…")
+                },
                 // Google Sans Flex, the face Google's own apps set their
                 // names in — see AppTitleStyle. Only the titles: the rest
                 // of the screen stays on the system face, which is what

@@ -61,6 +61,8 @@ import com.telegramyou.app.telegram.model.progress
 import com.telegramyou.app.telegram.model.sectionDownloads
 import com.telegramyou.app.telegram.model.state
 import com.telegramyou.app.telegram.model.statusLine
+import com.telegramyou.app.ui.chat.DocumentOpener
+import com.telegramyou.app.ui.chat.PdfThumbnail
 import com.telegramyou.app.ui.chat.FileToOpen
 import com.telegramyou.app.ui.chat.MediaActions
 import com.telegramyou.app.ui.icons.Symbols
@@ -279,11 +281,7 @@ fun DownloadsScreen(
         }
     }
     state.fileToOpen?.let { file ->
-        LaunchedEffect(file) {
-            val name = file.name ?: tr("this file", "этот файл")
-            if (MediaActions.openFile(context, file.path, file.mime, file.name)) viewModel.onFileOpened()
-            else viewModel.onFileRefused(name)
-        }
+        DocumentOpener(file, viewModel::onFileOpened) { name -> viewModel.onFileRefused(name ?: tr("this file", "этот файл")) }
     }
 
     Scaffold(
@@ -508,7 +506,7 @@ private fun FileBadge(entry: DownloadEntry) {
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.size(48.dp)
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        PdfThumbnail(FileToOpen(entry.path.orEmpty(), entry.mimeType, entry.name), Modifier.fillMaxSize()) {
             val extension = fileExtension(entry.name)
             when {
                 entry.mimeType?.startsWith("audio/") == true -> Icon(Symbols.MusicNote, contentDescription = null)

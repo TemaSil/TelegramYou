@@ -1,5 +1,22 @@
 package com.telegramyou.app.ui.chat
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.text.style.TextOverflow
+import com.telegramyou.app.telegram.model.withPermissions
+import com.telegramyou.app.telegram.model.MessagePermissions
+import com.telegramyou.app.telegram.model.DownloadOutcome
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.layout.heightIn
@@ -90,7 +107,10 @@ fun MediaGallery(
     startId: Long,
     transfers: Map<Int, FileTransfer>,
     onPage: (ChatMessage) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    sourceTitle: String = "",
+    canReply: Boolean = true,
+    onMessageAction: ((ChatMessage, MediaMessageAction) -> Unit)? = null
 ) {
     if (items.isEmpty()) return
     val origins = LocalMediaOrigins.current
@@ -184,6 +204,59 @@ fun MediaGallery(
         androidx.activity.compose.BackHandler(enabled = captionOpen) { captionOpen = false }
 
         val current = items.getOrNull(pager.currentPage)
+        var videoBackdrop by remember(current?.id) { mutableStateOf<PlayerBackdrop?>(null) }
+        var menu by remember(current?.id) { mutableStateOf(false) }
+        var permissions by remember(current?.id) { mutableStateOf<MessagePermissions?>(null) }
+        val host = remember { SnackbarHostState() }
+        val context = LocalContext.current
+        val repository = (context.applicationContext as TelegramYouApp).telegramRepository
+        LaunchedEffect(menu, current?.id) {
+            if (menu && current != null) {
+                permissions = try {
+                    repository.messagePermissions(current.chatId, current.id) ?: MessagePermissions(
+                        current.canBeEdited, current.canBeDeletedForSelf, current.canBeDeletedForEveryone, true)
+                } catch (cancelled: CancellationException) { throw cancelled }
+                  catch (_: Exception) { null }
+            }
+        }
+        val act: (MediaMessageAction) -> Unit = { action ->
+            menu = false
+            current?.let { message ->
+                val target = permissions?.let { message.withPermissions(it) } ?: message
+                onDismiss()
+                onMessageAction?.invoke(target, action)
+            }
+        }
+        val fileAction: (Boolean) -> Unit = { share ->
+            menu = false
+            current?.let { message ->
+                scope.launch {
+                    val video = message.video?.takeIf { message.contentType == MessageContentType.Video }
+                    var path = video?.path ?: message.photoPath
+                    if (path == null) {
+                        val id = video?.fileId ?: message.photoFileId
+                        if (id != null) {
+                            val result = try { repository.downloadToList(message.chatId, message.id, id) }
+                                catch (cancelled: CancellationException) { throw cancelled }
+                                catch (_: Exception) { DownloadOutcome.Failed }
+                            path = (result as? DownloadOutcome.Done)?.path
+                        }
+                    }
+                    val local = path
+                    if (local == null) host.showSnackbar(tr("Could not download this media", "Не удалось скачать медиа"))
+                    else {
+                        val mime = if (video != null) "video/mp4" else "image/jpeg"
+                        val name = message.fileName ?: "telegramyou-${message.id}.${if (video != null) "mp4" else "jpg"}"
+                        val ok = withContext(Dispatchers.IO) {
+                            if (share) MediaActions.share(context, local, mime, name, writtenCaption(message))
+                            else MediaActions.saveToDownloads(context, local, mime)
+                        }
+                        if (!ok) host.showSnackbar(tr("Could not save or share this media", "Не удалось сохранить или отправить медиа"))
+                        else if (!share) host.showSnackbar(tr("Saved to Downloads", "Сохранено в Загрузки"))
+                    }
+                }
+            }
+        }
         // Where the page in view goes back to: taken when the close begins,
         // since the bubble may have moved while the gallery was open.
         val target = remember(current?.id, closing) {
@@ -239,16 +312,19 @@ fun MediaGallery(
                             video = video,
                             title = writtenCaption(message),
                             transfer = video.fileId?.let { transfers[it] },
-                            active = page == pager.currentPage,
+                            active = page == pager.settledPage && !pager.isScrollInProgress && !closing,
                             onClose = close,
                             showClose = false,
                             chrome = chrome,
                             onToggleChrome = { chrome = !chrome },
-                            closing = closing
+                            closing = closing,
+                            galleryInset = if (items.size > 1) 96.dp else 28.dp,
+                            onBackdrop = { if (page == pager.currentPage) videoBackdrop = it }
                         )
                     } else {
                         PhotoPage(
                             path = message.photoPath,
+                            mini = message.photoMini,
                             caption = writtenCaption(message),
                             onDismiss = close,
                             onZoomChanged = { if (page == pager.currentPage) zoomed = it },
@@ -294,45 +370,34 @@ fun MediaGallery(
                         ) { captionOpen = false }
                 )
             }
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(12.dp)
-                    .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
+            Row(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp)
+                    .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilledTonalIconButton(
-                    onClick = close,
-                    modifier = Modifier.align(Alignment.CenterStart)
-                ) {
-                    Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"))
+                PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), close, Modifier.size(48.dp), videoBackdrop)
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(sourceTitle.ifBlank { current?.senderName.orEmpty() }, color = Color.White,
+                        style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    current?.let { Text(mediaByline(it), color = Color.White.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
-                // Where this is among them, and who sent it when (2.9.1),
-                // as Telegram's viewer says under its title.
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.align(Alignment.Center)
-                ) {
-                    if (items.size > 1) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        ) {
-                            Text(
-                                tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
-                                style = MaterialTheme.typography.labelLarge,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
+                Box {
+                    PlayerControlButton(Symbols.MoreVert, tr("More", "Ещё"), { menu = true }, Modifier.size(48.dp), videoBackdrop)
+                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        if (permissions?.canForward == true) {
+                            DropdownMenuItem(text = { Text(tr("Save to Downloads", "Сохранить в Загрузки")) }, leadingIcon = { Icon(Symbols.Download, null) }, onClick = { fileAction(false) })
+                            DropdownMenuItem(text = { Text(tr("Share", "Поделиться")) }, leadingIcon = { Icon(Symbols.Share, null) }, onClick = { fileAction(true) })
+                            if (onMessageAction != null) DropdownMenuItem(text = { Text(tr("Forward", "Переслать")) }, leadingIcon = { Icon(Symbols.Forward, null) }, onClick = { act(MediaMessageAction.Forward) })
                         }
-                    }
-                    items.getOrNull(pager.currentPage)?.let { shown ->
-                        Text(
-                            mediaByline(shown),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.85f),
-                            modifier = Modifier.padding(top = 6.dp)
-                        )
+                        if (onMessageAction != null) {
+                            if (canReply) DropdownMenuItem(text = { Text(tr("Reply", "Ответить")) }, leadingIcon = { Icon(Symbols.Reply, null) }, onClick = { act(MediaMessageAction.Reply) })
+                            DropdownMenuItem(text = { Text(tr("Show in chat", "Показать в чате")) }, onClick = { act(MediaMessageAction.ShowInChat) })
+                            if (permissions?.canDeleteForSelf == true || permissions?.canDeleteForEveryone == true) {
+                                DropdownMenuItem(text = { Text(tr("Delete", "Удалить")) }, leadingIcon = { Icon(Symbols.Delete, null) }, onClick = { act(MediaMessageAction.Delete) })
+                            }
+                        }
                     }
                 }
             }
@@ -354,8 +419,8 @@ fun MediaGallery(
                     onOpenChange = { captionOpen = it }
                 )
             }
-            if (items.size > 1 && current?.contentType != MessageContentType.Video) {
-                val strip = androidx.compose.foundation.lazy.rememberLazyListState()
+            if (items.size > 1) {
+                val strip = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = (pager.currentPage - 2).coerceAtLeast(0))
                 LaunchedEffect(pager.currentPage) {
                     strip.animateScrollToItem((pager.currentPage - 2).coerceAtLeast(0))
                 }
@@ -365,29 +430,24 @@ fun MediaGallery(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp, bottom = 12.dp)
+                        .padding(top = 6.dp, bottom = 4.dp)
                 ) {
                     items(items.size, key = { items[it].id }) { index ->
                         val item = items[index]
                         val chosen = index == pager.currentPage
-                        AsyncImage(
-                            model = item.photoPath ?: item.video?.thumbPath,
-                            contentDescription = tr("Item ${index + 1}", "Номер ${index + 1}"),
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(if (chosen) 52.dp else 44.dp)
-                                .clip(MaterialTheme.shapes.small)
+                        GalleryThumbnail(item, tr("Item ${index + 1}", "Номер ${index + 1}"),
+                            Modifier.size(48.dp).clip(MaterialTheme.shapes.small)
                                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                .then(
-                                    if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                                    else Modifier
-                                )
-                                .clickable { scope.launch { pager.animateScrollToPage(index) } }
-                        )
+                                .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small) else Modifier)
+                                .clickable { scope.launch { pager.animateScrollToPage(index) } })
                     }
                 }
             }
+            Text(tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
+                color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp))
             }
+            SnackbarHost(host, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
             }
             }
         }
@@ -485,12 +545,26 @@ private val ORIGIN_CORNER = 16.dp
 
 /** Who sent it and when, under the viewer's counter: "Lina Park · 26 Oct, 14:08". */
 private fun mediaByline(message: ChatMessage): String {
-    val who = if (message.isOutgoing) tr("You", "Вы") else message.senderName.orEmpty()
     val time = if (message.date > 0) {
         java.time.format.DateTimeFormatter.ofPattern("d MMM, HH:mm", java.util.Locale.getDefault())
             .format(java.time.Instant.ofEpochSecond(message.date).atZone(java.time.ZoneId.systemDefault()))
     } else {
         message.timeLabel
     }
-    return listOf(who, time).filter(String::isNotBlank).joinToString(" · ")
+    return time
+}
+
+
+@Composable
+private fun GalleryThumbnail(message: ChatMessage, description: String, modifier: Modifier) {
+    val repository = (LocalContext.current.applicationContext as TelegramYouApp).telegramRepository
+    val path by produceState(message.photoPath ?: message.video?.thumbPath, message.id, message.photoPath, message.video?.thumbPath) {
+        if (value == null) message.video?.thumbFileId?.let { value = repository.downloadFile(it) }
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        if (path != null) AsyncImage(path, description, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        else (message.photoMini ?: message.video?.mini)?.let { BlurredMini(it, Modifier.fillMaxSize()) }
+        if (message.contentType == MessageContentType.Video) Icon(Symbols.PlayArrowFilled, description,
+            tint = Color.White, modifier = Modifier.size(18.dp))
+    }
 }

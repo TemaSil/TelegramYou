@@ -1,6 +1,22 @@
 package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.i18n.tr
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import com.telegramyou.app.ui.media.holdSeekDirection
+import com.telegramyou.app.ui.media.holdSeekSpeed
+import com.telegramyou.app.ui.media.heldSeekTarget
 
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.animation.AnimatedVisibility
@@ -131,7 +147,9 @@ fun VideoPage(
     chrome: Boolean? = null,
     onToggleChrome: (() -> Unit)? = null,
     /** The gallery is shrinking it back into its bubble; see PhotoPage. */
-    closing: Boolean = false
+    closing: Boolean = false,
+    galleryInset: Dp = 0.dp,
+    onBackdrop: (PlayerBackdrop?) -> Unit = {}
 ) {
     var ownChrome by remember { mutableStateOf(true) }
     val chromeShown = chrome ?: ownChrome
@@ -140,6 +158,7 @@ fun VideoPage(
     // client does it; open, it scrolls, and the picture dims under it.
     var captionOpen by remember(title) { mutableStateOf(false) }
     var captionLong by remember(title) { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = active && captionOpen) { captionOpen = false }
     // Thrown away by a drag down, as a photo is; a long caption pulled up
     // by a drag the other way (2.8.1). See videoDragOutcome.
     var dragY by remember { mutableFloatStateOf(0f) }
@@ -164,7 +183,8 @@ fun VideoPage(
     val streamedId = video.fileId?.takeIf { video.path == null && files.canStream }
     val path = video.path ?: streamedId?.let { TelegramFileDataSource.uriOf(it).toString() }
 
-    var isPlaying by remember { mutableStateOf(true) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var wantsPlay by remember { mutableStateOf(true) }
     var position by remember { mutableLongStateOf(0L) }
     var duration by remember { mutableLongStateOf(DURATION_UNKNOWN) }
     // Held while a finger is on the scrubber: the player's own position keeps
@@ -177,17 +197,30 @@ fun VideoPage(
     var speed by remember { mutableFloatStateOf(lastPlaybackSpeed) }
     // Waiting for bytes: while it streams, the player says so.
     var buffering by remember { mutableStateOf(false) }
+    var firstFrame by remember(video.fileId, active) { mutableStateOf(false) }
+    var holdDirection by remember { mutableStateOf(0) }
+    var holdSpeed by remember { mutableStateOf(2) }
+    val chromeNow by rememberUpdatedState(chromeShown)
+    val closingNow by rememberUpdatedState(closing)
+    val pictureLayer = rememberGraphicsLayer()
+    var pictureOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
+    val backdrop = remember(pictureLayer, pictureOrigin) { PlayerBackdrop(pictureLayer, pictureOrigin) }
+    var poster by remember(video.fileId, video.thumbPath) { mutableStateOf(video.thumbPath) }
+    LaunchedEffect(video.thumbFileId, poster) {
+        if (poster == null) video.thumbFileId?.let { poster = files.downloadFile(it) }
+    }
 
     // One player for the life of this dialog, released with it. A player left
     // running holds a codec, and codecs are a fixed and small number.
     // Only on the page in view: a gallery composes its neighbours too, and a
     // player each would hold codecs for videos nobody is watching.
-    val player = remember(path, active) {
+    val player = remember(video.fileId ?: path, active) {
         path?.takeIf { active }?.let { source ->
             ExoPlayer.Builder(context)
                 .setMediaSourceFactory(DefaultMediaSourceFactory(TelegramFileDataSource.Factory(context, files)))
                 .build().apply {
                 setMediaItem(MediaItem.fromUri(source))
+                seekTo(position.coerceAtLeast(0))
                 prepare()
                 playWhenReady = true
                 repeatMode = Player.REPEAT_MODE_ONE
@@ -221,6 +254,8 @@ fun VideoPage(
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
+            override fun onRenderedFirstFrame() { firstFrame = true }
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) { wantsPlay = playWhenReady }
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
             }
@@ -230,6 +265,8 @@ fun VideoPage(
             }
         }
         player?.addListener(listener)
+        wantsPlay = player?.playWhenReady == true
+        isPlaying = player?.isPlaying == true
         onDispose {
             player?.removeListener(listener)
             player?.release()
@@ -245,8 +282,21 @@ fun VideoPage(
     LaunchedEffect(player, isPlaying) {
         while (player != null) {
             duration = player.duration
-            if (!scrubbing) position = player.currentPosition
+            if (!scrubbing && holdDirection == 0) position = player.currentPosition
             delay(PROGRESS_TICK_MS)
+        }
+    }
+
+    LaunchedEffect(player, holdDirection) {
+        if (player != null && holdDirection != 0) {
+            var previous = android.os.SystemClock.uptimeMillis()
+            while (true) {
+                delay(100)
+                val now = android.os.SystemClock.uptimeMillis()
+                position = heldSeekTarget(position, duration, now - previous, holdDirection, holdSpeed)
+                previous = now
+                player.seekTo(position.coerceAtMost((duration - 1).coerceAtLeast(0)))
+            }
         }
     }
 
@@ -255,6 +305,36 @@ fun VideoPage(
             .fillMaxSize()
             .onSizeChanged { viewport = it }
             .background(Color.Black.copy(alpha = 1f - 0.92f * dragProgress))
+            .pointerInput(active, player) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val direction = holdSeekDirection(down.position.x, size.width.toFloat())
+                    if (active && player != null && duration > 0 && direction != 0) {
+                        val held = awaitLongPressOrCancellation(down.id)
+                        if (held != null) {
+                            val resume = player.playWhenReady
+                            player.pause()
+                            position = player.currentPosition
+                            holdDirection = direction
+                            holdSpeed = 2
+                            if (!chromeNow) toggleChrome()
+                            held.consume()
+                            try {
+                                while (true) {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                    change.consume()
+                                    if (!change.pressed) break
+                                    holdSpeed = holdSeekSpeed(down.position.x, change.position.x, size.width.toFloat(), direction)
+                                }
+                            } finally {
+                                holdDirection = 0
+                                if (!closingNow) runCatching { player.playWhenReady = resume }
+                            }
+                        }
+                    }
+                }
+            }
             // One tap on the picture: every control away, and the system's
             // bars with them, so the video has the whole screen; another,
             // and they are back. An open caption closes first.
@@ -289,6 +369,14 @@ fun VideoPage(
           contentAlignment = Alignment.Center,
           modifier = Modifier
               .fillMaxSize()
+              .onGloballyPositioned {
+                  pictureOrigin = it.positionOnScreen()
+                  if (active) onBackdrop(PlayerBackdrop(pictureLayer, pictureOrigin))
+              }
+              .drawWithContent {
+                  pictureLayer.record { this@drawWithContent.drawContent() }
+                  drawLayer(pictureLayer)
+              }
               .graphicsLayer {
                   val moved = videoDragMoves(dragY, captionOpen, captionLong)
                   val scale = 1f - dragProgress * 0.2f
@@ -297,16 +385,11 @@ fun VideoPage(
                   translationY = if (moved) dragY else 0f
               }
       ) {
+        // Keep a poster behind every page, including a video's first frame.
+        if (poster != null) AsyncImage(poster, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
+        else video.mini?.let { BlurredMini(it, Modifier.fillMaxSize()) }
         if (player == null && !active) {
-            // A neighbour in the gallery: its poster, until it is swiped to.
-            video.thumbPath?.let { poster ->
-                AsyncImage(
-                    model = poster,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            // Its poster remains visible while another page owns the codec.
         } else if (player == null) {
             // The file is still arriving. The dialog opens anyway rather
             // than waiting: a tap that appears to do nothing for ten
@@ -351,25 +434,12 @@ fun VideoPage(
             // some devices behind the dialog entirely. A TextureView is
             // an ordinary view in the same hierarchy, so it composites
             // with everything above it and shows up in a capture.
-            // The poster under the picture until the first frame covers it:
-            // a TextureView with nothing in it yet draws nothing, and the
-            // gallery opening out of the bubble would otherwise grow a black
-            // rectangle where the bubble showed a picture (1.8).
-            video.thumbPath?.let { poster ->
-                AsyncImage(
-                    model = poster,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(video.aspect.coerceIn(0.4f, 2.5f))
-                )
-            }
             AndroidView(
                 factory = { ctx -> TextureView(ctx).also(player::setVideoTextureView) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(video.aspect.coerceIn(0.4f, 2.5f))
+                    .alpha(if (firstFrame) 1f else 0.001f)
             )
             if (buffering) LoadingIndicator()
         }
@@ -394,50 +464,34 @@ fun VideoPage(
         ) {
           Box(Modifier.fillMaxSize()) {
             if (showClose) {
-                FilledTonalIconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .statusBarsPadding()
-                        .padding(12.dp)
-                ) {
-                    Icon(Symbols.Close, contentDescription = tr("Close", "Закрыть"))
-                }
+                PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), onClose,
+                    Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp).size(48.dp), backdrop)
             }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .statusBarsPadding()
-                    .padding(12.dp)
-            ) {
-                // The speed, a tap a step: 1×, 1.5×, 2×, 0.5×. What it says
-                // is the state, and there are only four of them — a tonal
-                // button, as the close beside it.
-                FilledTonalButton(
-                    onClick = {
-                        speed = nextPlaybackSpeed(speed)
-                        lastPlaybackSpeed = speed
-                    },
-                    modifier = Modifier.semantics {
-                        contentDescription = tr("Playback speed ${playbackSpeedLabel(speed)}", "Скорость ${playbackSpeedLabel(speed)}")
-                    }
+            if (holdDirection != 0) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.align(Alignment.Center), shape = MaterialTheme.shapes.medium,
+                    color = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
                 ) {
-                    Text(playbackSpeedLabel(speed), style = MaterialTheme.typography.labelLarge)
+                    Text(if (holdDirection > 0) tr("Forward ${holdSpeed}×", "Вперёд ${holdSpeed}×") else tr("Rewind ${holdSpeed}×", "Назад ${holdSpeed}×"),
+                        Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
                 }
-                // Into the small window now, rather than on leaving.
-                if (player != null) {
-                    FilledTonalIconButton(onClick = { PictureInPicture.enter(context, pipAspect) }) {
-                        Icon(Symbols.PictureInPictureAlt, contentDescription = tr("Picture in picture", "Картинка в картинке"))
-                    }
-                }
+            } else if (player != null && !captionOpen) {
+                PlayerControlButton(
+                    if (wantsPlay) Symbols.PauseFilled else Symbols.PlayArrowFilled,
+                    if (wantsPlay) tr("Pause", "Пауза") else tr("Play", "Играть"),
+                    { if (player.playWhenReady) player.pause() else player.play() },
+                    Modifier.align(Alignment.Center).size(64.dp), backdrop
+                )
+            }
+            if (scrubbing && video.path != null) {
+                VideoSeekPreview(checkNotNull(video.path), seekTarget(scrubFraction, duration),
+                    Modifier.align(Alignment.BottomCenter).padding(bottom = galleryInset + 156.dp))
             }
 
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .padding(bottom = galleryInset)
                     .fillMaxWidth()
                     // The caption and the controls on a dark band of their
                     // own (2.9.2), as a photo's caption is: white words
@@ -445,7 +499,7 @@ fun VideoPage(
                     // A solid scrim, not a gradient.
                     .background(Color.Black.copy(alpha = 0.6f))
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (title.isNotBlank()) {
@@ -467,66 +521,36 @@ fun VideoPage(
                             ) { captionOpen = !captionOpen }
                     )
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.foundation.layout.BoxWithConstraints(
-                        Modifier.padding(end = 12.dp).weight(1f)
-                    ) {
+                androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
                     Slider(
-                        value = if (scrubbing) {
-                            scrubFraction
-                        } else {
-                            playbackProgress(position, duration) ?: 0f
-                        },
-                        onValueChange = { value ->
-                            scrubbing = true
-                            scrubFraction = value
-                        },
+                        value = if (scrubbing) scrubFraction else playbackProgress(position, duration) ?: 0f,
+                        onValueChange = { scrubbing = true; scrubFraction = it },
                         onValueChangeFinished = {
-                            val target = seekTarget(scrubFraction, duration)
-                            player?.seekTo(target)
-                            position = target
+                            position = seekTarget(scrubFraction, duration)
+                            player?.seekTo(position)
                             scrubbing = false
                         },
                         enabled = player != null && duration > 0,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics { contentDescription = tr("Video position", "Позиция видео") }
+                        modifier = Modifier.fillMaxWidth().semantics { contentDescription = tr("Video position", "Позиция видео") }
                     )
-                        if (scrubbing) {
-                            val density = androidx.compose.ui.platform.LocalDensity.current
-                            val offset = with(density) {
-                                androidx.compose.ui.unit.IntOffset(
-                                    ((maxWidth - 144.dp).coerceAtLeast(0.dp).toPx() * scrubFraction).toInt(),
-                                    -52.dp.roundToPx()
-                                )
-                            }
-                            VideoSeekPreview(video.path, seekTarget(scrubFraction, duration), offset)
-                        }
+                    if (scrubbing) {
+                        var badgeWidth by remember { mutableStateOf(0) }
+                        val width = with(androidx.compose.ui.platform.LocalDensity.current) { maxWidth.toPx() }
+                        VideoSeekTimeBadge(seekTarget(scrubFraction, duration), Modifier
+                            .onSizeChanged { badgeWidth = it.width }
+                            .offset { IntOffset((width * scrubFraction - badgeWidth / 2f).coerceIn(0f, (width - badgeWidth).coerceAtLeast(0f)).toInt(), -42.dp.roundToPx()) })
                     }
-                    Text(
-                        playbackLabel(position, duration, ::formatDuration),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                    // At the end of the row, where the thumb rests, on the
-                    // owner's word; the scrubber takes the width before it.
-                    FilledIconButton(
-                        onClick = {
-                            player ?: return@FilledIconButton
-                            if (player.isPlaying) player.pause() else player.play()
-                        },
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(48.dp)
-                    ) {
-                        Icon(
-                            if (isPlaying) Symbols.PauseFilled else Symbols.PlayArrowFilled,
-                            contentDescription = if (isPlaying) tr("Pause", "Пауза") else tr("Play", "Играть")
-                        )
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(playbackLabel(if (scrubbing) seekTarget(scrubFraction, duration) else position, duration, ::formatDuration),
+                        color = Color.White, style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"))
+                    Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { speed = nextPlaybackSpeed(speed); lastPlaybackSpeed = speed },
+                        modifier = Modifier.semantics { contentDescription = tr("Playback speed ${playbackSpeedLabel(speed)}", "Скорость ${playbackSpeedLabel(speed)}") }) {
+                        Text(playbackSpeedLabel(speed), color = Color.White)
                     }
+                    if (player != null) PlayerControlButton(Symbols.PictureInPictureAlt, tr("Picture in picture", "Картинка в картинке"),
+                        { PictureInPicture.enter(context, pipAspect) }, Modifier.size(48.dp), backdrop)
                 }
             }
           }

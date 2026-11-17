@@ -3876,6 +3876,13 @@ class SmokeTest {
             tap(By.desc("More"))
             waitFor(By.text("Light theme"), "the home page using dark colours")
             device.pressBack()
+            app.demoClient?.simulateConnection(false, waitingForNetwork = true)
+            waitFor(By.text("Waiting for network…"), "the offline home title")
+            screenshot("162-waiting-for-network")
+            tap(By.text("Waiting for network…"))
+            waitFor(By.text("Use proxy"), "proxies from the offline title")
+            device.pressBack()
+            waitFor(By.text("Waiting for network…"), "the offline state retained on return")
             app.demoClient?.simulateConnection(false)
             waitFor(By.text("Connecting…"), "the connection state in the home title")
             screenshot("154-connecting")
@@ -3900,7 +3907,9 @@ class SmokeTest {
                 app.demoClient?.simulateConnection(false)
                 locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru")
                 waitFor(By.text("Подключение…"), "the Russian connection title")
-                tap(By.text("Подключение…"))
+                app.demoClient?.simulateConnection(false, waitingForNetwork = true)
+                waitFor(By.text("Ожидание сети…"), "the Russian offline title")
+                tap(By.text("Ожидание сети…"))
                 waitFor(By.text("Использовать прокси"), "the Russian proxy controls")
                 screenshot("161-proxy-russian")
                 locales.applicationLocales = originalLocales ?: android.os.LocaleList.getEmptyLocaleList()
@@ -3949,7 +3958,13 @@ class SmokeTest {
         waitFor(By.text("Message"), "Lina's conversation")
         tapTopmost(By.text("Lina Park"))
         waitFor(By.text("Info"), "Lina's profile")
-        scrollDownTo(By.text("Common groups"))
+        val tabsY = device.findObject(By.text("Info")).visibleBounds.centerY()
+        repeat(8) {
+            if (!device.hasObject(By.text("Common groups"))) {
+                device.swipe(device.displayWidth * 4 / 5, tabsY, device.displayWidth / 5, tabsY, 20)
+            }
+        }
+        waitFor(By.text("Common groups"), "the last profile tab")
         // The demo's shared groups follow the current chat list. Groups made
         // in other scenarios can replace Design Circle in its first page.
         val repository = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp)
@@ -3970,8 +3985,14 @@ class SmokeTest {
         device.pressBack()
         waitFor(By.text("Common groups"), "the same common-groups list")
         waitFor(By.text(commonGroup.title), "the group retained in that list")
-        device.pressBack()
-        waitFor(By.text("Common groups"), "the entry in the contact's profile")
+        waitFor(By.selected(true).hasDescendant(By.text("Common groups")), "the retained common-groups tab")
+        val returnTabsY = device.findObject(By.text("Common groups")).visibleBounds.centerY()
+        repeat(8) {
+            if (!device.hasObject(By.text("Info"))) {
+                device.swipe(device.displayWidth / 5, returnTabsY, device.displayWidth * 4 / 5, returnTabsY, 20)
+            }
+        }
+        tap(By.text("Info"))
         waitFor(By.selected(true).hasDescendant(By.text("Info")), "the contact's own Info tab")
     }
 
@@ -4074,6 +4095,8 @@ class SmokeTest {
                 SystemClock.sleep(20)
             }
             waitFor(By.descStartsWith("Video preview at "), "the destination preview while the finger is held")
+            val badge = device.findObject(By.descStartsWith("Video preview at ")).visibleBounds
+            assertTrue("the time badge still reserves thumbnail width", badge.width() < device.displayWidth / 3)
             screenshot("160-video-seek-preview")
         } finally {
             touch(android.view.MotionEvent.ACTION_UP, endX)
@@ -4083,6 +4106,115 @@ class SmokeTest {
         waitFor(By.desc("Play"), "the video still paused after scrubbing")
         val time = device.findObject(By.textContains(" / "))?.text
         assertTrue("scrubbing did not leave the beginning of the clip: $time", time != null && !time.startsWith("0:00"))
+        // Hold an edge, then move outwards: seeking accelerates without
+        // turning a paused video into playback when the finger is released.
+        fun hold(start: Float, end: Float, label: String) {
+            val heldAt = SystemClock.uptimeMillis()
+            val heldY = device.displayHeight / 2
+            fun event(action: Int, x: Float) {
+                val motion = android.view.MotionEvent.obtain(heldAt, SystemClock.uptimeMillis(), action, x * device.displayWidth, heldY.toFloat(), 0)
+                motion.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+                try { assertTrue(automation.injectInputEvent(motion, true)) } finally { motion.recycle() }
+            }
+            event(android.view.MotionEvent.ACTION_DOWN, start)
+            try {
+                SystemClock.sleep(750)
+                event(android.view.MotionEvent.ACTION_MOVE, end)
+                waitFor(By.text(label), "accelerated held seeking")
+            } finally { event(android.view.MotionEvent.ACTION_UP, end) }
+            waitFor(By.desc("Play"), "the video remains paused after holding")
+        }
+        hold(0.7f, 0.9f, "Forward 16×")
+        hold(0.3f, 0.1f, "Rewind 16×")
+
+    }
+
+    /** A real PDF, rather than the demo's named placeholder document. */
+    private fun pdfFixture(): java.io.File {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val file = java.io.File(context.cacheDir, "camera/viewer-regression.pdf")
+        file.parentFile!!.mkdirs()
+        val pdf = android.graphics.pdf.PdfDocument()
+        try {
+            listOf(Color.RED, Color.GREEN, Color.BLUE).forEachIndexed { index, colour ->
+                val page = pdf.startPage(android.graphics.pdf.PdfDocument.PageInfo.Builder(600, 800, index + 1).create())
+                page.canvas.drawColor(colour)
+                pdf.finishPage(page)
+            }
+            file.outputStream().use(pdf::writeTo)
+        } finally { pdf.close() }
+        return file
+    }
+
+    @Test
+    fun pdfRendererReadsTheFirstAndLastPages() {
+        val file = pdfFixture()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val reader = com.telegramyou.app.ui.chat.PdfDocument(context, file.path)
+        try {
+            kotlinx.coroutines.runBlocking {
+                assertEquals(3, reader.dimensions().size)
+                val first = reader.page(0, 320)
+                val last = reader.page(2, 320)
+                assertEquals(Color.RED, first.getPixel(first.width / 2, first.height / 2))
+                assertEquals(Color.BLUE, last.getPixel(last.width / 2, last.height / 2))
+                assertTrue(first.width.toLong() * first.height <= 2_000_000)
+            }
+        } finally { reader.close() }
+    }
+
+    @Test
+    fun pdfOpensInsideTheClientAndRemembersItsPage() {
+        val file = pdfFixture()
+        signIn()
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        context.startActivity(Intent(Intent.ACTION_SEND).setClassName(context.packageName, "com.telegramyou.app.MainActivity")
+            .setType("application/pdf").putExtra(Intent.EXTRA_STREAM, uri)
+            .putExtra("android.intent.extra.shortcut.ID", "chat_$GROUP_CHAT_ID")
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
+        waitFor(By.desc("Send"), "the shared PDF waiting to be sent")
+        tap(By.desc("Send"))
+        val document = By.desc("Open viewer-regression.pdf")
+        waitFor(document, "the sent PDF in its conversation")
+        tap(document)
+        waitFor(By.desc("Zoom in"), "the client's PDF viewer")
+        waitFor(By.text("1 of 3"), "the first PDF page")
+        tap(By.desc("Zoom in"))
+        screenshot("163-pdf-viewer")
+        // Small pages can leave a sliver of the preceding one on screen;
+        // use the page counter, rather than a single fixed swipe distance.
+        repeat(6) {
+            if (!device.hasObject(By.text("3 of 3"))) {
+                device.swipe(device.displayWidth / 2, device.displayHeight * 4 / 5,
+                    device.displayWidth / 2, device.displayHeight / 4, 30)
+                device.waitForIdle(IDLE_TIMEOUT)
+            }
+        }
+        waitFor(By.text("3 of 3"), "the last PDF page")
+        device.pressBack()
+        waitFor(document, "the PDF's conversation")
+        tap(document)
+        waitFor(By.text("3 of 3"), "the restored PDF page")
+    }
+
+    @Test
+    fun mediaMenuRepliesInItsOriginalConversation() {
+        signIn()
+        waitFor(By.text(NOTIFYING_CHAT), "the media's conversation on the list")
+        tap(By.text(NOTIFYING_CHAT))
+        waitFor(By.textContains("ButtonGroup"), "the video conversation")
+        tap(By.desc("Photos in this chat"))
+        waitFor(By.descContains(VIDEO_CAPTION), "the video's poster")
+        tap(By.descContains(VIDEO_CAPTION))
+        waitFor(By.desc("Pause"), "the video player")
+        tap(By.desc("More"))
+        waitFor(By.text("Share"), "permitted media actions")
+        waitFor(By.text("Reply"), "reply from the media viewer")
+        screenshot("164-media-menu")
+        tap(By.text("Reply"))
+        waitFor(By.desc("Cancel reply"), "a reply in the original chat")
+        tap(By.desc("Cancel reply"))
     }
 
     /** A profile keeps its tabs, gallery and position in one navigation entry (3.0). */

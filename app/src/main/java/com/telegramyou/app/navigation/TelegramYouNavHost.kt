@@ -27,6 +27,7 @@ import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.LocalConfiguration
+import com.telegramyou.app.ui.chat.MediaMessageAction
 import com.telegramyou.app.ui.chat.ProfileNavigationState
 import androidx.compose.runtime.key
 import androidx.compose.material3.MaterialTheme
@@ -310,6 +311,16 @@ fun TelegramYouNavHost(
             }
         }
     }
+    var pendingMediaAction by remember { mutableStateOf<Pair<Route.Chat, Pair<com.telegramyou.app.telegram.model.ChatMessage, MediaMessageAction>>?>(null) }
+    val openMediaAction: (com.telegramyou.app.telegram.model.ChatMessage, MediaMessageAction) -> Unit = { message, action ->
+        val destination = Route.Chat(message.chatId, topicId = message.topicId, threadId = message.threadId, savedTopicId = message.savedTopicId)
+        pendingJump = destination to message.id
+        pendingMediaAction = if (action == MediaMessageAction.ShowInChat) null else destination to (message to action)
+        if (twoPanes && navController.currentDestination?.route == Route.Home.PATTERN &&
+            destination.topicId == 0 && destination.threadId == 0L && destination.savedTopicId == 0L) {
+            paneChatId = message.chatId
+        } else navController.navigateTo(destination) { launchSingleTop = true }
+    }
     // The music library, as a screen of its own and as Home's Music tab —
     // the same page either way, with a back arrow only as the screen.
     val libraryPage: @Composable (onBack: (() -> Unit)?, foot: androidx.compose.ui.unit.Dp) -> Unit = { back, foot ->
@@ -321,7 +332,8 @@ fun TelegramYouNavHost(
                 onPlay = { title, tracks, start, shuffle -> music?.playCollection(title, tracks, start, shuffle) },
                 onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
                 onOpenChat = { chatId, messageId -> openChatAt(chatId, messageId) },
-                onSearch = { navController.navigateTo(Route.MyMusic) }
+                onSearch = { navController.navigateTo(Route.MyMusic) },
+                onRetry = library::onRetry
             ),
             onBack = back,
             musicBar = musicBar,
@@ -473,6 +485,19 @@ fun TelegramYouNavHost(
             val jump = pendingJump?.takeIf { it.first == destination } ?: return@LaunchedEffect
             pendingJump = null
             chatViewModel.onJumpToMessage(jump.second)
+        }
+        LaunchedEffect(destination, pendingMediaAction, state.messages) {
+            val pending = pendingMediaAction?.takeIf { it.first == destination }?.second ?: return@LaunchedEffect
+            // A gallery can contain older messages outside the current chat
+            // window. The existing jump loads that window before selecting it.
+            if (state.messages.none { it.id == pending.first.id }) return@LaunchedEffect
+            pendingMediaAction = null
+            when (pending.second) {
+                MediaMessageAction.Reply -> chatViewModel.onReplyTo(pending.first)
+                MediaMessageAction.Forward -> chatViewModel.onForwardOne(pending.first)
+                MediaMessageAction.Delete -> chatViewModel.onDeleteRequested(pending.first)
+                MediaMessageAction.ShowInChat -> Unit
+            }
         }
         // Tells the notification service which chat is being read, so it
         // does not announce a message the person is looking at. Cleared on
@@ -720,6 +745,7 @@ fun TelegramYouNavHost(
                     playerBar = playerBar,
                     onVoiceSeek = chatViewModel::onVoiceSeek,
                     onDocumentOpened = chatViewModel::onDocumentOpened,
+                    onDocumentPaused = chatViewModel::onDocumentPaused,
                     onFileOpened = chatViewModel::onFileOpened,
                     onFileRefused = chatViewModel::onFileRefused,
                     onPhotoVisible = chatViewModel::onPhotoVisible,
@@ -728,6 +754,7 @@ fun TelegramYouNavHost(
                     onVideoOpened = chatViewModel::onVideoOpened,
                     onVideoClosed = chatViewModel::onVideoClosed,
                     onGalleryPage = chatViewModel::onGalleryPage,
+                    onGalleryAction = openMediaAction,
                     onSaveGif = chatViewModel::onSaveGif,
                     onLineUp = { message, first -> if (first) music?.playNext(message) else music?.addToQueue(message) },
                     onContactOpen = { contact -> navController.navigateTo(Route.Person(contact.userId)) },
@@ -796,6 +823,8 @@ fun TelegramYouNavHost(
                 onTabShown = mediaViewModel::onTabShown,
                 onNearEnd = mediaViewModel::onNearEnd,
                 onFileTapped = mediaViewModel::onFileTapped,
+                onFilePaused = mediaViewModel::onFilePaused,
+                onFileResumed = mediaViewModel::onFileResumed,
                 onFileOpened = mediaViewModel::onFileOpened,
                 onFileRefused = mediaViewModel::onFileRefused,
                 onErrorShown = mediaViewModel::onErrorShown,
@@ -842,6 +871,8 @@ fun TelegramYouNavHost(
                 onVideoClosed = chatViewModel::onVideoClosed,
                 transfers = state.transfers,
                 onGalleryPage = chatViewModel::onGalleryPage,
+                onGalleryAction = openMediaAction,
+                canReplyToMedia = state.detail?.chat?.canReply != false,
                 embeddedKind = kind,
                 active = active,
                 initialPosition = if (profileChatId != null && kind != null) profilePositions.scroll(profileChatId, kind.ordinal + 1) else 0 to 0,
@@ -1512,6 +1543,7 @@ fun TelegramYouNavHost(
                 onBack = { navController.popBackStack() },
                 onQuery = myMusic::onQuery,
                 onNearEnd = myMusic::onNearEnd,
+                onRetry = myMusic::onRetry,
                 // Every chat's tracks as the queue, from the one tapped.
                 onPlay = { message ->
                     if (nowPlaying.track?.messageId == message.id) {
@@ -1669,6 +1701,25 @@ fun TelegramYouNavHost(
             ChatInfoScreen(
                 onOpenCommonGroups = { navController.navigateTo(Route.CommonGroups(it)) },
                 initialPage = profilePositions.page(profileChatId),
+                commonGroupsContent = { userId, active ->
+                    val groupsFactory = remember(repository, userId) {
+                        com.telegramyou.app.ui.people.commonGroupsViewModelFactory(repository, userId)
+                    }
+                    val groups: com.telegramyou.app.ui.people.CommonGroupsViewModel = viewModel(
+                        key = "profile-common-groups:$userId", factory = groupsFactory
+                    )
+                    val commonGroups by groups.uiState.collectAsStateWithLifecycle()
+                    val page = SharedMediaKind.entries.size + 1
+                    com.telegramyou.app.ui.people.CommonGroupsContent(
+                        state = commonGroups,
+                        onOpenChat = { navController.navigateTo(chatRoute(it)) },
+                        onNearEnd = groups::onNearEnd,
+                        onRetry = groups::onRetry,
+                        active = active,
+                        initialPosition = profilePositions.scroll(profileChatId, page),
+                        onPositionChanged = { profilePositions.scrollTo(profileChatId, page, it) }
+                    )
+                },
                 onPageChanged = { profilePositions.select(profileChatId, it) },
                 initialInfoPosition = profilePositions.scroll(profileChatId, 0),
                 onInfoPositionChanged = { profilePositions.scrollTo(profileChatId, 0, it) },

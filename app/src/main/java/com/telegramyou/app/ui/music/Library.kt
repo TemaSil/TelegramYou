@@ -31,6 +31,12 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.LinearProgressIndicator
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -51,8 +57,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.carousel.HorizontalMultiBrowseCarousel
-import androidx.compose.material3.carousel.rememberCarouselState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -61,6 +65,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,63 +100,80 @@ import kotlinx.coroutines.withContext
 
 data class LibraryUiState(
     val library: MusicLibrary = MusicLibrary(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val error: String? = null
 )
 
 /**
  * The music library's state: every chat's music, fetched through the same
- * global search My music pages through — all of it this time, up to a
- * limit — and laid out by `buildLibrary` in :core.
+ * global search My music pages through, published incrementally until the
+ * server ends pagination, and laid out by `buildLibrary` in :core.
  */
 class MusicLibraryViewModel(
     private val repository: TelegramRepository,
     /** Where covers found inside files are kept; null to leave them there. */
-    coverDir: java.io.File? = null
+    coverDir: java.io.File? = null,
+    private val workerDispatcher: CoroutineDispatcher = Dispatchers.Default,
+    private val fileDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
     private val tagReader = com.telegramyou.app.music.FileTagReader(coverDir)
     private val _uiState = MutableStateFlow(LibraryUiState())
     val uiState: StateFlow<LibraryUiState> = _uiState.asStateFlow()
 
-    init {
-        viewModelScope.launch {
-            val found = mutableListOf<ChatMessage>()
-            var cursor: String? = ""
-            var pages = 0
-            while (cursor != null && pages < MAX_PAGES) {
-                val from: String = cursor
-                val (page, next) = runCatching { repository.allMusic("", from, PAGE) }
-                    .getOrDefault(emptyList<ChatMessage>() to null)
-                found += page
-                pages++
-                cursor = next?.takeIf { it.isNotEmpty() && page.isNotEmpty() }
-            }
-            val chats = repository.chats.value.associate {
-                it.id to LibraryChat(it.title, isChannel = it.isChannel, isSaved = it.isSavedMessages)
-            }
-            val library = withContext(Dispatchers.Default) { buildLibrary(found, chats) }
-            _uiState.update { it.copy(library = library, isLoading = false) }
-            // Then what the files on the phone say of themselves — albums by
-            // name and covers inside them (2.0) — and the library again with
-            // it. After, not before: reading a thousand files' tags is not
-            // what the first look should wait for.
-            val tags = withContext(Dispatchers.IO) {
-                found.mapNotNull { message ->
-                    val path = message.asTrack()?.path ?: return@mapNotNull null
-                    tagReader.read(path)?.let { (message.chatId to message.id) to it }
-                }.toMap()
-            }
-            if (tags.isNotEmpty()) {
-                val tagged = withContext(Dispatchers.Default) { buildLibrary(found, chats, tags) }
-                _uiState.update { it.copy(library = tagged) }
+    private val found = linkedMapOf<Pair<Long, Long>, ChatMessage>()
+    private var cursor: String? = ""
+    private val visited = mutableSetOf<String>()
+    private var loading: Job? = null
+
+    init { load() }
+
+    fun onRetry() { if (loading?.isActive != true) load() }
+
+    private fun load() {
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        loading = viewModelScope.launch {
+            try {
+                while (cursor != null) {
+                    val from = cursor ?: break
+                    val (page, rawNext) = repository.allMusic("", from, PAGE)
+                    val next = rawNext?.takeIf { it.isNotBlank() }
+                    check(next == null || (next != from && next !in visited)) { "Music cursor did not advance" }
+                    page.forEach { found[it.chatId to it.id] = it }
+                    visited += from
+                    cursor = next
+                    val chats = repository.chats.value.associate {
+                        it.id to LibraryChat(it.title, isChannel = it.isChannel, isSaved = it.isSavedMessages)
+                    }
+                    val snapshot = found.values.toList()
+                    val library = withContext(workerDispatcher) { buildLibrary(snapshot, chats) }
+                    // Show each page immediately, without a date/track-count
+                    // cutoff or pretending a failed request ended history.
+                    _uiState.update { it.copy(library = library) }
+                }
+                _uiState.update { it.copy(isLoading = false) }
+                val snapshot = found.values.toList()
+                val chats = repository.chats.value.associate {
+                    it.id to LibraryChat(it.title, isChannel = it.isChannel, isSaved = it.isSavedMessages)
+                }
+                val tags = withContext(fileDispatcher) {
+                    snapshot.mapNotNull { message ->
+                        val path = message.asTrack()?.path ?: return@mapNotNull null
+                        tagReader.read(path)?.let { (message.chatId to message.id) to it }
+                    }.toMap()
+                }
+                if (tags.isNotEmpty()) {
+                    val tagged = withContext(workerDispatcher) { buildLibrary(snapshot, chats, tags) }
+                    _uiState.update { it.copy(library = tagged) }
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+              catch (_: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = tr("Could not load older music", "Не удалось загрузить старую музыку")) }
             }
         }
     }
 
-    private companion object {
-        const val PAGE = 100
-        /** A thousand tracks: a library, not an archive of everything. */
-        const val MAX_PAGES = 10
-    }
+    private companion object { const val PAGE = 100 }
+
 }
 
 /** What the library's rows and pages ask of the player. */
@@ -160,6 +183,7 @@ class LibraryActions(
     /** The chat a track is in, opened at the track's own message. */
     val onOpenChat: (chatId: Long, messageId: Long) -> Unit = { _, _ -> },
     /** Every track, searchable: My music. */
+    val onRetry: () -> Unit = {},
     val onSearch: () -> Unit = {}
 )
 
@@ -262,8 +286,20 @@ fun MusicLibraryScreen(
                 .padding(padding.withoutBottom())
         ) {
             Box(Modifier.drawBehind { drawRect(headColor()) }) { musicBar() }
+            if (state.isLoading && !state.library.isEmpty) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(tr("Loading older music… ${state.library.tracks.size} tracks found", "Загружается старая музыка… Найдено треков: ${state.library.tracks.size}"),
+                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+            }
+            state.error?.let { error ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(error, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = actions.onRetry) { Text(tr("Retry", "Повторить")) }
+                }
+            }
             when {
-                state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                state.isLoading && state.library.isEmpty -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                state.library.isEmpty && state.error != null -> Spacer(Modifier.height(16.dp))
                 state.library.isEmpty -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
                         tr("No music in any chat yet", "Ни в одном чате пока нет музыки"),
@@ -319,8 +355,8 @@ private fun LibraryTabs(
 }
 
 /**
- * The library's front page: what has just arrived, on Material's carousel,
- * and what people in the chats have been sending, with who and where.
+ * A quiet front page: Saved Messages, then recent tracks in readable rows.
+ * Playlists, albums, artists and the full history retain their own tabs.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -335,19 +371,16 @@ private fun ForYou(
         // keep, so it is their library before anything the chats brought.
         val saved = library.saved
         item(key = "saved-header") {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(end = 8.dp)
-            ) {
-                Box(Modifier.weight(1f)) { Header(tr("Saved Messages", "Избранное")) }
-                if (saved != null) {
-                    IconButton(onClick = {
-                        actions.onPlay(saved.title, saved.tracks.map { it.message }, null, true)
-                    }) { Icon(Symbols.Shuffle, contentDescription = tr("Shuffle Saved Messages", "Перемешать Избранное")) }
-                    FilledTonalButton(
-                        onClick = { actions.onPlay(saved.title, saved.tracks.map { it.message }, null, false) },
-                        modifier = Modifier.padding(top = 12.dp)
-                    ) { Text(tr("Play", "Играть")) }
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Text(tr("Saved Messages", "Избранное"), style = MaterialTheme.typography.titleMedium)
+                if (saved != null) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    FilledTonalButton(onClick = { actions.onPlay(saved.title, saved.tracks.map { it.message }, null, false) }) {
+                        Icon(Symbols.PlayArrowFilled, null); Spacer(Modifier.width(8.dp)); Text(tr("Play", "Играть"))
+                    }
+                    OutlinedButton(onClick = { actions.onPlay(saved.title, saved.tracks.map { it.message }, null, true) },
+                        modifier = Modifier.semantics { contentDescription = tr("Shuffle Saved Messages", "Перемешать Избранное") }) {
+                        Icon(Symbols.Shuffle, null); Spacer(Modifier.width(8.dp)); Text(tr("Shuffle", "Перемешать"))
+                    }
                 }
             }
         }
@@ -376,79 +409,9 @@ private fun ForYou(
             }
         }
         item(key = "latest-header") { Header(tr("Just arrived", "Только что пришло")) }
-        item(key = "latest") {
-            val latest = library.latest
-            val carousel = rememberCarouselState { latest.size }
-            HorizontalMultiBrowseCarousel(
-                state = carousel,
-                preferredItemWidth = 176.dp,
-                itemSpacing = 8.dp,
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(208.dp)
-            ) { index ->
-                val item = latest[index]
-                TrackTheme(item.track) {
-                    Box(
-                        modifier = Modifier
-                            .height(208.dp)
-                            .maskClip(MaterialTheme.shapes.extraLarge)
-                            .clickable {
-                                actions.onPlay(tr("Just arrived", "Только что пришло"), latest.map { it.message }, item.message, false)
-                            }
-                    ) {
-                        Cover(item.track, size = 208, corner = 0)
-                        Column(
-                            Modifier
-                                .align(Alignment.BottomStart)
-                                .fillMaxWidth()
-                                .padding(12.dp)
-                        ) {
-                            Text(
-                                item.track.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                item.track.performer.ifBlank { item.chatTitle },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        // What the chats passed around most: forwards and reactions (2.0).
-        // Only when there is something — an empty heading here would say
-        // nothing anyone could act on.
-        if (library.mostShared.isNotEmpty()) {
-            item(key = "shared-header") { Header(tr("Most shared", "Чаще всего присылают")) }
-            items(library.mostShared, key = { "m${it.message.chatId}:${it.message.id}" }) { item ->
-                TrackRow(item, onPlay = {
-                    actions.onPlay(tr("Most shared", "Чаще всего присылают"), library.mostShared.map { it.message }, item.message, false)
-                }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
-            }
-        }
-        item(key = "people-header") { Header(tr("From your chats", "Из ваших чатов")) }
-        if (library.fromPeople.isEmpty()) {
-            item(key = "people-none") {
-                Text(
-                    tr("Music people send you in chats and groups shows here.", "Здесь будет музыка, которую вам присылают в чатах и группах."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-        }
-        items(library.fromPeople, key = { "p${it.message.chatId}:${it.message.id}" }) { item ->
+        items(library.latest, key = { "recent:${it.message.chatId}:${it.message.id}" }) { item ->
             TrackRow(item, onPlay = {
-                actions.onPlay(tr("From your chats", "Из ваших чатов"), library.fromPeople.map { it.message }, item.message, false)
+                actions.onPlay(tr("Just arrived", "Только что пришло"), library.latest.map { it.message }, item.message, false)
             }, lineUp = lineUp, onOpenChat = { actions.onOpenChat(item.message.chatId, item.message.id) })
         }
     }
@@ -552,7 +515,7 @@ private fun CollectionPage(collection: LibraryCollection, actions: LibraryAction
                     textAlign = TextAlign.Center
                 )
                 Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { actions.onPlay(collection.title, messages, null, false) }) {
                         Icon(Symbols.PlayArrowFilled, contentDescription = null)
                         Spacer(Modifier.width(8.dp))

@@ -133,7 +133,8 @@ fun PhotoPage(
      */
     onTap: (() -> Unit)? = null,
     /** Off in the gallery, which draws the caption itself over every page; see ViewerCaption. */
-    showCaption: Boolean = true
+    showCaption: Boolean = true,
+    mini: String? = null
 ) {
     // Where the photo is and how big, and how far a drag has taken it towards
     // being let go. Both are remembered per photo rather than hoisted: a
@@ -180,7 +181,10 @@ fun PhotoPage(
             .background(Color.Black.copy(alpha = scrim)),
         contentAlignment = Alignment.Center
     ) {
-        if (path == null) CircularProgressIndicator(color = Color.White)
+        if (path == null) {
+            mini?.let { BlurredMini(it, Modifier.fillMaxSize()) }
+            CircularProgressIndicator(color = Color.White)
+        }
         AsyncImage(
             model = path,
             contentDescription = if (!isMediaCaption(caption)) tr("Photo", "Фото") else caption,

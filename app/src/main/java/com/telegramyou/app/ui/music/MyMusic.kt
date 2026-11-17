@@ -5,6 +5,7 @@ import com.telegramyou.app.i18n.tr
 import com.telegramyou.app.ui.components.withoutBottom
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,6 +53,7 @@ import com.telegramyou.app.telegram.TelegramRepository
 import com.telegramyou.app.telegram.model.ChatMessage
 import com.telegramyou.app.ui.chat.formatDuration
 import com.telegramyou.app.ui.icons.Symbols
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,7 +70,8 @@ data class MyMusicUiState(
     val isLoading: Boolean = false,
     val isLoaded: Boolean = false,
     /** Chat titles, for "from Material Sound" under each track. */
-    val chatTitles: Map<Long, String> = emptyMap()
+    val chatTitles: Map<Long, String> = emptyMap(),
+    val error: String? = null
 )
 
 /**
@@ -80,6 +83,8 @@ class MyMusicViewModel(private val repository: TelegramRepository) : ViewModel()
     private val _uiState = MutableStateFlow(MyMusicUiState())
     val uiState: StateFlow<MyMusicUiState> = _uiState.asStateFlow()
     private var searching: Job? = null
+    private var loading: Job? = null
+    private var generation = 0
 
     init {
         viewModelScope.launch {
@@ -91,7 +96,9 @@ class MyMusicViewModel(private val repository: TelegramRepository) : ViewModel()
     }
 
     fun onQuery(query: String) {
-        _uiState.update { it.copy(query = query) }
+        generation++
+        loading?.cancel()
+        _uiState.update { it.copy(query = query, tracks = emptyList(), cursor = null, isLoaded = false, isLoading = false, error = null) }
         searching?.cancel()
         searching = viewModelScope.launch {
             delay(SEARCH_PAUSE_MS)
@@ -101,20 +108,29 @@ class MyMusicViewModel(private val repository: TelegramRepository) : ViewModel()
 
     fun onNearEnd() {
         val state = _uiState.value
-        if (state.isLoading || state.cursor == null || !state.isLoaded) return
+        if (state.isLoading || state.cursor == null || !state.isLoaded || state.error != null) return
         load(reset = false)
     }
 
+    fun onRetry() { if (!_uiState.value.isLoading) load(reset = !_uiState.value.isLoaded) }
+
     private fun load(reset: Boolean) {
         val state = _uiState.value
-        _uiState.update { it.copy(isLoading = true) }
-        viewModelScope.launch {
-            val (page, next) = runCatching {
-                repository.allMusic(state.query, if (reset) "" else state.cursor.orEmpty(), PAGE)
-            }.getOrDefault(emptyList<ChatMessage>() to null)
-            _uiState.update {
-                val tracks = if (reset) page else it.tracks + page.filter { m -> it.tracks.none { t -> t.id == m.id && t.chatId == m.chatId } }
-                it.copy(tracks = tracks, cursor = next, isLoading = false, isLoaded = true)
+        val request = generation
+        val from = if (reset) "" else state.cursor.orEmpty()
+        _uiState.update { it.copy(isLoading = true, error = null) }
+        loading = viewModelScope.launch {
+            try {
+                val (page, next) = repository.allMusic(state.query, from, PAGE)
+                if (request != generation) return@launch
+                check(next == null || next.isBlank() || next != from) { "Music cursor did not advance" }
+                _uiState.update {
+                    val tracks = ((if (reset) emptyList() else it.tracks) + page).distinctBy { m -> m.chatId to m.id }
+                    it.copy(tracks = tracks, cursor = next?.takeIf(String::isNotBlank), isLoading = false, isLoaded = true)
+                }
+            } catch (cancelled: CancellationException) { throw cancelled }
+              catch (_: Exception) {
+                if (request == generation) _uiState.update { it.copy(isLoading = false, error = tr("Could not load music", "Не удалось загрузить музыку")) }
             }
         }
     }
@@ -144,7 +160,8 @@ fun MyMusicScreen(
     /** A track into the player's Up next: first (true) or last. */
     onLineUp: (ChatMessage, Boolean) -> Unit = { _, _ -> },
     /** The music library, where For geeks has it on; null hides the way in. */
-    onOpenLibrary: (() -> Unit)? = null
+    onOpenLibrary: (() -> Unit)? = null,
+    onRetry: () -> Unit = {}
 ) {
     val host = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -191,8 +208,15 @@ fun MyMusicScreen(
                     .clip(SearchBarDefaults.inputFieldShape)
                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
+            state.error?.let { error ->
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(error, Modifier.weight(1f))
+                    androidx.compose.material3.TextButton(onClick = onRetry) { Text(tr("Retry", "Повторить")) }
+                }
+            }
             when {
-                !state.isLoaded -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                !state.isLoaded && state.error == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                state.tracks.isEmpty() && state.error != null -> Unit
                 state.tracks.isEmpty() -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                     Text(
                         if (state.query.isBlank()) tr("No music in any chat yet", "Ни в одном чате пока нет музыки") else tr("Nothing called that", "Ничего с таким названием"),

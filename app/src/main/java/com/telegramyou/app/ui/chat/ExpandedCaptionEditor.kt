@@ -5,6 +5,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -37,7 +38,15 @@ internal fun ExpandedCaptionEditor(value: String, onValueChange: (String) -> Uni
                 onValueChange = onValueChange,
                 placeholder = { Text(tr("Add a caption", "Добавьте подпись")) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                modifier = Modifier.fillMaxSize().padding(padding).imePadding().padding(16.dp)
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxSize().padding(padding).imePadding().padding(horizontal = 8.dp)
                     .focusRequester(focus).semantics { contentDescription = tr("Caption text", "Текст подписи") }
             )
         }

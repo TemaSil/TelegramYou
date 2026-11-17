@@ -44,6 +44,7 @@ import com.telegramyou.app.telegram.model.VideoContent
 import androidx.compose.material3.LinearProgressIndicator
 import com.telegramyou.app.ui.media.FileTransfer
 import com.telegramyou.app.ui.media.transferProgress
+import com.telegramyou.app.telegram.model.statusLine
 import com.telegramyou.app.telegram.model.ChatMessage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -103,7 +104,11 @@ fun ChatMediaScreen(
     transfers: Map<Int, FileTransfer> = emptyMap(),
     /** A photo or video swiped to in the gallery; what it needs is fetched. */
     onGalleryPage: (ChatMessage) -> Unit = {},
+    onGalleryAction: ((ChatMessage, MediaMessageAction) -> Unit)? = null,
+    canReplyToMedia: Boolean = true,
     onFileTapped: (ChatMessage) -> Unit = {},
+    onFilePaused: (ChatMessage) -> Unit = {},
+    onFileResumed: (ChatMessage) -> Unit = {},
     onFileOpened: () -> Unit = {},
     onFileRefused: (String?) -> Unit = {},
     onErrorShown: () -> Unit = {},
@@ -129,9 +134,7 @@ fun ChatMediaScreen(
     // The tab in view asks for its first page; the others wait to be seen.
     LaunchedEffect(pager.currentPage, active) { if (active) onTabShown(kinds[pager.currentPage]) }
     state.fileToOpen?.takeIf { active }?.let { file ->
-        LaunchedEffect(file) {
-            if (MediaActions.openFile(context, file.path, file.mime, file.name)) onFileOpened() else onFileRefused(file.name)
-        }
+        DocumentOpener(file, onFileOpened, onFileRefused)
     }
     state.errorMessage?.takeIf { active }?.let { message ->
         LaunchedEffect(message) {
@@ -282,6 +285,10 @@ fun ChatMediaScreen(
                                 SharedMediaKind.Files -> FileRow(
                                     message = message,
                                     opening = state.openingFileId == message.id,
+                                    entry = message.documentFileId?.let { state.downloads[it] },
+                                    transfer = message.documentFileId?.let { state.transfers[it] },
+                                    onPause = { onFilePaused(message) },
+                                    onResume = { onFileResumed(message) },
                                     onClick = { onFileTapped(message) }
                                 )
                                 SharedMediaKind.Links -> LinkRow(message)
@@ -314,6 +321,9 @@ fun ChatMediaScreen(
             MediaGallery(
                 items = gallery,
                 startId = opened.id,
+                sourceTitle = title,
+                canReply = canReplyToMedia,
+                onMessageAction = onGalleryAction,
                 transfers = transfers,
                 onPage = onGalleryPage,
                 onDismiss = {
@@ -349,40 +359,44 @@ private fun sentLine(message: ChatMessage): String =
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun FileRow(message: ChatMessage, opening: Boolean, onClick: () -> Unit) {
+private fun FileRow(message: ChatMessage, opening: Boolean, entry: com.telegramyou.app.telegram.model.DownloadEntry?, transfer: FileTransfer?, onPause: () -> Unit, onResume: () -> Unit, onClick: () -> Unit) {
+    val paused = entry?.isPaused == true
+    val running = !paused && (opening || transfer?.isFinished == false)
+    val ready = message.documentPath ?: entry?.path
+    val name = message.fileName ?: tr("File", "Файл")
     ListItem(
-        modifier = Modifier.clickable(onClick = onClick),
-        headlineContent = { Text(message.fileName ?: tr("File", "Файл"), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        modifier = Modifier.clickable(onClick = if (paused) onResume else onClick),
+        headlineContent = { Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
-            Text(
-                listOfNotNull(message.fileSizeLabel, sentLine(message).takeIf { it.isNotBlank() }).joinToString(" · "),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingContent = {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    val extension = fileExtension(message.fileName)
-                    if (extension != null) {
-                        Text(extension, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                    } else {
-                        Icon(Symbols.Description, contentDescription = null)
-                    }
+            Column {
+                val bytes = entry?.statusLine(transfer) ?: transfer?.let { com.telegramyou.app.ui.media.transferLabel(it) }
+                    ?: if (paused) tr("Paused", "Приостановлено") else message.fileSizeLabel
+                Text(listOfNotNull(bytes, sentLine(message).takeIf { it.isNotBlank() }).joinToString(" · "), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (running) {
+                    val fraction = transfer?.let { transferProgress(it) }
+                    if (fraction == null) LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+                    else LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
                 }
             }
         },
-        trailingContent = if (opening) {
-            { LoadingIndicator(Modifier.size(28.dp)) }
-        } else if (message.documentPath == null && message.documentFileId != null) {
-            { Icon(Symbols.Download, contentDescription = tr("Download ${message.fileName ?: "file"}", "Скачать ${message.fileName ?: "файл"}")) }
-        } else {
-            null
+        leadingContent = {
+            Surface(color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                shape = MaterialTheme.shapes.medium, modifier = Modifier.size(48.dp)) {
+                val fallback: @Composable () -> Unit = {
+                    val extension = fileExtension(message.fileName)
+                    if (extension != null) Text(extension, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    else Icon(Symbols.Description, null)
+                }
+                if (ready != null) PdfThumbnail(FileToOpen(ready, message.mimeType, message.fileName), Modifier.fillMaxSize(), fallback)
+                else Box(contentAlignment = Alignment.Center) { fallback() }
+            }
+        },
+        trailingContent = {
+            when {
+                running -> androidx.compose.material3.IconButton(onClick = onPause) { Icon(Symbols.Pause, tr("Pause $name", "Приостановить $name")) }
+                paused -> androidx.compose.material3.IconButton(onClick = onResume) { Icon(Symbols.PlayArrow, tr("Resume $name", "Продолжить $name")) }
+                ready == null && message.documentFileId != null -> androidx.compose.material3.IconButton(onClick = onClick) { Icon(Symbols.Download, tr("Download $name", "Скачать $name")) }
+            }
         }
     )
 }

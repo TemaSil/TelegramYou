@@ -11,13 +11,16 @@ README.md.
 
 ## 3.0 (in development)
 
-- **Common groups are a tap from a contact's info.** The server's full list pages as it is read; a group opens above it, preserving the way back to the contact.
+- **Common groups are the last tab in a contact's chat profile.** Media keeps its familiar order. The group list pages as it is read, and returning from a group restores the tab and position. Tabs share the collapsing header's colour.
 - **Search photos, videos and files across chats.** Media and Files use server filters and page through all results. A result opens its original message, including its forum topic; returning keeps the query and category.
 - **Your own profile folds into a compact Material header** as the details scroll, with QR and the menu still reachable and space reserved for larger system text.
-- **Video scrubbing previews its destination.** A Material card shows the target time and, for an available local video on Android 8.1+, a bounded preview frame. Streaming keeps a time preview without fetching the whole video for thumbnails.
-- **Long captions open in a full-screen editor.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
+- **The media viewer gives the picture more room.** Play/Pause is centred; source and date have their own header, with the counter and thumbnail strip below both photos and videos. Quiet Material controls try a native blurred backdrop on Android 12+, with a dark fallback. The menu offers permitted save, share, reply, forward and delete actions, returning to the original conversation and topic.
+- **Scrubbing keeps a compact time badge and a separate, stable preview.** The poster remains until the first video frame, and finishing a streamed download does not restart playback. Hold either side to seek; dragging outward increases speed through 2×, 4×, 8× and 16×.
+- **PDFs open inside the client.** Android renders page previews and a zoomable document, with the last page restored. File rows expose pause/resume and byte progress; other formats still use Android's viewers.
+- **The music library uses readable rows instead of the carousel.** Play and Shuffle wrap naturally. Its 1,000-track cutoff is removed: older pages appear progressively, and a failed request keeps the loaded songs and can be retried.
+- **Long captions open in a full-screen editor on a plain text canvas.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
 - **Forum topics keep their chosen emoji icons**, in the topic list and conversation header, with Material fallback icons when none is set.
-- **Connecting is visible on Home.** The title follows the backend connection state and opens proxies when tapped while connecting. The proxy app bar uses the page's background in either theme.
+- **Home distinguishes waiting for a network from connecting to Telegram.** Both states open proxies, whose header matches the page in either theme.
 - **What's new speaks Russian too.** Installed and incoming update notes use the app's language; older descriptions without a translation still work.
 
 - **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.

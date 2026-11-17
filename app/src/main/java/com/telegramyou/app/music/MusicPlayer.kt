@@ -432,7 +432,11 @@ class MusicPlayer(
                 } else {
                     repository.sharedMedia(queue.chatId, SharedMediaKind.Music, before, PAGE)
                 }
-            }.getOrDefault(emptyList())
+            }.getOrElse { error ->
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                _state.update { it.copy(isLoadingMore = false, notice = tr("Could not load older music", "Не удалось загрузить старую музыку")) }
+                return@launch
+            }
             _state.update {
                 // Only if it is still that chat's queue: another may have
                 // replaced it while the page was on its way.

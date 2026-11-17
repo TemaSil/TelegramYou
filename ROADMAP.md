@@ -115,7 +115,12 @@ media/file search, seek previews, a collapsing own profile, an expanded caption
 editor and topic emoji icons from the second review. The owner also requested a
 connection title linking to proxies and a proxy app bar matching its page.
 Implementation and validation continue on the feature branch; the owner
-explicitly asked not to release 3.0 yet.
+explicitly asked not to release 3.0 yet. Manual feedback on 17 November also
+requested a final common-groups tab, a plain caption editor, inline download
+controls and an in-app PDF viewer, quieter media controls with an explicitly
+approved blur experiment behind player buttons, held seeking, and a simpler
+music library without the former 1,000-track cutoff. These remain in validation
+on the same feature branch.
 
 
 What is left after 2.0, in the order it seems worth doing. The owner's

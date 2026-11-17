@@ -150,6 +150,8 @@ internal fun MessageBubble(
     onDocumentOpen: () -> Unit = {},
     /** The file is being fetched before it can be opened. */
     documentOpening: Boolean = false,
+    documentPaused: Boolean = false,
+    onDocumentPause: () -> Unit = {},
     onPhotoVisible: () -> Unit,
     onPhotoOpened: () -> Unit,
     onVideoOpened: () -> Unit,
@@ -554,19 +556,27 @@ internal fun MessageBubble(
                                 .clickable(onClick = onDocumentOpen)
                                 .semantics { contentDescription = tr("Open ${message.fileName ?: "file"}", "Открыть ${message.fileName ?: "файл"}") }
                         ) {
-                            if (documentOpening) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Symbols.Description, contentDescription = null)
+                            val local = message.documentPath
+                            val name = message.fileName ?: tr("File", "Файл")
+                            if (local != null) {
+                                PdfThumbnail(FileToOpen(local, message.mimeType, message.fileName), Modifier.size(48.dp)) {
+                                    Icon(Symbols.Description, null)
+                                }
+                            } else IconButton(onClick = if (documentOpening) onDocumentPause else onDocumentOpen) {
+                                Icon(when { documentOpening -> Symbols.Pause; documentPaused -> Symbols.PlayArrow; else -> Symbols.Download },
+                                    when { documentOpening -> tr("Pause $name", "Приостановить $name"); documentPaused -> tr("Resume $name", "Продолжить $name"); else -> tr("Download $name", "Скачать $name") })
                             }
                             Spacer(Modifier.width(8.dp))
-                            Column {
-                                Text(message.fileName ?: tr("File", "Файл"), fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    message.fileSizeLabel ?: "",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                                )
+                            Column(Modifier.weight(1f, fill = false)) {
+                                Text(name, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                                val transfer = message.documentFileId?.let { transfers[it] }
+                                Text(transfer?.let { com.telegramyou.app.ui.media.transferLabel(it) }
+                                    ?: if (documentPaused) tr("Paused", "Приостановлено") else message.fileSizeLabel.orEmpty(),
+                                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                                if (documentOpening && transfer != null) {
+                                    val fraction = com.telegramyou.app.ui.media.transferProgress(transfer)
+                                    if (fraction != null) androidx.compose.material3.LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                                }
                             }
                         }
                         writtenCaption(message).takeIf { it.isNotEmpty() }?.let { caption ->
