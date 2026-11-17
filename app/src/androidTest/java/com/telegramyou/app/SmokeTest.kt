@@ -3868,9 +3868,14 @@ class SmokeTest {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
         val locales = if (Build.VERSION.SDK_INT >= 33) app.getSystemService(android.app.LocaleManager::class.java) else null
         val originalLocales = if (Build.VERSION.SDK_INT >= 33) locales?.applicationLocales else null
+        val originalTheme = app.appearance.settings.value.theme
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
         try {
+            app.appearance.setTheme(com.telegramyou.app.settings.ThemeChoice.Dark)
+            tap(By.desc("More"))
+            waitFor(By.text("Light theme"), "the home page using dark colours")
+            device.pressBack()
             app.demoClient?.simulateConnection(false)
             waitFor(By.text("Connecting…"), "the connection state in the home title")
             screenshot("154-connecting")
@@ -3880,16 +3885,17 @@ class SmokeTest {
             app.demoClient?.simulateConnection(true)
             device.pressBack()
             waitFor(By.text("TelegramYou"), "the recovered connection title")
+            app.appearance.setTheme(com.telegramyou.app.settings.ThemeChoice.Light)
             tap(By.desc("More"))
-            if (device.hasObject(By.text("Light theme"))) tap(By.text("Light theme")) else device.pressBack()
-            waitFor(By.text("TelegramYou"), "the light home page")
-            tap(By.desc("More"))
+            waitFor(By.text("Dark theme"), "the home page using light colours")
             tap(By.text("Proxy"))
             waitFor(By.text("Use proxy"), "the light proxy page")
             screenshot("156-proxy-light")
             device.pressBack()
+            app.appearance.setTheme(com.telegramyou.app.settings.ThemeChoice.Dark)
             tap(By.desc("More"))
-            if (device.hasObject(By.text("Dark theme"))) tap(By.text("Dark theme")) else device.pressBack()
+            waitFor(By.text("Light theme"), "dark colours restored before changing language")
+            device.pressBack()
             if (Build.VERSION.SDK_INT >= 33 && locales != null) {
                 app.demoClient?.simulateConnection(false)
                 locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru")
@@ -3902,6 +3908,7 @@ class SmokeTest {
             }
         } finally {
             app.demoClient?.simulateConnection(true)
+            app.appearance.setTheme(originalTheme)
             if (Build.VERSION.SDK_INT >= 33 && locales != null) {
                 locales.applicationLocales = originalLocales ?: android.os.LocaleList.getEmptyLocaleList()
             }
@@ -3932,6 +3939,12 @@ class SmokeTest {
     @Test
     fun commonGroupsReturnThroughTheContactProfile() {
         signIn()
+        waitFor(By.text("Material Design"), "the chat list")
+        awaitNoHeadsUp()
+        // Earlier tests can create chats above Lina; find her actual row
+        // instead of assuming it is still inside the first viewport.
+        if (device.hasObject(By.text("All"))) tap(By.text("All"))
+        scrollChatsTo(By.text("Lina Park"))
         tap(By.text("Lina Park"))
         waitFor(By.text("Message"), "Lina's conversation")
         tapTopmost(By.text("Lina Park"))
