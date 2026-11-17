@@ -3866,6 +3866,8 @@ class SmokeTest {
     @Test
     fun connectingTitleOpensProxyAndRecovers() {
         val app = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp
+        val locales = if (Build.VERSION.SDK_INT >= 33) app.getSystemService(android.app.LocaleManager::class.java) else null
+        val originalLocales = if (Build.VERSION.SDK_INT >= 33) locales?.applicationLocales else null
         signIn()
         waitFor(By.text(GROUP_CHAT), "the chat list")
         try {
@@ -3888,8 +3890,21 @@ class SmokeTest {
             device.pressBack()
             tap(By.desc("More"))
             if (device.hasObject(By.text("Dark theme"))) tap(By.text("Dark theme")) else device.pressBack()
+            if (Build.VERSION.SDK_INT >= 33 && locales != null) {
+                app.demoClient?.simulateConnection(false)
+                locales.applicationLocales = android.os.LocaleList.forLanguageTags("ru")
+                waitFor(By.text("Подключение…"), "the Russian connection title")
+                tap(By.text("Подключение…"))
+                waitFor(By.text("Использовать прокси"), "the Russian proxy controls")
+                screenshot("161-proxy-russian")
+                locales.applicationLocales = originalLocales ?: android.os.LocaleList.getEmptyLocaleList()
+                waitFor(By.text("Use proxy"), "the original app language restored")
+            }
         } finally {
             app.demoClient?.simulateConnection(true)
+            if (Build.VERSION.SDK_INT >= 33 && locales != null) {
+                locales.applicationLocales = originalLocales ?: android.os.LocaleList.getEmptyLocaleList()
+            }
         }
     }
 
@@ -3964,24 +3979,26 @@ class SmokeTest {
         waitFor(By.text("Search"), "the home navigation")
         tap(By.text("Search"))
         type("Part two caption")
+        waitFor(By.text("Posts"), "the search category strip")
         val tab = device.findObject(By.text("Posts")) ?: error("the search category strip is missing")
         device.swipe(device.displayWidth * 9 / 10, tab.visibleCenter.y,
             device.displayWidth / 5, tab.visibleCenter.y, 25)
         tap(By.text("Media"))
-        waitFor(By.text(caption), "the caption found by the global media filter")
+        val mediaResult = By.textContains("Part two caption regression.")
+        waitFor(mediaResult, "the caption found by the global media filter")
         screenshot("158-global-media")
-        tap(By.text(caption))
+        tap(mediaResult)
         waitFor(GROUP_OPEN, "the result's own conversation")
-        waitFor(By.text(caption), "the result in its original history")
+        waitFor(mediaResult, "the result in its original history")
         device.pressBack()
         waitFor(By.selected(true).hasDescendant(By.text("Media")), "the same search category after returning")
         assertEquals("the media query was reset", "Part two caption",
             device.findObject(By.clazz("android.widget.EditText")).text)
         tap(By.text("Files"))
         type("Expressive")
-        waitFor(By.text("Expressive-guidelines.pdf"), "a document found across all chats")
+        waitFor(By.textContains("Expressive-guidelines.pdf"), "a document found across all chats")
         screenshot("159-global-files")
-        tap(By.text("Expressive-guidelines.pdf"))
+        tap(By.textContains("Expressive-guidelines.pdf"))
         waitFor(GROUP_OPEN, "the file's conversation")
         waitFor(By.text("Expressive-guidelines.pdf"), "the file's original message")
     }

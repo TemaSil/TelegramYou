@@ -36,8 +36,10 @@ fun parseWhatsNew(text: String): WhatsNew? {
 }
 
 /** The notes CI wrote into a release's [body], or null if it wrote none. */
-fun whatsNewIn(body: String): WhatsNew? {
-    val start = body.indexOf(WHATS_NEW_START).takeIf { it >= 0 } ?: return null
-    val end = body.indexOf(WHATS_NEW_END, start).takeIf { it >= 0 } ?: return null
-    return parseWhatsNew(body.substring(start + WHATS_NEW_START.length, end))
+fun whatsNewIn(body: String, language: String = "en"): WhatsNew? {
+    val startMarker = if (language == "ru") "<!-- whats-new-ru -->" else WHATS_NEW_START
+    val endMarker = if (language == "ru") "<!-- /whats-new-ru -->" else WHATS_NEW_END
+    val start = body.indexOf(startMarker).takeIf { it >= 0 } ?: return null
+    val end = body.indexOf(endMarker, start).takeIf { it >= 0 } ?: return null
+    return parseWhatsNew(body.substring(start + startMarker.length, end))
 }

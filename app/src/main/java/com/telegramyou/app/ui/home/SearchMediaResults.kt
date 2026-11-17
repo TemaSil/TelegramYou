@@ -38,7 +38,7 @@ internal fun SearchMediaResults(search: SearchState, actions: SearchActions, pad
             val files = search.scope.mediaKind == MediaSearchKind.Files
             val title = message.fileName?.takeIf { it.isNotBlank() }
                 ?: message.text.takeIf(::isMediaCaption)
-                ?: if (message.contentType == MessageContentType.Video) tr("Video", "Видео") else tr("Photo", "Фото")
+                ?: if (files) tr("File", "Файл") else if (message.contentType == MessageContentType.Video) tr("Video", "Видео") else tr("Photo", "Фото")
             ListItem(
                 headlineContent = { Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
                 supportingContent = { Column {

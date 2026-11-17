@@ -91,7 +91,7 @@ internal fun VideoSeekPreview(path: String?, positionMs: Long, offset: IntOffset
             shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
             shadowElevation = 6.dp,
-            modifier = Modifier.width(144.dp).semantics {
+            modifier = Modifier.width(144.dp).semantics(mergeDescendants = true) {
                 contentDescription = tr("Video preview at $time", "Предпросмотр видео: $time")
             }
         ) {

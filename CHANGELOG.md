@@ -18,6 +18,7 @@ README.md.
 - **Long captions open in a full-screen editor.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
 - **Forum topics keep their chosen emoji icons**, in the topic list and conversation header, with Material fallback icons when none is set.
 - **Connecting is visible on Home.** The title follows the backend connection state and opens proxies when tapped while connecting. The proxy app bar uses the page's background in either theme.
+- **What's new speaks Russian too.** Installed and incoming update notes use the app's language; older descriptions without a translation still work.
 
 - **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.
 - **A profile remembers its place** when returning from a conversation, separately for each chat and account. Saved deep media positions load enough pages before showing the grid again.

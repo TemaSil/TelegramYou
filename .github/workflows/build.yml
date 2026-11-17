@@ -472,6 +472,10 @@ jobs:
             cat app/src/main/assets/whats-new.md
             echo "<!-- /whats-new -->"
             echo
+            echo "<!-- whats-new-ru -->"
+            cat app/src/main/assets/whats-new-ru.md
+            echo "<!-- /whats-new-ru -->"
+            echo
             if [ -n "$LIVE" ]; then
               echo "Sign in with your own Telegram account: this is the live client."
             else

@@ -72,10 +72,12 @@ fun AppUpdateScreen(onBack: () -> Unit) {
     val installed = updates?.installed?.toString() ?: "—"
     // This build's own notes, shipped in its assets.
     val context = LocalContext.current
-    val installedNotes = remember {
-        runCatching {
-            context.assets.open("whats-new.md").bufferedReader().use { parseWhatsNew(it.readText()) }
-        }.getOrNull()
+    val language = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]?.language.orEmpty()
+    val installedNotes = remember(language) {
+        val localized = if (language == "ru") "whats-new-ru.md" else "whats-new.md"
+        listOf(localized, "whats-new.md").distinct().firstNotNullOfOrNull { asset ->
+            runCatching { context.assets.open(asset).bufferedReader().use { parseWhatsNew(it.readText()) } }.getOrNull()
+        }
     }
     Scaffold(
         containerColor = settingsBackground(),
@@ -199,19 +201,20 @@ fun AppUpdateScreen(onBack: () -> Unit) {
                 is UpdateState.Ready -> state.release
                 else -> null
             }
-            val notes = incoming?.notes ?: installedNotes
+            val incomingNotes = if (language == "ru") incoming?.notesRu ?: incoming?.notes else incoming?.notes
+            val notes = incomingNotes ?: installedNotes
             // When the version the notes are about went up: the incoming
             // release's own date, or — for this version's notes — the newest
             // release's, when that is this version. Unknown until GitHub has
             // been asked, and then simply not shown.
-            val dated = if (incoming?.notes != null) incoming else latest?.takeIf { it.version == updates?.installed }
+            val dated = if (incomingNotes != null) incoming else latest?.takeIf { it.version == updates?.installed }
             val released = dated?.publishedSeconds?.let {
                 releasedLabel(it, System.currentTimeMillis() / 1000, ZoneId.systemDefault())
             }
             if (notes != null) {
                 item(key = "whats-new") {
                     WhatsNewCard(
-                        heading = if (incoming?.notes != null) tr("What's new in ${incoming.version}", "Что нового в ${incoming.version}")
+                        heading = if (incomingNotes != null && incoming != null) tr("What's new in ${incoming.version}", "Что нового в ${incoming.version}")
                         else tr("What's new in this version", "Что нового в этой версии"),
                         notes = notes,
                         released = released

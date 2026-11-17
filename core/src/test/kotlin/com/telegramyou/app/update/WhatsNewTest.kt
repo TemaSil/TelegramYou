@@ -11,6 +11,33 @@ import java.io.File
 class WhatsNewTest {
 
     @Test
+    fun `both languages survive release parsing without mixing their bullets`() {
+        val body = "<!-- whats-new-ru -->\n# Удобнее\n- Общие группы\n<!-- /whats-new-ru -->\n" +
+            "$WHATS_NEW_START\n# Closer\n- Common groups\n$WHATS_NEW_END"
+        val release = releaseOf("TelegramYou 3.0", body, mapOf(APK_ASSET to ("https://example.test/app.apk" to 10L)))!!
+        assertEquals(WhatsNew("Closer", listOf("Common groups")), release.notes)
+        assertEquals(WhatsNew("Удобнее", listOf("Общие группы")), release.notesRu)
+    }
+
+    @Test
+    fun `older release descriptions remain usable without a Russian block`() {
+        val body = "$WHATS_NEW_START\n# Closer\n- Common groups\n$WHATS_NEW_END"
+        assertNotNull(whatsNewIn(body))
+        assertNull(whatsNewIn(body, "ru"))
+    }
+
+    @Test
+    fun `Russian shipped notes cover the same update and stay short`() {
+        val english = parseWhatsNew(File("../app/src/main/assets/whats-new.md").readText())!!
+        val russian = parseWhatsNew(File("../app/src/main/assets/whats-new-ru.md").readText())!!
+        assertEquals(english.items.size, russian.items.size)
+        assertTrue(russian.items.size <= WHATS_NEW_MAX_ITEMS)
+        assertTrue(russian.items.all { it.length <= 90 })
+        assertTrue(russian.title.length <= 60)
+        assertFalse(russian.title.any(Char::isDigit))
+    }
+
+    @Test
     fun `a title and its lines`() {
         val notes = parseWhatsNew("# Smoother\n\n- Chats close in one piece\n- Fewer icons\nstray text")
         assertEquals(WhatsNew("Smoother", listOf("Chats close in one piece", "Fewer icons")), notes)
