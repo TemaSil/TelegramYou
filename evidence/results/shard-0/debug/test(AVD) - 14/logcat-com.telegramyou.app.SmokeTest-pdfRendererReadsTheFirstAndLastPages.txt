@@ -1,0 +1,213 @@
+11-19 15:10:42.090  2441  2461 I TestRunner: started: pdfRendererReadsTheFirstAndLastPages(com.telegramyou.app.SmokeTest)
+11-19 15:10:42.098  2441  2461 D UiDevice: Executing shell command: wm size reset
+11-19 15:10:42.129  2441  2461 D UiDevice: Executing shell command: wm density reset
+11-19 15:10:42.145  2441  2461 D UiDevice: Executing shell command: cmd overlay enable-exclusive --user current --category com.android.internal.systemui.navbar.gestural
+11-19 15:10:42.170  6506  6506 I idmap2d : Starting
+11-19 15:10:42.174  2441  2461 D UiDevice: Executing shell command: cmd overlay list --user current
+11-19 15:10:42.180  2441  2461 D UiDevice: Executing shell command: cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+11-19 15:10:42.185  2441  2461 D UiDevice: Executing shell command: am force-stop com.android.launcher3
+11-19 15:10:42.195   794   794 W OverviewProxyService: Service disconnected
+11-19 15:10:42.195   794   794 W OverviewProxyService: Binding died of 'ComponentInfo{com.android.launcher3/com.android.quickstep.TouchInteractionService}', try reconnecting
+11-19 15:10:42.195   794   794 W OverviewProxyService: Failed to connect on attempt 1 will try again in 1000ms
+11-19 15:10:42.229   325   325 D Zygote  : Forked child process 6525
+11-19 15:10:42.230   325   325 I Zygote  : Process 6373 exited due to signal 9 (Killed)
+11-19 15:10:42.231   998   998 D CarrierSvcBindHelper: onHandleForceStop: [com.android.launcher3]
+11-19 15:10:42.232   998   998 D CarrierSvcBindHelper: No carrier app for: 0
+11-19 15:10:42.234   504   576 I ImeTracker: com.android.launcher3:a111ba47: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-19 15:10:42.234   504   715 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-19 15:10:42.234   504  2808 W InputManager-JNI: Input channel object '8d42706 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher (client)' was disposed without first being removed with the input manager!
+11-19 15:10:42.235   504  1770 W InputManager-JNI: Input channel object 'recents_animation_input_consumer (client)' was disposed without first being removed with the input manager!
+11-19 15:10:42.235   504   576 I ImeTracker: com.android.launcher3:a111ba47: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-19 15:10:42.237   794   794 D OverviewProxyService: disconnectFromLauncherService bound?: true currentProxy: com.android.systemui.shared.recents.IOverviewProxy$Stub$Proxy@b58c86a disconnectReason: runnable: startConnectionToCurrentUser
+11-19 15:10:42.237   794   794 D OverviewProxyService: java.lang.Throwable
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.disconnectFromLauncherService(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:37)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.internalConnectToCurrentUser(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:1)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService$$ExternalSyntheticLambda0.run(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:27)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at android.os.Looper.loop(Looper.java:294)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at android.app.ActivityThread.main(ActivityThread.java:8177)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at java.lang.reflect.Method.invoke(Native Method)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+11-19 15:10:42.237   794   794 D OverviewProxyService: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+11-19 15:10:42.238  2441  2461 D UiDevice: Executing shell command: am start -W -n com.android.launcher3/.uioverrides.QuickstepLauncher -a android.intent.action.MAIN -c android.intent.category.HOME
+11-19 15:10:42.261  6525  6525 I droid.launcher3: Using CollectorTypeCC GC.
+11-19 15:10:42.262  6525  6525 W droid.launcher3: Unexpected CPU variant for x86: x86_64.
+11-19 15:10:42.262  6525  6525 W droid.launcher3: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-19 15:10:42.264  6525  6525 E droid.launcher3: Not starting debugger since process cannot load the jdwp agent.
+11-19 15:10:42.269   388   388 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-19 15:10:42.277  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 10112; state: ENABLED
+11-19 15:10:42.278  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 242716250; UID 10112; state: ENABLED
+11-19 15:10:42.281  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 3400644; UID 10112; state: ENABLED
+11-19 15:10:42.299  2441  2461 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 0
+11-19 15:10:42.302  6525  6525 D nativeloader: Configuring clns-shared-6 for other apk /system_ext/priv-app/Launcher3QuickStep/Launcher3QuickStep.apk. target_sdk_version=34, uses_libraries=, library_path=/system_ext/priv-app/Launcher3QuickStep/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.launcher3:/system_ext/priv-app/Launcher3QuickStep:/system/lib64:/system_ext/lib64
+11-19 15:10:42.309  6525  6525 V GraphicsEnvironment: Currently set values for:
+11-19 15:10:42.309  6525  6525 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+11-19 15:10:42.309  6525  6525 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+11-19 15:10:42.309  6525  6525 V GraphicsEnvironment: ANGLE GameManagerService for com.android.launcher3: false
+11-19 15:10:42.309  6525  6525 V GraphicsEnvironment: com.android.launcher3 is not listed in per-application setting
+11-19 15:10:42.310  6525  6525 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+11-19 15:10:42.316  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 183155436; UID 10112; state: ENABLED
+11-19 15:10:42.324  2441  2461 D UiDevice: Executing shell command: cmd uimode night yes
+11-19 15:10:42.341  2441  2461 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+11-19 15:10:42.341  2441  2461 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+11-19 15:10:42.356  6525  6525 W WindowOnBackDispatcher: OnBackInvokedCallback is not enabled for the application.
+11-19 15:10:42.356  6525  6525 W WindowOnBackDispatcher: Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-19 15:10:42.359  6525  6525 D b/283944974: possibleMaximumWindowMetrics: [WindowMetrics:{bounds=Rect(0, 0 - 1080, 2400), windowInsets=WindowInsets{
+11-19 15:10:42.359  6525  6525 D b/283944974:     statusBars=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     navigationBars=Insets{left=0, top=0, right=0, bottom=63} max=Insets{left=0, top=0, right=0, bottom=63} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     captionBar=null max=null vis=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     ime=Insets{left=0, top=0, right=0, bottom=0} max=null vis=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     systemGestures=Insets{left=78, top=160, right=78, bottom=84} max=Insets{left=78, top=160, right=78, bottom=84} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     mandatorySystemGestures=Insets{left=0, top=160, right=0, bottom=84} max=Insets{left=0, top=160, right=0, bottom=84} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     tappableElement=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     displayCutout=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-19 15:10:42.359  6525  6525 D b/283944974:     windowDecor=null max=null vis=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     systemOverlays=null max=null vis=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     cutout=DisplayCutout{insets=Rect(0, 128 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(492, 0 - 610, 128), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.625} cutoutSpec={M 507,64 a 33,33 0 1 0 66,0 33,33 0 1 0 -66,0 Z @left} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}
+11-19 15:10:42.359  6525  6525 D b/283944974:     roundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=28, center=Point(28, 28)}, RoundedCorner{position=TopRight, radius=28, center=Point(1052, 28)}, RoundedCorner{position=BottomRight, radius=28, center=Point(1052, 2372)}, RoundedCorner{position=BottomLeft, radius=28, center=Point(28, 2372)}]}
+11-19 15:10:42.359  6525  6525 D b/283944974:     privacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(827, 0 - 1043, 128) rotation=0}
+11-19 15:10:42.359  6525  6525 D b/283944974:     displayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+11-19 15:10:42.359  6525  6525 D b/283944974:     suppressScrimTypes=navigationBars
+11-19 15:10:42.359  6525  6525 D b/283944974:     compatInsetsTypes=statusBars navigationBars captionBar systemOverlays
+11-19 15:10:42.359  6525  6525 D b/283944974:     compatIgnoreVisibility=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     systemWindowInsetsConsumed=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     stableInsetsConsumed=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     displayCutoutConsumed=false
+11-19 15:10:42.359  6525  6525 D b/283944974:     }, density=2.625}]
+11-19 15:10:42.364  6525  6525 I DisplayController: (CTOR) perDisplayBounds - CachedDisplayInfo{size=Point(1080, 2400), cutout=Rect(0, 128 - 0, 0), rotation=0}: [WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 63), availableSize=Point(1080, 2209), rotationHint=0}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(128, 74 - 0, 63), availableSize=Point(2272, 943), rotationHint=1}, WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 128), availableSize=Point(1080, 2144), rotationHint=2}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(0, 74 - 128, 63), availableSize=Point(2272, 943), rotationHint=3}]
+11-19 15:10:42.368  2441  2461 D UiDevice: Pressing home button.
+11-19 15:10:42.374  6525  6573 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+11-19 15:10:42.375  6525  6573 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+11-19 15:10:42.377  6525  6573 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+11-19 15:10:42.393  6525  6560 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-19 15:10:42.402   134   134 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+11-19 15:10:42.402  6525  6560 I Gralloc4: mapper 4.x is not supported
+11-19 15:10:42.412  6525  6560 E OpenGLRenderer: Unable to match the desired swap behavior.
+11-19 15:10:42.556  6525  6560 E FrameEvents: updateAcquireFence: Did not find frame.
+11-19 15:10:42.563  6525  6525 V Launcher: LauncherAppState initiated
+11-19 15:10:42.568  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 160794467; UID 10112; state: ENABLED
+11-19 15:10:42.572  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 171228096; UID 10112; state: ENABLED
+11-19 15:10:42.575  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 210923482; UID 10112; state: ENABLED
+11-19 15:10:42.576  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 147798919; UID 10112; state: ENABLED
+11-19 15:10:42.590  6525  6525 D b/267448330: provider: ComponentInfo{com.android.quicksearchbox/com.android.quicksearchbox.SearchWidgetProvider}, paddedSizes: [382.09525x132.95238, 382.09525x131.42857, 732.5714x56.38095, 732.5714x56.38095], getMinMaxSizes: Rect(382, 56 - 732, 132)
+11-19 15:10:42.601  6525  6525 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-19 15:10:42.607  6525  6566 D LoaderTask: loadWorkspace: loading default favorites
+11-19 15:10:42.613  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 237531167; UID 10112; state: DISABLED
+11-19 15:10:42.613  6525  6525 W OpenGLRenderer: Unknown dataspace 0
+11-19 15:10:42.618  6525  6525 D b/254119092: TaskbarManager created
+11-19 15:10:42.618  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.618  6525  6525 D b/254119092: destroyExistingTaskbar: null
+11-19 15:10:42.618  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.618  6525  6525 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=false FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=null
+11-19 15:10:42.618  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.618  6525  6525 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-19 15:10:42.634   462   792 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-19 15:10:42.643  6525  6525 D b/254119092: Set mActivity=com.android.launcher3.uioverrides.QuickstepLauncher@9a88aeb
+11-19 15:10:42.643  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.644  6525  6525 D b/254119092: destroyExistingTaskbar: null
+11-19 15:10:42.644  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.644  6525  6525 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=true FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=false
+11-19 15:10:42.644  6525  6525 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-19 15:10:42.644  6525  6525 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: onNavigationModeChanged()
+11-19 15:10:42.646  6525  6525 D TouchInteractionService: Touch service connected: user=0
+11-19 15:10:42.646  6525  6525 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000000 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher }
+11-19 15:10:42.646   794   794 D OverviewProxyService: Overview proxy service connected
+11-19 15:10:42.647   794   794 D OverviewProxyService: OverviewProxyService connected, initializing overview proxy
+11-19 15:10:42.648  6525  6525 D TouchInteractionService: Touch service connected: user=0
+11-19 15:10:42.662   794   794 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-19 15:10:42.690  6525  6565 I ImeTracker: com.android.launcher3:250729fd: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-19 15:10:42.691  6525  6565 I ImeTracker: com.android.launcher3:250729fd: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-19 15:10:42.711  6525  6525 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: TISBinder#onInitialize()
+11-19 15:10:42.712   504   568 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-19 15:10:42.713  6525  6525 D TISBindHelper: TIS service connected
+11-19 15:10:42.742  6525  6584 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-19 15:10:42.841  6525  6566 D CompatibilityChangeReporter: Compat change id reported: 247079863; UID 10112; state: ENABLED
+11-19 15:10:42.891  6525  6566 D LoaderTask: loadWorkspace
+11-19 15:10:42.903  6525  6566 D LoaderTask: sanitizeData
+11-19 15:10:42.904  6525  6566 D LoaderTask: bindWorkspace
+11-19 15:10:42.904  6525  6566 D LoaderTask: sendFirstScreenActiveInstallsBroadcast
+11-19 15:10:43.090   504   523 I ActivityTaskManager: Displayed com.android.launcher3/.uioverrides.QuickstepLauncher for user 0: +890ms
+11-19 15:10:43.117   504  1620 I ImeTracker: com.android.launcher3:261621d5: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-19 15:10:43.117   504  1620 I ImeTracker: com.android.launcher3:261621d5: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-19 15:10:43.122   504  1770 I Process : Sending signal. PID: 6373 SIG: 9
+11-19 15:10:43.156   388   388 E BpTransactionCompletedListener: Failed to transact (-32)
+11-19 15:10:43.226   794  2592 D KeyguardService: setOccluded(false)
+11-19 15:10:43.230   794  2592 D KeyguardViewMediator: setOccluded(false)
+11-19 15:10:43.231   794   794 D KeyguardViewMediator: handleSetOccluded(false)
+11-19 15:10:43.232   794   794 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-19 15:10:43.298  6525  6525 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras) }
+11-19 15:10:43.316  6525  6566 D LoaderTask: step 1 complete
+11-19 15:10:43.343   794   794 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-19 15:10:43.450   330  1441 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 28365248
+11-19 15:10:43.455  6525  6566 D LoaderTask: loadAllApps
+11-19 15:10:43.456  6525  6566 D LoaderTask: bindAllApps
+11-19 15:10:43.460  6525  6566 D LoaderTask: update icon cache
+11-19 15:10:43.460  6525  6566 D LoaderTask: save shortcuts in icon cache
+11-19 15:10:43.460  6525  6566 D LoaderTask: step 2 complete
+11-19 15:10:43.460  6525  6566 D LoaderTask: loadDeepShortcuts
+11-19 15:10:43.461  6525  6566 D LoaderTask: bindDeepShortcuts
+11-19 15:10:43.461  6525  6566 D LoaderTask: save deep shortcuts in icon cache
+11-19 15:10:43.461  6525  6566 D LoaderTask: step 3 complete
+11-19 15:10:43.468  6525  6566 D LoaderTask: load widgets
+11-19 15:10:43.473  6525  6566 D LoaderTask: bindWidgets
+11-19 15:10:43.474  6525  6566 D LoaderTask: save widgets in icon cache
+11-19 15:10:43.476  6525  6566 D LoaderTask: finish icon update
+11-19 15:10:43.477  6525  6566 D QuickstepModelDelegate: Successfully registered for launcher snapshot logging!
+11-19 15:10:43.477   504  1620 W Binder  : Caught a RuntimeException from the binder stub implementation.
+11-19 15:10:43.477   504  1620 W Binder  : java.lang.SecurityException: Need REGISTER_STATS_PULL_ATOM permission.: Neither user 10112 nor current process has android.permission.REGISTER_STATS_PULL_ATOM.
+11-19 15:10:43.477   504  1620 W Binder  : 	at android.app.ContextImpl.enforce(ContextImpl.java:2332)
+11-19 15:10:43.477   504  1620 W Binder  : 	at android.app.ContextImpl.enforceCallingOrSelfPermission(ContextImpl.java:2360)
+11-19 15:10:43.477   504  1620 W Binder  : 	at com.android.server.stats.StatsManagerService.enforceRegisterStatsPullAtomPermission(StatsManagerService.java:644)
+11-19 15:10:43.477   504  1620 W Binder  : 	at com.android.server.stats.StatsManagerService.registerPullAtomCallback(StatsManagerService.java:212)
+11-19 15:10:43.477   504  1620 W Binder  : 	at android.os.IStatsManagerService$Stub.onTransact(IStatsManagerService.java:418)
+11-19 15:10:43.477   504  1620 W Binder  : 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-19 15:10:43.477   504  1620 W Binder  : 	at android.os.Binder.execTransact(Binder.java:1275)
+11-19 15:10:43.634   450  2631 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-19 15:10:44.079   794   865 D SplashScreenView: Build android.window.SplashScreenView{9769872 V.E...... ......ID 0,0-0,0}
+11-19 15:10:44.079   794   865 D SplashScreenView: Icon: view: null drawable: null size: 0
+11-19 15:10:44.079   794   865 D SplashScreenView: Branding: view: android.view.View{41dd4c3 G.ED..... ......I. 0,0-0,0 #10204ef android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+11-19 15:10:44.081  2441  2461 D UiDevice: Waiting 30000ms for SearchCondition[hasObject=BySelector [PKG='\Qcom.telegramyou.app.debug\E']].
+11-19 15:10:44.084  2441  2461 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-19 15:10:44.180   388   399 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-19 15:10:44.206  2441  2441 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@a186298 in: PRE_ON_CREATE
+11-19 15:10:44.247  2441  2441 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@a186298 in: CREATED
+11-19 15:10:44.251  2441  2441 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@a186298 in: STARTED
+11-19 15:10:44.257  2441  2441 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@a186298 in: RESUMED
+11-19 15:10:44.365  2441  2461 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-19 15:10:44.374  2441  2441 D AutofillManager: Fill dialog is enabled:false, hints=[]
+11-19 15:10:44.392  2441  2461 W UiDevice: Active window root not found.
+11-19 15:10:44.483  2441  2461 W UiDevice: Skipping null root node for window: AccessibilityWindowInfo[title=Home, displayId=0, id=114, taskId=52, type=TYPE_APPLICATION, layer=0, region=SkRegion((0,0,1080,2400)), bounds=Rect(0, 0 - 1080, 2400), focused=true, active=true, pictureInPicture=false, transitionTime=1360564, hasParent=false, isAnchored=false, hasChildren=false]
+11-19 15:10:44.505  2441  2441 I ImeTracker: com.telegramyou.app.debug:90cf440e: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-19 15:10:44.508  2441  2441 I ImeTracker: com.telegramyou.app.debug:90cf440e: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-19 15:10:44.510  2441  2441 I ImeTracker: com.telegramyou.app.debug:2d07a343: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT_BY_INSETS_API
+11-19 15:10:44.510  2441  2441 I ImeTracker: com.telegramyou.app.debug:2d07a343: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+11-19 15:10:44.589   504   523 W ziparchive: Unable to open '/data/app/~~1Vp8nAZzWVbNPvBNlK5Mow==/com.telegramyou.app.debug-fj0seWa_D5OvnLz1ZKzJ7g==/base.dm': No such file or directory
+11-19 15:10:44.590   504   523 I ActivityTaskManager: Displayed com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal for user 0: +513ms
+11-19 15:10:44.595  2441  2461 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-19 15:10:44.612   504   902 W InputManager-JNI: Input channel object 'adc5908 Splash Screen com.telegramyou.app.debug (client)' was disposed without first being removed with the input manager!
+11-19 15:10:44.634   450  2631 D BufferPoolAccessor2.0: bufferpool2 0x79fe51ea7bf8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/101 (recycle/alloc) - 8/198 (fetch/transfer)
+11-19 15:10:44.634   462   792 D BufferPoolAccessor2.0: bufferpool2 0x749aafeabe38 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-19 15:10:44.634   462   792 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-19 15:10:44.634   450  2631 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-19 15:10:44.635  6525  6565 I ImeTracker: com.android.launcher3:590ebd6b: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-19 15:10:44.635   504   902 I ImeTracker: com.android.launcher3:590ebd6b: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-19 15:10:44.818   504  1714 I ImeTracker: com.telegramyou.app.debug:923d8a31: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-19 15:10:44.818   504  1714 I ImeTracker: com.telegramyou.app.debug:923d8a31: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-19 15:10:45.213   794   794 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-19 15:10:45.828  2441  2610 D EGL_emulation: app_time_stats: avg=44.82ms min=22.14ms max=232.75ms count=25
+11-19 15:10:46.836  2441  2610 D EGL_emulation: app_time_stats: avg=36.41ms min=20.66ms max=59.49ms count=24
+11-19 15:10:47.859  2441  2610 D EGL_emulation: app_time_stats: avg=36.18ms min=20.81ms max=58.99ms count=25
+11-19 15:10:48.527  2441  2461 D UiDevice: Waiting 20000ms for SearchCondition[gone=BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E']].
+11-19 15:10:48.528  2441  2461 D UiDevice: Searching for node with selector: BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E'].
+11-19 15:10:48.872  2441  2610 D EGL_emulation: app_time_stats: avg=35.12ms min=22.15ms max=53.63ms count=25
+11-19 15:10:49.877  2441  2610 D EGL_emulation: app_time_stats: avg=36.21ms min=23.58ms max=55.95ms count=24
+11-19 15:10:50.913  2441  2610 D EGL_emulation: app_time_stats: avg=34.68ms min=18.59ms max=58.84ms count=26
+11-19 15:10:51.917  2441  2610 D EGL_emulation: app_time_stats: avg=35.88ms min=20.16ms max=52.10ms count=25
+11-19 15:10:51.953  2441  2461 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 1
+11-19 15:10:51.990  2441  2461 D UiDevice: Setting orientation to natural.
+11-19 15:10:51.994  6525  6525 D CompatibilityChangeReporter: Compat change id reported: 150939131; UID 10112; state: ENABLED
+11-19 15:10:51.995  2441  2461 D UiDevice: Waiting 2000ms for Condition[displayRotation=0, displayId=0].
+11-19 15:10:51.996  2441  2461 D UiDevice: Unfreezing rotation.
+11-19 15:10:51.997  2441  2461 I TestRunner: finished: pdfRendererReadsTheFirstAndLastPages(com.telegramyou.app.SmokeTest)
