@@ -4,6 +4,72 @@ The same screens from every green build of `main`, newest first,
 taken by the UI workflow on an emulator running the demo client.
 Written by `.github/scripts/gallery.py`; do not edit by hand.
 
+## 3.0-800
+
+2026-11-19 · [`853d6ea`](https://github.com/TemaSil/TelegramYou/commit/853d6ea5869e164550c07b2eaaffb645b769b419)
+
+<p>
+  <img src="builds/3.0-800/03-chats.jpg" width="160" alt="Chat list" title="Chat list">
+  <img src="builds/3.0-800/04-chat.jpg" width="160" alt="Conversation" title="Conversation">
+  <img src="builds/3.0-800/06-group-header.jpg" width="160" alt="Group" title="Group">
+  <img src="builds/3.0-800/84-library.jpg" width="160" alt="Music library" title="Music library">
+  <img src="builds/3.0-800/78-player.jpg" width="160" alt="Music player" title="Music player">
+  <img src="builds/3.0-800/79-queue.jpg" width="160" alt="Queue" title="Queue">
+  <img src="builds/3.0-800/80-my-music.jpg" width="160" alt="My music" title="My music">
+  <img src="builds/3.0-800/81-search-music.jpg" width="160" alt="Music in search" title="Music in search">
+  <img src="builds/3.0-800/76-shared-files.jpg" width="160" alt="Shared files" title="Shared files">
+  <img src="builds/3.0-800/82-downloads.jpg" width="160" alt="Downloads" title="Downloads">
+  <img src="builds/3.0-800/73-forum-topics.jpg" width="160" alt="Forum topics" title="Forum topics">
+  <img src="builds/3.0-800/70-group-members.jpg" width="160" alt="Admins" title="Admins">
+  <img src="builds/3.0-800/72-invite-links.jpg" width="160" alt="Invite links" title="Invite links">
+  <img src="builds/3.0-800/57b-panel-expanded.jpg" width="160" alt="Emoji, GIFs and stickers" title="Emoji, GIFs and stickers">
+  <img src="builds/3.0-800/52c-appearance-chat-background.jpg" width="160" alt="Chat background" title="Chat background">
+  <img src="builds/3.0-800/52-appearance.jpg" width="160" alt="Appearance" title="Appearance">
+  <img src="builds/3.0-800/62-app-lock.jpg" width="160" alt="App lock" title="App lock">
+  <img src="builds/3.0-800/65-selection.jpg" width="160" alt="Selecting messages" title="Selecting messages">
+  <img src="builds/3.0-800/63-contact-and-place.jpg" width="160" alt="Contacts and places" title="Contacts and places">
+  <img src="builds/3.0-800/66-jumbo-emoji.jpg" width="160" alt="Emoji" title="Emoji">
+  <img src="builds/3.0-800/44a-message-menu.jpg" width="160" alt="Reactions" title="Reactions">
+  <img src="builds/3.0-800/60-gallery.jpg" width="160" alt="Photo viewer" title="Photo viewer">
+  <img src="builds/3.0-800/56-folders.jpg" width="160" alt="Folders" title="Folders">
+  <img src="builds/3.0-800/31-video-note.jpg" width="160" alt="Video messages" title="Video messages">
+  <img src="builds/3.0-800/34-poll.jpg" width="160" alt="Polls" title="Polls">
+  <img src="builds/3.0-800/35-bot.jpg" width="160" alt="Bot buttons" title="Bot buttons">
+  <img src="builds/3.0-800/37-post-search.jpg" width="160" alt="Post search" title="Post search">
+  <img src="builds/3.0-800/28-old-search-hit.jpg" width="160" alt="Search in chat" title="Search in chat">
+  <img src="builds/3.0-800/36-search.jpg" width="160" alt="Search" title="Search">
+  <img src="builds/3.0-800/21-story.jpg" width="160" alt="Stories" title="Stories">
+  <img src="builds/3.0-800/09-attachments.jpg" width="160" alt="Attachments" title="Attachments">
+  <img src="builds/3.0-800/12-chat-info.jpg" width="160" alt="Chat info" title="Chat info">
+  <img src="builds/3.0-800/32-privacy.jpg" width="160" alt="Privacy" title="Privacy">
+  <img src="builds/3.0-800/29-devices.jpg" width="160" alt="Devices" title="Devices">
+  <img src="builds/3.0-800/30-storage.jpg" width="160" alt="Data and storage" title="Data and storage">
+  <img src="builds/3.0-800/41-settings.jpg" width="160" alt="Settings" title="Settings">
+  <img src="builds/3.0-800/42-profile.jpg" width="160" alt="Profile" title="Profile">
+  <img src="builds/3.0-800/25-updates.jpg" width="160" alt="App update" title="App update">
+  <img src="builds/3.0-800/33-for-geeks.jpg" width="160" alt="For geeks" title="For geeks">
+  <img src="builds/3.0-800/26-qr-login.jpg" width="160" alt="QR login" title="QR login">
+  <img src="builds/3.0-800/27-email-code.jpg" width="160" alt="Email login" title="Email login">
+  <img src="builds/3.0-800/23-proxy.jpg" width="160" alt="Proxy" title="Proxy">
+  <img src="builds/3.0-800/13-rail.jpg" width="160" alt="Tablet" title="Tablet">
+  <img src="builds/3.0-800/129-two-panes.jpg" width="160" alt="Tablet, two panes" title="Tablet, two panes">
+  <img src="builds/3.0-800/130-two-panes-foldable.jpg" width="160" alt="Foldable, two panes" title="Foldable, two panes">
+  <img src="builds/3.0-800/144-saved-notes.jpg" width="160" alt="Saved Messages as notes" title="Saved Messages as notes">
+  <img src="builds/3.0-800/146-profile-info.jpg" width="160" alt="Chat profile" title="Chat profile">
+  <img src="builds/3.0-800/147-profile-media.jpg" width="160" alt="Media in a profile" title="Media in a profile">
+  <img src="builds/3.0-800/148-profile-files.jpg" width="160" alt="Files in a profile" title="Files in a profile">
+  <img src="builds/3.0-800/152-own-profile-collapsed.jpg" width="160" alt="Compact profile" title="Compact profile">
+  <img src="builds/3.0-800/153-common-groups.jpg" width="160" alt="Common groups" title="Common groups">
+  <img src="builds/3.0-800/154-connecting.jpg" width="160" alt="Connecting" title="Connecting">
+  <img src="builds/3.0-800/155-proxy-dark.jpg" width="160" alt="Proxy settings" title="Proxy settings">
+  <img src="builds/3.0-800/158-global-media.jpg" width="160" alt="Media in global search" title="Media in global search">
+  <img src="builds/3.0-800/159-global-files.jpg" width="160" alt="Files in global search" title="Files in global search">
+  <img src="builds/3.0-800/160-video-seek-preview.jpg" width="160" alt="Video seek preview" title="Video seek preview">
+  <img src="builds/3.0-800/162-waiting-for-network.jpg" width="160" alt="Waiting for network" title="Waiting for network">
+  <img src="builds/3.0-800/163-pdf-viewer.jpg" width="160" alt="PDF viewer" title="PDF viewer">
+  <img src="builds/3.0-800/164-media-menu.jpg" width="160" alt="Media actions" title="Media actions">
+</p>
+
 ## 2.9.4-791
 
 2026-11-15 · [`7a0d7cc`](https://github.com/TemaSil/TelegramYou/commit/7a0d7cce3e28f507faedf0309e3257b0261004c4)
