@@ -1484,7 +1484,7 @@ fun ChatScreen(
                                     if (message.audio != null) onMusicSeek(at) else onVoiceSeek(message, at)
                                 },
                                 onDocumentOpen = { onDocumentOpened(message) },
-                                documentOpening = state.openingFileId == message.id,
+                                documentOpening = message.id in state.openingFileIds,
                                 documentPaused = message.documentFileId in state.pausedDocuments,
                                 onDocumentPause = { onDocumentPaused(message) },
                                 onPhotoVisible = { onPhotoVisible(message) },

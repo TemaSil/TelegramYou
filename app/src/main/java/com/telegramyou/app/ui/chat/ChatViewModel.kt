@@ -121,7 +121,7 @@ data class ChatUiState(
     val topicName: String? = null,
     val forumTopic: com.telegramyou.app.telegram.model.ForumTopic? = null,
     /** A file in a bubble being fetched before it opens, by message id. */
-    val openingFileId: Long? = null,
+    val openingFileIds: Set<Long> = emptySet(),
     val pausedDocuments: Set<Int> = emptySet(),
     /** A file fetched and waiting for the screen to open it. */
     val fileToOpen: FileToOpen? = null,
@@ -2236,15 +2236,17 @@ class ChatViewModel(
      * A file in a bubble tapped: opened at once when it is on the phone,
      * fetched first when it is not, the bubble showing the wait.
      */
-    private var documentJob: Job? = null
+    private val documentJobs = mutableMapOf<Long, Job>()
+    // A batch finishes quietly so viewers do not interrupt each other.
+    private var autoOpenDocument: Long? = null
 
     fun onDocumentPaused(message: ChatMessage) {
         val id = message.documentFileId ?: return
         viewModelScope.launch {
             try {
                 repository.setDownloadPaused(id, true)
-                if (_uiState.value.openingFileId == message.id) documentJob?.cancel()
-                _uiState.update { it.copy(openingFileId = if (it.openingFileId == message.id) null else it.openingFileId, pausedDocuments = it.pausedDocuments + id) }
+                documentJobs.remove(message.id)?.cancel()
+                _uiState.update { it.copy(openingFileIds = it.openingFileIds - message.id, pausedDocuments = it.pausedDocuments + id) }
             } catch (cancelled: CancellationException) { throw cancelled }
               catch (_: Exception) { _uiState.update { it.copy(errorMessage = tr("Could not pause download", "Не удалось приостановить загрузку")) } }
         }
@@ -2256,9 +2258,11 @@ class ChatViewModel(
             return
         }
         val fileId = message.documentFileId ?: return
-        if (_uiState.value.openingFileId != null) return
-        _uiState.update { it.copy(openingFileId = message.id, pausedDocuments = it.pausedDocuments - fileId) }
-        documentJob = viewModelScope.launch {
+        val active = _uiState.value.openingFileIds
+        if (message.id in active) return
+        autoOpenDocument = message.id.takeIf { active.isEmpty() }
+        _uiState.update { it.copy(openingFileIds = it.openingFileIds + message.id, pausedDocuments = it.pausedDocuments - fileId) }
+        val job = viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             // Through the download list, so it is in Downloads — and keeps
             // coming if this chat is closed before it has.
             val outcome = try {
@@ -2267,11 +2271,14 @@ class ChatViewModel(
             } catch (cancelled: CancellationException) { throw cancelled }
               catch (_: Exception) { com.telegramyou.app.telegram.model.DownloadOutcome.Failed }
             val path = (outcome as? com.telegramyou.app.telegram.model.DownloadOutcome.Done)?.path
+            val open = autoOpenDocument == message.id
+            if (open) autoOpenDocument = null
+            documentJobs.remove(message.id)
             _uiState.update { state ->
                 val kept = if (path == null) state else state.mapMessage(message.id) { it.copy(documentPath = path) }
                 kept.copy(
-                    openingFileId = null,
-                    fileToOpen = path?.let { FileToOpen(it, message.mimeType, message.fileName) },
+                    openingFileIds = kept.openingFileIds - message.id,
+                    fileToOpen = kept.fileToOpen ?: if (open && path != null) FileToOpen(path, message.mimeType, message.fileName) else null,
                     // Paused or cancelled in Downloads is not a failure.
                     errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
                         tr("Could not download ${message.fileName ?: "the file"}", "Не удалось скачать ${message.fileName ?: "файл"}")
@@ -2281,6 +2288,8 @@ class ChatViewModel(
                 )
             }
         }
+        documentJobs[message.id] = job
+        job.start()
     }
 
     fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }

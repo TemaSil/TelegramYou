@@ -204,7 +204,6 @@ fun MediaGallery(
         androidx.activity.compose.BackHandler(enabled = captionOpen) { captionOpen = false }
 
         val current = items.getOrNull(pager.currentPage)
-        var videoBackdrop by remember(current?.id) { mutableStateOf<PlayerBackdrop?>(null) }
         var menu by remember(current?.id) { mutableStateOf(false) }
         var permissions by remember(current?.id) { mutableStateOf<MessagePermissions?>(null) }
         val host = remember { SnackbarHostState() }
@@ -318,8 +317,7 @@ fun MediaGallery(
                             chrome = chrome,
                             onToggleChrome = { chrome = !chrome },
                             closing = closing,
-                            galleryInset = if (items.size > 1) 96.dp else 28.dp,
-                            onBackdrop = { if (page == pager.currentPage) videoBackdrop = it }
+                            galleryInset = if (items.size > 1) 96.dp else 28.dp
                         )
                     } else {
                         PhotoPage(
@@ -376,7 +374,7 @@ fun MediaGallery(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), close, Modifier.size(48.dp), videoBackdrop)
+                PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), close, Modifier.size(48.dp))
                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(sourceTitle.ifBlank { current?.senderName.orEmpty() }, color = Color.White,
                         style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -384,7 +382,7 @@ fun MediaGallery(
                         style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
                 Box {
-                    PlayerControlButton(Symbols.MoreVert, tr("More", "Ещё"), { menu = true }, Modifier.size(48.dp), videoBackdrop)
+                    PlayerControlButton(Symbols.MoreVert, tr("More", "Ещё"), { menu = true }, Modifier.size(48.dp))
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         if (permissions?.canForward == true) {
                             DropdownMenuItem(text = { Text(tr("Save to Downloads", "Сохранить в Загрузки")) }, leadingIcon = { Icon(Symbols.Download, null) }, onClick = { fileAction(false) })

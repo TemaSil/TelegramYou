@@ -284,7 +284,7 @@ fun ChatMediaScreen(
                             when (kind) {
                                 SharedMediaKind.Files -> FileRow(
                                     message = message,
-                                    opening = state.openingFileId == message.id,
+                                    opening = message.id in state.openingFileIds,
                                     entry = message.documentFileId?.let { state.downloads[it] },
                                     transfer = message.documentFileId?.let { state.transfers[it] },
                                     onPause = { onFilePaused(message) },

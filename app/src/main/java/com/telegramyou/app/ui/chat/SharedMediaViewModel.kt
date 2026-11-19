@@ -36,7 +36,7 @@ data class SharedMediaUiState(
     val title: String = "",
     val tabs: Map<SharedMediaKind, SharedMediaTab> = emptyMap(),
     /** The file being fetched before it can be opened, by message id. */
-    val openingFileId: Long? = null,
+    val openingFileIds: Set<Long> = emptySet(),
     val fileToOpen: FileToOpen? = null,
     val errorMessage: String? = null,
     val transfers: Map<Int, FileTransfer> = emptyMap(),
@@ -64,7 +64,9 @@ class SharedMediaViewModel(
         SharedMediaUiState(title = repository.chats.value.firstOrNull { it.id == chatId }?.title.orEmpty())
     )
     val uiState: StateFlow<SharedMediaUiState> = _uiState.asStateFlow()
-    private var openingJob: Job? = null
+    private val openingJobs = mutableMapOf<Long, Job>()
+    // A batch finishes quietly so viewers do not interrupt each other.
+    private var autoOpenDocument: Long? = null
 
     init {
         viewModelScope.launch {
@@ -92,10 +94,8 @@ class SharedMediaViewModel(
         viewModelScope.launch {
             try {
                 repository.setDownloadPaused(id, true)
-                if (_uiState.value.openingFileId == message.id) {
-                    openingJob?.cancel()
-                    _uiState.update { it.copy(openingFileId = null) }
-                }
+                openingJobs.remove(message.id)?.cancel()
+                _uiState.update { it.copy(openingFileIds = it.openingFileIds - message.id) }
                 refreshDownloads()
             } catch (cancelled: CancellationException) { throw cancelled }
               catch (_: Exception) { _uiState.update { it.copy(errorMessage = tr("Could not pause download", "Не удалось приостановить загрузку")) } }
@@ -159,7 +159,7 @@ class SharedMediaViewModel(
      * the screen, which knows how to reach another app.
      */
     fun onFileTapped(message: ChatMessage) {
-        val ready = message.documentPath
+        val ready = message.documentPath ?: message.documentFileId?.let { _uiState.value.downloads[it]?.path }
         if (ready != null) {
             _uiState.update { it.copy(fileToOpen = FileToOpen(ready, message.mimeType, message.fileName)) }
             return
@@ -168,18 +168,23 @@ class SharedMediaViewModel(
             _uiState.update { it.copy(errorMessage = tr("This file is not on the phone yet", "Этого файла ещё нет на телефоне")) }
             return
         }
-        if (_uiState.value.openingFileId != null) return
-        _uiState.update { it.copy(openingFileId = message.id) }
-        openingJob = viewModelScope.launch {
+        val active = _uiState.value.openingFileIds
+        if (message.id in active) return
+        autoOpenDocument = message.id.takeIf { active.isEmpty() }
+        _uiState.update { it.copy(openingFileIds = it.openingFileIds + message.id) }
+        val job = viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
             val outcome = try { repository.downloadToList(message.chatId, message.id, fileId) }
                 catch (cancelled: CancellationException) { throw cancelled }
                 catch (_: Exception) { com.telegramyou.app.telegram.model.DownloadOutcome.Failed }
             val path = (outcome as? com.telegramyou.app.telegram.model.DownloadOutcome.Done)?.path
+            val open = autoOpenDocument == message.id
+            if (open) autoOpenDocument = null
+            openingJobs.remove(message.id)
             _uiState.update {
                 if (path == null) {
                     // Paused or cancelled in Downloads is not a failure.
                     it.copy(
-                        openingFileId = null,
+                        openingFileIds = it.openingFileIds - message.id,
                         errorMessage = if (outcome == com.telegramyou.app.telegram.model.DownloadOutcome.Failed) {
                             tr("Could not download ${message.fileName ?: "the file"}", "Не удалось скачать ${message.fileName ?: "файл"}")
                         } else {
@@ -187,7 +192,7 @@ class SharedMediaViewModel(
                         }
                     )
                 } else {
-                    it.copy(openingFileId = null, fileToOpen = FileToOpen(path, message.mimeType, message.fileName))
+                    it.copy(openingFileIds = it.openingFileIds - message.id, fileToOpen = it.fileToOpen ?: if (open) FileToOpen(path, message.mimeType, message.fileName) else null)
                 }
             }
             // Kept on the row, so a second tap opens it straight away.
@@ -197,6 +202,8 @@ class SharedMediaViewModel(
                 }
             }
         }
+        openingJobs[message.id] = job
+        job.start()
     }
 
     fun onFileOpened() = _uiState.update { it.copy(fileToOpen = null) }

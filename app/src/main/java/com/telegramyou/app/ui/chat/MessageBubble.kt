@@ -378,6 +378,10 @@ internal fun MessageBubble(
         // a channel post's comments row and a reaction row, on a frameless
         // video, were drawn straight over the conversation and the next
         // message's preview (2.9.1, the owner's report).
+        val sender = message.senderName?.takeIf { it.isNotBlank() }
+        // Top bleed reclaims the bubble's padding. It must not extend into a header.
+        val mediaBleedsAtTop = message.replyToId == null && message.forwardedFrom == null &&
+            !(showAvatar && !outgoing && isFirstInRun && sender != null)
         val frameless = message.replyToId == null && message.forwardedFrom == null &&
             message.commentCount == null && message.reactions.isEmpty() &&
             message.linkPreview == null && when (message.contentType) {
@@ -511,7 +515,6 @@ internal fun MessageBubble(
                 // ChatMessage moved to :core, Kotlin will not smart-cast its
                 // nullable properties — a public property of another module can
                 // change under a compiled caller.
-                val sender = message.senderName?.takeIf { it.isNotBlank() }
                 // Only where several people write — the same test as the
                 // avatar beside the run. In a private chat the header already
                 // says who, and TDLib names the sender of every message, so
@@ -596,10 +599,7 @@ internal fun MessageBubble(
                     } else {
                         PhotoMessage(
                             framed = !frameless,
-                            // Flush with the bubble's top as well as its sides,
-                            // unless a name or a quote sits above it.
-                            bleedTop = message.replyToId == null &&
-                                !(!outgoing && isFirstInRun && sender != null),
+                            bleedTop = mediaBleedsAtTop,
                             transfer = message.photoFileId?.let { transfers[it] },
                             path = message.photoPath,
                             mini = message.photoMini,
@@ -630,10 +630,7 @@ internal fun MessageBubble(
                                 video = video,
                                 caption = writtenCaption(message),
                                 outgoing = outgoing,
-                                // As a photo: flush with the top unless a name
-                                // or a quote sits above it.
-                                bleedTop = message.replyToId == null &&
-                                    !(!outgoing && isFirstInRun && sender != null),
+                                bleedTop = mediaBleedsAtTop,
                                 // Either file can be the one moving: the
                                 // poster on sight, the video when asked for.
                                 transfer = video.fileId?.let { transfers[it] }
@@ -660,8 +657,7 @@ internal fun MessageBubble(
                                 gif = gif,
                                 caption = writtenCaption(message),
                                 outgoing = outgoing,
-                                bleedTop = message.replyToId == null &&
-                                    !(!outgoing && isFirstInRun && sender != null),
+                                bleedTop = mediaBleedsAtTop,
                                 transfer = gif.fileId?.let { transfers[it] },
                                 onVisible = onPhotoVisible,
                                 onOpen = { if (isSelecting) onSelect() else onVideoOpened() },

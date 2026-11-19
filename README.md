@@ -55,13 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 2.9.4 · 15 November 2026
+## Latest: 3.0 · 19 November 2026
 
-Typing avatars morph without clipped edges. Saved notes keep their text
-and attachment captions, without filenames or
-placeholder labels appearing as note text. Long search terms keep their full
-match in result snippets. See the [changelog](CHANGELOG.md).
-
+Profiles bring shared media and common groups into tabs. Find media and files
+across chats, download several documents at once, or read PDFs in the app.
+The video viewer has quieter controls and hold-to-seek, and the music library
+keeps paging through older tracks. See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 

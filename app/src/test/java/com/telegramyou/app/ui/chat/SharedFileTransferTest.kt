@@ -42,11 +42,11 @@ class SharedFileTransferTest {
             fileName = "guide.pdf", documentFileId = 33, mimeType = "application/pdf")
         vm.onFileTapped(message)
         runCurrent()
-        assertEquals(7L, vm.uiState.value.openingFileId)
+        assertEquals(setOf(7L), vm.uiState.value.openingFileIds)
         vm.onFilePaused(message)
         advanceUntilIdle()
         assertTrue(vm.uiState.value.downloads.getValue(33).isPaused)
-        assertNull(vm.uiState.value.openingFileId)
+        assertTrue(vm.uiState.value.openingFileIds.isEmpty())
         assertNull(vm.uiState.value.errorMessage)
         vm.onFileResumed(message)
         advanceUntilIdle()
@@ -55,4 +55,41 @@ class SharedFileTransferTest {
         assertEquals("/cache/guide.pdf", vm.uiState.value.fileToOpen?.path)
         assertNull(vm.uiState.value.errorMessage)
     }
+
+    @Test fun `two profile files download together and pausing one leaves the other running`() = runTest(dispatcher) {
+        val first = CompletableDeferred<DownloadOutcome>()
+        val second = CompletableDeferred<DownloadOutcome>()
+        val started = mutableListOf<Int>()
+        val client = object : TelegramClient by FakeTelegramClient() {
+            override suspend fun downloadToList(chatId: Long, messageId: Long, fileId: Int): DownloadOutcome {
+                started += fileId
+                return if (fileId == 33) first.await() else second.await()
+            }
+        }
+        val repository = TelegramRepository(client, dispatcher)
+        val vm = SharedMediaViewModel(repository, SavedStateHandle(mapOf(Route.Chat.ARG_CHAT_ID to 1L)))
+        val guide = ChatMessage(7, 1, "guide.pdf", false, "", contentType = MessageContentType.Document,
+            fileName = "guide.pdf", documentFileId = 33)
+        val notes = guide.copy(id = 8, text = "notes.pdf", fileName = "notes.pdf", documentFileId = 34)
+
+        vm.onFileTapped(guide)
+        vm.onFileTapped(notes)
+        vm.onFileTapped(notes)
+        runCurrent()
+        assertEquals(listOf(33, 34), started)
+        assertEquals(setOf(7L, 8L), vm.uiState.value.openingFileIds)
+        assertEquals(setOf(33, 34), repository.listDownloads.value)
+
+        vm.onFilePaused(guide)
+        runCurrent()
+        assertEquals(setOf(8L), vm.uiState.value.openingFileIds)
+        assertEquals(setOf(34), repository.listDownloads.value)
+
+        second.complete(DownloadOutcome.Done("/cache/notes.pdf"))
+        advanceUntilIdle()
+        assertTrue(vm.uiState.value.openingFileIds.isEmpty())
+        assertNull(vm.uiState.value.fileToOpen)
+        assertNull(vm.uiState.value.errorMessage)
+    }
+
 }

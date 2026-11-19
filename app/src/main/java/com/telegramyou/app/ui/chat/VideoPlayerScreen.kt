@@ -7,11 +7,6 @@ import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.TextButton
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.layer.drawLayer
-import androidx.compose.ui.graphics.rememberGraphicsLayer
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import com.telegramyou.app.ui.media.holdSeekDirection
@@ -148,8 +143,7 @@ fun VideoPage(
     onToggleChrome: (() -> Unit)? = null,
     /** The gallery is shrinking it back into its bubble; see PhotoPage. */
     closing: Boolean = false,
-    galleryInset: Dp = 0.dp,
-    onBackdrop: (PlayerBackdrop?) -> Unit = {}
+    galleryInset: Dp = 0.dp
 ) {
     var ownChrome by remember { mutableStateOf(true) }
     val chromeShown = chrome ?: ownChrome
@@ -202,9 +196,6 @@ fun VideoPage(
     var holdSpeed by remember { mutableStateOf(2) }
     val chromeNow by rememberUpdatedState(chromeShown)
     val closingNow by rememberUpdatedState(closing)
-    val pictureLayer = rememberGraphicsLayer()
-    var pictureOrigin by remember { mutableStateOf(androidx.compose.ui.geometry.Offset.Zero) }
-    val backdrop = remember(pictureLayer, pictureOrigin) { PlayerBackdrop(pictureLayer, pictureOrigin) }
     var poster by remember(video.fileId, video.thumbPath) { mutableStateOf(video.thumbPath) }
     LaunchedEffect(video.thumbFileId, poster) {
         if (poster == null) video.thumbFileId?.let { poster = files.downloadFile(it) }
@@ -369,14 +360,6 @@ fun VideoPage(
           contentAlignment = Alignment.Center,
           modifier = Modifier
               .fillMaxSize()
-              .onGloballyPositioned {
-                  pictureOrigin = it.positionOnScreen()
-                  if (active) onBackdrop(PlayerBackdrop(pictureLayer, pictureOrigin))
-              }
-              .drawWithContent {
-                  pictureLayer.record { this@drawWithContent.drawContent() }
-                  drawLayer(pictureLayer)
-              }
               .graphicsLayer {
                   val moved = videoDragMoves(dragY, captionOpen, captionLong)
                   val scale = 1f - dragProgress * 0.2f
@@ -465,7 +448,7 @@ fun VideoPage(
           Box(Modifier.fillMaxSize()) {
             if (showClose) {
                 PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), onClose,
-                    Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp).size(48.dp), backdrop)
+                    Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp).size(48.dp))
             }
             if (holdDirection != 0) {
                 androidx.compose.material3.Surface(
@@ -480,7 +463,7 @@ fun VideoPage(
                     if (wantsPlay) Symbols.PauseFilled else Symbols.PlayArrowFilled,
                     if (wantsPlay) tr("Pause", "Пауза") else tr("Play", "Играть"),
                     { if (player.playWhenReady) player.pause() else player.play() },
-                    Modifier.align(Alignment.Center).size(64.dp), backdrop
+                    Modifier.align(Alignment.Center).size(64.dp)
                 )
             }
             if (scrubbing && video.path != null) {
@@ -550,7 +533,7 @@ fun VideoPage(
                         Text(playbackSpeedLabel(speed), color = Color.White)
                     }
                     if (player != null) PlayerControlButton(Symbols.PictureInPictureAlt, tr("Picture in picture", "Картинка в картинке"),
-                        { PictureInPicture.enter(context, pipAspect) }, Modifier.size(48.dp), backdrop)
+                        { PictureInPicture.enter(context, pipAspect) }, Modifier.size(48.dp))
                 }
             }
           }
