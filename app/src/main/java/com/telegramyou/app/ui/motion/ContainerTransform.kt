@@ -2,10 +2,8 @@ package com.telegramyou.app.ui.motion
 
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.BoundsTransform
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -59,11 +57,8 @@ val StoryContainerShape: Shape = RoundedCornerShape(32.dp)
  * and shrinks back on the way out — including under the finger during a
  * predictive back gesture.
  *
- * Moved by springs rather than by a duration and a curve, the two screens'
- * contents fading across on the theme's effects spec. The bounds move on
- * [bounds]: the standard scheme's slow spatial spring by default, which
- * barely overshoots and is the story viewer's, or [ChatContainerSpring] for
- * a chat.
+ * Stories use the theme's spatial spring. Chat transitions use fixed
+ * timing so the row becomes tappable as soon as the shorter move ends.
  *
  * [shape] clips the container while it travels. [isScreen] is the
  * full-screen side, which is scaled rather than laid out again each frame —
@@ -77,12 +72,13 @@ fun Modifier.containerTransform(
     key: Any,
     shape: Shape,
     isScreen: Boolean = false,
-    bounds: FiniteAnimationSpec<Rect> = ContainerSpring
+    isChat: Boolean = false
 ): Modifier {
     if (LocalReduceMotion.current) return this
     val shared = LocalSharedTransitionScope.current ?: return this
     val animated = LocalNavAnimatedScope.current ?: return this
-    val fade = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    val fade = if (isChat) ChatEarlyFade else MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    val lateFade = if (isChat) ChatLateFade else LateFade
     return with(shared) {
         this@containerTransform.sharedBounds(
             sharedContentState = rememberSharedContentState(key),
@@ -96,8 +92,8 @@ fun Modifier.containerTransform(
             // the way was the row, laid out again at every size — avatar and
             // name sliding about in a box the height of the display. That
             // was the close that still read as jerky.
-            enter = if (isScreen) fadeIn(fade) else fadeIn(LateFade),
-            exit = if (isScreen) fadeOut(LateFade) else fadeOut(fade),
+            enter = if (isScreen) fadeIn(fade) else fadeIn(lateFade),
+            exit = if (isScreen) fadeOut(lateFade) else fadeOut(fade),
             // Under a finger, a duration rather than a spring. A predictive
             // back gesture seeks the transition — the share of the swipe
             // becomes the share of its total length — and a spring's length
@@ -106,7 +102,11 @@ fun Modifier.containerTransform(
             // all the shrinking and the rest crept, and the release crept
             // out the same way. A tween moves in step with the finger.
             boundsTransform = BoundsTransform { _, _ ->
-                if (animated.transition.isSeeking) GestureBounds else bounds
+                when {
+                    isChat -> ChatBounds
+                    animated.transition.isSeeking -> GestureBounds
+                    else -> ContainerSpring
+                }
             },
             // The small side — a row, a circle — is laid out again at each
             // size, which costs nothing. The screen side is not: laid out
@@ -128,15 +128,11 @@ fun Modifier.containerTransform(
     }
 }
 
-/**
- * How a chat opens out of its row: at the pace of the first version of this
- * — the theme's expressive spatial spring, stiffness 380 — with its bounce
- * taken out, on the owner's word. A screen-sized container that overshoots
- * swells past the display's edges and back, and that bounce was the part
- * that did not belong here; the pace was.
- */
-val ChatContainerSpring: FiniteAnimationSpec<Rect> =
-    spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 380f)
+/** Chat bounds and fades finish together so the list becomes tappable promptly. */
+internal const val ChatTransitionMillis = 220
+private val ChatBounds: FiniteAnimationSpec<Rect> = tween(ChatTransitionMillis, easing = LinearOutSlowInEasing)
+private val ChatEarlyFade: FiniteAnimationSpec<Float> = tween(110)
+private val ChatLateFade: FiniteAnimationSpec<Float> = tween(80, delayMillis = ChatTransitionMillis - 80)
 
 /** The standard scheme's slow spatial spring: barely overshoots. The story viewer's. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

@@ -129,7 +129,13 @@ class TelegramRepository(
      */
     suspend fun warmChat(chatId: Long, waitMillis: Long = WARM_WAIT_MS) {
         val detail = withTimeoutOrNull(waitMillis) {
-            runCatching { client.openChat(chatId) }.getOrNull()
+            try {
+                client.openChat(chatId)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
         } ?: return
         warmed[chatId] = detail
     }
@@ -169,4 +175,4 @@ class TelegramRepository(
 }
 
 /** Longest a tap waits for a chat's messages before opening it without them. */
-private const val WARM_WAIT_MS = 200L
+private const val WARM_WAIT_MS = 75L

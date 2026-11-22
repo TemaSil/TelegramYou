@@ -4,7 +4,6 @@ import com.telegramyou.app.i18n.tr
 
 import com.telegramyou.app.ui.icons.Symbols
 import com.telegramyou.app.ui.settings.settingsBackground
-import com.telegramyou.app.ui.motion.ChatContainerSpring
 import com.telegramyou.app.ui.motion.ChatContainerShape
 import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.containerTransform
@@ -160,7 +159,7 @@ internal fun SearchPage(
     }
     val grows: @Composable (String, Long) -> Modifier = { section, id ->
         if (opened == "$section:$id") {
-            Modifier.containerTransform(chatContainerKey(id), ChatContainerShape, bounds = ChatContainerSpring)
+            Modifier.containerTransform(chatContainerKey(id), ChatContainerShape, isChat = true)
         } else {
             Modifier
         }

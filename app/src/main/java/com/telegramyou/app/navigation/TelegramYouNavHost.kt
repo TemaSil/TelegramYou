@@ -40,6 +40,10 @@ import androidx.navigation.NavBackStackEntry
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.runtime.CompositionLocalProvider
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
+import androidx.compose.animation.core.tween
+import com.telegramyou.app.ui.motion.ChatTransitionMillis
 import androidx.compose.runtime.rememberCoroutineScope
 import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
 import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
@@ -48,7 +52,6 @@ import com.telegramyou.app.ui.motion.LocalReduceMotion
 import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.storyContainerKey
 import com.telegramyou.app.ui.motion.ChatContainerShape
-import com.telegramyou.app.ui.motion.ChatContainerSpring
 import com.telegramyou.app.ui.motion.StoryContainerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -269,10 +272,10 @@ fun TelegramYouNavHost(
 
     // A chat opened from a list: its messages first, then the screen — so the
     // container transform grows a finished conversation out of the row
-    // instead of an empty one that fills in mid-flight. See warmChat. One at
-    // a time, or a second tap during the wait would open the chat twice.
+    // instead of an empty one that fills in mid-flight. A newer choice can
+    // replace the pending one until its screen opens.
     val openScope = rememberCoroutineScope()
-    var opening by remember { mutableStateOf(false) }
+    var pendingChatOpen by remember(repository) { mutableStateOf<Job?>(null) }
     // A forum opens onto its topics rather than onto one conversation;
     // everything that opens a chat by id goes through this to find out which.
     val chatRoute: (Long) -> Route = { id ->
@@ -295,18 +298,19 @@ fun TelegramYouNavHost(
         configuration.screenHeightDp >= TWO_PANE_HEIGHT_DP
     var paneChatId by rememberSaveable { mutableStateOf<Long?>(null) }
     val openChat: (Long) -> Unit = { id ->
-        if (chatRoute(id) is Route.Topics) {
-            navController.navigateTo(Route.Topics(id))
-        } else if (twoPanes && navController.currentDestination?.route == Route.Home.PATTERN) {
+        pendingChatOpen?.cancel()
+        val source = navController.currentBackStackEntry
+        val target = chatRoute(id)
+        if (target is Route.Topics) {
+            navController.navigateTo(target) { launchSingleTop = true }
+        } else if (twoPanes && source?.destination?.route == Route.Home.PATTERN) {
             paneChatId = id
-        } else if (!opening) {
-            opening = true
-            openScope.launch {
-                try {
-                    repository.warmChat(id)
-                    navController.navigateTo(Route.Chat(id))
-                } finally {
-                    opening = false
+        } else if (source?.destination?.route != Route.Chat.PATTERN) {
+            pendingChatOpen = openScope.launch {
+                repository.warmChat(id)
+                coroutineContext.ensureActive()
+                if (navController.currentBackStackEntry === source) {
+                    navController.navigateTo(target) { launchSingleTop = true }
                 }
             }
         }
@@ -611,7 +615,7 @@ fun TelegramYouNavHost(
                 // beside the list there is no row it grows out of.
                 .then(
                     if (animatedScope != null) {
-                        Modifier.containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true, bounds = ChatContainerSpring)
+                        Modifier.containerTransform(chatContainerKey(openedChatId), ChatContainerShape, isScreen = true, isChat = true)
                     } else {
                         Modifier
                     }
@@ -910,7 +914,9 @@ fun TelegramYouNavHost(
         predictivePopEnterTransition = {
             when {
                 targetState.destination.route == Route.Home.PATTERN &&
-                    initialState.destination.route in containerRoutes -> fadeIn(spring())
+                    initialState.destination.route == Route.Chat.PATTERN -> fadeIn(tween(ChatTransitionMillis))
+                targetState.destination.route == Route.Home.PATTERN &&
+                    initialState.destination.route == Route.Story.PATTERN -> fadeIn(spring())
                 targetState.destination.route in containerRoutes -> fadeIn(spring())
                 else -> popEnter()
             }
@@ -954,10 +960,18 @@ fun TelegramYouNavHost(
             // fades where it is rather than sliding away: the container is
             // the movement, and a second one beside it would fight it.
             exitTransition = {
-                if (targetState.destination.route in containerRoutes) fadeOut(spring()) else null
+                when (targetState.destination.route) {
+                    Route.Chat.PATTERN -> fadeOut(tween(ChatTransitionMillis))
+                    Route.Story.PATTERN -> fadeOut(spring())
+                    else -> null
+                }
             },
             popEnterTransition = {
-                if (initialState.destination.route in containerRoutes) fadeIn(spring()) else null
+                when (initialState.destination.route) {
+                    Route.Chat.PATTERN -> fadeIn(tween(ChatTransitionMillis))
+                    Route.Story.PATTERN -> fadeIn(spring())
+                    else -> null
+                }
             }
         ) {
             val homeViewModel: HomeViewModel = viewModel(factory = viewModelFactory)
@@ -1797,7 +1811,7 @@ fun TelegramYouNavHost(
             route = Route.Chat.PATTERN,
             arguments = Route.Chat.chatArguments,
             // The row it opened out of does the moving; see containerTransform.
-            enterTransition = { fadeIn(spring()) },
+            enterTransition = { fadeIn(tween(ChatTransitionMillis)) },
             // Kept on screen until the container transform has shrunk back
             // into its row. A fade here finished in a fifth of a second
             // while the container took half a second to close, so it went

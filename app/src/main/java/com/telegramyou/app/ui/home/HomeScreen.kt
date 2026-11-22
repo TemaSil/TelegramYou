@@ -17,7 +17,6 @@ import androidx.compose.animation.togetherWith
 import com.telegramyou.app.ui.motion.containerTransform
 import com.telegramyou.app.ui.motion.chatContainerKey
 import com.telegramyou.app.ui.motion.ChatContainerShape
-import com.telegramyou.app.ui.motion.ChatContainerSpring
 import com.telegramyou.app.update.LocalAppUpdates
 import com.telegramyou.app.update.UpdateState
 import androidx.compose.material3.BadgedBox
@@ -865,7 +864,7 @@ private fun ChatListPage(
                         .padding(horizontal = 12.dp)
                         .then(
                             if (opensOutOfRows) {
-                                Modifier.containerTransform(chatContainerKey(chat.id), ChatContainerShape, bounds = ChatContainerSpring)
+                                Modifier.containerTransform(chatContainerKey(chat.id), ChatContainerShape, isChat = true)
                             } else {
                                 Modifier
                             }
