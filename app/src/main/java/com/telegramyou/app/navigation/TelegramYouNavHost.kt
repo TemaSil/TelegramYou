@@ -1477,7 +1477,14 @@ fun TelegramYouNavHost(
         ) {
             val personViewModel: PersonViewModel = viewModel(factory = viewModelFactory)
             val state by personViewModel.uiState.collectAsStateWithLifecycle()
+            var avatarViewerOpen by rememberSaveable { mutableStateOf(false) }
+            state.profile.let { profile ->
+                if (avatarViewerOpen && profile != null) {
+                    com.telegramyou.app.ui.people.ProfilePhotosViewer(profile.user, repository) { avatarViewerOpen = false }
+                }
+            }
             PersonScreen(
+                onOpenProfilePhotos = { avatarViewerOpen = true },
                 state = state,
                 onBack = { navController.popBackStack() },
                 onBlockedChange = personViewModel::onBlockedChange,
@@ -1698,7 +1705,14 @@ fun TelegramYouNavHost(
             }
             val mediaViewModel: SharedMediaViewModel = viewModel(factory = viewModelFactory)
             val profileChatId = profileEntry.arguments?.getLong(Route.Chat.ARG_CHAT_ID) ?: 0L
+            var avatarViewerOpen by rememberSaveable { mutableStateOf(false) }
+            state.person.let { profile ->
+                if (avatarViewerOpen && profile != null) {
+                    com.telegramyou.app.ui.people.ProfilePhotosViewer(profile.user, repository) { avatarViewerOpen = false }
+                }
+            }
             ChatInfoScreen(
+                onOpenProfilePhotos = { avatarViewerOpen = true },
                 onOpenCommonGroups = { navController.navigateTo(Route.CommonGroups(it)) },
                 initialPage = profilePositions.page(profileChatId),
                 commonGroupsContent = { userId, active ->

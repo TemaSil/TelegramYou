@@ -1,6 +1,7 @@
 package com.telegramyou.app.telegram.people
 
 import com.telegramyou.app.telegram.model.BirthdayPerson
+import com.telegramyou.app.telegram.model.ProfilePhotosPage
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.TelegramUser
 
@@ -17,6 +18,8 @@ interface TelegramPeople {
     /** Groups this account and the person both belong to, in server order. */
     suspend fun commonGroups(userId: Long, offsetChatId: Long = 0L, limit: Int = 50): com.telegramyou.app.telegram.model.CommonGroupsPage =
         com.telegramyou.app.telegram.model.CommonGroupsPage(emptyList())
+
+    suspend fun profilePhotos(userId: Long, offset: Int = 0, limit: Int = 20): ProfilePhotosPage = ProfilePhotosPage(emptyList())
 
     /** Somebody by their user id, with their bio; null when unknown. */
     suspend fun person(userId: Long): PersonProfile?

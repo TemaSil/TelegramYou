@@ -123,6 +123,7 @@ fun PersonScreen(
     onOpenChat: (Long) -> Unit,
     onChatOpened: () -> Unit,
     onMessageShown: () -> Unit,
+    onOpenProfilePhotos: ((com.telegramyou.app.telegram.model.TelegramUser) -> Unit)? = null,
     onOpenCommonGroups: (Long) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -158,6 +159,7 @@ fun PersonScreen(
             return@Scaffold
         }
         val user = profile.user
+        val openAvatar = onOpenProfilePhotos?.takeIf { user.hasProfilePhoto }?.let { open -> { open(user) } }
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(bottom = 32.dp)
@@ -173,7 +175,11 @@ fun PersonScreen(
                         seed = user.avatarColor,
                         size = 96.dp,
                         shape = personShape(user.avatarColor),
-                        photoPath = user.photoPath
+                        photoPath = user.photoPath,
+                        onClick = openAvatar,
+                        modifier = if (openAvatar == null) Modifier else Modifier.semantics {
+                            contentDescription = tr("View profile photos", "Открыть фотографии профиля")
+                        }
                     )
                     Text(user.displayName, style = MaterialTheme.typography.headlineSmall)
                     if (profile.isBot) {

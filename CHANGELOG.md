@@ -11,6 +11,8 @@ README.md.
 
 ## 3.0
 
+- **Open a contact’s avatar to browse their profile photos.** Swipe through the photos visible to your Telegram account and double-tap to zoom.
+
 - **Forwarded media leaves room for its source.** Photos, videos and GIFs no longer cover long forwarding headers.
 
 - **Common groups are the last tab in a contact's chat profile.** Media keeps its familiar order. The group list pages as it is read, and returning from a group restores the tab and position. Tabs share the collapsing header's colour.

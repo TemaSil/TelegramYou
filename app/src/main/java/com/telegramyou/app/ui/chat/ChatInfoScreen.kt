@@ -68,6 +68,8 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.telegramyou.app.ui.common.rememberTextCopier
 import androidx.compose.ui.unit.dp
 import com.telegramyou.app.telegram.model.ChatDetail
@@ -159,10 +161,17 @@ fun ChatInfoScreen(
     onPageChanged: (Int) -> Unit = {},
     initialInfoPosition: Pair<Int, Int> = 0 to 0,
     onInfoPositionChanged: (Pair<Int, Int>) -> Unit = {},
+    onOpenProfilePhotos: ((com.telegramyou.app.telegram.model.TelegramUser) -> Unit)? = null,
     onOpenCommonGroups: (Long) -> Unit = {},
     commonGroupsContent: (@Composable (Long, Boolean) -> Unit)? = null
 ) {
     val chat = detail?.chat
+    val openAvatar = person?.user?.takeIf { it.hasProfilePhoto }?.let { user ->
+        onOpenProfilePhotos?.let { open -> { open(user) } }
+    }
+    val avatarAccessibility = if (openAvatar == null) Modifier else Modifier.semantics {
+        contentDescription = tr("View profile photos", "Открыть фотографии профиля")
+    }
     val copyToClipboard = rememberTextCopier()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -332,7 +341,7 @@ fun ChatInfoScreen(
                                 ) {
                                     AvatarBubble(
                                         title = chat?.title.orEmpty(), seed = chat?.avatarColor ?: 1,
-                                        size = 72.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath
+                                        modifier = avatarAccessibility, size = 72.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath, onClick = openAvatar
                                     )
                                     com.telegramyou.app.ui.people.NameWithStatus(
                                         name = chat?.title ?: tr("Info", "Информация"),
@@ -348,7 +357,7 @@ fun ChatInfoScreen(
                         } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             AvatarBubble(
                                 title = chat?.title.orEmpty(), seed = chat?.avatarColor ?: 1,
-                                size = 32.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath
+                                modifier = avatarAccessibility, size = 32.dp, shape = personShape(chat?.avatarColor ?: 1), photoPath = chat?.photoPath, onClick = openAvatar
                             )
                             Text(chat?.title ?: tr("Info", "Информация"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -409,7 +418,7 @@ fun ChatInfoScreen(
                         seed = chat?.avatarColor ?: 1,
                         size = 96.dp,
                         shape = personShape(chat?.avatarColor ?: 1),
-                        photoPath = chat?.photoPath
+                        photoPath = chat?.photoPath, modifier = avatarAccessibility, onClick = openAvatar
                     )
                     com.telegramyou.app.ui.people.NameWithStatus(
                         name = chat?.title ?: tr("Chat", "Чат"),

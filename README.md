@@ -55,7 +55,7 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 3.0 · 19 November 2026
+## Latest: 3.0
 
 Profiles bring shared media and common groups into tabs. Find media and files
 across chats, download several documents at once, or read PDFs in the app.

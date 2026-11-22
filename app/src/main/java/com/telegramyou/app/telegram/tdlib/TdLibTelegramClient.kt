@@ -93,6 +93,8 @@ import com.telegramyou.app.telegram.model.StickerSetPreview
 import com.telegramyou.app.telegram.model.StoryFrame
 import com.telegramyou.app.telegram.model.StoryItem
 import com.telegramyou.app.telegram.model.TelegramUser
+import com.telegramyou.app.telegram.model.ProfilePhoto
+import com.telegramyou.app.telegram.model.ProfilePhotosPage
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.Birthdate
 import com.telegramyou.app.telegram.model.BirthdayPerson
@@ -1795,6 +1797,36 @@ class TdLibTelegramClient(
             isBot = raw.optJSONObject("type")?.optString("@type") == "userTypeBot",
             commonGroupCount = full?.takeIf { it.has("group_in_common_count") }?.optInt("group_in_common_count")
         )
+    }
+
+    override suspend fun profilePhotos(userId: Long, offset: Int, limit: Int): ProfilePhotosPage {
+        awaitReady()
+        val current = if (offset == 0) userObject(userId)?.optJSONObject("profile_photo") else null
+        val result = requireEngine().send(JSONObject().put("@type", "getUserProfilePhotos")
+            .put("user_id", userId).put("offset", offset).put("limit", limit.coerceIn(1, 100)))
+        val photos = result.optJSONArray("photos")
+        val count = photos?.length() ?: 0
+        val history = buildList {
+            for (index in 0 until count) {
+                val photo = photos?.optJSONObject(index) ?: continue
+                val sizes = photo.optJSONArray("sizes") ?: continue
+                val best = (0 until sizes.length()).mapNotNull { sizes.optJSONObject(it) }
+                    .filter { it.optJSONObject("photo")?.optInt("id", 0) != 0 && it.optJSONObject("photo") != null }
+                    .maxByOrNull { it.optLong("width") * it.optLong("height") } ?: continue
+                val file = best.optJSONObject("photo") ?: continue
+                add(ProfilePhoto(photo.optLong("id"), file.optInt("id"), file.localPathIfDownloaded(), photo.miniThumbnail()))
+            }
+        }
+        // The list excludes personal and public profile photos. The current
+        // avatar visible to this account is safe to include when absent.
+        val visible = current?.let { photo ->
+            val big = photo.optJSONObject("big") ?: return@let null
+            val id = big.optInt("id").takeIf { it != 0 } ?: return@let null
+            ProfilePhoto(photo.optLong("id"), id, big.localPathIfDownloaded(), photo.miniThumbnail())
+        }
+        val items = if (visible != null && history.none { it.id == visible.id }) listOf(visible) + history else history
+        val next = (offset + count).takeIf { count > 0 && it < result.optInt("total_count") }
+        return ProfilePhotosPage(items, next)
     }
 
     override suspend fun commonGroups(userId: Long, offsetChatId: Long, limit: Int): com.telegramyou.app.telegram.model.CommonGroupsPage {
@@ -6182,6 +6214,7 @@ class TdLibTelegramClient(
             avatarColor = user.optLong("id"),
             isPremium = user.optBoolean("is_premium"),
             photoPath = photoPath(user.optJSONObject("profile_photo")?.optJSONObject("small")),
+            hasProfilePhoto = user.optJSONObject("profile_photo") != null,
             emojiStatusId = emojiStatusIdOf(user),
             profileColor = user.optInt("profile_accent_color_id", -1).takeIf { it >= 0 }?.let { profileColors[it] }
         )

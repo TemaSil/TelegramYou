@@ -4586,6 +4586,13 @@ class SmokeTest {
         tapTopmost(By.text("Lina Park"))
         waitFor(By.text("Mobile"), "Lina's number")
         waitFor(By.textContains("Swims at dawn"), "her bio")
+        tap(By.desc("View profile photos"))
+        waitFor(By.text("1 of 2"), "the first profile photo")
+        device.swipe(device.displayWidth * 4 / 5, device.displayHeight / 2,
+            device.displayWidth / 5, device.displayHeight / 2, 30)
+        waitFor(By.text("2 of 2"), "the older profile photo")
+        tap(By.desc("Close"))
+        waitFor(By.text("Mobile"), "the same profile after closing its photos")
         screenshot("48-private-info")
         scrollDownTo(By.text("Block user"))
         tap(By.text("Block user"))

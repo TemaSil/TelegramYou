@@ -35,7 +35,8 @@ data class TelegramUser(
      */
     val profileColor: ProfileColor? = null,
     /** Their birthday, where they show it; from userFullInfo, like [bio]. */
-    val birthdate: Birthdate? = null
+    val birthdate: Birthdate? = null,
+    val hasProfilePhoto: Boolean = photoPath != null
 ) {
     val displayName: String
         get() = listOf(firstName, lastName).filter { it.isNotBlank() }.joinToString(" ")

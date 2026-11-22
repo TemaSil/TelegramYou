@@ -43,6 +43,8 @@ import com.telegramyou.app.R
 import com.telegramyou.app.telegram.TelegramClient
 import com.telegramyou.app.telegram.model.AttachmentDraft
 import com.telegramyou.app.telegram.model.AuthState
+import com.telegramyou.app.telegram.model.ProfilePhoto
+import com.telegramyou.app.telegram.model.ProfilePhotosPage
 import com.telegramyou.app.telegram.model.PersonProfile
 import com.telegramyou.app.telegram.model.PrivacySetting
 import com.telegramyou.app.telegram.model.PrivacyRules
@@ -720,6 +722,7 @@ class DemoTelegramClient(
             // there to look at; Artem's is tomorrow.
             emojiStatusId = base.emojiStatusId ?: DEMO_CUSTOM_EMOJI.takeIf { first == "Lina" },
             profileColor = base.profileColor ?: DEMO_PROFILE_VIOLET.takeIf { first == "Lina" },
+            hasProfilePhoto = base.hasProfilePhoto || base.id == 11L,
             birthdate = base.birthdate ?: demoBirthdate(first)
         )
     }
@@ -780,6 +783,15 @@ class DemoTelegramClient(
             isBot = isBot,
             commonGroupCount = if (isBot) 0 else _chats.value.count { it.isGroup }.coerceAtMost(2)
         )
+    }
+
+    override suspend fun profilePhotos(userId: Long, offset: Int, limit: Int): ProfilePhotosPage {
+        val photos = if (userId == 11L) listOf(
+            ProfilePhoto(1L, null, DEMO_VIDEO_POSTER),
+            ProfilePhoto(2L, null, "android.resource://${BuildConfig.APPLICATION_ID}/${R.drawable.ic_launcher_foreground}")
+        ) else emptyList()
+        val page = photos.drop(offset).take(limit)
+        return ProfilePhotosPage(page, (offset + page.size).takeIf { it < photos.size })
     }
 
     override suspend fun person(userId: Long): PersonProfile? {
