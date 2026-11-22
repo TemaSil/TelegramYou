@@ -9,28 +9,31 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
-## 3.0
+## 🎉 3.0
 
-- **Open a contact’s avatar to browse their profile photos.** Swipe through the photos visible to your Telegram account and double-tap to zoom.
+Thank you for using TelegramYou and for telling us what to improve.
+We’re glad to share our third major version with you!
 
-- **Forwarded media leaves room for its source.** Photos, videos and GIFs no longer cover long forwarding headers.
+- 👤 **Open a contact’s avatar to browse their profile photos.** Swipe through the photos visible to your Telegram account and double-tap to zoom.
 
-- **Common groups are the last tab in a contact's chat profile.** Media keeps its familiar order. The group list pages as it is read, and returning from a group restores the tab and position. Tabs share the collapsing header's colour.
-- **Search photos, videos and files across chats.** Media and Files use server filters and page through all results. A result opens its original message, including its forum topic; returning keeps the query and category.
-- **Your own profile folds into a compact Material header** as the details scroll, with QR and the menu still reachable and space reserved for larger system text.
-- **The media viewer gives the picture more room.** Play/Pause is centred; source and date have their own header, with the counter and thumbnail strip below both photos and videos. The controls sit on a translucent dark background. The menu offers permitted save, share, reply, forward and delete actions, returning to the original conversation and topic.
-- **Scrubbing keeps a compact time badge and a separate, stable preview.** The poster remains until the first video frame, and finishing a streamed download does not restart playback. Hold either side to seek; dragging outward increases speed through 2×, 4×, 8× and 16×.
-- **PDFs open inside the client.** Android renders page previews and a zoomable document, with the last page restored. Several files can download at once, each with its own pause/resume and byte progress; other formats still use Android's viewers.
-- **The music library uses readable rows instead of the carousel.** Play and Shuffle wrap naturally. Its 1,000-track cutoff is removed: older pages appear progressively, and a failed request keeps the loaded songs and can be retried.
-- **Long captions open in a full-screen editor on a plain text canvas.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
-- **Forum topics keep their chosen emoji icons**, in the topic list and conversation header, with Material fallback icons when none is set.
-- **Home distinguishes waiting for a network from connecting to Telegram.** Both states open proxies, whose header matches the page in either theme.
-- **What's new speaks Russian too.** Installed and incoming update notes use the app's language; older descriptions without a translation still work.
+- 💬 **Forwarded media leaves room for its source.** Photos, videos and GIFs no longer cover long forwarding headers.
 
-- **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.
-- **A profile remembers its place** when returning from a conversation, separately for each chat and account. Saved deep media positions load enough pages before showing the grid again.
-- **Shared media opens out of its own tile**, with the tile's square corners, and returns to an available visible tile on closing. An offscreen source falls back to a fade.
-- **Double-tap zoom follows the point touched**, animates on the theme's motion scheme, and bounds panning by the fitted image rather than by letterboxing. Less motion skips the zoom animation.
+- 👥 **Common groups are the last tab in a contact's chat profile.** Media keeps its familiar order. The group list pages as it is read, and returning from a group restores the tab and position. Tabs share the collapsing header's colour.
+- 🔎 **Search photos, videos and files across chats.** Media and Files use server filters and page through all results. A result opens its original message, including its forum topic; returning keeps the query and category.
+- 👤 **Your own profile folds into a compact Material header** as the details scroll, with QR and the menu still reachable and space reserved for larger system text.
+- 🎬 **The media viewer gives the picture more room.** Play/Pause is centred; source and date have their own header, with the counter and thumbnail strip below both photos and videos. The controls sit on a translucent dark background. The menu offers permitted save, share, reply, forward and delete actions, returning to the original conversation and topic.
+- ⏩ **Scrubbing keeps a compact time badge and a separate, stable preview.** The poster remains until the first video frame, and finishing a streamed download does not restart playback. Hold either side to seek; dragging outward increases speed through 2×, 4×, 8× and 16×.
+- 📥 **PDFs open inside the client.** Android renders page previews and a zoomable document, with the last page restored. Several files can download at once, each with its own pause/resume and byte progress; other formats still use Android's viewers.
+- 🎵 **The music library uses readable rows instead of the carousel.** Play and Shuffle wrap naturally. Its 1,000-track cutoff is removed: older pages appear progressively, and a failed request keeps the loaded songs and can be retried.
+- ✍️ **Long captions open in a full-screen editor on a plain text canvas.** The editor shares the composer's text, so hiding the keyboard and returning keeps the caption and selected attachments.
+- 😀 **Forum topics keep their chosen emoji icons**, in the topic list and conversation header, with Material fallback icons when none is set.
+- 🌐 **Home distinguishes waiting for a network from connecting to Telegram.** Both states open proxies, whose header matches the page in either theme.
+- 🌍 **What's new speaks Russian too.** Installed and incoming update notes use the app's language; older descriptions without a translation still work.
+
+- 👤 **Profiles keep shared media close.** Info, photos, files, music, voice, links and GIFs sit under one collapsing Material header. Existing contact and group actions remain on Info.
+- 📌 **A profile remembers its place** when returning from a conversation, separately for each chat and account. Saved deep media positions load enough pages before showing the grid again.
+- 🖼️ **Shared media opens out of its own tile**, with the tile's square corners, and returns to an available visible tile on closing. An offscreen source falls back to a fade.
+- 🔍 **Double-tap zoom follows the point touched**, animates on the theme's motion scheme, and bounds panning by the fitted image rather than by letterboxing. Less motion skips the zoom animation.
 
 ## 2.9.4
 

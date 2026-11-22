@@ -43,7 +43,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
@@ -528,16 +528,14 @@ fun HomeScreen(
             val tabs = state.folderTabs.drop(skipped)
             val selectedIndex = tabs.indexOfFirst { it.id == state.selectedFolderId }
                 .coerceAtLeast(0)
-            val pager = rememberPagerState(initialPage = selectedIndex) { tabs.size }
+            val folderIds = tabs.map { it.id }
+            // The ViewModel already saves the chosen folder. Do not restore a
+            // second page number when the full list is recomposed after unfolding.
+            val pager = remember(folderIds) { PagerState(currentPage = selectedIndex) { folderIds.size } }
             val scope = rememberCoroutineScope()
-            LaunchedEffect(pager, tabs) {
-                // Home leaves composition while a narrow unfolded window
-                // shows only chat avatars. On returning, a restored pager
-                // page must follow the ViewModel's folder before reporting
-                // anything back to it, or it can select an old folder.
-                pager.scrollToPage(selectedIndex)
-                snapshotFlow { pager.settledPage }.collect { page ->
-                    tabs.getOrNull(page)?.let { onFolderSelected(it.id) }
+            LaunchedEffect(pager) {
+                snapshotFlow { pager.settledPage }.drop(1).collect { page ->
+                    if (page in folderIds.indices) onFolderSelected(folderIds[page])
                 }
             }
             // And the other way, for a selection that moved without the pager:

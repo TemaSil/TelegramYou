@@ -3301,8 +3301,14 @@ class SmokeTest {
             .setContentTitle("Bubble notification regression")
             .setSilent(true)
             .build())
-        assertTrue("the supporting notification was not posted", manager.activeNotifications.any { it.id == notificationId })
         try {
+            // Posting a notification crosses into system_server. It may not
+            // have reached the active list when notify() returns.
+            val deadline = SystemClock.uptimeMillis() + 3_000L
+            while (manager.activeNotifications.none { it.id == notificationId } && SystemClock.uptimeMillis() < deadline) {
+                SystemClock.sleep(50)
+            }
+            assertTrue("the supporting notification was not posted", manager.activeNotifications.any { it.id == notificationId })
             context.startActivity(
                 Intent(Intent.ACTION_VIEW)
                     .setClassName(context.packageName, "com.telegramyou.app.BubbleActivity")
