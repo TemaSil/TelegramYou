@@ -43,7 +43,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.ensureActive
 import androidx.compose.animation.core.tween
-import com.telegramyou.app.ui.motion.ChatTransitionMillis
+import com.telegramyou.app.ui.motion.ChatCloseMillis
+import com.telegramyou.app.ui.motion.ChatOpenMillis
 import androidx.compose.runtime.rememberCoroutineScope
 import com.telegramyou.app.ui.motion.LocalNavAnimatedScope
 import com.telegramyou.app.ui.motion.LocalSharedTransitionScope
@@ -914,7 +915,7 @@ fun TelegramYouNavHost(
         predictivePopEnterTransition = {
             when {
                 targetState.destination.route == Route.Home.PATTERN &&
-                    initialState.destination.route == Route.Chat.PATTERN -> fadeIn(tween(ChatTransitionMillis))
+                    initialState.destination.route == Route.Chat.PATTERN -> fadeIn(tween(ChatCloseMillis))
                 targetState.destination.route == Route.Home.PATTERN &&
                     initialState.destination.route == Route.Story.PATTERN -> fadeIn(spring())
                 targetState.destination.route in containerRoutes -> fadeIn(spring())
@@ -961,14 +962,14 @@ fun TelegramYouNavHost(
             // the movement, and a second one beside it would fight it.
             exitTransition = {
                 when (targetState.destination.route) {
-                    Route.Chat.PATTERN -> fadeOut(tween(ChatTransitionMillis))
+                    Route.Chat.PATTERN -> fadeOut(tween(ChatOpenMillis))
                     Route.Story.PATTERN -> fadeOut(spring())
                     else -> null
                 }
             },
             popEnterTransition = {
                 when (initialState.destination.route) {
-                    Route.Chat.PATTERN -> fadeIn(tween(ChatTransitionMillis))
+                    Route.Chat.PATTERN -> fadeIn(tween(ChatCloseMillis))
                     Route.Story.PATTERN -> fadeIn(spring())
                     else -> null
                 }
@@ -1811,7 +1812,7 @@ fun TelegramYouNavHost(
             route = Route.Chat.PATTERN,
             arguments = Route.Chat.chatArguments,
             // The row it opened out of does the moving; see containerTransform.
-            enterTransition = { fadeIn(tween(ChatTransitionMillis)) },
+            enterTransition = { fadeIn(tween(ChatOpenMillis)) },
             // Kept on screen until the container transform has shrunk back
             // into its row. A fade here finished in a fifth of a second
             // while the container took half a second to close, so it went

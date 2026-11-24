@@ -101,9 +101,10 @@ fun Modifier.containerTransform(
             // good while before. So the first half of the swipe did nearly
             // all the shrinking and the rest crept, and the release crept
             // out the same way. A tween moves in step with the finger.
-            boundsTransform = BoundsTransform { _, _ ->
+            boundsTransform = BoundsTransform { initial, target ->
                 when {
-                    isChat -> ChatBounds
+                    isChat && target.height > initial.height -> ChatOpeningBounds
+                    isChat -> ChatClosingBounds
                     animated.transition.isSeeking -> GestureBounds
                     else -> ContainerSpring
                 }
@@ -128,11 +129,13 @@ fun Modifier.containerTransform(
     }
 }
 
-/** Chat bounds and fades finish together so the list becomes tappable promptly. */
-internal const val ChatTransitionMillis = 220
-private val ChatBounds: FiniteAnimationSpec<Rect> = tween(ChatTransitionMillis, easing = LinearOutSlowInEasing)
+/** The shared bounds and navigation fades use the same timing in each direction. */
+internal const val ChatOpenMillis = 240
+internal const val ChatCloseMillis = 220
+private val ChatOpeningBounds: FiniteAnimationSpec<Rect> = tween(ChatOpenMillis, easing = LinearOutSlowInEasing)
+private val ChatClosingBounds: FiniteAnimationSpec<Rect> = tween(ChatCloseMillis, easing = LinearOutSlowInEasing)
 private val ChatEarlyFade: FiniteAnimationSpec<Float> = tween(110)
-private val ChatLateFade: FiniteAnimationSpec<Float> = tween(80, delayMillis = ChatTransitionMillis - 80)
+private val ChatLateFade: FiniteAnimationSpec<Float> = tween(80, delayMillis = ChatCloseMillis - 80)
 
 /** The standard scheme's slow spatial spring: barely overshoots. The story viewer's. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)

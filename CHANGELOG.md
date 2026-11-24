@@ -14,6 +14,7 @@ README.md.
 - 🎬 **Media thumbnails and their counter have a dark backdrop.** Seek with the timeline; holding the video in place leaves playback alone.
 - 😀 **Custom emoji and stickers use still previews in the picker.** Animations for messages reuse parsed compositions.
 - 💬 **Unread mentions and reactions jump to the actual message.** Their badges follow Telegram's counts after the jump.
+- ✨ **The chat opening animation lasts a touch longer.**
 - 🧰 **Updated Material 3 Expressive to its stable release**, alongside Kotlin, Lifecycle, UI Automator and phone-number metadata.
 
 ## 🎉 3.0
