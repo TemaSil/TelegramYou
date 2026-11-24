@@ -290,6 +290,15 @@ class FakeTelegramClient(
         return if (olderPages.isEmpty()) emptyList() else olderPages.removeAt(0)
     }
 
+    var unreadTarget: Long? = null
+    val seenUnreadTargets = mutableListOf<Long>()
+
+    override suspend fun nextUnread(chatId: Long, reactions: Boolean): Long? = unreadTarget
+
+    override suspend fun markUnreadJumpSeen(chatId: Long, messageId: Long) {
+        seenUnreadTargets += messageId
+    }
+
     /** What a jump to an old message is answered with; see ChatViewModelTest. */
     var aroundPage: List<ChatMessage> = emptyList()
     var lastAroundId: Long? = null

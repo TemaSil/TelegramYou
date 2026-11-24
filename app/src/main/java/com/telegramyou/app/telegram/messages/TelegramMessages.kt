@@ -196,6 +196,8 @@ interface TelegramMessages {
      */
     suspend fun nextUnread(chatId: Long, reactions: Boolean): Long? = null
 
+    suspend fun markUnreadJumpSeen(chatId: Long, messageId: Long) {}
+
     /**
      * A page of history with [messageId] in the middle of it, chronological
      * and including the message itself — where a search hit or a pinned

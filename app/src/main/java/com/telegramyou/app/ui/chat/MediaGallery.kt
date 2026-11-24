@@ -402,48 +402,53 @@ fun MediaGallery(
             // The others as a strip along the foot (2.9.1), the one in view
             // outlined, a tap going to it — over a photo; a video has its
             // own controls there.
-            val current = items.getOrNull(pager.currentPage)
             Column(
                 Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .navigationBarsPadding()
                     .graphicsLayer { alpha = progress.value.coerceIn(0f, 1f) }
             ) {
-            if (shownCaption.isNotEmpty()) {
-                ViewerCaption(
-                    text = shownCaption,
-                    open = captionOpen,
-                    onOpenChange = { captionOpen = it }
-                )
-            }
-            if (items.size > 1) {
-                val strip = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = (pager.currentPage - 2).coerceAtLeast(0))
-                LaunchedEffect(pager.currentPage) {
-                    strip.animateScrollToItem((pager.currentPage - 2).coerceAtLeast(0))
+                if (shownCaption.isNotEmpty()) {
+                    ViewerCaption(
+                        text = shownCaption,
+                        open = captionOpen,
+                        onOpenChange = { captionOpen = it }
+                    )
                 }
-                androidx.compose.foundation.lazy.LazyRow(
-                    state = strip,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                    modifier = Modifier
+                Column(
+                    Modifier
                         .fillMaxWidth()
-                        .padding(top = 6.dp, bottom = 4.dp)
+                        .background(Color.Black.copy(alpha = 0.6f))
+                        .navigationBarsPadding()
                 ) {
-                    items(items.size, key = { items[it].id }) { index ->
-                        val item = items[index]
-                        val chosen = index == pager.currentPage
-                        GalleryThumbnail(item, tr("Item ${index + 1}", "Номер ${index + 1}"),
-                            Modifier.size(48.dp).clip(MaterialTheme.shapes.small)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                                .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small) else Modifier)
-                                .clickable { scope.launch { pager.animateScrollToPage(index) } })
+                    if (items.size > 1) {
+                        val strip = androidx.compose.foundation.lazy.rememberLazyListState(initialFirstVisibleItemIndex = (pager.currentPage - 2).coerceAtLeast(0))
+                        LaunchedEffect(pager.currentPage) {
+                            strip.animateScrollToItem((pager.currentPage - 2).coerceAtLeast(0))
+                        }
+                        androidx.compose.foundation.lazy.LazyRow(
+                            state = strip,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 6.dp, bottom = 4.dp)
+                        ) {
+                            items(items.size, key = { items[it].id }) { index ->
+                                val item = items[index]
+                                val chosen = index == pager.currentPage
+                                GalleryThumbnail(item, tr("Item ${index + 1}", "Номер ${index + 1}"),
+                                    Modifier.size(48.dp).clip(MaterialTheme.shapes.small)
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                        .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small) else Modifier)
+                                        .clickable { scope.launch { pager.animateScrollToPage(index) } })
+                            }
+                        }
                     }
+                    Text(tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
+                        color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp))
                 }
-            }
-            Text(tr("${pager.currentPage + 1} of ${items.size}", "${pager.currentPage + 1} из ${items.size}"),
-                color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = 6.dp))
             }
             SnackbarHost(host, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
             }

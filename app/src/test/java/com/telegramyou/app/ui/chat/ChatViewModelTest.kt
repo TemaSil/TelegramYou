@@ -76,6 +76,46 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `an old unread target is marked only when its scroll completes`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.unreadTarget = 5
+        client.aroundPage = listOf(message(4), message(5), message(6))
+
+        vm.onNextUnread(reactions = true)
+        advanceUntilIdle()
+
+        assertEquals(5L, client.lastAroundId)
+        assertEquals(5L, vm.uiState.value.scrollTarget)
+        assertTrue(client.seenUnreadTargets.isEmpty())
+
+        vm.onScrollTargetReached(10)
+        assertEquals(5L, vm.uiState.value.scrollTarget)
+        assertTrue(client.seenUnreadTargets.isEmpty())
+
+        vm.onScrollTargetReached(5)
+        vm.onScrollTargetReached(5)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.scrollTarget)
+        assertEquals(listOf(5L), client.seenUnreadTargets)
+    }
+
+    @Test
+    fun `a missing unread target leaves the chat in place and stays unread`() = runTest {
+        val (vm, client) = viewModel(listOf(message(10)))
+        client.unreadTarget = 5
+        client.aroundPage = listOf(message(4), message(6))
+
+        vm.onNextUnread(reactions = false)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.scrollTarget)
+        assertEquals(listOf(10L), vm.uiState.value.messages.map { it.id })
+        assertTrue(client.seenUnreadTargets.isEmpty())
+        assertTrue(vm.uiState.value.errorMessage?.isNotBlank() == true)
+    }
+
+    @Test
     fun `a message that arrives is appended to the window`() = runTest {
         val (vm, client) = viewModel(listOf(message(10)))
         advanceUntilIdle()

@@ -1,16 +1,11 @@
 package com.telegramyou.app.ui.chat
 
 import com.telegramyou.app.i18n.tr
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.awaitLongPressOrCancellation
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import com.telegramyou.app.ui.media.holdSeekDirection
-import com.telegramyou.app.ui.media.holdSeekSpeed
 import com.telegramyou.app.ui.media.heldSeekTarget
 
 import androidx.compose.ui.layout.ContentScale
@@ -192,10 +187,6 @@ fun VideoPage(
     // Waiting for bytes: while it streams, the player says so.
     var buffering by remember { mutableStateOf(false) }
     var firstFrame by remember(video.fileId, active) { mutableStateOf(false) }
-    var holdDirection by remember { mutableStateOf(0) }
-    var holdSpeed by remember { mutableStateOf(2) }
-    val chromeNow by rememberUpdatedState(chromeShown)
-    val closingNow by rememberUpdatedState(closing)
     var poster by remember(video.fileId, video.thumbPath) { mutableStateOf(video.thumbPath) }
     LaunchedEffect(video.thumbFileId, poster) {
         if (poster == null) video.thumbFileId?.let { poster = files.downloadFile(it) }
@@ -273,21 +264,8 @@ fun VideoPage(
     LaunchedEffect(player, isPlaying) {
         while (player != null) {
             duration = player.duration
-            if (!scrubbing && holdDirection == 0) position = player.currentPosition
+            if (!scrubbing) position = player.currentPosition
             delay(PROGRESS_TICK_MS)
-        }
-    }
-
-    LaunchedEffect(player, holdDirection) {
-        if (player != null && holdDirection != 0) {
-            var previous = android.os.SystemClock.uptimeMillis()
-            while (true) {
-                delay(100)
-                val now = android.os.SystemClock.uptimeMillis()
-                position = heldSeekTarget(position, duration, now - previous, holdDirection, holdSpeed)
-                previous = now
-                player.seekTo(position.coerceAtMost((duration - 1).coerceAtLeast(0)))
-            }
         }
     }
 
@@ -296,43 +274,14 @@ fun VideoPage(
             .fillMaxSize()
             .onSizeChanged { viewport = it }
             .background(Color.Black.copy(alpha = 1f - 0.92f * dragProgress))
-            .pointerInput(active, player) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    val direction = holdSeekDirection(down.position.x, size.width.toFloat())
-                    if (active && player != null && duration > 0 && direction != 0) {
-                        val held = awaitLongPressOrCancellation(down.id)
-                        if (held != null) {
-                            val resume = player.playWhenReady
-                            player.pause()
-                            position = player.currentPosition
-                            holdDirection = direction
-                            holdSpeed = 2
-                            if (!chromeNow) toggleChrome()
-                            held.consume()
-                            try {
-                                while (true) {
-                                    val event = awaitPointerEvent()
-                                    val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                    change.consume()
-                                    if (!change.pressed) break
-                                    holdSpeed = holdSeekSpeed(down.position.x, change.position.x, size.width.toFloat(), direction)
-                                }
-                            } finally {
-                                holdDirection = 0
-                                if (!closingNow) runCatching { player.playWhenReady = resume }
-                            }
-                        }
-                    }
-                }
-            }
             // One tap on the picture: every control away, and the system's
             // bars with them, so the video has the whole screen; another,
             // and they are back. An open caption closes first.
             .pointerInput(active) {
-                detectTapGestures(onTap = {
-                    if (captionOpen) captionOpen = false else toggleChrome()
-                })
+                detectTapGestures(
+                    onLongPress = {},
+                    onTap = { if (captionOpen) captionOpen = false else toggleChrome() }
+                )
             }
             // Down and it goes, as a photo does; up and a caption cut
             // short opens, as a tap on it does. The scrubber and an open
@@ -450,15 +399,7 @@ fun VideoPage(
                 PlayerControlButton(Symbols.Close, tr("Close", "Закрыть"), onClose,
                     Modifier.align(Alignment.TopStart).statusBarsPadding().padding(12.dp).size(48.dp))
             }
-            if (holdDirection != 0) {
-                androidx.compose.material3.Surface(
-                    modifier = Modifier.align(Alignment.Center), shape = MaterialTheme.shapes.medium,
-                    color = Color.Black.copy(alpha = 0.5f), contentColor = Color.White
-                ) {
-                    Text(if (holdDirection > 0) tr("Forward ${holdSpeed}×", "Вперёд ${holdSpeed}×") else tr("Rewind ${holdSpeed}×", "Назад ${holdSpeed}×"),
-                        Modifier.padding(horizontal = 16.dp, vertical = 10.dp))
-                }
-            } else if (player != null && !captionOpen) {
+            if (player != null && !captionOpen) {
                 PlayerControlButton(
                     if (wantsPlay) Symbols.PauseFilled else Symbols.PlayArrowFilled,
                     if (wantsPlay) tr("Pause", "Пауза") else tr("Play", "Играть"),

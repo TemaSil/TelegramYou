@@ -1857,21 +1857,26 @@ class DemoTelegramClient(
     // recorded offline is answered with a line saying so.
     /** The demo's one unseen reaction and one unseen mention (2.9.1), each seen once gone to. */
     override suspend fun nextUnread(chatId: Long, reactions: Boolean): Long? {
-        val target = when {
-            reactions && chatId == 2L -> 11L
-            !reactions && chatId == 3L -> 1902L
-            else -> return null
+        val chat = _chats.value.firstOrNull { it.id == chatId } ?: return null
+        return when {
+            reactions && chatId == 2L && chat.unreadReactionCount > 0 -> 11L
+            !reactions && chatId == 3L && chat.unreadMentionCount > 0 -> 1902L
+            else -> null
         }
+    }
+
+    override suspend fun markUnreadJumpSeen(chatId: Long, messageId: Long) {
+        if (com.telegramyou.app.settings.GhostMode.hideReading) return
         _chats.update { list ->
             list.map {
                 when {
                     it.id != chatId -> it
-                    reactions -> it.copy(unreadReactionCount = 0)
-                    else -> it.copy(unreadMentionCount = 0, hasUnreadMention = false)
+                    chatId == 2L && messageId == 11L -> it.copy(unreadReactionCount = 0)
+                    chatId == 3L && messageId == 1902L -> it.copy(unreadMentionCount = 0, hasUnreadMention = false)
+                    else -> it
                 }
             }
         }
-        return target
     }
 
     override suspend fun recognizeSpeech(chatId: Long, messageId: Long): String? {

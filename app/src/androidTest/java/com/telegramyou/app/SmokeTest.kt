@@ -1111,6 +1111,10 @@ class SmokeTest {
         waitFor(By.desc("Unread mentions"), "the @ for an unseen mention")
         tap(By.desc("Unread mentions"))
         waitFor(By.textContains("the motion spec"), "the message naming this account")
+        assertTrue(
+            "the @ stayed after its mention was seen",
+            device.wait(Until.gone(By.desc("Unread mentions")), STEP_TIMEOUT)
+        )
     }
 
     /**
@@ -4112,26 +4116,11 @@ class SmokeTest {
         waitFor(By.desc("Play"), "the video still paused after scrubbing")
         val time = device.findObject(By.textContains(" / "))?.text
         assertTrue("scrubbing did not leave the beginning of the clip: $time", time != null && !time.startsWith("0:00"))
-        // Hold an edge, then move outwards: seeking accelerates without
-        // turning a paused video into playback when the finger is released.
-        fun hold(start: Float, end: Float, label: String) {
-            val heldAt = SystemClock.uptimeMillis()
-            val heldY = device.displayHeight / 2
-            fun event(action: Int, x: Float) {
-                val motion = android.view.MotionEvent.obtain(heldAt, SystemClock.uptimeMillis(), action, x * device.displayWidth, heldY.toFloat(), 0)
-                motion.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
-                try { assertTrue(automation.injectInputEvent(motion, true)) } finally { motion.recycle() }
-            }
-            event(android.view.MotionEvent.ACTION_DOWN, start)
-            try {
-                SystemClock.sleep(750)
-                event(android.view.MotionEvent.ACTION_MOVE, end)
-                waitFor(By.text(label), "accelerated held seeking")
-            } finally { event(android.view.MotionEvent.ACTION_UP, end) }
-            waitFor(By.desc("Play"), "the video remains paused after holding")
-        }
-        hold(0.7f, 0.9f, "Forward 16×")
-        hold(0.3f, 0.1f, "Rewind 16×")
+        val edgeX = device.displayWidth * 8 / 10
+        device.swipe(edgeX, device.displayHeight / 2, edgeX, device.displayHeight / 2, 130)
+        waitFor(By.desc("Play"), "the video remains paused after a long press")
+        val timeAfterHold = device.findObject(By.textContains(" / "))?.text
+        assertEquals("a long press must not seek", time, timeAfterHold)
 
     }
 

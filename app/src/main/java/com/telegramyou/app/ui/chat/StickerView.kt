@@ -9,9 +9,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.telegramyou.app.ui.motion.LocalReduceMotion
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
@@ -22,6 +19,9 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -30,15 +30,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
+import com.airbnb.lottie.LottieComposition
+import com.airbnb.lottie.LottieCompositionFactory
 import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
 import com.telegramyou.app.telegram.model.StickerContent
 import com.telegramyou.app.telegram.model.StickerFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.zip.GZIPInputStream
 
 /**
@@ -101,85 +102,92 @@ fun StickerView(
     animate: Boolean = true
 ) {
     val loader = LocalFileLoader.current
-    // Whether a file is still to come: until the loader has answered there
-    // is something worth waiting for, and a skeleton says so.
-    var waiting by remember(sticker.fileId) {
-        mutableStateOf(sticker.path == null && sticker.fileId != null && loader != null)
+    val playing = animate && !LocalReduceMotion.current
+    val preferPreview = !playing && sticker.format != StickerFormat.Webp &&
+        (sticker.thumbPath != null || (sticker.thumbFileId != null && loader != null))
+    val localAsset = if (preferPreview) sticker.thumbPath?.let { StickerAsset(it, true) }
+        else sticker.path?.let { StickerAsset(it, false) }
+    var waiting by remember(sticker, preferPreview, loader) {
+        mutableStateOf(localAsset == null && loader != null && (sticker.fileId != null || preferPreview))
     }
-    // The sticker's own file for every format now, a video sticker's too:
-    // it plays (VideoSticker) rather than standing still on its thumbnail.
-    val path by produceState(sticker.path, sticker.fileId) {
-        if (value == null) {
-            val id = sticker.fileId
-            if (id != null && loader != null) value = loader(id)
+    val asset by produceState(localAsset, sticker, preferPreview, loader) {
+        value = localAsset
+        if (value == null && loader != null) {
+            val preview = if (preferPreview) sticker.thumbFileId?.let { loader(it) } else null
+            value = if (preview != null) {
+                StickerAsset(preview, true)
+            } else {
+                val original = sticker.path ?: sticker.fileId?.let { loader(it) }
+                original?.let { StickerAsset(it, false) }
+            }
         }
         waiting = false
     }
     val description = tr("${sticker.emoji} sticker", "${sticker.emoji} стикер")
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
-        val file = path
-        // While a video sticker's file is on its way, or if it will not
-        // decode: its still, where it has one, or its emoji.
+        val file = asset
         val still: @Composable () -> Unit = {
             val thumb = sticker.thumbPath
-            if (sticker.format == StickerFormat.Webm && thumb != null) {
-                AsyncImage(
-                    model = File(thumb),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(size)
-                )
+            if (thumb != null && sticker.format != StickerFormat.Webp) {
+                StickerImage(thumb, size, description)
             } else if (waiting) {
-                StickerSkeleton(size)
+                StickerSkeleton(size, pulse = playing)
             } else {
                 EmojiSticker(sticker.emoji, size)
             }
         }
         when {
             file == null -> still()
-            sticker.format == StickerFormat.Webm -> VideoSticker(file, size, animate, description, still)
-            sticker.isAnimated -> LottieSticker(file, size, animate, sticker.emoji)
-            else -> AsyncImage(
-                model = File(file),
-                contentDescription = tr("${sticker.emoji} sticker", "${sticker.emoji} стикер"),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(size)
-            )
+            file.isPreview || sticker.format == StickerFormat.Webp -> StickerImage(file.path, size, description)
+            sticker.format == StickerFormat.Webm -> VideoSticker(file.path, size, playing, description, still)
+            else -> LottieSticker(file.path, size, playing, sticker.emoji)
         }
     }
 }
 
+private data class StickerAsset(val path: String, val isPreview: Boolean)
+
 @Composable
-private fun LottieSticker(path: String, size: Dp, animate: Boolean, emoji: String) {
-    // Read off the main thread: a sticker's JSON is tens of kilobytes
-    // gunzipped, and a chat can scroll a dozen past in a second.
-    // Null while it is read, empty if it would not: a skeleton for the
-    // first, the emoji for the second.
-    val json by produceState<String?>(null, path) {
-        value = withContext(Dispatchers.IO) {
-            try {
-                GZIPInputStream(File(path).inputStream()).bufferedReader().use { it.readText() }
-            } catch (_: Exception) {
-                ""
-            }
-        }
-    }
-    val text = json
-    if (text == null) {
-        StickerSkeleton(size)
-        return
-    }
-    if (text.isEmpty()) {
-        EmojiSticker(emoji, size)
-        return
-    }
-    val composition by rememberLottieComposition(LottieCompositionSpec.JsonString(text))
-    LottieAnimation(
-        composition = composition,
-        iterations = LottieConstants.IterateForever,
-        isPlaying = animate,
+private fun StickerImage(path: String, size: Dp, description: String) {
+    AsyncImage(
+        model = File(path),
+        contentDescription = description,
+        contentScale = ContentScale.Fit,
         modifier = Modifier.size(size)
     )
+}
+
+private val stickerDecodeDispatcher = Dispatchers.IO.limitedParallelism(2)
+
+@Composable
+private fun LottieSticker(path: String, size: Dp, animate: Boolean, emoji: String) {
+    var loading by remember(path) { mutableStateOf(true) }
+    val composition by produceState<LottieComposition?>(null, path) {
+        value = withContext(stickerDecodeDispatcher) {
+            try {
+                // The factory caches parsed compositions by path. Stream the gzip
+                // directly to it without retaining a separate JSON string per cell.
+                File(path).inputStream().use { file ->
+                    GZIPInputStream(file).use { json ->
+                        LottieCompositionFactory.fromJsonInputStreamSync(json, "telegram-sticker:$path").value
+                    }
+                }
+            } catch (_: IOException) {
+                null
+            }
+        }
+        loading = false
+    }
+    when {
+        loading -> StickerSkeleton(size, pulse = animate)
+        composition == null -> EmojiSticker(emoji, size)
+        else -> LottieAnimation(
+            composition = composition,
+            iterations = LottieConstants.IterateForever,
+            isPlaying = animate,
+            modifier = Modifier.size(size)
+        )
+    }
 }
 
 @Composable
@@ -195,7 +203,7 @@ private fun EmojiSticker(emoji: String, size: Dp) {
  * drawn here; it holds still under Less motion.
  */
 @Composable
-fun StickerSkeleton(size: Dp, modifier: Modifier = Modifier) {
+fun StickerSkeleton(size: Dp, modifier: Modifier = Modifier, pulse: Boolean = true) {
     val still = LocalReduceMotion.current
     val tone = MaterialTheme.colorScheme.surfaceContainerHighest
     val breath = if (still) {

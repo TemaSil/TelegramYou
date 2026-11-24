@@ -375,7 +375,7 @@ private fun EmojiTab(
                                 .clickable { onCustomPicked(sticker) }
                                 .semantics { contentDescription = tr("${sticker.emoji} custom emoji", "${sticker.emoji} свой эмодзи") }
                         ) {
-                            StickerView(sticker, size = CUSTOM_EMOJI_SIZE, animate = true)
+                            StickerView(sticker, size = CUSTOM_EMOJI_SIZE, animate = false)
                         }
                     }
                 }

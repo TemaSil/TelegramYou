@@ -2748,17 +2748,31 @@ class TdLibTelegramClient(
         limit: Int
     ): List<ChatMessage> {
         awaitReady()
-        val history = requireEngine().send(
-            JSONObject()
-                .put("@type", "getChatHistory")
-                .put("chat_id", chatId)
-                .inOpenTopic(chatId)
-                .put("from_message_id", messageId)
-                .put("offset", -(limit / 2))
-                .put("limit", limit)
-                .put("only_local", false)
+        val engine = requireEngine()
+        suspend fun historyFrom(offset: Int): List<ChatMessage> {
+            val history = engine.send(
+                JSONObject()
+                    .put("@type", "getChatHistory")
+                    .put("chat_id", chatId)
+                    .inOpenTopic(chatId)
+                    .put("from_message_id", messageId)
+                    .put("offset", offset)
+                    .put("limit", limit)
+                    .put("only_local", false)
+            )
+            return parseMessages(chatId, history.optJSONArray("messages"))
+        }
+
+        val centered = historyFrom(-(limit / 2))
+        if (centered.any { it.id == messageId }) return centered.also(::rememberMessages)
+        // A short TDLib page may contain only the newer side of the window.
+        val anchored = historyFrom(0)
+        if (anchored.any { it.id == messageId }) return anchored.also(::rememberMessages)
+        // Search can find a message that still sits outside a cached history range.
+        val message = engine.send(
+            JSONObject().put("@type", "getMessage").put("chat_id", chatId).put("message_id", messageId)
         )
-        return parseMessages(chatId, history.optJSONArray("messages")).also(::rememberMessages)
+        return parseMessages(chatId, JSONArray().put(message)).also(::rememberMessages)
     }
 
     /**
@@ -4021,30 +4035,23 @@ class TdLibTelegramClient(
                     JSONObject().put("@type", if (reactions) "searchMessagesFilterUnreadReaction" else "searchMessagesFilterUnreadMention")
                 )
         ).optJSONArray("messages") ?: return null
-        val target = (0 until found.length()).mapNotNull { found.optJSONObject(it)?.optLong("id") }.minOrNull()
-            ?: return null
-        // Gone to is seen. Until 2.9.2 nothing told Telegram so: only the
-        // chat's newest message was ever viewed, which reads the messages
-        // but not the reactions and mentions on older ones. The heart's
-        // count never came down, every tap landed on the same message, and
-        // the official client still showed them unseen. Viewing the one
-        // jumped to clears its reaction or mention, TDLib sends the smaller
-        // count, and the next search starts past it. Not in ghost mode,
-        // which is the whole of ghost mode.
-        if (!com.telegramyou.app.settings.GhostMode.hideReading) {
-            try {
-                requireEngine().send(
-                    JSONObject()
-                        .put("@type", "viewMessages")
-                        .put("chat_id", chatId)
-                        .put("message_ids", JSONArray().put(target))
-                        .put("force_read", true)
-                )
-            } catch (e: TdLibException) {
-                Log.d(TAG, "nextUnread view: ${e.message}")
-            }
-        }
-        return target
+        // TDLib also reconciles the badge count when it runs this search.
+        return (0 until found.length())
+            .mapNotNull { index -> found.optJSONObject(index)?.optLong("id")?.takeIf { it != 0L } }
+            .minOrNull()
+    }
+
+    override suspend fun markUnreadJumpSeen(chatId: Long, messageId: Long) {
+        if (com.telegramyou.app.settings.GhostMode.hideReading) return
+        awaitReady()
+        requireEngine().send(
+            JSONObject()
+                .put("@type", "viewMessages")
+                .put("chat_id", chatId)
+                .put("message_ids", JSONArray().put(messageId))
+                .put("source", JSONObject().put("@type", "messageSourceChatHistory"))
+                .put("force_read", true)
+        )
     }
 
     // ── proxies ──────────────────────────────────────────────────────────
@@ -4965,7 +4972,9 @@ class TdLibTelegramClient(
             }
             "updateChatTitle", "updateChatPhoto", "updateChatLastMessage",
             "updateChatReadInbox", "updateChatReadOutbox", "updateChatNotificationSettings",
-            "updateChatUnreadMentionCount", "updateChatHasScheduledMessages", "updateChatPermissions" -> {
+            "updateChatUnreadMentionCount", "updateMessageMentionRead",
+            "updateChatUnreadReactionCount", "updateMessageUnreadReactions",
+            "updateChatHasScheduledMessages", "updateChatPermissions" -> {
                 val chatId = update.optLong("chat_id")
                 val chat = chatsById[chatId] ?: return
                 when (update.optString("@type")) {
@@ -4989,10 +4998,10 @@ class TdLibTelegramClient(
                         chat.put("last_read_outbox_message_id", lastRead)
                         emitUpdate(MessageUpdate.ReadUpTo(chatId, lastRead))
                     }
-                    "updateChatUnreadMentionCount" -> {
+                    "updateChatUnreadMentionCount", "updateMessageMentionRead" -> {
                         chat.put("unread_mention_count", update.optInt("unread_mention_count"))
                     }
-                    "updateChatUnreadReactionCount" -> {
+                    "updateChatUnreadReactionCount", "updateMessageUnreadReactions" -> {
                         chat.put("unread_reaction_count", update.optInt("unread_reaction_count"))
                     }
                     "updateChatNotificationSettings" -> {

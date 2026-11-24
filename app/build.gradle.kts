@@ -58,7 +58,7 @@ val buildNumber: Int =
  * with profiles, blocking, contacts and deleting chats; 1.3 the same day,
  * with the Appearance screen.
  */
-val appVersionName = "3.0"
+val appVersionName = "3.1"
 
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
@@ -355,7 +355,7 @@ dependencies {
     // never idle — the typing indicator and the Expressive loading indicator
     // are infinite animations, which is exactly the case that hangs it.
     // UiAutomator reads the accessibility tree instead and does not care.
-    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.4.1")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:core-ktx:1.7.0")
@@ -368,16 +368,10 @@ dependencies {
     // rather than a library they link against.
     androidTestUtil("androidx.test.services:test-services:1.6.0")
 
-    // Pinned past the BOM on purpose. The BOM pins stable material3 1.4.0;
-    // this is the only way to reach Expressive at all. It is a beta now — an
-    // alpha until 2.1 — and the theme every screen is built on, so it is
-    // worth knowing that is a deliberate trade and not an oversight.
-    implementation("androidx.compose.material3:material3:1.5.0-beta01")
-    // The navigation suite, for a rail where there is width for one. Its
-    // version moves with material3 rather than with the BOM, so it is pinned
-    // to the same pre-release — a mismatch here is two copies of the same
-    // internal API and a link error, not a warning.
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0-beta01")
+    // Keep Expressive and the navigation suite on the same stable version.
+    // The Compose BOM still controls the underlying Compose libraries.
+    implementation("androidx.compose.material3:material3:1.5.0")
+    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.5.0")
     // The player behind video messages. Media3 is androidx's own — there is
     // no Material component for playback, and the alternative was MediaPlayer
     // with a SurfaceView and every format quirk handled by hand.
@@ -447,9 +441,9 @@ dependencies {
     // is a library's job. 3.x is the Compose-first line and loads a File or a
     // content:// Uri without help.
     implementation("io.coil-kt.coil3:coil-compose:3.6.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.1")
     implementation("androidx.navigation:navigation-compose:2.10.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("androidx.datastore:datastore-preferences:1.2.1")

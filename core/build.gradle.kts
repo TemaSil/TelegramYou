@@ -28,7 +28,7 @@ dependencies {
     // number belongs to, and each country's calling code. Pure Java, so it
     // belongs here with the rest of the logic, and its answers are tested on
     // the JVM like everything else in this module.
-    implementation("com.googlecode.libphonenumber:libphonenumber:9.0.40")
+    implementation("com.googlecode.libphonenumber:libphonenumber:9.0.44")
 
     // Google's material-color-utilities, the Kotlin port: the tonal-spot
     // scheme Android builds from a wallpaper, and the quantizer that picks a

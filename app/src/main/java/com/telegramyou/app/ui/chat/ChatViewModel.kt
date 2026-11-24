@@ -157,6 +157,8 @@ data class ChatUiState(
      * jump and cleared by the screen when it has scrolled.
      */
     val scrollTarget: Long? = null,
+    val markScrollTargetSeen: Boolean = false,
+    val canJumpToChatUnread: Boolean = true,
     /** The message a jump landed on, lit for a moment so the eye finds it. */
     val highlightedId: Long? = null,
     /**
@@ -379,7 +381,9 @@ class ChatViewModel(
      */
     private val savedTopicId: Long = savedStateHandle[Route.Chat.ARG_SAVED_TOPIC_ID] ?: 0L
 
-    private val _uiState = MutableStateFlow(ChatUiState())
+    private val _uiState = MutableStateFlow(
+        ChatUiState(canJumpToChatUnread = topicId == 0 && threadId == 0L && savedTopicId == 0L)
+    )
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     init {
@@ -2015,9 +2019,25 @@ class ChatViewModel(
      * seen once it is on screen.
      */
     fun onNextUnread(reactions: Boolean) {
-        viewModelScope.launch {
-            val target = runCatching { repository.nextUnread(chatId, reactions) }.getOrNull()
-            if (target != null) onJumpToMessage(target)
+        if (!_uiState.value.canJumpToChatUnread) return
+        jumpJob?.cancel()
+        jumpJob = viewModelScope.launch {
+            val failure = tr("Could not find unread messages", "Не удалось найти непрочитанные сообщения")
+            var target: Long? = null
+            if (attempt(failure) { target = repository.nextUnread(chatId, reactions) }) {
+                val messageId = target
+                if (messageId != null) {
+                    jumpToMessage(messageId, markSeen = true)
+                } else {
+                    _uiState.update {
+                        it.copy(errorMessage = if (reactions) {
+                            tr("No unread reactions found", "Непрочитанных реакций нет")
+                        } else {
+                            tr("No unread mentions found", "Непрочитанных упоминаний нет")
+                        })
+                    }
+                }
+            }
         }
     }
 
@@ -2750,34 +2770,51 @@ class ChatViewModel(
      * everything in between.
      */
     fun onJumpToMessage(messageId: Long) {
+        jumpJob?.cancel()
+        jumpJob = viewModelScope.launch { jumpToMessage(messageId) }
+    }
+
+    private suspend fun jumpToMessage(messageId: Long, markSeen: Boolean = false) {
         if (_uiState.value.messages.any { it.id == messageId }) {
-            _uiState.update { it.copy(scrollTarget = messageId) }
+            _uiState.update { it.copy(scrollTarget = messageId, markScrollTargetSeen = markSeen) }
             highlight(messageId)
             return
         }
-        jumpJob?.cancel()
-        jumpJob = viewModelScope.launch {
-            var around = emptyList<ChatMessage>()
-            val done = attempt(tr("Could not open that message", "Не удалось открыть это сообщение")) {
-                around = repository.loadMessagesAround(chatId, messageId)
+        val failure = tr("Could not open that message", "Не удалось открыть это сообщение")
+        var around = emptyList<ChatMessage>()
+        if (!attempt(failure) { around = repository.loadMessagesAround(chatId, messageId) }) return
+        _uiState.update {
+            val window = it.copy(
+                olderMessages = emptyList(),
+                hasMoreOlder = true,
+                detachedWindow = around,
+                isLoadingNewer = false,
+                scrollTarget = messageId,
+                markScrollTargetSeen = markSeen
+            )
+            if (window.messages.none { message -> message.id == messageId }) {
+                it.copy(errorMessage = failure)
+            } else {
+                window.joinedIfCaughtUp().takeIf { joined ->
+                    joined.messages.any { message -> message.id == messageId }
+                } ?: window
             }
-            if (!done || around.none { it.id == messageId }) return@launch
-            _uiState.update {
-                it.copy(
-                    olderMessages = emptyList(),
-                    hasMoreOlder = true,
-                    detachedWindow = around,
-                    isLoadingNewer = false,
-                    scrollTarget = messageId
-                ).joinedIfCaughtUp()
-            }
-            highlight(messageId)
         }
+        if (_uiState.value.scrollTarget == messageId) highlight(messageId)
     }
 
-    /** The list has scrolled to [ChatUiState.scrollTarget]. */
-    fun onScrollTargetReached() {
-        _uiState.update { it.copy(scrollTarget = null) }
+    /** Only mark an unread target seen after the list has reached that message. */
+    fun onScrollTargetReached(messageId: Long) {
+        val state = _uiState.value
+        if (state.scrollTarget != messageId) return
+        _uiState.update { it.copy(scrollTarget = null, markScrollTargetSeen = false) }
+        if (state.markScrollTargetSeen) {
+            viewModelScope.launch {
+                attempt(tr("Could not mark as read", "Не удалось отметить прочитанным")) {
+                    repository.markUnreadJumpSeen(chatId, messageId)
+                }
+            }
+        }
     }
 
     /**
@@ -2794,7 +2831,8 @@ class ChatViewModel(
                 olderMessages = emptyList(),
                 hasMoreOlder = true,
                 isLoadingNewer = false,
-                scrollTarget = it.detail?.messages?.lastOrNull()?.id
+                scrollTarget = it.detail?.messages?.lastOrNull()?.id,
+                markScrollTargetSeen = false
             )
         }
     }

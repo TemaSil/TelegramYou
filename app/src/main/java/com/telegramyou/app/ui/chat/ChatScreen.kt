@@ -206,7 +206,7 @@ fun ChatScreen(
     onJumpToDate: (Long) -> Unit = {},
     onJumpToLatest: () -> Unit = {},
     onLoadNewer: () -> Unit = {},
-    onScrollTargetReached: () -> Unit = {},
+    onScrollTargetReached: (Long) -> Unit = {},
     onDeleteRequested: (ChatMessage) -> Unit,
     onDeleteDismissed: () -> Unit,
     onDeleteConfirmed: (ChatMessage, Boolean) -> Unit,
@@ -884,6 +884,7 @@ fun ChatScreen(
     // meanwhile moved the index it was aiming at — so opening a chat showed
     // its history sliding past and stopping somewhere above the latest line.
     LaunchedEffect(state.messages.lastOrNull()?.id) {
+        if (state.scrollTarget != null || state.isDetached) return@LaunchedEffect
         val newest = state.messages.lastOrNull() ?: return@LaunchedEffect
         // One from the start: the list may or may not have laid out the new
         // item by the time this runs.
@@ -901,7 +902,7 @@ fun ChatScreen(
         val index = state.messages.indexOfFirst { it.id == target }
         if (index < 0) return@LaunchedEffect
         listState.scrollToItem(listIndexOf(index, state.messages))
-        onScrollTargetReached()
+        onScrollTargetReached(target)
     }
 
     // The near end of a stretch of the past, for the page after it.
@@ -1638,8 +1639,8 @@ fun ChatScreen(
                 // them over the arrow down: each goes to the oldest, with
                 // how many there are.
                 UnreadJumps(
-                    mentions = detail?.chat?.unreadMentionCount ?: 0,
-                    reactions = detail?.chat?.unreadReactionCount ?: 0,
+                    mentions = if (state.canJumpToChatUnread) detail?.chat?.unreadMentionCount ?: 0 else 0,
+                    reactions = if (state.canJumpToChatUnread) detail?.chat?.unreadReactionCount ?: 0 else 0,
                     onMention = { onNextUnread(false) },
                     onReaction = { onNextUnread(true) },
                     modifier = Modifier

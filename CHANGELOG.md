@@ -9,6 +9,13 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
+## 3.1 (in development)
+
+- 🎬 **Media thumbnails and their counter have a dark backdrop.** Seek with the timeline; holding the video in place leaves playback alone.
+- 😀 **Custom emoji and stickers use still previews in the picker.** Animations for messages reuse parsed compositions.
+- 💬 **Unread mentions and reactions jump to the actual message.** Their badges follow Telegram's counts after the jump.
+- 🧰 **Updated Material 3 Expressive to its stable release**, alongside Kotlin, Lifecycle, UI Automator and phone-number metadata.
+
 ## 🎉 3.0
 
 Thank you for using TelegramYou and for telling us what to improve.
