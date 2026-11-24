@@ -5069,7 +5069,7 @@ class SmokeTest {
 
     /**
      * A contact card and a place, in Lina's chat: the place with its Open in
-     * Maps, the card with Add, which answers in a snackbar.
+     * Maps, the card with Add, which saves the shared contact.
      */
     @Test
     fun contactsAndPlacesShowAsCards() {
@@ -5081,18 +5081,19 @@ class SmokeTest {
         waitFor(By.text("Open in Maps"), "the place's button")
         scrollBackTo(By.text("Sasha Kim"), "the contact card")
         screenshot("63-contact-and-place")
-        // The card's Add, which is the one under the name: "Add" is also the
-        // caption of your own story on the chat list, which stays in the
-        // tree beneath the open chat, comes first in it, and took the tap.
-        // Pressed again if nothing answers, since the list can still be
-        // gliding from the scroll that found the card and a tap on a moving
-        // list only stops it. Adding twice is harmless — the number is the key.
-        val answer = By.textStartsWith("Sasha Kim ")
-        // Counted the moment it shows: the answer is a snackbar, gone in four
-        // seconds, and a later look for it missed one that had come and gone.
-        var answered = false
+        val repository = (InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as TelegramYouApp)
+            .telegramRepository
+        fun contactWasSaved() = kotlinx.coroutines.runBlocking {
+            repository.contacts().any { it.phoneNumber?.filter(Char::isDigit) == "15550100" }
+        }
+        assertFalse("the shared contact should start out outside Contacts", contactWasSaved())
+
+        // "Add" is also the story label behind the chat. Use the card's
+        // button and verify the saved contact after tapping it. The transient
+        // snackbar can disappear while UiAutomator waits for a fresh tree.
+        var saved = false
         repeat(3) {
-            if (answered) return@repeat
+            if (saved) return@repeat
             try {
                 val below = device.findObject(By.text("Sasha Kim"))?.visibleBounds?.bottom
                 if (below != null) {
@@ -5103,9 +5104,13 @@ class SmokeTest {
                 }
             } catch (_: StaleObjectException) {
             }
-            answered = device.wait(Until.hasObject(answer), ANSWER_WAIT)
+            val deadline = SystemClock.uptimeMillis() + ANSWER_WAIT
+            do {
+                saved = contactWasSaved()
+                if (!saved) SystemClock.sleep(100)
+            } while (!saved && SystemClock.uptimeMillis() < deadline)
         }
-        assertTrue("the answer to Add never appeared", answered)
+        assertTrue("the shared contact was not saved", saved)
         // Above them, a message that is one emoji, drawn large.
         scrollBackTo(By.text("🎉"), "the lone emoji")
         screenshot("66-jumbo-emoji")
