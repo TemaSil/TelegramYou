@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
-import com.telegramyou.app.ui.media.heldSeekTarget
 
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.animation.AnimatedVisibility

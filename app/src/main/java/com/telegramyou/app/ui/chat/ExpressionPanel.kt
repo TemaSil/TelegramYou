@@ -313,9 +313,9 @@ private fun StandardEmoji(onEmoji: (String) -> Unit) {
 /**
  * The emoji tab: Android's own picker, and above it — where the account has
  * any — its Premium custom-emoji sets, each by its cover, as the official
- * client lays them over the standard ones. A set chosen shows its emoji
- * playing, eight a row like the standard ones; one tapped goes into the
- * draft (ChatViewModel.onCustomEmojiPicked). The backspace stays over both.
+ * client lays them over the standard ones. A chosen set shows static previews,
+ * eight a row like the standard ones. Tapping one inserts it into the draft
+ * (ChatViewModel.onCustomEmojiPicked). The backspace stays over both.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
