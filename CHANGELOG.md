@@ -9,7 +9,7 @@ where the rest lives. When a version is released, its notes go at the top
 here and its one-paragraph summary replaces the "Latest" section of
 README.md.
 
-## 3.1 (in development)
+## 3.1
 
 - 🎬 **Media thumbnails and their counter have a dark backdrop.** Seek with the timeline; holding the video in place leaves playback alone.
 - 😀 **Custom emoji and stickers use still previews in the picker.** Animations for messages reuse parsed compositions.

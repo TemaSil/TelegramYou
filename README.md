@@ -55,12 +55,12 @@ wallpaper.
 - **Sign in** — phone, QR code, login email, two-step password. Tablets
   get a navigation rail.
 
-## Latest: 3.0
+## Latest: 3.1
 
-Profiles bring shared media and common groups into tabs. Find media and files
-across chats, download several documents at once, or read PDFs in the app.
-The video viewer has quieter controls and hold-to-seek, and the music library
-keeps paging through older tracks. See the [changelog](CHANGELOG.md).
+The media viewer gives its thumbnails a dark backdrop and uses the timeline
+for seeking. The picker uses lightweight previews for custom emoji and
+stickers. Unread mention and reaction buttons take you to their messages.
+See the [changelog](CHANGELOG.md).
 
 ## Screenshots
 
@@ -115,9 +115,17 @@ It installs as a separate app.
 
 ## For developers
 
-Kotlin 2.4, Jetpack Compose, `material3` 1.5 alpha (Expressive is only
-there), AGP 9. Plans are in `ROADMAP.md`, layers in `ARCHITECTURE.md`, rules
-in `CLAUDE.md`.
+| Area | Stack |
+|------|-------|
+| Build | Kotlin 2.4.21, Android Gradle Plugin 9.4.1, Gradle 9.8.0 |
+| Android | Compile SDK 37, target SDK 35, minimum SDK 26 (Android 8.0) |
+| UI | Jetpack Compose BOM 2026.09.00, stable Material 3 Expressive and adaptive navigation suite 1.5.0 |
+| App libraries | Lifecycle 2.11.1, Media3 1.11.1, Coil 3.6.3, CameraX 1.6.2, DataStore 1.2.1, libphonenumber 9.0.44 |
+| Telegram | TDLib JSONJava, pinned to `tdlib-java-d1085f9` |
+| Tests | JVM tests in `:core` and `:app`, Android UI Automator 2.4.1 |
+
+See the [roadmap](ROADMAP.md), [architecture](ARCHITECTURE.md) and
+[contributor rules](CLAUDE.md).
 
 <details>
 <summary><b>Building</b></summary>
