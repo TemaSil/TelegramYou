@@ -1,0 +1,981 @@
+11-24 09:20:34.783  2140  2160 I TestRunner: started: aStoryIsPostedFromMyStory(com.telegramyou.app.SmokeTest)
+11-24 09:20:34.787  2140  2160 D UiDevice: Executing shell command: wm size reset
+11-24 09:20:34.814  2140  2140 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.app.Activity$$ExternalSyntheticLambda0@3b7dbdc
+11-24 09:20:34.815  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@df152f1 in: DESTROYED
+11-24 09:20:34.819   500   568 W InputManager-JNI: Input channel object '87f175e com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal (client)' was disposed without first being removed with the input manager!
+11-24 09:20:34.825  2140  2160 D UiDevice: Executing shell command: wm density reset
+11-24 09:20:34.862  2140  2160 D UiDevice: Executing shell command: cmd overlay enable-exclusive --user current --category com.android.internal.systemui.navbar.gestural
+11-24 09:20:34.870   500   511 I system_server: NativeAlloc concurrent copying GC freed 223516(8672KB) AllocSpace objects, 51(1740KB) LOS objects, 49% free, 19MB/38MB, paused 24.707ms,51us total 640.187ms
+11-24 09:20:34.871   500   512 W JavaBinder: BinderProxy is being destroyed but the application did not call unlinkToDeath to unlink all of its death recipients beforehand.  Releasing leaked death recipient: com.android.server.input.InputManagerService$$ExternalSyntheticLambda7
+11-24 09:20:34.871   500   512 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 09:20:34.921  6775  6775 I idmap2d : Starting
+11-24 09:20:34.929  2140  2160 D UiDevice: Executing shell command: cmd overlay list --user current
+11-24 09:20:34.937  2140  2160 D UiDevice: Executing shell command: cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+11-24 09:20:34.945  2140  2160 D UiDevice: Executing shell command: am force-stop com.android.launcher3
+11-24 09:20:34.961   712   712 W OverviewProxyService: Service disconnected
+11-24 09:20:34.961   712   712 W OverviewProxyService: Binding died of 'ComponentInfo{com.android.launcher3/com.android.quickstep.TouchInteractionService}', try reconnecting
+11-24 09:20:34.961   712   712 W OverviewProxyService: Failed to connect on attempt 1 will try again in 1000ms
+11-24 09:20:34.973   500  3195 I ImeTracker: com.android.launcher3:46b275c: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-24 09:20:34.974   500  3195 I ImeTracker: com.android.launcher3:46b275c: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:20:34.974   500  1318 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-24 09:20:34.975   321   321 I Zygote  : Process 6650 exited due to signal 9 (Killed)
+11-24 09:20:34.975   712   712 D OverviewProxyService: disconnectFromLauncherService bound?: true currentProxy: com.android.systemui.shared.recents.IOverviewProxy$Stub$Proxy@2e0dff1 disconnectReason: runnable: startConnectionToCurrentUser
+11-24 09:20:34.975   712   712 D OverviewProxyService: java.lang.Throwable
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.disconnectFromLauncherService(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:37)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.internalConnectToCurrentUser(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:1)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService$$ExternalSyntheticLambda0.run(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:27)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at android.os.Looper.loop(Looper.java:294)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at android.app.ActivityThread.main(ActivityThread.java:8177)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at java.lang.reflect.Method.invoke(Native Method)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+11-24 09:20:34.975   712   712 D OverviewProxyService: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+11-24 09:20:34.978   500  2561 W InputManager-JNI: Input channel object '7d262c2 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher (client)' was disposed without first being removed with the input manager!
+11-24 09:20:34.979   500   905 W InputManager-JNI: Input channel object 'recents_animation_input_consumer (client)' was disposed without first being removed with the input manager!
+11-24 09:20:35.002   383   383 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 09:20:35.015   321   321 D Zygote  : Forked child process 6794
+11-24 09:20:35.016  2140  2160 D UiDevice: Executing shell command: am start -W -n com.android.launcher3/.uioverrides.QuickstepLauncher -a android.intent.action.MAIN -c android.intent.category.HOME
+11-24 09:20:35.027   864   864 D CarrierSvcBindHelper: onHandleForceStop: [com.android.launcher3]
+11-24 09:20:35.032   864   864 D CarrierSvcBindHelper: No carrier app for: 0
+11-24 09:20:35.049  6794  6794 I droid.launcher3: Using CollectorTypeCC GC.
+11-24 09:20:35.052  6794  6794 W droid.launcher3: Unexpected CPU variant for x86: x86_64.
+11-24 09:20:35.052  6794  6794 W droid.launcher3: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-24 09:20:35.057  6794  6794 E droid.launcher3: Not starting debugger since process cannot load the jdwp agent.
+11-24 09:20:35.072  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 10112; state: ENABLED
+11-24 09:20:35.072  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 242716250; UID 10112; state: ENABLED
+11-24 09:20:35.076  2140  2160 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 0
+11-24 09:20:35.078  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 3400644; UID 10112; state: ENABLED
+11-24 09:20:35.093  6794  6794 D nativeloader: Configuring clns-shared-6 for other apk /system_ext/priv-app/Launcher3QuickStep/Launcher3QuickStep.apk. target_sdk_version=34, uses_libraries=, library_path=/system_ext/priv-app/Launcher3QuickStep/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.launcher3:/system_ext/priv-app/Launcher3QuickStep:/system/lib64:/system_ext/lib64
+11-24 09:20:35.099  6794  6794 V GraphicsEnvironment: Currently set values for:
+11-24 09:20:35.100  6794  6794 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+11-24 09:20:35.100  6794  6794 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+11-24 09:20:35.101  6794  6794 V GraphicsEnvironment: ANGLE GameManagerService for com.android.launcher3: false
+11-24 09:20:35.102  6794  6794 V GraphicsEnvironment: com.android.launcher3 is not listed in per-application setting
+11-24 09:20:35.103  6794  6794 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+11-24 09:20:35.106  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 183155436; UID 10112; state: ENABLED
+11-24 09:20:35.110  2140  2160 D UiDevice: Executing shell command: cmd uimode night yes
+11-24 09:20:35.119  2140  2160 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+11-24 09:20:35.119  2140  2160 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+11-24 09:20:35.131  6794  6794 W WindowOnBackDispatcher: OnBackInvokedCallback is not enabled for the application.
+11-24 09:20:35.131  6794  6794 W WindowOnBackDispatcher: Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-24 09:20:35.134  6794  6794 D b/283944974: possibleMaximumWindowMetrics: [WindowMetrics:{bounds=Rect(0, 0 - 1080, 2400), windowInsets=WindowInsets{
+11-24 09:20:35.134  6794  6794 D b/283944974:     statusBars=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     navigationBars=Insets{left=0, top=0, right=0, bottom=63} max=Insets{left=0, top=0, right=0, bottom=63} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     captionBar=null max=null vis=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     ime=Insets{left=0, top=0, right=0, bottom=0} max=null vis=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     systemGestures=Insets{left=78, top=160, right=78, bottom=84} max=Insets{left=78, top=160, right=78, bottom=84} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     mandatorySystemGestures=Insets{left=0, top=160, right=0, bottom=84} max=Insets{left=0, top=160, right=0, bottom=84} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     tappableElement=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     displayCutout=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 09:20:35.134  6794  6794 D b/283944974:     windowDecor=null max=null vis=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     systemOverlays=null max=null vis=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     cutout=DisplayCutout{insets=Rect(0, 128 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(492, 0 - 610, 128), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.625} cutoutSpec={M 507,64 a 33,33 0 1 0 66,0 33,33 0 1 0 -66,0 Z @left} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}
+11-24 09:20:35.134  6794  6794 D b/283944974:     roundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=28, center=Point(28, 28)}, RoundedCorner{position=TopRight, radius=28, center=Point(1052, 28)}, RoundedCorner{position=BottomRight, radius=28, center=Point(1052, 2372)}, RoundedCorner{position=BottomLeft, radius=28, center=Point(28, 2372)}]}
+11-24 09:20:35.134  6794  6794 D b/283944974:     privacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(827, 0 - 1043, 128) rotation=0}
+11-24 09:20:35.134  6794  6794 D b/283944974:     displayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+11-24 09:20:35.134  6794  6794 D b/283944974:     suppressScrimTypes=navigationBars
+11-24 09:20:35.134  6794  6794 D b/283944974:     compatInsetsTypes=statusBars navigationBars captionBar systemOverlays
+11-24 09:20:35.134  6794  6794 D b/283944974:     compatIgnoreVisibility=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     systemWindowInsetsConsumed=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     stableInsetsConsumed=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     displayCutoutConsumed=false
+11-24 09:20:35.134  6794  6794 D b/283944974:     }, density=2.625}]
+11-24 09:20:35.136  6794  6835 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+11-24 09:20:35.139  6794  6794 I DisplayController: (CTOR) perDisplayBounds - CachedDisplayInfo{size=Point(1080, 2400), cutout=Rect(0, 128 - 0, 0), rotation=0}: [WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 63), availableSize=Point(1080, 2209), rotationHint=0}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(128, 74 - 0, 63), availableSize=Point(2272, 943), rotationHint=1}, WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 128), availableSize=Point(1080, 2144), rotationHint=2}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(0, 74 - 128, 63), availableSize=Point(2272, 943), rotationHint=3}]
+11-24 09:20:35.141  2140  2160 D UiDevice: Pressing home button.
+11-24 09:20:35.148  6794  6835 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+11-24 09:20:35.149  6794  6835 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+11-24 09:20:35.168  6794  6831 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 09:20:35.177   136   136 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+11-24 09:20:35.177  6794  6831 I Gralloc4: mapper 4.x is not supported
+11-24 09:20:35.186  6794  6831 E OpenGLRenderer: Unable to match the desired swap behavior.
+11-24 09:20:35.358  6794  6831 E FrameEvents: updateAcquireFence: Did not find frame.
+11-24 09:20:35.365  6794  6794 V Launcher: LauncherAppState initiated
+11-24 09:20:35.371  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 160794467; UID 10112; state: ENABLED
+11-24 09:20:35.377  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 171228096; UID 10112; state: ENABLED
+11-24 09:20:35.379  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 210923482; UID 10112; state: ENABLED
+11-24 09:20:35.381  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 147798919; UID 10112; state: ENABLED
+11-24 09:20:35.397  6794  6794 D b/267448330: provider: ComponentInfo{com.android.quicksearchbox/com.android.quicksearchbox.SearchWidgetProvider}, paddedSizes: [382.09525x132.95238, 382.09525x131.42857, 732.5714x56.38095, 732.5714x56.38095], getMinMaxSizes: Rect(382, 56 - 732, 132)
+11-24 09:20:35.410  6794  6794 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-24 09:20:35.418  6794  6836 D LoaderTask: loadWorkspace: loading default favorites
+11-24 09:20:35.422  6794  6794 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000000 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher }
+11-24 09:20:35.424   712   712 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 09:20:35.425  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 237531167; UID 10112; state: DISABLED
+11-24 09:20:35.426  6794  6794 W OpenGLRenderer: Unknown dataspace 0
+11-24 09:20:35.431  6794  6794 D b/254119092: TaskbarManager created
+11-24 09:20:35.431  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.433  6794  6794 D b/254119092: destroyExistingTaskbar: null
+11-24 09:20:35.433  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.433  6794  6794 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=false FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=null
+11-24 09:20:35.433  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.435  6794  6794 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-24 09:20:35.437  6794  6794 D b/254119092: Set mActivity=com.android.launcher3.uioverrides.QuickstepLauncher@b5ff683
+11-24 09:20:35.437  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.437  6794  6794 D b/254119092: destroyExistingTaskbar: null
+11-24 09:20:35.437  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.437  6794  6794 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=true FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=false
+11-24 09:20:35.437  6794  6794 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 09:20:35.438  6794  6794 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: onNavigationModeChanged()
+11-24 09:20:35.459  6794  6794 D TouchInteractionService: Touch service connected: user=0
+11-24 09:20:35.461   712   712 D OverviewProxyService: Overview proxy service connected
+11-24 09:20:35.461   712   712 D OverviewProxyService: OverviewProxyService connected, initializing overview proxy
+11-24 09:20:35.463  6794  6794 D TouchInteractionService: Touch service connected: user=0
+11-24 09:20:35.486  6794  6834 I ImeTracker: com.android.launcher3:c243eb5d: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 09:20:35.486  6794  6834 I ImeTracker: com.android.launcher3:c243eb5d: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-24 09:20:35.502  6794  6794 D TISBindHelper: TIS service connected
+11-24 09:20:35.512  6794  6853 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 09:20:35.512  6794  6794 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: TISBinder#onInitialize()
+11-24 09:20:35.516   500  1507 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-24 09:20:35.602  6794  6836 D CompatibilityChangeReporter: Compat change id reported: 247079863; UID 10112; state: ENABLED
+11-24 09:20:35.639  6794  6836 D LoaderTask: loadWorkspace
+11-24 09:20:35.653  6794  6836 D LoaderTask: sanitizeData
+11-24 09:20:35.653  6794  6836 D LoaderTask: bindWorkspace
+11-24 09:20:35.655  6794  6836 D LoaderTask: sendFirstScreenActiveInstallsBroadcast
+11-24 09:20:35.894   326  2327 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 36418624
+11-24 09:20:35.913   500   519 I ActivityTaskManager: Displayed com.android.launcher3/.uioverrides.QuickstepLauncher for user 0: +943ms
+11-24 09:20:35.916  6794  6836 D LoaderTask: step 1 complete
+11-24 09:20:35.938   500   905 I ImeTracker: com.android.launcher3:4f2430f3: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 09:20:35.938   500   905 I ImeTracker: com.android.launcher3:4f2430f3: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:20:35.947   500  2978 I Process : Sending signal. PID: 6650 SIG: 9
+11-24 09:20:36.017   383   383 E BpTransactionCompletedListener: Failed to transact (-32)
+11-24 09:20:36.099   712  2799 D KeyguardService: setOccluded(false)
+11-24 09:20:36.099   712  2799 D KeyguardViewMediator: setOccluded(false)
+11-24 09:20:36.099   712   712 D KeyguardViewMediator: handleSetOccluded(false)
+11-24 09:20:36.129   712   712 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 09:20:36.244  6794  6794 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras) }
+11-24 09:20:36.247   712   712 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 09:20:36.454   712   784 D SplashScreenView: Build android.window.SplashScreenView{6cf8cc3 V.E...... ......ID 0,0-0,0}
+11-24 09:20:36.454   712   784 D SplashScreenView: Icon: view: null drawable: null size: 0
+11-24 09:20:36.454   712   784 D SplashScreenView: Branding: view: android.view.View{5148940 G.ED..... ......I. 0,0-0,0 #10204ef android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+11-24 09:20:36.477  2140  2160 D UiDevice: Waiting 30000ms for SearchCondition[hasObject=BySelector [PKG='\Qcom.telegramyou.app.debug\E']].
+11-24 09:20:36.477  2140  2160 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-24 09:20:36.480  6794  6836 D LoaderTask: loadAllApps
+11-24 09:20:36.480  6794  6836 D LoaderTask: bindAllApps
+11-24 09:20:36.502   383   383 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 09:20:36.528  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: PRE_ON_CREATE
+11-24 09:20:36.538  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: CREATED
+11-24 09:20:36.539  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: STARTED
+11-24 09:20:36.540  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: RESUMED
+11-24 09:20:36.730  6794  6836 D LoaderTask: update icon cache
+11-24 09:20:36.730  6794  6836 D LoaderTask: save shortcuts in icon cache
+11-24 09:20:36.782  6794  6836 D LoaderTask: step 2 complete
+11-24 09:20:36.835  6794  6836 D LoaderTask: loadDeepShortcuts
+11-24 09:20:36.835  6794  6836 D LoaderTask: bindDeepShortcuts
+11-24 09:20:36.835  6794  6836 D LoaderTask: save deep shortcuts in icon cache
+11-24 09:20:36.836  6794  6836 D LoaderTask: step 3 complete
+11-24 09:20:36.883  6794  6836 D LoaderTask: load widgets
+11-24 09:20:36.942  6794  6836 D LoaderTask: bindWidgets
+11-24 09:20:36.947  6794  6836 D LoaderTask: save widgets in icon cache
+11-24 09:20:36.973  2140  2140 D AutofillManager: Fill dialog is enabled:false, hints=[]
+11-24 09:20:36.994  6794  6836 D LoaderTask: finish icon update
+11-24 09:20:36.998  6794  6836 D QuickstepModelDelegate: Successfully registered for launcher snapshot logging!
+11-24 09:20:36.998   500  2561 W Binder  : Caught a RuntimeException from the binder stub implementation.
+11-24 09:20:36.998   500  2561 W Binder  : java.lang.SecurityException: Need REGISTER_STATS_PULL_ATOM permission.: Neither user 10112 nor current process has android.permission.REGISTER_STATS_PULL_ATOM.
+11-24 09:20:36.998   500  2561 W Binder  : 	at android.app.ContextImpl.enforce(ContextImpl.java:2332)
+11-24 09:20:36.998   500  2561 W Binder  : 	at android.app.ContextImpl.enforceCallingOrSelfPermission(ContextImpl.java:2360)
+11-24 09:20:36.998   500  2561 W Binder  : 	at com.android.server.stats.StatsManagerService.enforceRegisterStatsPullAtomPermission(StatsManagerService.java:644)
+11-24 09:20:36.998   500  2561 W Binder  : 	at com.android.server.stats.StatsManagerService.registerPullAtomCallback(StatsManagerService.java:212)
+11-24 09:20:36.998   500  2561 W Binder  : 	at android.os.IStatsManagerService$Stub.onTransact(IStatsManagerService.java:418)
+11-24 09:20:36.998   500  2561 W Binder  : 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-24 09:20:36.998   500  2561 W Binder  : 	at android.os.Binder.execTransact(Binder.java:1275)
+11-24 09:20:37.051  2140  2140 I ImeTracker: com.telegramyou.app.debug:946e9dc4: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 09:20:37.052  2140  2140 I ImeTracker: com.telegramyou.app.debug:946e9dc4: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-24 09:20:37.052  2140  2140 I ImeTracker: com.telegramyou.app.debug:665c894f: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT_BY_INSETS_API
+11-24 09:20:37.052  2140  2140 I ImeTracker: com.telegramyou.app.debug:665c894f: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+11-24 09:20:37.089  2140  2160 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-24 09:20:37.148   500   519 W ziparchive: Unable to open '/data/app/~~28VEIyNB4UkZo8ltur92qg==/com.telegramyou.app.debug-G-mWifTcUuk2glhEUNB3Aw==/base.dm': No such file or directory
+11-24 09:20:37.149   500   519 I ActivityTaskManager: Displayed com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal for user 0: +699ms
+11-24 09:20:37.190   500   568 W InputManager-JNI: Input channel object '53915d2 Splash Screen com.telegramyou.app.debug (client)' was disposed without first being removed with the input manager!
+11-24 09:20:37.193  6794  6834 I ImeTracker: com.android.launcher3:1f2ef41b: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 09:20:37.194   500  2561 I ImeTracker: com.android.launcher3:1f2ef41b: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:20:37.453   500   568 I ImeTracker: com.telegramyou.app.debug:7371405a: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 09:20:37.453   500   568 I ImeTracker: com.telegramyou.app.debug:7371405a: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:20:37.596   712   712 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 09:20:38.457  2140  2299 D EGL_emulation: app_time_stats: avg=61.20ms min=34.32ms max=273.14ms count=20
+11-24 09:20:39.122  2140  2169 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+11-24 09:20:39.129   908  2307 D androidtc: Initializing SystemTextClassifier, type = System
+11-24 09:20:39.338   500   500 D FlashNotifController: requestStartFlashNotification
+11-24 09:20:39.338   500   500 I FlashNotifController: startFlashNotification: type=1, tag=android
+11-24 09:20:39.338   500   500 D FlashNotifController: Flash notification is disabled
+11-24 09:20:39.346   443  1727 D NuPlayerDriver: NuPlayerDriver(0x76a969c27d50) created, clientPid(712)
+11-24 09:20:39.347   136   136 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+11-24 09:20:39.347   443  1727 D MediaPlayerService: OMX service is not available
+11-24 09:20:39.355   712   787 D PeopleSpaceWidgetMgr: No app widget ids returned
+11-24 09:20:39.359   443  6869 D GenericSource: FileSource remote
+11-24 09:20:39.382   500   568 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/712 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@6da891b callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+11-24 09:20:39.398   500   568 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+11-24 09:20:39.407   712   789 D EGL_emulation: app_time_stats: avg=12521.62ms min=181.33ms max=24861.92ms count=2
+11-24 09:20:39.473   712   787 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 09:20:39.525  2140  2299 D EGL_emulation: app_time_stats: avg=53.58ms min=33.16ms max=71.08ms count=19
+11-24 09:20:39.527   712   787 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 09:20:39.917   712   712 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 09:20:39.917   712   712 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 09:20:39.920   443  6868 I GenericSource: start
+11-24 09:20:39.923   443  6873 D CCodec  : allocate(c2.android.vorbis.decoder)
+11-24 09:20:39.925   443  6873 I CCodec  : setting up 'default' as default (vendor) store
+11-24 09:20:39.927   443  6873 I CCodec  : Created component [c2.android.vorbis.decoder]
+11-24 09:20:39.927   443  6873 D CCodecConfig: read media type: audio/vorbis
+11-24 09:20:39.928   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+11-24 09:20:39.928   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+11-24 09:20:39.929   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+11-24 09:20:39.929   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+11-24 09:20:39.929   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+11-24 09:20:39.929   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+11-24 09:20:39.929   443  6873 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+11-24 09:20:39.930   443  6873 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 09:20:39.930   443  6873 D CCodecConfig: c2 config diff is Dict {
+11-24 09:20:39.930   443  6873 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+11-24 09:20:39.930   443  6873 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+11-24 09:20:39.930   443  6873 D CCodecConfig:   c2::u32 input.delay.value = 0
+11-24 09:20:39.930   443  6873 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+11-24 09:20:39.930   443  6873 D CCodecConfig:   string output.media-type.value = "audio/raw"
+11-24 09:20:39.930   443  6873 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+11-24 09:20:39.930   443  6873 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+11-24 09:20:39.930   443  6873 D CCodecConfig: }
+11-24 09:20:39.930   443  6873 D MediaCodec: flushMediametrics
+11-24 09:20:39.930   443  6873 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+11-24 09:20:39.930   443  6873 D CCodecConfig: no c2 equivalents for durationUs
+11-24 09:20:39.930   443  6873 D CCodecConfig: no c2 equivalents for csd-1
+11-24 09:20:39.930   443  6873 D CCodecConfig: no c2 equivalents for flags
+11-24 09:20:39.931   443  6873 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+11-24 09:20:39.933   443  6873 W Codec2Client: query -- param skipped: index = 1107298332.
+11-24 09:20:39.933   443  6873 D CCodec  : encoding statistics level = 0
+11-24 09:20:39.933   443  6873 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t bitrate = 70000
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t channel-count = 1
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t max-input-size = 32768
+11-24 09:20:39.933   443  6873 D CCodec  :   string mime = "audio/vorbis"
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t sample-rate = 48000
+11-24 09:20:39.933   443  6873 D CCodec  : }
+11-24 09:20:39.933   443  6873 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t channel-count = 1
+11-24 09:20:39.933   443  6873 D CCodec  :   string mime = "audio/raw"
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t sample-rate = 48000
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t channel-mask = 1
+11-24 09:20:39.933   443  6873 D CCodec  :   int32_t android._config-pcm-encoding = 2
+11-24 09:20:39.933   443  6873 D CCodec  : }
+11-24 09:20:39.933   443  6873 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 09:20:39.934   443  6873 I MediaCodec: MediaCodec will operate in async mode
+11-24 09:20:39.934   443  6872 D MediaCodec: keep callback message for reclaim
+11-24 09:20:39.936   443  6873 W Codec2Client: query -- param skipped: index = 1342179345.
+11-24 09:20:39.936   443  6873 W Codec2Client: query -- param skipped: index = 2415921170.
+11-24 09:20:39.939   443  6873 D CCodecBufferChannel: [c2.android.vorbis.decoder#142] Created input block pool with allocatorID 16 => poolID 90 - OK (0)
+11-24 09:20:39.940   457  5400 D BufferPoolAccessor2.0: bufferpool2 0x7e59d05457b8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 09:20:39.940   457  5400 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x7e59d05457b8 cached: 0/0M, 0/0% in use; allocs: 97, 96% recycled; transfers: 96, 96% unfetched
+11-24 09:20:39.940   443  5676 D BufferPoolAccessor2.0: bufferpool2 0x76a839c349c8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/101 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 09:20:39.940   443  5676 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x76a839c349c8 cached: 0/0M, 0/0% in use; allocs: 101, 92% recycled; transfers: 198, 96% unfetched
+11-24 09:20:39.940   443  6873 I CCodecBufferChannel: [c2.android.vorbis.decoder#142] Created output block pool with allocatorID 16 => poolID 112 - OK
+11-24 09:20:39.940   443  6873 D CCodecBufferChannel: [c2.android.vorbis.decoder#142] Configured output block pool ids 112 => OK
+11-24 09:20:39.941   457  6874 D SimpleC2Component: Using output block pool with poolID 112 => got 112 - 0
+11-24 09:20:39.957   380  5899 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+11-24 09:20:39.957   380  5899 D AF::TrackHandle: OpPlayAudio: track:146 usage:5 not muted
+11-24 09:20:39.960   380  5899 D audioserver: FGS Logger Transaction failed
+11-24 09:20:39.960   380  5899 D audioserver: -129
+11-24 09:20:39.962   443  6871 D AudioTrack: getTimestamp_l(106): device stall time corrected using current time 2000890660055
+11-24 09:20:39.997   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(11)
+11-24 09:20:40.052   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(25)
+11-24 09:20:40.263   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(63)
+11-24 09:20:40.483   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(15)
+11-24 09:20:40.553  2140  2299 D EGL_emulation: app_time_stats: avg=54.17ms min=38.57ms max=66.23ms count=18
+11-24 09:20:40.710   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(35)
+11-24 09:20:41.171   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(16)
+11-24 09:20:41.184   443  6873 D CCodecBufferChannel: [c2.android.vorbis.decoder#142] buffers after EOS ignored (0 us)
+11-24 09:20:41.186   443  6871 D AudioTrack: stop(106): called with 82980 frames delivered
+11-24 09:20:41.379   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(11)
+11-24 09:20:41.379   442  4736 D AudioAnalytics: gc(1700, 2000): log size:1700 item map size:31, item map items:1700
+11-24 09:20:41.459   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(38)
+11-24 09:20:41.580   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(11)
+11-24 09:20:41.591  2140  2299 D EGL_emulation: app_time_stats: avg=50.71ms min=33.78ms max=81.00ms count=19
+11-24 09:20:41.651   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(26)
+11-24 09:20:41.752   500   905 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/712 clientId=android.media.AudioManager@6da891b
+11-24 09:20:41.752   712  6866 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+11-24 09:20:41.752   712  6866 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+11-24 09:20:41.752   443  1727 D NuPlayerDriver: reset(0x76a969c27d50) at state 6
+11-24 09:20:41.774   457   801 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:20:41.774   457   801 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:20:41.774   443  6873 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:20:41.775   443  6872 D MediaCodec: flushMediametrics
+11-24 09:20:41.780   443  6868 D NuPlayerDriver: notifyResetComplete(0x76a969c27d50)
+11-24 09:20:41.781   443  1727 W AMessage: failed to post message as target looper for handler 0 is gone.
+11-24 09:20:41.808   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:20:41.808   380   474 D audioserver: -129
+11-24 09:20:41.821   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:20:41.821   380   474 D audioserver: -129
+11-24 09:20:42.629  2140  2299 D EGL_emulation: app_time_stats: avg=49.23ms min=29.28ms max=69.26ms count=20
+11-24 09:20:43.146  2140  2160 D UiDevice: Waiting 20000ms for SearchCondition[gone=BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E']].
+11-24 09:20:43.146  2140  2160 D UiDevice: Searching for node with selector: BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E'].
+11-24 09:20:43.664  2140  2299 D EGL_emulation: app_time_stats: avg=50.52ms min=34.78ms max=65.69ms count=19
+11-24 09:20:44.675  2140  2299 D EGL_emulation: app_time_stats: avg=50.16ms min=30.99ms max=74.00ms count=19
+11-24 09:20:44.679   326  2327 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 36646016
+11-24 09:20:44.964   457   710 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 09:20:44.986   443  2322 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 09:20:45.697  2140  2299 D EGL_emulation: app_time_stats: avg=49.76ms min=32.29ms max=72.72ms count=19
+11-24 09:20:46.709  2140  2299 D EGL_emulation: app_time_stats: avg=49.92ms min=31.27ms max=75.86ms count=19
+11-24 09:20:46.976   457   710 D BufferPoolAccessor2.0: bufferpool2 0x7e59d0546c88 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 09:20:46.976   457   710 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 09:20:47.015   443  2322 D BufferPoolAccessor2.0: bufferpool2 0x76a839c324c8 : 0(0 size) total buffers - 0(0 size) used buffers - 94/102 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 09:20:47.015   443  2322 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 09:20:47.536   712   712 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 09:20:47.709  2140  2299 D EGL_emulation: app_time_stats: avg=51.81ms min=32.12ms max=67.45ms count=18
+11-24 09:20:47.764  2140  2160 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+11-24 09:20:47.766  2140  2160 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+11-24 09:20:47.818  2140  2160 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='\QYour phone\E']].
+11-24 09:20:47.818  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+11-24 09:20:48.726  2140  2299 D EGL_emulation: app_time_stats: avg=47.09ms min=33.04ms max=69.74ms count=19
+11-24 09:20:49.759  2140  2299 D EGL_emulation: app_time_stats: avg=49.79ms min=35.64ms max=68.82ms count=19
+11-24 09:20:50.788  2140  2299 D EGL_emulation: app_time_stats: avg=51.94ms min=34.97ms max=72.11ms count=19
+11-24 09:20:51.806  2140  2299 D EGL_emulation: app_time_stats: avg=48.97ms min=29.89ms max=66.57ms count=19
+11-24 09:20:52.870  2140  2299 D EGL_emulation: app_time_stats: avg=49.29ms min=33.60ms max=69.57ms count=20
+11-24 09:20:52.934  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+11-24 09:20:53.902  2140  2299 D EGL_emulation: app_time_stats: avg=49.64ms min=34.75ms max=67.76ms count=19
+11-24 09:20:54.926  2140  2299 D EGL_emulation: app_time_stats: avg=49.73ms min=32.26ms max=64.32ms count=19
+11-24 09:20:55.981  2140  2299 D EGL_emulation: app_time_stats: avg=50.60ms min=31.94ms max=74.82ms count=19
+11-24 09:20:57.025  2140  2299 D EGL_emulation: app_time_stats: avg=46.89ms min=27.27ms max=66.20ms count=20
+11-24 09:20:57.519   712   712 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 09:20:57.686  2140  2160 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='allow']].
+11-24 09:20:57.686  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+11-24 09:20:58.052  2140  2299 D EGL_emulation: app_time_stats: avg=49.87ms min=32.19ms max=66.16ms count=19
+11-24 09:20:59.052  2140  2147 I amyou.app.debug: Background concurrent copying GC freed 582370(18MB) AllocSpace objects, 7(152KB) LOS objects, 49% free, 18MB/36MB, paused 21us,16us total 196.089ms
+11-24 09:20:59.074  2140  2299 D EGL_emulation: app_time_stats: avg=49.76ms min=32.71ms max=76.10ms count=19
+11-24 09:21:00.075  2140  2299 D EGL_emulation: app_time_stats: avg=49.77ms min=32.73ms max=67.09ms count=18
+11-24 09:21:00.084   712   789 D EGL_emulation: app_time_stats: avg=10338.45ms min=188.61ms max=20488.29ms count=2
+11-24 09:21:00.677  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+11-24 09:21:01.124  2140  2299 D EGL_emulation: app_time_stats: avg=48.41ms min=32.31ms max=78.68ms count=19
+11-24 09:21:02.159  2140  2299 D EGL_emulation: app_time_stats: avg=49.83ms min=30.56ms max=69.57ms count=19
+11-24 09:21:03.160  2140  2299 D EGL_emulation: app_time_stats: avg=49.08ms min=33.16ms max=64.07ms count=19
+11-24 09:21:04.041  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMy story\E']].
+11-24 09:21:04.043  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMy story\E'].
+11-24 09:21:04.099  2140  3996 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+11-24 09:21:04.105   908  2307 D androidtc: Initializing SystemTextClassifier, type = System
+11-24 09:21:04.186  2140  2299 D EGL_emulation: app_time_stats: avg=51.64ms min=28.58ms max=65.77ms count=19
+11-24 09:21:04.189  2140  2160 D UiDevice: Waiting 10000ms for SearchCondition[gone=BySelector [TEXT='reply']].
+11-24 09:21:04.189  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='reply'].
+11-24 09:21:04.306   500   500 D FlashNotifController: requestStartFlashNotification
+11-24 09:21:04.306   500   500 I FlashNotifController: startFlashNotification: type=1, tag=android
+11-24 09:21:04.306   500   500 D FlashNotifController: Flash notification is disabled
+11-24 09:21:04.321   712   787 D PeopleSpaceWidgetMgr: No app widget ids returned
+11-24 09:21:04.324   443  1727 D NuPlayerDriver: NuPlayerDriver(0x76a969c27f10) created, clientPid(712)
+11-24 09:21:04.330   136   136 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+11-24 09:21:04.331   443  1727 D MediaPlayerService: OMX service is not available
+11-24 09:21:04.383   712   789 D EGL_emulation: app_time_stats: avg=4299.01ms min=4299.01ms max=4299.01ms count=1
+11-24 09:21:04.390   712   787 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 09:21:04.393   712   787 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 09:21:04.397   443  6888 D GenericSource: FileSource remote
+11-24 09:21:04.430   500  1318 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/712 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@c809c43 callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+11-24 09:21:04.430   500  1318 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+11-24 09:21:04.930   443  6887 I GenericSource: start
+11-24 09:21:04.931   712   712 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 09:21:04.931   712   712 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 09:21:04.949   443  6892 D CCodec  : allocate(c2.android.vorbis.decoder)
+11-24 09:21:04.955   443  6892 I CCodec  : setting up 'default' as default (vendor) store
+11-24 09:21:04.956   443  6892 I CCodec  : Created component [c2.android.vorbis.decoder]
+11-24 09:21:04.956   443  6892 D CCodecConfig: read media type: audio/vorbis
+11-24 09:21:04.957   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+11-24 09:21:04.957   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+11-24 09:21:04.958   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+11-24 09:21:04.958   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+11-24 09:21:04.958   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+11-24 09:21:04.958   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+11-24 09:21:04.958   443  6892 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+11-24 09:21:04.962   443  6892 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 09:21:04.962   443  6892 D CCodecConfig: c2 config diff is Dict {
+11-24 09:21:04.962   443  6892 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+11-24 09:21:04.962   443  6892 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+11-24 09:21:04.962   443  6892 D CCodecConfig:   c2::u32 input.delay.value = 0
+11-24 09:21:04.962   443  6892 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+11-24 09:21:04.962   443  6892 D CCodecConfig:   string output.media-type.value = "audio/raw"
+11-24 09:21:04.962   443  6892 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+11-24 09:21:04.962   443  6892 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+11-24 09:21:04.962   443  6892 D CCodecConfig: }
+11-24 09:21:04.965   443  6892 D MediaCodec: flushMediametrics
+11-24 09:21:04.966   443  6892 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+11-24 09:21:04.966   443  6892 D CCodecConfig: no c2 equivalents for durationUs
+11-24 09:21:04.966   443  6892 D CCodecConfig: no c2 equivalents for csd-1
+11-24 09:21:04.966   443  6892 D CCodecConfig: no c2 equivalents for flags
+11-24 09:21:04.966   443  6892 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+11-24 09:21:04.967   443  6892 W Codec2Client: query -- param skipped: index = 1107298332.
+11-24 09:21:04.967   443  6892 D CCodec  : encoding statistics level = 0
+11-24 09:21:04.968   443  6892 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t bitrate = 70000
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t channel-count = 1
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t max-input-size = 32768
+11-24 09:21:04.968   443  6892 D CCodec  :   string mime = "audio/vorbis"
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t sample-rate = 48000
+11-24 09:21:04.968   443  6892 D CCodec  : }
+11-24 09:21:04.968   443  6892 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t channel-count = 1
+11-24 09:21:04.968   443  6892 D CCodec  :   string mime = "audio/raw"
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t sample-rate = 48000
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t channel-mask = 1
+11-24 09:21:04.968   443  6892 D CCodec  :   int32_t android._config-pcm-encoding = 2
+11-24 09:21:04.968   443  6892 D CCodec  : }
+11-24 09:21:04.968   443  6892 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 09:21:04.968   443  6892 I MediaCodec: MediaCodec will operate in async mode
+11-24 09:21:04.968   443  6891 D MediaCodec: keep callback message for reclaim
+11-24 09:21:04.969   443  6892 W Codec2Client: query -- param skipped: index = 1342179345.
+11-24 09:21:04.969   443  6892 W Codec2Client: query -- param skipped: index = 2415921170.
+11-24 09:21:04.970   457   801 D BufferPoolAccessor2.0: bufferpool2 0x7e59d0546c88 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 09:21:04.970   457   801 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x7e59d0546c88 cached: 0/0M, 0/0% in use; allocs: 97, 96% recycled; transfers: 96, 96% unfetched
+11-24 09:21:04.970   443  6892 D CCodecBufferChannel: [c2.android.vorbis.decoder#30] Created input block pool with allocatorID 16 => poolID 91 - OK (0)
+11-24 09:21:04.971   443  2335 D BufferPoolAccessor2.0: bufferpool2 0x76a839c324c8 : 0(0 size) total buffers - 0(0 size) used buffers - 94/102 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 09:21:04.971   443  2335 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x76a839c324c8 cached: 0/0M, 0/0% in use; allocs: 102, 92% recycled; transfers: 198, 96% unfetched
+11-24 09:21:04.971   443  6892 I CCodecBufferChannel: [c2.android.vorbis.decoder#30] Created output block pool with allocatorID 16 => poolID 113 - OK
+11-24 09:21:04.971   443  6892 D CCodecBufferChannel: [c2.android.vorbis.decoder#30] Configured output block pool ids 113 => OK
+11-24 09:21:04.972   457  6893 D SimpleC2Component: Using output block pool with poolID 113 => got 113 - 0
+11-24 09:21:04.979   380  5899 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+11-24 09:21:04.980   380  5899 D AF::TrackHandle: OpPlayAudio: track:147 usage:5 not muted
+11-24 09:21:04.983   380  5899 D audioserver: FGS Logger Transaction failed
+11-24 09:21:04.983   380  5899 D audioserver: -129
+11-24 09:21:04.985   443  6890 D AudioTrack: getTimestamp_l(107): device stall time corrected using current time 2025913970907
+11-24 09:21:05.200  2140  2299 D EGL_emulation: app_time_stats: avg=53.11ms min=33.02ms max=73.01ms count=18
+11-24 09:21:05.200   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(25)
+11-24 09:21:05.234   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(22)
+11-24 09:21:05.448   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(4)
+11-24 09:21:05.593   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(21)
+11-24 09:21:05.710   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(23)
+11-24 09:21:05.934   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(10)
+11-24 09:21:06.231   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(47)
+11-24 09:21:06.239  2140  2299 D EGL_emulation: app_time_stats: avg=52.12ms min=32.82ms max=83.57ms count=19
+11-24 09:21:06.420   443  6890 D AudioTrack: stop(107): called with 82980 frames delivered
+11-24 09:21:06.684   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(1)
+11-24 09:21:06.828   500  2561 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/712 clientId=android.media.AudioManager@c809c43
+11-24 09:21:06.828   712  6885 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+11-24 09:21:06.828   712  6885 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+11-24 09:21:06.828   443  1727 D NuPlayerDriver: reset(0x76a969c27f10) at state 6
+11-24 09:21:06.832   457   801 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:21:06.832   457   801 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:21:06.832   443  6892 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 09:21:06.833   443  6891 D MediaCodec: flushMediametrics
+11-24 09:21:06.833   443  6887 D NuPlayerDriver: notifyResetComplete(0x76a969c27f10)
+11-24 09:21:06.836   443  6891 W AMessage: failed to post message as target looper for handler 0 is gone.
+11-24 09:21:06.927   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:06.927   380   474 D audioserver: -129
+11-24 09:21:06.945   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:06.945   380   474 D audioserver: -129
+11-24 09:21:07.260  2140  2299 D EGL_emulation: app_time_stats: avg=47.57ms min=33.31ms max=64.65ms count=19
+11-24 09:21:07.521   712   712 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 09:21:07.543   712   789 D EGL_emulation: app_time_stats: avg=1579.93ms min=157.75ms max=3002.12ms count=2
+11-24 09:21:08.023  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMy story\E']].
+11-24 09:21:08.023  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMy story\E'].
+11-24 09:21:08.227  2140  2160 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QMy story\E'].
+11-24 09:21:08.278  2140  2160 D UiObject2: Clicking on (147, 527).
+11-24 09:21:08.279  2140  2160 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@1cfbc1; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(81, 506 - 213, 548); boundsInWindow: Rect(81, 506 - 213, 548); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: My story; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 09:21:08.299  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=147.0, y[0]=527.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2029207, downTime=2029207, deviceId=-1, source=0x1002, displayId=0, eventId=-517794169 }
+11-24 09:21:08.311  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=147.0, y[0]=527.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2029239, downTime=2029207, deviceId=-1, source=0x1002, displayId=0, eventId=-424515557 }
+11-24 09:21:08.324  2140  2299 D EGL_emulation: app_time_stats: avg=50.68ms min=28.06ms max=65.52ms count=19
+11-24 09:21:08.336   380  5899 D audioserver: FGS Logger Transaction failed
+11-24 09:21:08.336   380  5899 D audioserver: -129
+11-24 09:21:08.340  2140  2160 W GestureController: Gestures took longer than expected (61ms >> 16ms), device might be in a busy state.
+11-24 09:21:08.349  2140  2160 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='allow all|allow']].
+11-24 09:21:08.352  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='allow all|allow'].
+11-24 09:21:08.363   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(4)
+11-24 09:21:08.566   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:08.566   380   474 D audioserver: -129
+11-24 09:21:08.570   383   383 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 09:21:08.594  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: PAUSED
+11-24 09:21:08.660  1093  1093 D CompatibilityChangeReporter: Compat change id reported: 171228096; UID 10123; state: ENABLED
+11-24 09:21:08.662  1093  1093 D CompatibilityChangeReporter: Compat change id reported: 210923482; UID 10123; state: ENABLED
+11-24 09:21:08.728  1093  1093 W LOTTIE  : Animation contains merge paths. Merge paths are only supported on KitKat+ and must be manually enabled by calling enableMergePathsForKitKatAndAbove().
+11-24 09:21:08.739  1093  1093 W LOTTIE  : Animation contains merge paths but they are disabled.
+11-24 09:21:08.756  1093  1093 D CompatibilityChangeReporter: Compat change id reported: 237531167; UID 10123; state: DISABLED
+11-24 09:21:08.759   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.761   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.762   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.763   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.779   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.785   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.787   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.788   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.789   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.792   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.794   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.794   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.795   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.796   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.798   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.799   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.800   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.802   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.803   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.804   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.806   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.807   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.808   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.810   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.811   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.812   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.814   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.815   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.817   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.818   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.819   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.820   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.825   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.826   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.827   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.828   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.829   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.830   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.831   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.831   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.833   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.833   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.835   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.836   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.837   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.843   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.844   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.851   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.852   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.854   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.856   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.860   383   549 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10123 pid=0
+11-24 09:21:08.860   383   549 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10123 => denied (122 us)
+11-24 09:21:08.861   383   593 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10123 pid=1093
+11-24 09:21:08.861   383   593 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10123 => denied (536 us)
+11-24 09:21:08.861   383   593 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10123 pid=1093
+11-24 09:21:08.861   383   593 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10123 => denied (112 us)
+11-24 09:21:08.862   383   549 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10123 pid=0
+11-24 09:21:08.862   383   549 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10123 => denied (1708 us)
+11-24 09:21:08.879   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.883   500   568 W ServiceManagerCppClient: Permission failure: android.permission.ROTATE_SURFACE_FLINGER from uid=10123 pid=0
+11-24 09:21:08.883   500   568 D PermissionCache: checking android.permission.ROTATE_SURFACE_FLINGER for uid=10123 => denied (580 us)
+11-24 09:21:08.885   500   568 W ServiceManagerCppClient: Permission failure: android.permission.INTERNAL_SYSTEM_WINDOW from uid=10123 pid=0
+11-24 09:21:08.887   500   568 D PermissionCache: checking android.permission.INTERNAL_SYSTEM_WINDOW for uid=10123 => denied (210 us)
+11-24 09:21:08.887   500   568 W ServiceManagerCppClient: Permission failure: android.permission.ACCESS_SURFACE_FLINGER from uid=10123 pid=0
+11-24 09:21:08.887   500   568 D PermissionCache: checking android.permission.ACCESS_SURFACE_FLINGER for uid=10123 => denied (135 us)
+11-24 09:21:08.890   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.891   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.892   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.893   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.898   500   519 I ActivityTaskManager: Displayed com.android.permissioncontroller/.permission.ui.GrantPermissionsActivity for user 0: +389ms
+11-24 09:21:08.905   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.907   500  1486 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.933   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.934   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.939  1093  1093 I ImeTracker: com.android.permissioncontroller:b3b88e84: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 09:21:08.939   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.940   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.941   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.941   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.942   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.943   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.944  1093  1093 I ImeTracker: com.android.permissioncontroller:b3b88e84: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-24 09:21:08.945   500  2561 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.946   500  2561 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.947   500  2561 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.961   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.961   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.962   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.963   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.973   136   136 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+11-24 09:21:08.973  1093  1093 I Gralloc4: mapper 4.x is not supported
+11-24 09:21:08.998   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:08.999   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.000   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.001   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.001   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.003   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.003   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.004   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.004   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.007   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.007   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.008   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.012   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.013   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.013   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.014   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.014   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.019   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.051   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.089   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.125   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.126   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.130   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.130   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.131   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.131   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.132   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.132   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.134   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.135   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.135   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.135   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.139   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.139   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.140   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.140   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.142   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.143   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.143   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.148   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.149   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.149   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.153   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.154   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.154   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.155   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.155   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.156   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.156   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.159   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.160   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.160   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.164   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.165   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.165   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.166   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.167   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.167   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.170   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.171   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.171   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.174   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.174   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.175   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.176   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.176   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.177   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.177   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.179   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.217   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.217   500   905 I ImeTracker: com.android.permissioncontroller:6ffa3499: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_ALWAYS_HIDDEN_STATE
+11-24 09:21:09.218   500   905 I ImeTracker: com.android.permissioncontroller:6ffa3499: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:21:09.231   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.233   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.239   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.240   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.241   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.241   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.242   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.243   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.245   500   568 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.246   500   568 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.246   500   568 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.247   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.249   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.249   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.250   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.251   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.251   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.252   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.253   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.254   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.255   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.256   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.256   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.258   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.260   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.261   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.262   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.262   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.263   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.263   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.264   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.265   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.266   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.267   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.268   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.268   500   568 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.269   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.270   500  1486 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.272   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.273   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.274   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.275   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.276   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.277   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.277   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.278   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.279   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.280   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.281   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.281   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.282   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.283   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.283   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.284   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.285   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.286   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.286   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.288   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.289   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.290   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.291   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.291   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.292   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.293   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.294   500   905 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.295   500  2561 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.297   500  1919 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.297   500  1318 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.298   500  1486 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.299   500  2561 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.300   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.308   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.309   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.310   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.310   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.311   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.312   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.313   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.313   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.314   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.315   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.315   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.316   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.321   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.321   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.322   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.323   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.324   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.324   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.325   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.325   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.326   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.327   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.328   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.329   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.329   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.330   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.331   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.332   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.333   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.334   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.335   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.336   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.336   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.337   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.338   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.339   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.348   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.352   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.353   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.354   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.361   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.362   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.365   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.366   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.367   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.368   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.369   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.370   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.374   500  1507 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.374   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.377   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.378   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.380   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.382   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.385   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.386   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.386   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.389   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.390   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.392   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.392   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.393   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.393   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.394   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.394   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.396   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.397   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.397   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.399   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.399   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.400   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.402   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.404   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.406   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.406   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.410   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.410   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.411   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.412   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.413   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.414   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.415   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.415   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.416   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.416   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.416   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.417   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.418   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.420   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.421   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.422   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.423   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.424   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.425   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.741   500  2978 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:09.744  2140  2160 D UiDevice: Retrieving node with selector: BySelector [TEXT='allow all|allow'].
+11-24 09:21:09.748  2140  2160 D UiObject2: Clicking on (540, 1382).
+11-24 09:21:09.779  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=540.0, y[0]=1382.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2030676, downTime=2030676, deviceId=-1, source=0x1002, displayId=0, eventId=-351199188 }
+11-24 09:21:09.792  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=540.0, y[0]=1382.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2030716, downTime=2030676, deviceId=-1, source=0x1002, displayId=0, eventId=-728436937 }
+11-24 09:21:09.794  1093  1093 V GrantPermissionsViewModel: Logged buttons presented and clicked permissionGroupName=android.permission-group.READ_MEDIA_VISUAL uid=10141 selectedPrecision=0 package=com.telegramyou.app.debug presentedButtons=6152 clickedButton=2048 isPermissionRationaleShown=false sessionId=-2980432918194454413 targetSdk=35
+11-24 09:21:09.795   380  3831 D audioserver: FGS Logger Transaction failed
+11-24 09:21:09.795   380  3831 D audioserver: -129
+11-24 09:21:09.798  1330  1351 D MediaGrants: Removed 0 media_grants for 0 user for com.telegramyou.app.debug. Reason: Mode changed: android:read_external_storage
+11-24 09:21:09.801  1093  1093 V GrantPermissionsViewModel: Permission grant result requestId=-2980432918194454413 callingUid=10141 callingPackage=com.telegramyou.app.debug permission=android.permission.READ_MEDIA_IMAGES isImplicit=false result=4 isPermissionRationaleShown=false
+11-24 09:21:09.801  1093  1093 V GrantPermissionsViewModel: Permission grant result requestId=-2980432918194454413 callingUid=10141 callingPackage=com.telegramyou.app.debug permission=android.permission.READ_MEDIA_VISUAL_USER_SELECTED isImplicit=false result=4 isPermissionRationaleShown=false
+11-24 09:21:09.806  1330  1351 D MediaGrants: Removed 0 media_grants for 0 user for com.telegramyou.app.debug. Reason: Mode changed: android:read_external_storage
+11-24 09:21:09.807  1330  1351 D MediaGrants: Removed 0 media_grants for 0 user for com.telegramyou.app.debug. Reason: Mode changed: android:read_external_storage
+11-24 09:21:09.817  2140  2160 W GestureController: Gestures took longer than expected (69ms >> 16ms), device might be in a busy state.
+11-24 09:21:09.818  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QNew story\E']].
+11-24 09:21:09.818  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QNew story\E'].
+11-24 09:21:09.855  2140  2140 D CompatibilityChangeReporter: Compat change id reported: 78294732; UID 10141; state: ENABLED
+11-24 09:21:09.857  2140  2140 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@74ef5ab in: RESUMED
+11-24 09:21:09.941   500  3195 I ImeTracker: com.telegramyou.app.debug:a745be2: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 09:21:09.941   500  3195 I ImeTracker: com.telegramyou.app.debug:a745be2: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 09:21:09.965  2140  2160 W UiDevice: Skipping null root node for window: AccessibilityWindowInfo[title=Allow TelegramYou to access photos and videos on this device?, displayId=0, id=120, taskId=56, type=TYPE_APPLICATION, layer=0, region=SkRegion((28,746,1052,1718)), bounds=Rect(28, 746 - 1052, 1718), focused=true, active=true, pictureInPicture=false, transitionTime=2030165, hasParent=false, isAnchored=false, hasChildren=false]
+11-24 09:21:09.969  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@80006d36; boundsInParent: Rect(0, 0 - 1024, 972); boundsInScreen: Rect(28, 746 - 1052, 1718); boundsInWindow: Rect(28, 746 - 1052, 1718); packageName: com.android.permissioncontroller; className: android.widget.FrameLayout; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_SELECT - null, AccessibilityAction: ACTION_CLEAR_SELECTION - null, AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SHOW_ON_SCREEN - null]; isTextSelectable: false
+11-24 09:21:09.969  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:09.970  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@80006d36; boundsInParent: Rect(0, 0 - 1024, 972); boundsInScreen: Rect(28, 746 - 1052, 1718); boundsInWindow: Rect(28, 746 - 1052, 1718); packageName: com.android.permissioncontroller; className: android.widget.FrameLayout; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_SELECT - null, AccessibilityAction: ACTION_CLEAR_SELECTION - null, AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SHOW_ON_SCREEN - null]; isTextSelectable: false
+11-24 09:21:09.971  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:09.994   457   710 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 09:21:10.017  1093  1093 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.view.ViewRootImpl$$ExternalSyntheticLambda17@fbd6dc3
+11-24 09:21:10.018   500  3375 W InputManager-JNI: Input channel object '6a7b2ad com.android.permissioncontroller/com.android.permissioncontroller.permission.ui.GrantPermissionsActivity (client)' was disposed without first being removed with the input manager!
+11-24 09:21:10.021   443  2322 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 09:21:10.037   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:10.037   380   474 D audioserver: -129
+11-24 09:21:10.053  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-0 (1).png. Uid: 10141
+11-24 09:21:10.061  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-1 (1).png. Uid: 10141
+11-24 09:21:10.082  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-2 (1).png. Uid: 10141
+11-24 09:21:10.095  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-3 (1).png. Uid: 10141
+11-24 09:21:10.097  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-0.png. Uid: 10141
+11-24 09:21:10.125  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QNew story\E'].
+11-24 09:21:10.145  2140  3288 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 09:21:10.147  2140  2299 D EGL_emulation: app_time_stats: avg=364.68ms min=55.06ms max=1544.08ms count=5
+11-24 09:21:10.463  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QRecent photo\E']].
+11-24 09:21:10.463  2140  2160 D UiDevice: Searching for node with selector: BySelector [DESC='\QRecent photo\E'].
+11-24 09:21:10.472  2140  2160 D UiDevice: Retrieving nodes with selector: BySelector [DESC='\QRecent photo\E'].
+11-24 09:21:10.493  2140  2160 D UiObject2: Clicking on (721, 653).
+11-24 09:21:10.494  2140  2160 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@1d2262; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(509, 422 - 934, 884); boundsInWindow: Rect(509, 422 - 934, 884); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: Recent photo; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 09:21:10.499  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=721.0, y[0]=653.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2031422, downTime=2031422, deviceId=-1, source=0x1002, displayId=0, eventId=-142913547 }
+11-24 09:21:10.508  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=721.0, y[0]=653.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2031436, downTime=2031422, deviceId=-1, source=0x1002, displayId=0, eventId=-759570011 }
+11-24 09:21:10.514   380  3831 D audioserver: FGS Logger Transaction failed
+11-24 09:21:10.514   380  3831 D audioserver: -129
+11-24 09:21:10.524  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QStory picture\E']].
+11-24 09:21:10.524  2140  2160 D UiDevice: Searching for node with selector: BySelector [DESC='\QStory picture\E'].
+11-24 09:21:10.540   380   474 D AudioFlinger: mixer(0x742875ff5930) throttle end: throttle time(11)
+11-24 09:21:10.557  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-1 (1).png. Uid: 10141
+11-24 09:21:10.589  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMy contacts\E']].
+11-24 09:21:10.590  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMy contacts\E'].
+11-24 09:21:10.644  2140  2160 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QMy contacts\E'].
+11-24 09:21:10.665  2140  2160 D UiObject2: Clicking on (540, 1840).
+11-24 09:21:10.666  2140  2160 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@1d2759; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(439, 1814 - 641, 1867); boundsInWindow: Rect(439, 1814 - 641, 1867); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: My contacts; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 09:21:10.685  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=540.0, y[0]=1840.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2031594, downTime=2031594, deviceId=-1, source=0x1002, displayId=0, eventId=-240423292 }
+11-24 09:21:10.694  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=540.0, y[0]=1840.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2031622, downTime=2031594, deviceId=-1, source=0x1002, displayId=0, eventId=-625526569 }
+11-24 09:21:10.709  2140  2160 W GestureController: Gestures took longer than expected (43ms >> 16ms), device might be in a busy state.
+11-24 09:21:10.882   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:10.882   380   474 D audioserver: -129
+11-24 09:21:11.145  2127  2136 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 09:21:11.145  2127  2136 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 09:21:11.145  2127  2136 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 09:21:11.145  2127  2136 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 09:21:11.145  2127  2136 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 09:21:11.145  2127  2136 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 09:21:11.145  2127  2136 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 09:21:11.145  2127  2136 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 09:21:11.145  2127  2136 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 09:21:11.145  2127  2136 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 09:21:11.553  2360  4452 I AbstractFileContentProvider: file '/storage/emulated/0/googletest/test_outputfiles/68-new-story.png': found
+11-24 09:21:11.648  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QPost story\E']].
+11-24 09:21:11.648  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QPost story\E'].
+11-24 09:21:11.660  2140  2160 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QPost story\E'].
+11-24 09:21:11.665  2140  2160 D UiObject2: Clicking on (540, 2018).
+11-24 09:21:11.666  2140  2160 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@1d2870; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(456, 1992 - 625, 2045); boundsInWindow: Rect(456, 1992 - 625, 2045); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: Post story; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 09:21:11.687  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=540.0, y[0]=2018.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2032594, downTime=2032594, deviceId=-1, source=0x1002, displayId=0, eventId=-120478228 }
+11-24 09:21:11.702  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=540.0, y[0]=2018.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2032628, downTime=2032594, deviceId=-1, source=0x1002, displayId=0, eventId=-67197001 }
+11-24 09:21:11.703   380  5899 D audioserver: FGS Logger Transaction failed
+11-24 09:21:11.703   380  5899 D audioserver: -129
+11-24 09:21:11.740  2140  2160 W GestureController: Gestures took longer than expected (74ms >> 16ms), device might be in a busy state.
+11-24 09:21:11.743   500  3375 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:11.757  2140  2299 D EGL_emulation: app_time_stats: avg=143.43ms min=16.09ms max=884.11ms count=11
+11-24 09:21:11.923   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:11.923   380   474 D audioserver: -129
+11-24 09:21:11.994   457   710 D BufferPoolAccessor2.0: bufferpool2 0x7e59d0546c88 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 09:21:11.994   457   710 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 09:21:12.022   443  2322 D BufferPoolAccessor2.0: bufferpool2 0x76a839c334f8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/101 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 09:21:12.022   443  2322 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 09:21:12.334  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMaterial Design\E']].
+11-24 09:21:12.334  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:12.338  2140  2140 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@cca7b76
+11-24 09:21:12.469  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:12.724  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:12.762  2140  2299 D EGL_emulation: app_time_stats: avg=85.51ms min=24.63ms max=375.13ms count=11
+11-24 09:21:12.874  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:13.137  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:13.336  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:13.441  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMaterial Design\E']].
+11-24 09:21:13.441  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 09:21:13.777  2140  2299 D EGL_emulation: app_time_stats: avg=48.62ms min=33.46ms max=67.33ms count=19
+11-24 09:21:14.518  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QAdd story\E']].
+11-24 09:21:14.521  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QAdd story\E'].
+11-24 09:21:14.524   500  3375 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:14.795  2140  2299 D EGL_emulation: app_time_stats: avg=48.40ms min=34.30ms max=65.41ms count=19
+11-24 09:21:14.797   326  2327 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 37116032
+11-24 09:21:14.919  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMy story\E']].
+11-24 09:21:14.919  2140  2160 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMy story\E'].
+11-24 09:21:15.587  2140  2160 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QMy story\E'].
+11-24 09:21:15.680  2140  2160 D UiObject2: Clicking on (373, 527).
+11-24 09:21:15.680  2140  2160 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@1d3600; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(307, 506 - 439, 548); boundsInWindow: Rect(307, 506 - 439, 548); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: My story; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 09:21:15.740  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=373.0, y[0]=527.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2036609, downTime=2036609, deviceId=-1, source=0x1002, displayId=0, eventId=-429257759 }
+11-24 09:21:15.790  6794  6794 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=373.0, y[0]=527.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=2036709, downTime=2036609, deviceId=-1, source=0x1002, displayId=0, eventId=-720144244 }
+11-24 09:21:15.793   380  5899 D audioserver: FGS Logger Transaction failed
+11-24 09:21:15.793   380  5899 D audioserver: -129
+11-24 09:21:15.800  2140  2160 W GestureController: Gestures took longer than expected (119ms >> 16ms), device might be in a busy state.
+11-24 09:21:15.801  2140  2160 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QStory\E']].
+11-24 09:21:15.801  2140  2160 D UiDevice: Searching for node with selector: BySelector [DESC='\QStory\E'].
+11-24 09:21:15.851  2140  2299 D EGL_emulation: app_time_stats: avg=52.17ms min=35.09ms max=72.31ms count=19
+11-24 09:21:15.907  1330  1351 I MediaProvider: Open with lower FS for /storage/emulated/0/Pictures/smoke-1 (1).png. Uid: 10141
+11-24 09:21:16.004   380   474 D audioserver: FGS Logger Transaction failed
+11-24 09:21:16.004   380   474 D audioserver: -129
+11-24 09:21:16.169  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d39c1; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 574 - 1080, 700); boundsInWindow: Rect(0, 574 - 1080, 700); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.169  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.197  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d3e5b; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 721 - 1080, 2127); boundsInWindow: Rect(0, 721 - 1080, 2127); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: false; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.197  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.227  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d3e99; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(478, 606 - 604, 732); boundsInWindow: Rect(478, 606 - 604, 732); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: false; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.227  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.310  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d29a6; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 2127 - 1080, 2400); boundsInWindow: Rect(0, 2127 - 1080, 2400); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.311  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.382   712   789 D EGL_emulation: app_time_stats: avg=438561.72ms min=36.93ms max=1315540.38ms count=3
+11-24 09:21:16.392  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d39c1; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 574 - 1080, 700); boundsInWindow: Rect(0, 574 - 1080, 700); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.392  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.442  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d3e5b; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 721 - 1080, 2127); boundsInWindow: Rect(0, 721 - 1080, 2127); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: false; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.442  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.492  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d3e99; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(478, 606 - 604, 732); boundsInWindow: Rect(478, 606 - 604, 732); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: false; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.497  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.601  2140  2160 W ByMatcher: Node returned null child: android.view.accessibility.AccessibilityNodeInfo@1d29a6; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(0, 2127 - 1080, 2400); boundsInWindow: Rect(0, 2127 - 1080, 2400); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null]; isTextSelectable: false
+11-24 09:21:16.601  2140  2160 W ByMatcher: Skipping null child (0 of 1)
+11-24 09:21:16.744  2140  2160 D UiDevice: Searching for node with selector: BySelector [DESC='\QStory\E'].
+11-24 09:21:16.753   500  1151 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:16.868  2140  2299 D EGL_emulation: app_time_stats: avg=59.56ms min=28.89ms max=166.26ms count=16
+11-24 09:21:16.949  2127  2136 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 09:21:16.949  2127  2136 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 09:21:16.949  2127  2136 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 09:21:16.949  2127  2136 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 09:21:16.949  2127  2136 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 09:21:16.949  2127  2136 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 09:21:16.949  2127  2136 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 09:21:16.949  2127  2136 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 09:21:16.949  2127  2136 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 09:21:16.949  2127  2136 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 09:21:17.528   712   712 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 09:21:17.546  2360  4452 I AbstractFileContentProvider: file '/storage/emulated/0/googletest/test_outputfiles/75-my-story.png': found
+11-24 09:21:17.885  2140  2299 D EGL_emulation: app_time_stats: avg=53.02ms min=25.04ms max=87.00ms count=17
+11-24 09:21:18.025  2140  2160 D UiDevice: Pressing back button.
+11-24 09:21:18.153  2140  2140 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@cca7b76
+11-24 09:21:18.560   712   789 D EGL_emulation: app_time_stats: avg=2173.82ms min=2173.82ms max=2173.82ms count=1
+11-24 09:21:18.868   326  2327 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 37250944
+11-24 09:21:18.906  2140  2299 D EGL_emulation: app_time_stats: avg=64.54ms min=30.67ms max=205.85ms count=15
+11-24 09:21:19.141  2140  2160 W InteractionController: Timed out waiting 1000ms for command and events.
+11-24 09:21:19.142  2140  2160 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 1
+11-24 09:21:19.150   500  1919 D SafetySourceDataValidator: No cert check requested for package com.android.permissioncontroller
+11-24 09:21:19.173  2140  2160 D UiDevice: Setting orientation to natural.
+11-24 09:21:19.177  6794  6794 D CompatibilityChangeReporter: Compat change id reported: 150939131; UID 10112; state: ENABLED
+11-24 09:21:19.179  2140  2160 D UiDevice: Waiting 2000ms for Condition[displayRotation=0, displayId=0].
+11-24 09:21:19.181  2140  2160 D UiDevice: Unfreezing rotation.
+11-24 09:21:19.183  2140  2160 I TestRunner: finished: aStoryIsPostedFromMyStory(com.telegramyou.app.SmokeTest)

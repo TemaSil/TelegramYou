@@ -1,0 +1,652 @@
+11-24 08:54:23.737  2118  2138 I TestRunner: started: savedMessagesAreFilteredByTag(com.telegramyou.app.SmokeTest)
+11-24 08:54:23.747  2118  2138 D UiDevice: Executing shell command: wm size reset
+11-24 08:54:23.794  2118  2138 D UiDevice: Executing shell command: wm density reset
+11-24 08:54:23.827  2118  2138 D UiDevice: Executing shell command: cmd overlay enable-exclusive --user current --category com.android.internal.systemui.navbar.gestural
+11-24 08:54:23.874  2640  2640 I idmap2d : Starting
+11-24 08:54:23.877  2118  2118 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=android.app.Activity$$ExternalSyntheticLambda0@aa779e2
+11-24 08:54:23.878  2118  2118 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@812d2df in: DESTROYED
+11-24 08:54:23.882  2118  2138 D UiDevice: Executing shell command: cmd overlay list --user current
+11-24 08:54:23.883   504  1515 W InputManager-JNI: Input channel object '1d19128 com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal (client)' was disposed without first being removed with the input manager!
+11-24 08:54:23.902   504   514 W JavaBinder: BinderProxy is being destroyed but the application did not call unlinkToDeath to unlink all of its death recipients beforehand.  Releasing leaked death recipient: com.android.server.am.ActivityManagerService$14
+11-24 08:54:23.902   504   514 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:23.905   504   514 W JavaBinder: BinderProxy is being destroyed but the application did not call unlinkToDeath to unlink all of its death recipients beforehand.  Releasing leaked death recipient: com.android.server.input.InputManagerService$$ExternalSyntheticLambda7
+11-24 08:54:23.905   504   514 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:23.912   504   514 W JavaBinder: BinderProxy is being destroyed but the application did not call unlinkToDeath to unlink all of its death recipients beforehand.  Releasing leaked death recipient: com.android.server.am.ActivityManagerService$14
+11-24 08:54:23.913   504   514 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:23.913   504   514 W JavaBinder: BinderProxy is being destroyed but the application did not call unlinkToDeath to unlink all of its death recipients beforehand.  Releasing leaked death recipient: com.android.server.am.ActivityManagerService$14
+11-24 08:54:23.913   504   514 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:23.920  2118  2138 D UiDevice: Executing shell command: cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME
+11-24 08:54:23.961  2118  2138 D UiDevice: Executing shell command: am force-stop com.android.launcher3
+11-24 08:54:23.988   715   715 W OverviewProxyService: Service disconnected
+11-24 08:54:23.989   715   715 W OverviewProxyService: Binding died of 'ComponentInfo{com.android.launcher3/com.android.quickstep.TouchInteractionService}', try reconnecting
+11-24 08:54:23.989   715   715 W OverviewProxyService: Failed to connect on attempt 1 will try again in 1000ms
+11-24 08:54:24.005   504   526 E IPCThreadState: Binder transaction failure: 167811/29189/-3
+11-24 08:54:24.009   715   715 D OverviewProxyService: disconnectFromLauncherService bound?: true currentProxy: com.android.systemui.shared.recents.IOverviewProxy$Stub$Proxy@6fd1bd9 disconnectReason: runnable: startConnectionToCurrentUser
+11-24 08:54:24.009   715   715 D OverviewProxyService: java.lang.Throwable
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.disconnectFromLauncherService(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:37)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService.internalConnectToCurrentUser(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:1)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at com.android.systemui.recents.OverviewProxyService$$ExternalSyntheticLambda0.run(go/retraceme bb0c85583bc8cef368173602f8ea06d241ec8a7fed6aca80388046fe2c5dd77a:27)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at android.os.Handler.handleCallback(Handler.java:958)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at android.os.Handler.dispatchMessage(Handler.java:99)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at android.os.Looper.loopOnce(Looper.java:205)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at android.os.Looper.loop(Looper.java:294)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at android.app.ActivityThread.main(ActivityThread.java:8177)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at java.lang.reflect.Method.invoke(Native Method)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:552)
+11-24 08:54:24.009   715   715 D OverviewProxyService: 	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:971)
+11-24 08:54:24.013   504  1515 W InputManager-JNI: Input channel object 'ba04731 com.android.launcher3/com.android.launcher3.uioverrides.QuickstepLauncher (client)' was disposed without first being removed with the input manager!
+11-24 08:54:24.015   504  1815 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-24 08:54:24.015   504   689 W InputManager-JNI: Input channel object 'recents_animation_input_consumer (client)' was disposed without first being removed with the input manager!
+11-24 08:54:24.015   504   615 I ImeTracker: com.android.launcher3:21f6e52e: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_REMOVE_CLIENT
+11-24 08:54:24.016   504   615 I ImeTracker: com.android.launcher3:21f6e52e: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:54:24.020  2118  2138 D UiDevice: Executing shell command: am start -W -n com.android.launcher3/.uioverrides.QuickstepLauncher -a android.intent.action.MAIN -c android.intent.category.HOME
+11-24 08:54:24.029   326   326 I Zygote  : Process 2493 exited due to signal 9 (Killed)
+11-24 08:54:24.041   326   326 D Zygote  : Forked child process 2662
+11-24 08:54:24.044   388   388 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:24.062  2662  2662 I droid.launcher3: Using CollectorTypeCC GC.
+11-24 08:54:24.063  2662  2662 W droid.launcher3: Unexpected CPU variant for x86: x86_64.
+11-24 08:54:24.063  2662  2662 W droid.launcher3: Known variants: atom, sandybridge, silvermont, goldmont, goldmont-plus, tremont, kabylake, default
+11-24 08:54:24.078   859   859 D CarrierSvcBindHelper: onHandleForceStop: [com.android.launcher3]
+11-24 08:54:24.082   859   859 D CarrierSvcBindHelper: No carrier app for: 0
+11-24 08:54:24.086  2662  2662 E droid.launcher3: Not starting debugger since process cannot load the jdwp agent.
+11-24 08:54:24.102  2118  2138 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 0
+11-24 08:54:24.129  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 171979766; UID 10112; state: ENABLED
+11-24 08:54:24.129  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 242716250; UID 10112; state: ENABLED
+11-24 08:54:24.133  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 3400644; UID 10112; state: ENABLED
+11-24 08:54:24.141  2662  2662 D nativeloader: Configuring clns-shared-6 for other apk /system_ext/priv-app/Launcher3QuickStep/Launcher3QuickStep.apk. target_sdk_version=34, uses_libraries=, library_path=/system_ext/priv-app/Launcher3QuickStep/lib/x86_64:/system/lib64:/system_ext/lib64, permitted_path=/data:/mnt/expand:/data/user/0/com.android.launcher3:/system_ext/priv-app/Launcher3QuickStep:/system/lib64:/system_ext/lib64
+11-24 08:54:24.152  2118  2138 D UiDevice: Executing shell command: cmd uimode night yes
+11-24 08:54:24.152  2662  2662 V GraphicsEnvironment: Currently set values for:
+11-24 08:54:24.153  2662  2662 V GraphicsEnvironment:   angle_gl_driver_selection_pkgs=[]
+11-24 08:54:24.153  2662  2662 V GraphicsEnvironment:   angle_gl_driver_selection_values=[]
+11-24 08:54:24.153  2662  2662 V GraphicsEnvironment: ANGLE GameManagerService for com.android.launcher3: false
+11-24 08:54:24.153  2662  2662 V GraphicsEnvironment: com.android.launcher3 is not listed in per-application setting
+11-24 08:54:24.153  2662  2662 V GraphicsEnvironment: Neither updatable production driver nor prerelease driver is supported.
+11-24 08:54:24.157  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 183155436; UID 10112; state: ENABLED
+11-24 08:54:24.176  2118  2138 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+11-24 08:54:24.178  2118  2138 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+11-24 08:54:24.185  2662  2662 W WindowOnBackDispatcher: OnBackInvokedCallback is not enabled for the application.
+11-24 08:54:24.185  2662  2662 W WindowOnBackDispatcher: Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+11-24 08:54:24.191  2662  2662 D b/283944974: possibleMaximumWindowMetrics: [WindowMetrics:{bounds=Rect(0, 0 - 1080, 2400), windowInsets=WindowInsets{
+11-24 08:54:24.191  2662  2662 D b/283944974:     statusBars=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     navigationBars=Insets{left=0, top=0, right=0, bottom=63} max=Insets{left=0, top=0, right=0, bottom=63} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     captionBar=null max=null vis=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     ime=Insets{left=0, top=0, right=0, bottom=0} max=null vis=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     systemGestures=Insets{left=78, top=160, right=78, bottom=84} max=Insets{left=78, top=160, right=78, bottom=84} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     mandatorySystemGestures=Insets{left=0, top=160, right=0, bottom=84} max=Insets{left=0, top=160, right=0, bottom=84} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     tappableElement=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     displayCutout=Insets{left=0, top=128, right=0, bottom=0} max=Insets{left=0, top=128, right=0, bottom=0} vis=true
+11-24 08:54:24.191  2662  2662 D b/283944974:     windowDecor=null max=null vis=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     systemOverlays=null max=null vis=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     cutout=DisplayCutout{insets=Rect(0, 128 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(492, 0 - 610, 128), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2400 physicalDisplayWidth=1080 physicalDisplayHeight=2400 density={2.625} cutoutSpec={M 507,64 a 33,33 0 1 0 66,0 33,33 0 1 0 -66,0 Z @left} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}}}
+11-24 08:54:24.191  2662  2662 D b/283944974:     roundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=28, center=Point(28, 28)}, RoundedCorner{position=TopRight, radius=28, center=Point(1052, 28)}, RoundedCorner{position=BottomRight, radius=28, center=Point(1052, 2372)}, RoundedCorner{position=BottomLeft, radius=28, center=Point(28, 2372)}]}
+11-24 08:54:24.191  2662  2662 D b/283944974:     privacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(827, 0 - 1043, 128) rotation=0}
+11-24 08:54:24.191  2662  2662 D b/283944974:     displayShape=DisplayShape{ spec=-1893857183 displayWidth=1080 displayHeight=2400 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}
+11-24 08:54:24.191  2662  2662 D b/283944974:     suppressScrimTypes=navigationBars
+11-24 08:54:24.191  2662  2662 D b/283944974:     compatInsetsTypes=statusBars navigationBars captionBar systemOverlays
+11-24 08:54:24.191  2662  2662 D b/283944974:     compatIgnoreVisibility=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     systemWindowInsetsConsumed=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     stableInsetsConsumed=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     displayCutoutConsumed=false
+11-24 08:54:24.191  2662  2662 D b/283944974:     }, density=2.625}]
+11-24 08:54:24.193  2662  2701 D libEGL  : loaded /vendor/lib64/egl/libEGL_emulation.so
+11-24 08:54:24.199  2662  2662 I DisplayController: (CTOR) perDisplayBounds - CachedDisplayInfo{size=Point(1080, 2400), cutout=Rect(0, 128 - 0, 0), rotation=0}: [WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 63), availableSize=Point(1080, 2209), rotationHint=0}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(128, 74 - 0, 63), availableSize=Point(2272, 943), rotationHint=1}, WindowBounds{bounds=Rect(0, 0 - 1080, 2400), insets=Rect(0, 128 - 0, 128), availableSize=Point(1080, 2144), rotationHint=2}, WindowBounds{bounds=Rect(0, 0 - 2400, 1080), insets=Rect(0, 74 - 128, 63), availableSize=Point(2272, 943), rotationHint=3}]
+11-24 08:54:24.206  2662  2701 D libEGL  : loaded /vendor/lib64/egl/libGLESv1_CM_emulation.so
+11-24 08:54:24.211  2662  2701 D libEGL  : loaded /vendor/lib64/egl/libGLESv2_emulation.so
+11-24 08:54:24.212  2118  2138 D UiDevice: Pressing home button.
+11-24 08:54:24.246  2662  2695 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 08:54:24.255   135   135 I hwservicemanager: getTransport: Cannot find entry android.hardware.graphics.mapper@4.0::IMapper/default in either framework or device VINTF manifest.
+11-24 08:54:24.255  2662  2695 I Gralloc4: mapper 4.x is not supported
+11-24 08:54:24.264  2662  2695 E OpenGLRenderer: Unable to match the desired swap behavior.
+11-24 08:54:24.435  2662  2695 E FrameEvents: updateAcquireFence: Did not find frame.
+11-24 08:54:24.442  2662  2662 V Launcher: LauncherAppState initiated
+11-24 08:54:24.446  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 160794467; UID 10112; state: ENABLED
+11-24 08:54:24.450  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 171228096; UID 10112; state: ENABLED
+11-24 08:54:24.452  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 210923482; UID 10112; state: ENABLED
+11-24 08:54:24.454  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 147798919; UID 10112; state: ENABLED
+11-24 08:54:24.472  2662  2662 D b/267448330: provider: ComponentInfo{com.android.quicksearchbox/com.android.quicksearchbox.SearchWidgetProvider}, paddedSizes: [382.09525x132.95238, 382.09525x131.42857, 732.5714x56.38095, 732.5714x56.38095], getMinMaxSizes: Rect(382, 56 - 732, 132)
+11-24 08:54:24.485  2662  2662 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-24 08:54:24.492  2662  2702 D LoaderTask: loadWorkspace: loading default favorites
+11-24 08:54:24.497  2662  2662 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000000 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher }
+11-24 08:54:24.501  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 237531167; UID 10112; state: DISABLED
+11-24 08:54:24.503   715   715 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 08:54:24.504  2662  2662 W OpenGLRenderer: Unknown dataspace 0
+11-24 08:54:24.505   715   715 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 08:54:24.517  2662  2662 D b/254119092: TaskbarManager created
+11-24 08:54:24.517  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.518  2662  2662 D b/254119092: destroyExistingTaskbar: null
+11-24 08:54:24.518  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.518  2662  2662 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=false FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=null
+11-24 08:54:24.518  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.519  2662  2662 I OverviewComponentObserver: updateOverviewTargets: mIsHomeDisabled=false, isDefaultHomeNull=false, mIsDefaultHome=true
+11-24 08:54:24.521  2662  2662 D b/254119092: Set mActivity=com.android.launcher3.uioverrides.QuickstepLauncher@b827a31
+11-24 08:54:24.521  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.521  2662  2662 D b/254119092: destroyExistingTaskbar: null
+11-24 08:54:24.521  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.521  2662  2662 D b/254119092: recreateTaskbar: isTaskbarEnabled=false [dp != null (i.e. mUserUnlocked)]=true FLAG_HIDE_NAVBAR_WINDOW=false dp.isTaskbarPresent=false
+11-24 08:54:24.521  2662  2662 D b/254119092: mActivity and mContext agree taskbarIsPresent=false
+11-24 08:54:24.521  2662  2662 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: onNavigationModeChanged()
+11-24 08:54:24.528  2662  2719 W OpenGLRenderer: Failed to initialize 101010-2 format, error = EGL_SUCCESS
+11-24 08:54:24.531  2662  2662 D TouchInteractionService: Touch service connected: user=0
+11-24 08:54:24.533   715   715 D OverviewProxyService: Overview proxy service connected
+11-24 08:54:24.533   715   715 D OverviewProxyService: OverviewProxyService connected, initializing overview proxy
+11-24 08:54:24.536  2662  2662 D TouchInteractionService: Touch service connected: user=0
+11-24 08:54:24.586  2662  2700 I ImeTracker: com.android.launcher3:2c3e8577: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 08:54:24.586  2662  2700 I ImeTracker: com.android.launcher3:2c3e8577: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-24 08:54:24.697  2662  2662 D TISBindHelper: TIS service connected
+11-24 08:54:24.702  2662  2662 D TouchInteractionService: disposeEventHandlers: Reason: Initializing input monitor due to: TISBinder#onInitialize()
+11-24 08:54:24.704   504   689 W InputManager-JNI: Input channel object '[Gesture Monitor] swipe-up (client)' was disposed without first being removed with the input manager!
+11-24 08:54:24.805  2662  2702 D CompatibilityChangeReporter: Compat change id reported: 247079863; UID 10112; state: ENABLED
+11-24 08:54:24.847  2662  2702 D LoaderTask: loadWorkspace
+11-24 08:54:24.858  2662  2702 D LoaderTask: sanitizeData
+11-24 08:54:24.858  2662  2702 D LoaderTask: bindWorkspace
+11-24 08:54:24.864  2662  2702 D LoaderTask: sendFirstScreenActiveInstallsBroadcast
+11-24 08:54:25.219   504   523 I ActivityTaskManager: Displayed com.android.launcher3/.uioverrides.QuickstepLauncher for user 0: +1s216ms
+11-24 08:54:25.228   504  2358 I Process : Sending signal. PID: 2493 SIG: 9
+11-24 08:54:25.252   504   689 I ImeTracker: com.android.launcher3:f7e0b827: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:54:25.253   504   689 I ImeTracker: com.android.launcher3:f7e0b827: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:54:25.273   388   388 E BpTransactionCompletedListener: Failed to transact (-32)
+11-24 08:54:25.274   715   715 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 08:54:25.290   715  2483 D KeyguardService: setOccluded(false)
+11-24 08:54:25.291   715  2483 D KeyguardViewMediator: setOccluded(false)
+11-24 08:54:25.291   715   715 D KeyguardViewMediator: handleSetOccluded(false)
+11-24 08:54:25.490  2662  2662 D TaplTarget: Launcher.onNewIntent: Intent { act=android.intent.action.MAIN cat=[android.intent.category.HOME] flg=0x10000100 cmp=com.android.launcher3/.uioverrides.QuickstepLauncher (has extras) }
+11-24 08:54:25.492  2662  2702 D LoaderTask: step 1 complete
+11-24 08:54:25.503   715   715 I vol.VolumeDialogImpl: mDialog.dismiss() reason: volume_controller from: com.android.systemui.volume.VolumeDialogImpl$7.onDismissRequested:3
+11-24 08:54:25.747  2662  2702 D LoaderTask: loadAllApps
+11-24 08:54:25.747  2662  2702 D LoaderTask: bindAllApps
+11-24 08:54:25.753  2662  2702 D LoaderTask: update icon cache
+11-24 08:54:25.753  2662  2702 D LoaderTask: save shortcuts in icon cache
+11-24 08:54:25.753  2662  2702 D LoaderTask: step 2 complete
+11-24 08:54:25.754  2662  2702 D LoaderTask: loadDeepShortcuts
+11-24 08:54:25.755  2662  2702 D LoaderTask: bindDeepShortcuts
+11-24 08:54:25.755  2662  2702 D LoaderTask: save deep shortcuts in icon cache
+11-24 08:54:25.757  2662  2702 D LoaderTask: step 3 complete
+11-24 08:54:25.765   715   801 D SplashScreenView: Build android.window.SplashScreenView{2c90362 V.E...... ......ID 0,0-0,0}
+11-24 08:54:25.765   715   801 D SplashScreenView: Icon: view: null drawable: null size: 0
+11-24 08:54:25.765   715   801 D SplashScreenView: Branding: view: android.view.View{e6a7cf3 G.ED..... ......I. 0,0-0,0 #10204ef android:id/splashscreen_branding_view} drawable: null size w: 0 h: 0
+11-24 08:54:25.766  2118  2138 D UiDevice: Waiting 30000ms for SearchCondition[hasObject=BySelector [PKG='\Qcom.telegramyou.app.debug\E']].
+11-24 08:54:25.766  2118  2138 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-24 08:54:25.790   388   388 I BpBinder: onLastStrongRef automatically unlinking death recipients: 
+11-24 08:54:25.802  2662  2702 D LoaderTask: load widgets
+11-24 08:54:25.850  2662  2702 D LoaderTask: bindWidgets
+11-24 08:54:25.850  2662  2702 D LoaderTask: save widgets in icon cache
+11-24 08:54:25.900  2662  2702 D LoaderTask: finish icon update
+11-24 08:54:25.901  2662  2702 D QuickstepModelDelegate: Successfully registered for launcher snapshot logging!
+11-24 08:54:25.957   504   689 W Binder  : Caught a RuntimeException from the binder stub implementation.
+11-24 08:54:25.957   504   689 W Binder  : java.lang.SecurityException: Need REGISTER_STATS_PULL_ATOM permission.: Neither user 10112 nor current process has android.permission.REGISTER_STATS_PULL_ATOM.
+11-24 08:54:25.957   504   689 W Binder  : 	at android.app.ContextImpl.enforce(ContextImpl.java:2332)
+11-24 08:54:25.957   504   689 W Binder  : 	at android.app.ContextImpl.enforceCallingOrSelfPermission(ContextImpl.java:2360)
+11-24 08:54:25.957   504   689 W Binder  : 	at com.android.server.stats.StatsManagerService.enforceRegisterStatsPullAtomPermission(StatsManagerService.java:644)
+11-24 08:54:25.957   504   689 W Binder  : 	at com.android.server.stats.StatsManagerService.registerPullAtomCallback(StatsManagerService.java:212)
+11-24 08:54:25.957   504   689 W Binder  : 	at android.os.IStatsManagerService$Stub.onTransact(IStatsManagerService.java:418)
+11-24 08:54:25.957   504   689 W Binder  : 	at android.os.Binder.execTransactInternal(Binder.java:1344)
+11-24 08:54:25.957   504   689 W Binder  : 	at android.os.Binder.execTransact(Binder.java:1275)
+11-24 08:54:26.035  2118  2118 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@790e442 in: PRE_ON_CREATE
+11-24 08:54:26.221  2118  2118 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@790e442 in: CREATED
+11-24 08:54:26.227  2118  2118 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@790e442 in: STARTED
+11-24 08:54:26.258  2118  2118 D LifecycleMonitor: Lifecycle status change: com.telegramyou.app.MainActivity@790e442 in: RESUMED
+11-24 08:54:26.259  2118  2138 D UiDevice: Searching for node with selector: BySelector [PKG='\Qcom.telegramyou.app.debug\E'].
+11-24 08:54:26.518  2118  2118 D AutofillManager: Fill dialog is enabled:false, hints=[]
+11-24 08:54:26.606  2118  2118 I ImeTracker: com.telegramyou.app.debug:db4eb5a8: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 08:54:26.606  2118  2118 I ImeTracker: com.telegramyou.app.debug:db4eb5a8: onFailed at PHASE_CLIENT_VIEW_SERVED
+11-24 08:54:26.607  2118  2118 I ImeTracker: com.telegramyou.app.debug:83030744: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT_BY_INSETS_API
+11-24 08:54:26.607  2118  2118 I ImeTracker: com.telegramyou.app.debug:83030744: onCancelled at PHASE_CLIENT_APPLY_ANIMATION
+11-24 08:54:26.720   504   523 W ziparchive: Unable to open '/data/app/~~tpYrZ-kvt9QuYJeZhLVPcA==/com.telegramyou.app.debug-M1bUTDBZh12nk-qfQSMsLg==/base.dm': No such file or directory
+11-24 08:54:26.721   504   523 I ActivityTaskManager: Displayed com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal for user 0: +962ms
+11-24 08:54:26.754   504   689 W InputManager-JNI: Input channel object 'd9c4a25 Splash Screen com.telegramyou.app.debug (client)' was disposed without first being removed with the input manager!
+11-24 08:54:26.770  2662  2700 I ImeTracker: com.android.launcher3:29fc89aa: onRequestHide at ORIGIN_CLIENT_HIDE_SOFT_INPUT reason HIDE_SOFT_INPUT
+11-24 08:54:26.771   504   615 I ImeTracker: com.android.launcher3:29fc89aa: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:54:27.137   504  2659 I ImeTracker: com.telegramyou.app.debug:dcb95bd1: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:54:27.138   504  2659 I ImeTracker: com.telegramyou.app.debug:dcb95bd1: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:54:27.507  2118  2125 W amyou.app.debug: Cleared Reference was only reachable from finalizer (only reported once)
+11-24 08:54:27.512  2118  2125 I amyou.app.debug: Background concurrent copying GC freed 319567(11MB) AllocSpace objects, 8(304KB) LOS objects, 50% free, 18MB/36MB, paused 37us,41us total 218.406ms
+11-24 08:54:28.163  2118  2277 D EGL_emulation: app_time_stats: avg=71.83ms min=34.68ms max=414.95ms count=19
+11-24 08:54:29.196  2118  2277 D EGL_emulation: app_time_stats: avg=50.63ms min=31.75ms max=71.14ms count=19
+11-24 08:54:30.202  2118  2277 D EGL_emulation: app_time_stats: avg=50.00ms min=28.27ms max=71.95ms count=19
+11-24 08:54:31.240  2118  2277 D EGL_emulation: app_time_stats: avg=50.93ms min=32.05ms max=70.76ms count=19
+11-24 08:54:32.286  2118  2277 D EGL_emulation: app_time_stats: avg=48.86ms min=31.78ms max=64.70ms count=20
+11-24 08:54:33.265  2118  2146 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+11-24 08:54:33.272   893  2286 D androidtc: Initializing SystemTextClassifier, type = System
+11-24 08:54:33.317  2118  2277 D EGL_emulation: app_time_stats: avg=50.32ms min=34.84ms max=65.40ms count=19
+11-24 08:54:33.480   504   504 D FlashNotifController: requestStartFlashNotification
+11-24 08:54:33.481   504   504 I FlashNotifController: startFlashNotification: type=1, tag=android
+11-24 08:54:33.481   504   504 D FlashNotifController: Flash notification is disabled
+11-24 08:54:33.496   451  1883 D NuPlayerDriver: NuPlayerDriver(0x708d3cef7310) created, clientPid(715)
+11-24 08:54:33.497   135   135 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+11-24 08:54:33.498   715   807 D PeopleSpaceWidgetMgr: No app widget ids returned
+11-24 08:54:33.498   451  1883 D MediaPlayerService: OMX service is not available
+11-24 08:54:33.520   715   809 D EGL_emulation: app_time_stats: avg=12552.88ms min=57.85ms max=25047.92ms count=2
+11-24 08:54:33.523   451  2736 D GenericSource: FileSource remote
+11-24 08:54:33.580   715   807 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 08:54:33.596   715   807 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 08:54:33.598   504  2659 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/715 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@49ac858 callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+11-24 08:54:33.600   504  2659 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+11-24 08:54:33.838  2118  2138 D UiDevice: Waiting 20000ms for SearchCondition[gone=BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E']].
+11-24 08:54:33.839  2118  2138 D UiDevice: Searching for node with selector: BySelector [RES='\Qcom.android.launcher3:id/taskbar_view\E'].
+11-24 08:54:34.109   715   715 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 08:54:34.109   715   715 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 08:54:34.121   451  2735 I GenericSource: start
+11-24 08:54:34.136   451  2740 D CCodec  : allocate(c2.android.vorbis.decoder)
+11-24 08:54:34.137   451  2740 I CCodec  : setting up 'default' as default (vendor) store
+11-24 08:54:34.140   451  2740 I CCodec  : Created component [c2.android.vorbis.decoder]
+11-24 08:54:34.140   451  2740 D CCodecConfig: read media type: audio/vorbis
+11-24 08:54:34.141   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+11-24 08:54:34.143   451  2740 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+11-24 08:54:34.144   451  2740 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 08:54:34.144   451  2740 D CCodecConfig: c2 config diff is Dict {
+11-24 08:54:34.144   451  2740 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+11-24 08:54:34.144   451  2740 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+11-24 08:54:34.144   451  2740 D CCodecConfig:   c2::u32 input.delay.value = 0
+11-24 08:54:34.144   451  2740 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+11-24 08:54:34.144   451  2740 D CCodecConfig:   string output.media-type.value = "audio/raw"
+11-24 08:54:34.144   451  2740 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+11-24 08:54:34.144   451  2740 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+11-24 08:54:34.144   451  2740 D CCodecConfig: }
+11-24 08:54:34.145   451  2740 D MediaCodec: flushMediametrics
+11-24 08:54:34.145   451  2740 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+11-24 08:54:34.145   451  2740 D CCodecConfig: no c2 equivalents for durationUs
+11-24 08:54:34.145   451  2740 D CCodecConfig: no c2 equivalents for csd-1
+11-24 08:54:34.145   451  2740 D CCodecConfig: no c2 equivalents for flags
+11-24 08:54:34.145   451  2740 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+11-24 08:54:34.146   451  2740 W Codec2Client: query -- param skipped: index = 1107298332.
+11-24 08:54:34.146   451  2740 D CCodec  : encoding statistics level = 0
+11-24 08:54:34.146   451  2740 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t bitrate = 70000
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t channel-count = 1
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t max-input-size = 32768
+11-24 08:54:34.146   451  2740 D CCodec  :   string mime = "audio/vorbis"
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t sample-rate = 48000
+11-24 08:54:34.146   451  2740 D CCodec  : }
+11-24 08:54:34.146   451  2740 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t channel-count = 1
+11-24 08:54:34.146   451  2740 D CCodec  :   string mime = "audio/raw"
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t sample-rate = 48000
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t channel-mask = 1
+11-24 08:54:34.146   451  2740 D CCodec  :   int32_t android._config-pcm-encoding = 2
+11-24 08:54:34.146   451  2740 D CCodec  : }
+11-24 08:54:34.146   451  2740 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 08:54:34.146   451  2740 I MediaCodec: MediaCodec will operate in async mode
+11-24 08:54:34.147   451  2739 D MediaCodec: keep callback message for reclaim
+11-24 08:54:34.147   451  2740 W Codec2Client: query -- param skipped: index = 1342179345.
+11-24 08:54:34.147   451  2740 W Codec2Client: query -- param skipped: index = 2415921170.
+11-24 08:54:34.148   458  2572 D BufferPoolAccessor2.0: bufferpool2 0x7cbf5de2bea8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 08:54:34.148   458  2572 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x7cbf5de2bea8 cached: 0/0M, 0/0% in use; allocs: 97, 96% recycled; transfers: 96, 96% unfetched
+11-24 08:54:34.148   451  2740 D CCodecBufferChannel: [c2.android.vorbis.decoder#712] Created input block pool with allocatorID 16 => poolID 22 - OK (0)
+11-24 08:54:34.149   451  2309 D BufferPoolAccessor2.0: bufferpool2 0x708d5cef4a68 : 0(0 size) total buffers - 0(0 size) used buffers - 93/101 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 08:54:34.149   451  2309 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x708d5cef4a68 cached: 0/0M, 0/0% in use; allocs: 101, 92% recycled; transfers: 198, 96% unfetched
+11-24 08:54:34.149   451  2740 I CCodecBufferChannel: [c2.android.vorbis.decoder#712] Created output block pool with allocatorID 16 => poolID 33 - OK
+11-24 08:54:34.149   451  2740 D CCodecBufferChannel: [c2.android.vorbis.decoder#712] Configured output block pool ids 33 => OK
+11-24 08:54:34.150   458  2741 D SimpleC2Component: Using output block pool with poolID 33 => got 33 - 0
+11-24 08:54:34.156   384   981 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+11-24 08:54:34.157   384   981 D AF::TrackHandle: OpPlayAudio: track:64 usage:5 not muted
+11-24 08:54:34.165   384   981 D audioserver: FGS Logger Transaction failed
+11-24 08:54:34.165   384   981 D audioserver: -129
+11-24 08:54:34.167   451  2738 D AudioTrack: getTimestamp_l(24): device stall time corrected using current time 437979338293
+11-24 08:54:34.355   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(2)
+11-24 08:54:34.363  2118  2277 D EGL_emulation: app_time_stats: avg=52.03ms min=31.68ms max=72.69ms count=19
+11-24 08:54:34.445   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(17)
+11-24 08:54:34.578   715   715 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 08:54:34.810   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(3)
+11-24 08:54:34.989   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(14)
+11-24 08:54:35.102   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(7)
+11-24 08:54:35.216   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(17)
+11-24 08:54:35.329   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(11)
+11-24 08:54:35.364  2118  2277 D EGL_emulation: app_time_stats: avg=51.75ms min=33.42ms max=78.40ms count=18
+11-24 08:54:35.660   451  2740 D CCodecBufferChannel: [c2.android.vorbis.decoder#712] buffers after EOS ignored (0 us)
+11-24 08:54:35.660   451  2740 D CCodecBufferChannel: [c2.android.vorbis.decoder#712] buffers after EOS ignored (0 us)
+11-24 08:54:35.660   451  2740 D CCodecBufferChannel: [c2.android.vorbis.decoder#712] buffers after EOS ignored (0 us)
+11-24 08:54:35.661   451  2738 D AudioTrack: stop(24): called with 82980 frames delivered
+11-24 08:54:35.696   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(27)
+11-24 08:54:35.971   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(37)
+11-24 08:54:36.016   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(8)
+11-24 08:54:36.056   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(15)
+11-24 08:54:36.106   504  2659 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/715 clientId=android.media.AudioManager@49ac858
+11-24 08:54:36.106   715  2733 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+11-24 08:54:36.106   715  2733 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+11-24 08:54:36.106   451  1883 D NuPlayerDriver: reset(0x708d3cef7310) at state 6
+11-24 08:54:36.110   451  2735 D NuPlayerDriver: notifyResetComplete(0x708d3cef7310)
+11-24 08:54:36.111   451  2739 W AMessage: failed to post message as target looper for handler 0 is gone.
+11-24 08:54:36.112   451  2740 D MediaCodec: flushMediametrics
+11-24 08:54:36.112   458  2572 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:54:36.112   458  2572 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:54:36.112   451  2743 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:54:36.169   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:54:36.169   384   490 D audioserver: -129
+11-24 08:54:36.192   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:54:36.192   384   490 D audioserver: -129
+11-24 08:54:36.378  2118  2277 D EGL_emulation: app_time_stats: avg=50.01ms min=30.94ms max=68.94ms count=19
+11-24 08:54:37.406  2118  2277 D EGL_emulation: app_time_stats: avg=51.33ms min=33.75ms max=74.06ms count=19
+11-24 08:54:38.447  2118  2277 D EGL_emulation: app_time_stats: avg=49.69ms min=30.90ms max=74.49ms count=19
+11-24 08:54:39.058   331  2306 D android.hardware.audio@7.1-impl.ranchu: threadLoop: entering standby, frames: 2245632
+11-24 08:54:39.117  2118  2138 D UiDevice: Executing shell command: pm grant com.telegramyou.app.debug android.permission.POST_NOTIFICATIONS
+11-24 08:54:39.126  2118  2138 W UiAutomation: UiAutomation.grantRuntimePermission() is more robust and should be used instead of 'pm grant'
+11-24 08:54:39.149   451  2301 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 08:54:39.158   458   713 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 08:54:39.233  2118  2138 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='\QYour phone\E']].
+11-24 08:54:39.233  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+11-24 08:54:39.498  2118  2277 D EGL_emulation: app_time_stats: avg=51.70ms min=33.34ms max=76.40ms count=19
+11-24 08:54:40.173   458   713 D BufferPoolAccessor2.0: bufferpool2 0x7cbf5de2bea8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 08:54:40.173   458   713 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 08:54:40.499  2118  2277 D EGL_emulation: app_time_stats: avg=48.45ms min=31.88ms max=60.69ms count=19
+11-24 08:54:41.150   451  2301 D BufferPoolAccessor2.0: bufferpool2 0x708d5cef2318 : 0(0 size) total buffers - 0(0 size) used buffers - 96/104 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 08:54:41.150   451  2301 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 08:54:41.504  2118  2277 D EGL_emulation: app_time_stats: avg=47.43ms min=30.60ms max=66.73ms count=19
+11-24 08:54:42.563  2118  2277 D EGL_emulation: app_time_stats: avg=49.18ms min=33.03ms max=67.38ms count=20
+11-24 08:54:43.269  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QYour phone\E'].
+11-24 08:54:43.631  2118  2277 D EGL_emulation: app_time_stats: avg=50.90ms min=36.71ms max=67.26ms count=19
+11-24 08:54:44.500   715   715 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 08:54:44.662  2118  2277 D EGL_emulation: app_time_stats: avg=50.64ms min=29.09ms max=70.90ms count=19
+11-24 08:54:45.691  2118  2277 D EGL_emulation: app_time_stats: avg=49.53ms min=32.47ms max=71.85ms count=19
+11-24 08:54:46.700  2118  2277 D EGL_emulation: app_time_stats: avg=47.08ms min=31.32ms max=60.16ms count=19
+11-24 08:54:47.734  2118  2277 D EGL_emulation: app_time_stats: avg=50.54ms min=29.26ms max=70.80ms count=19
+11-24 08:54:48.051  2118  2138 D UiDevice: Waiting 4000ms for SearchCondition[hasObject=BySelector [TEXT='allow']].
+11-24 08:54:48.053  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+11-24 08:54:48.774  2118  2277 D EGL_emulation: app_time_stats: avg=50.58ms min=29.30ms max=69.10ms count=19
+11-24 08:54:49.787  2118  2277 D EGL_emulation: app_time_stats: avg=50.56ms min=33.84ms max=74.04ms count=19
+11-24 08:54:50.793  2118  2277 D EGL_emulation: app_time_stats: avg=51.80ms min=27.61ms max=80.30ms count=18
+11-24 08:54:51.819  2118  2277 D EGL_emulation: app_time_stats: avg=50.34ms min=26.24ms max=71.06ms count=19
+11-24 08:54:52.851  2118  2277 D EGL_emulation: app_time_stats: avg=50.41ms min=35.37ms max=72.03ms count=19
+11-24 08:54:53.496  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='allow'].
+11-24 08:54:53.892  2118  2277 D EGL_emulation: app_time_stats: avg=49.73ms min=33.61ms max=64.63ms count=19
+11-24 08:54:54.525   715   715 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 08:54:54.579   715   809 D EGL_emulation: app_time_stats: avg=10529.35ms min=163.26ms max=20895.45ms count=2
+11-24 08:54:54.921  2118  2277 D EGL_emulation: app_time_stats: avg=50.51ms min=32.13ms max=71.70ms count=19
+11-24 08:54:55.962  2118  2277 D EGL_emulation: app_time_stats: avg=49.88ms min=33.20ms max=64.77ms count=19
+11-24 08:54:57.004  2118  2277 D EGL_emulation: app_time_stats: avg=49.96ms min=34.52ms max=68.17ms count=20
+11-24 08:54:57.107  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QMaterial Design\E']].
+11-24 08:54:57.108  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QMaterial Design\E'].
+11-24 08:54:58.013  2118  2277 D EGL_emulation: app_time_stats: avg=52.33ms min=34.02ms max=72.28ms count=18
+11-24 08:54:58.255  2118  2147 W Notification: Bubbles work best with icons of TYPE_URI or TYPE_URI_ADAPTIVE_BITMAP. In the future, using an icon of this type will be required.
+11-24 08:54:58.263   893  2286 D androidtc: Initializing SystemTextClassifier, type = System
+11-24 08:54:58.461   504   504 D FlashNotifController: requestStartFlashNotification
+11-24 08:54:58.462   504   504 I FlashNotifController: startFlashNotification: type=1, tag=android
+11-24 08:54:58.462   504   504 D FlashNotifController: Flash notification is disabled
+11-24 08:54:58.498   715   807 D PeopleSpaceWidgetMgr: No app widget ids returned
+11-24 08:54:58.536   715   809 D EGL_emulation: app_time_stats: avg=3956.23ms min=3956.23ms max=3956.23ms count=1
+11-24 08:54:58.538   451  1883 D NuPlayerDriver: NuPlayerDriver(0x708d3cefa410) created, clientPid(715)
+11-24 08:54:58.538   135   135 I hwservicemanager: getTransport: Cannot find entry android.hardware.media.omx@1.0::IOmx/default in either framework or device VINTF manifest.
+11-24 08:54:58.539   451  1883 D MediaPlayerService: OMX service is not available
+11-24 08:54:58.542   715   807 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 08:54:58.568   715   807 D LocalImageResolver: Couldn't use ImageDecoder for drawable, falling back to non-resized load.
+11-24 08:54:58.656  2118  2138 D UiDevice: Waiting 10000ms for SearchCondition[gone=BySelector [TEXT='reply']].
+11-24 08:54:58.657  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='reply'].
+11-24 08:54:58.660   451  2754 D GenericSource: FileSource remote
+11-24 08:54:58.674   504  2358 I MediaFocusControl: requestAudioFocus() from uid/pid 10117/715 AA=USAGE_NOTIFICATION/CONTENT_TYPE_SONIFICATION clientId=android.media.AudioManager@199a5cc callingPack=com.android.systemui req=3 flags=0x0 sdk=34
+11-24 08:54:58.675   504  2358 I AudioService.FadeOutManager: unfadeOutUid() uid:10117
+11-24 08:54:59.049  2118  2277 D EGL_emulation: app_time_stats: avg=54.80ms min=36.10ms max=92.52ms count=18
+11-24 08:54:59.201   715   715 D MediaRouter: onRestoreRoute() : route=RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 08:54:59.201   715   715 V MediaRouter: Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+11-24 08:54:59.203   451  2753 I GenericSource: start
+11-24 08:54:59.227   451  2758 D CCodec  : allocate(c2.android.vorbis.decoder)
+11-24 08:54:59.228   451  2758 I CCodec  : setting up 'default' as default (vendor) store
+11-24 08:54:59.229   451  2758 I CCodec  : Created component [c2.android.vorbis.decoder]
+11-24 08:54:59.230   451  2758 D CCodecConfig: read media type: audio/vorbis
+11-24 08:54:59.231   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.max-count.values
+11-24 08:54:59.232   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: output.subscribed-indices.values
+11-24 08:54:59.232   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: input.buffers.allocator-ids.values
+11-24 08:54:59.233   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.allocator-ids.values
+11-24 08:54:59.233   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.allocator-ids.values
+11-24 08:54:59.233   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: output.buffers.pool-ids.values
+11-24 08:54:59.233   451  2758 D ReflectedParamUpdater: extent() != 1 for single value type: algo.buffers.pool-ids.values
+11-24 08:54:59.234   451  2758 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 08:54:59.234   451  2758 D CCodecConfig: c2 config diff is Dict {
+11-24 08:54:59.234   451  2758 D CCodecConfig:   c2::u32 coded.bitrate.value = 64000
+11-24 08:54:59.234   451  2758 D CCodecConfig:   c2::u32 input.buffers.max-size.value = 32768
+11-24 08:54:59.234   451  2758 D CCodecConfig:   c2::u32 input.delay.value = 0
+11-24 08:54:59.234   451  2758 D CCodecConfig:   string input.media-type.value = "audio/vorbis"
+11-24 08:54:59.234   451  2758 D CCodecConfig:   string output.media-type.value = "audio/raw"
+11-24 08:54:59.234   451  2758 D CCodecConfig:   c2::u32 raw.channel-count.value = 1
+11-24 08:54:59.234   451  2758 D CCodecConfig:   c2::u32 raw.sample-rate.value = 48000
+11-24 08:54:59.234   451  2758 D CCodecConfig: }
+11-24 08:54:59.236   451  2758 D MediaCodec: flushMediametrics
+11-24 08:54:59.236   451  2758 D CCodec  : [c2.android.vorbis.decoder] buffers are bound to CCodec for this session
+11-24 08:54:59.236   451  2758 D CCodecConfig: no c2 equivalents for durationUs
+11-24 08:54:59.236   451  2758 D CCodecConfig: no c2 equivalents for csd-1
+11-24 08:54:59.236   451  2758 D CCodecConfig: no c2 equivalents for flags
+11-24 08:54:59.237   451  2758 D CCodecConfig: c2 config diff is   c2::u32 coded.bitrate.value = 70000
+11-24 08:54:59.237   451  2758 W Codec2Client: query -- param skipped: index = 1107298332.
+11-24 08:54:59.237   451  2758 D CCodec  : encoding statistics level = 0
+11-24 08:54:59.237   451  2758 D CCodec  : setup formats input: AMessage(what = 0x00000000) = {
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t bitrate = 70000
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t channel-count = 1
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t max-input-size = 32768
+11-24 08:54:59.237   451  2758 D CCodec  :   string mime = "audio/vorbis"
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t sample-rate = 48000
+11-24 08:54:59.237   451  2758 D CCodec  : }
+11-24 08:54:59.237   451  2758 D CCodec  : setup formats output: AMessage(what = 0x00000000) = {
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t channel-count = 1
+11-24 08:54:59.237   451  2758 D CCodec  :   string mime = "audio/raw"
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t sample-rate = 48000
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t channel-mask = 1
+11-24 08:54:59.237   451  2758 D CCodec  :   int32_t android._config-pcm-encoding = 2
+11-24 08:54:59.237   451  2758 D CCodec  : }
+11-24 08:54:59.237   451  2758 I CCodecConfig: query failed after returning 7 values (BAD_INDEX)
+11-24 08:54:59.237   451  2758 I MediaCodec: MediaCodec will operate in async mode
+11-24 08:54:59.237   451  2757 D MediaCodec: keep callback message for reclaim
+11-24 08:54:59.238   451  2758 W Codec2Client: query -- param skipped: index = 1342179345.
+11-24 08:54:59.238   451  2758 W Codec2Client: query -- param skipped: index = 2415921170.
+11-24 08:54:59.238   458  2572 D BufferPoolAccessor2.0: bufferpool2 0x7cbf5de2bea8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 08:54:59.238   458  2572 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x7cbf5de2bea8 cached: 0/0M, 0/0% in use; allocs: 97, 96% recycled; transfers: 96, 96% unfetched
+11-24 08:54:59.239   451  2758 D CCodecBufferChannel: [c2.android.vorbis.decoder#713] Created input block pool with allocatorID 16 => poolID 23 - OK (0)
+11-24 08:54:59.239   451  2590 D BufferPoolAccessor2.0: bufferpool2 0x708d5cef2318 : 0(0 size) total buffers - 0(0 size) used buffers - 96/104 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 08:54:59.239   451  2590 D BufferPoolAccessor2.0: Destruction - bufferpool2 0x708d5cef2318 cached: 0/0M, 0/0% in use; allocs: 104, 92% recycled; transfers: 198, 96% unfetched
+11-24 08:54:59.239   451  2758 I CCodecBufferChannel: [c2.android.vorbis.decoder#713] Created output block pool with allocatorID 16 => poolID 34 - OK
+11-24 08:54:59.240   451  2758 D CCodecBufferChannel: [c2.android.vorbis.decoder#713] Configured output block pool ids 34 => OK
+11-24 08:54:59.244   458  2759 D SimpleC2Component: Using output block pool with poolID 34 => got 34 - 0
+11-24 08:54:59.249   384   878 D AudioFlinger: Client defaulted notificationFrames to 12512 for frameCount 25024
+11-24 08:54:59.252   384   878 D AF::TrackHandle: OpPlayAudio: track:65 usage:5 not muted
+11-24 08:54:59.257   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:54:59.258   384   878 D audioserver: -129
+11-24 08:54:59.263   451  2756 D AudioTrack: getTimestamp_l(25): device stall time corrected using current time 463076130391
+11-24 08:54:59.513   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(4)
+11-24 08:54:59.701   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(41)
+11-24 08:55:00.055   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(3)
+11-24 08:55:00.087  2118  2277 D EGL_emulation: app_time_stats: avg=51.99ms min=37.92ms max=66.08ms count=19
+11-24 08:55:00.099   715   809 D EGL_emulation: app_time_stats: avg=781.39ms min=165.33ms max=1397.45ms count=2
+11-24 08:55:00.418   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(6)
+11-24 08:55:00.580   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(5)
+11-24 08:55:00.773   451  2758 D CCodecBufferChannel: [c2.android.vorbis.decoder#713] buffers after EOS ignored (0 us)
+11-24 08:55:00.774   451  2758 D CCodecBufferChannel: [c2.android.vorbis.decoder#713] buffers after EOS ignored (0 us)
+11-24 08:55:00.774   451  2758 D CCodecBufferChannel: [c2.android.vorbis.decoder#713] buffers after EOS ignored (0 us)
+11-24 08:55:00.775   451  2756 D AudioTrack: stop(25): called with 82980 frames delivered
+11-24 08:55:00.892   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(47)
+11-24 08:55:01.108  2118  2277 D EGL_emulation: app_time_stats: avg=54.07ms min=29.02ms max=79.79ms count=18
+11-24 08:55:01.236   504   615 I MediaFocusControl: abandonAudioFocus() from uid/pid 10117/715 clientId=android.media.AudioManager@199a5cc
+11-24 08:55:01.236   715  2751 V MediaPlayer: resetDrmState:  mDrmInfo=null mDrmProvisioningThread=null mPrepareDrmInProgress=false mActiveDrmScheme=false
+11-24 08:55:01.236   715  2751 V MediaPlayer: cleanDrmObj: mDrmObj=null mDrmSessionId=null
+11-24 08:55:01.236   451  1883 D NuPlayerDriver: reset(0x708d3cefa410) at state 6
+11-24 08:55:01.254   451  2758 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:55:01.255   458  2572 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:55:01.255   451  2757 D MediaCodec: flushMediametrics
+11-24 08:55:01.257   451  2753 D NuPlayerDriver: notifyResetComplete(0x708d3cefa410)
+11-24 08:55:01.257   451  1883 W AMessage: failed to post message as target looper for handler 0 is gone.
+11-24 08:55:01.258   458  2572 I hw-BpHwBinder: onLastStrongRef automatically unlinking death recipients
+11-24 08:55:01.280   715   722 I ndroid.systemui: Background concurrent copying GC freed 261290(11MB) AllocSpace objects, 0(0B) LOS objects, 49% free, 11MB/23MB, paused 41us,32us total 155.666ms
+11-24 08:55:01.288   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:01.288   384   490 D audioserver: -129
+11-24 08:55:01.299  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QMore\E']].
+11-24 08:55:01.300  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QMore\E'].
+11-24 08:55:01.319   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:01.319   384   490 D audioserver: -129
+11-24 08:55:01.485  2118  2138 D UiDevice: Retrieving node with selector: BySelector [DESC='\QMore\E'].
+11-24 08:55:01.603  2118  2138 D UiObject2: Clicking on (1006, 212).
+11-24 08:55:01.604  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@21087; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(975, 181 - 1038, 244); boundsInWindow: Rect(975, 181 - 1038, 244); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: More; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:01.634  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=1006.0, y[0]=212.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=465417, downTime=465417, deviceId=-1, source=0x1002, displayId=0, eventId=-242672620 }
+11-24 08:55:01.720  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=1006.0, y[0]=212.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=465518, downTime=465417, deviceId=-1, source=0x1002, displayId=0, eventId=-1042851020 }
+11-24 08:55:01.734   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:01.734   384   878 D audioserver: -129
+11-24 08:55:01.738  2118  2138 W GestureController: Gestures took longer than expected (134ms >> 16ms), device might be in a busy state.
+11-24 08:55:01.755   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(3)
+11-24 08:55:01.933   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:01.934   384   490 D audioserver: -129
+11-24 08:55:02.011   504   615 I ImeTracker: com.telegramyou.app.debug:c88f661a: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:02.011   504   615 I ImeTracker: com.telegramyou.app.debug:c88f661a: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:02.145  2118  2277 D EGL_emulation: app_time_stats: avg=67.06ms min=40.78ms max=149.03ms count=14
+11-24 08:55:02.523  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QSaved Messages\E']].
+11-24 08:55:02.535  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSaved Messages\E'].
+11-24 08:55:02.765  2118  2138 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QSaved Messages\E'].
+11-24 08:55:03.176  2118  2277 D EGL_emulation: app_time_stats: avg=53.84ms min=32.04ms max=77.44ms count=18
+11-24 08:55:03.455  2118  2138 D UiObject2: Clicking on (898, 737).
+11-24 08:55:03.466  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@24f04; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(760, 711 - 1037, 764); boundsInWindow: Rect(760, 711 - 1037, 764); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: Saved Messages; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:03.587  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=898.0, y[0]=737.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=467282, downTime=467282, deviceId=-1, source=0x1002, displayId=0, eventId=-373035375 }
+11-24 08:55:03.649  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=898.0, y[0]=737.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=467385, downTime=467282, deviceId=-1, source=0x1002, displayId=0, eventId=-94661905 }
+11-24 08:55:03.673  2118  2277 D EGL_emulation: app_time_stats: avg=444.10ms min=83.10ms max=1007.16ms count=4
+11-24 08:55:03.685  2118  2138 W GestureController: Gestures took longer than expected (216ms >> 16ms), device might be in a busy state.
+11-24 08:55:03.686  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QTag Ideas\E']].
+11-24 08:55:03.686  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:03.745   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:03.745   384   878 D audioserver: -129
+11-24 08:55:03.766   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(4)
+11-24 08:55:03.810  2118  2118 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=androidx.compose.ui.window.Api33Impl$$ExternalSyntheticLambda0@ec104a6
+11-24 08:55:03.844   504   615 W InputManager-JNI: Input channel object '16dd36c Pop-Up Window (client)' was disposed without first being removed with the input manager!
+11-24 08:55:03.845  2118  2138 W UiDevice: Skipping null root node for window: AccessibilityWindowInfo[title=Pop-Up Window, displayId=0, id=20, taskId=13, type=TYPE_APPLICATION, layer=0, region=SkRegion((633,275,1069,1073)), bounds=Rect(633, 275 - 1069, 1073), focused=true, active=true, pictureInPicture=false, transitionTime=465730, hasParent=false, isAnchored=false, hasChildren=false]
+11-24 08:55:03.929   504   615 I ImeTracker: com.telegramyou.app.debug:51237a22: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:03.929   504   615 I ImeTracker: com.telegramyou.app.debug:51237a22: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:03.990   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:03.990   384   490 D audioserver: -129
+11-24 08:55:04.134  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:04.176  2118  2277 D EGL_emulation: app_time_stats: avg=62.26ms min=34.18ms max=106.34ms count=15
+11-24 08:55:04.257   451  2301 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 08:55:04.295   458   713 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 0
+11-24 08:55:04.469  2118  2124 I amyou.app.debug: Method exceeds compiler instruction limit: 20232 in void com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen(com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.F
+11-24 08:55:04.511   715   715 D StatusBarIconController: ignoring old pipeline callbacks, because the new mobile icons are enabled
+11-24 08:55:04.675   504  1244 W AppSearchIcing: icing-search-engine.cc:283: Error: 5, Message: Failed to find DocumentId by key: android$com.telegramyou.app.debug/com.telegramyou.app.debug, chat_6;Key not found 15605870786096735823 in DynamicTrieKeyMapper /data/system_ce/0/appsearch/icing/document_dir/key_mapper_dir/key_mapper.
+11-24 08:55:04.732  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:04.766  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QTag Ideas\E']].
+11-24 08:55:04.770  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:04.866  2118  2138 D UiDevice: Retrieving node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:04.867  2118  2124 I amyou.app.debug: JIT allocated 107KB for compiled code of kotlin.Unit com.telegramyou.app.navigation.TelegramYouNavHostKt.TelegramYouNavHost$lambda$47$0$0$11$3$0$1$1(com.telegramyou.app.ui.chat.ChatViewModel, kotlin.jvm.functions.Function0, androidx.compose.runtime.State, androidx.navigation.NavHostController, com.telegramyou.app.settings.GeekSettings, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function4, long, com.telegramyou.app.music.MusicPlayer, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlinx.coroutines.CoroutineScope, com.telegramyou.app.telegram.TelegramRepository, kotlin.jvm.functions.Function1, androidx.compose.runtime.State, androidx.compose.runtime.Composer, int)
+11-24 08:55:04.867  2118  2124 I amyou.app.debug: JIT allocated 78KB for stack maps of kotlin.Unit com.telegramyou.app.navigation.TelegramYouNavHostKt.TelegramYouNavHost$lambda$47$0$0$11$3$0$1$1(com.telegramyou.app.ui.chat.ChatViewModel, kotlin.jvm.functions.Function0, androidx.compose.runtime.State, androidx.navigation.NavHostController, com.telegramyou.app.settings.GeekSettings, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function4, long, com.telegramyou.app.music.MusicPlayer, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlinx.coroutines.CoroutineScope, com.telegramyou.app.telegram.TelegramRepository, kotlin.jvm.functions.Function1, androidx.compose.runtime.State, androidx.compose.runtime.Composer, int)
+11-24 08:55:04.870  2118  2124 I amyou.app.debug: Compiler allocated 15MB to compile kotlin.Unit com.telegramyou.app.navigation.TelegramYouNavHostKt.TelegramYouNavHost$lambda$47$0$0$11$3$0$1$1(com.telegramyou.app.ui.chat.ChatViewModel, kotlin.jvm.functions.Function0, androidx.compose.runtime.State, androidx.navigation.NavHostController, com.telegramyou.app.settings.GeekSettings, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function4, long, com.telegramyou.app.music.MusicPlayer, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlinx.coroutines.CoroutineScope, com.telegramyou.app.telegram.TelegramRepository, kotlin.jvm.functions.Function1, androidx.compose.runtime.State, androidx.compose.runtime.Composer, int)
+11-24 08:55:04.890  2118  2138 D UiObject2: Clicking on (151, 375).
+11-24 08:55:04.891  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@6f7f34b7; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(32, 333 - 270, 417); boundsInWindow: Rect(32, 333 - 270, 417); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: Tag Ideas; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:04.905  2118  2125 I amyou.app.debug: Background young concurrent copying GC freed 518875(15MB) AllocSpace objects, 0(0B) LOS objects, 41% free, 21MB/36MB, paused 83us,10us total 139.586ms
+11-24 08:55:04.915  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=151.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=468704, downTime=468704, deviceId=-1, source=0x1002, displayId=0, eventId=-1049647671 }
+11-24 08:55:04.927  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=151.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=468739, downTime=468704, deviceId=-1, source=0x1002, displayId=0, eventId=-501124137 }
+11-24 08:55:04.931   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:04.931   384   878 D audioserver: -129
+11-24 08:55:04.955  2118  2138 W GestureController: Gestures took longer than expected (63ms >> 16ms), device might be in a busy state.
+11-24 08:55:04.961  2118  2138 D UiDevice: Waiting 20000ms for SearchCondition[gone=BySelector [TEXT='\QGrab us a table by the window\E']].
+11-24 08:55:04.961  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QGrab us a table by the window\E'].
+11-24 08:55:05.134  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QGrab us a table by the window\E'].
+11-24 08:55:05.184  2118  2277 D EGL_emulation: app_time_stats: avg=75.79ms min=26.77ms max=186.04ms count=13
+11-24 08:55:05.211   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:05.211   384   490 D audioserver: -129
+11-24 08:55:05.316  2118  2124 I amyou.app.debug: JIT allocated 84KB for compiled code of kotlin.Unit com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen$lambda$234(androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.telegram.model.ChatDetail, androidx.compose.foundation.layout.WindowInsets, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, float, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, float, float, float, kotlin.jvm.functions.Function1, java.util.Map, androidx.compose.ui.platform.SoftwareKeyboardController, androidx.compose.foundation.lazy.LazyListState, kotlin.jvm.functions.Function1, boolean, androidx.compose.runtime.MutableState, com.telegramyou.app.ui.chat.ChatScreenKt$ChatScreen$keyboardBack$1$1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, java.util.Set, boolean, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, java.util.List, kotlinx.coroutines.CoroutineScope, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, androidx.compose.ui.platform.UriHandler, com.telegramyou.app.telegram.model.WebAppTheme, long, androidx.compose.runtime.MutableState, androidx.compose.material3.SnackbarHostState, androidx.compose.ui.focus.FocusRequester, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, com.telegramyou.app.telegram.model.ReplyKeyboard, boolean, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, androidx.compose.runtime.MutableIntState, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, com.telegramyou.app.ui.chat.VoiceRecorder, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, android.content.Context, androidx.activity.compose.ManagedActivityResultLauncher, com.telegramyou.app.ui.chat.VideoNoteRecorder, androidx.lifecycle.LifecycleOwner, kotlin.jvm.functions.Func
+11-24 08:55:05.318  2118  2124 I amyou.app.debug: JIT allocated 96KB for stack maps of kotlin.Unit com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen$lambda$234(androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.telegram.model.ChatDetail, androidx.compose.foundation.layout.WindowInsets, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, float, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, float, float, float, kotlin.jvm.functions.Function1, java.util.Map, androidx.compose.ui.platform.SoftwareKeyboardController, androidx.compose.foundation.lazy.LazyListState, kotlin.jvm.functions.Function1, boolean, androidx.compose.runtime.MutableState, com.telegramyou.app.ui.chat.ChatScreenKt$ChatScreen$keyboardBack$1$1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, java.util.Set, boolean, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, java.util.List, kotlinx.coroutines.CoroutineScope, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, androidx.compose.ui.platform.UriHandler, com.telegramyou.app.telegram.model.WebAppTheme, long, androidx.compose.runtime.MutableState, androidx.compose.material3.SnackbarHostState, androidx.compose.ui.focus.FocusRequester, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, com.telegramyou.app.telegram.model.ReplyKeyboard, boolean, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, androidx.compose.runtime.MutableIntState, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, com.telegramyou.app.ui.chat.VoiceRecorder, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, android.content.Context, androidx.activity.compose.ManagedActivityResultLauncher, com.telegramyou.app.ui.chat.VideoNoteRecorder, androidx.lifecycle.LifecycleOwner, kotlin.jvm.functions.Functio
+11-24 08:55:05.320  2118  2124 I amyou.app.debug: Compiler allocated 28MB to compile kotlin.Unit com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen$lambda$234(androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.telegram.model.ChatDetail, androidx.compose.foundation.layout.WindowInsets, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, float, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, float, float, float, kotlin.jvm.functions.Function1, java.util.Map, androidx.compose.ui.platform.SoftwareKeyboardController, androidx.compose.foundation.lazy.LazyListState, kotlin.jvm.functions.Function1, boolean, androidx.compose.runtime.MutableState, com.telegramyou.app.ui.chat.ChatScreenKt$ChatScreen$keyboardBack$1$1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, java.util.Set, boolean, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, java.util.List, kotlinx.coroutines.CoroutineScope, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, androidx.compose.ui.platform.UriHandler, com.telegramyou.app.telegram.model.WebAppTheme, long, androidx.compose.runtime.MutableState, androidx.compose.material3.SnackbarHostState, androidx.compose.ui.focus.FocusRequester, kotlin.jvm.functions.Function1, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, com.telegramyou.app.telegram.model.ReplyKeyboard, boolean, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableIntState, androidx.compose.runtime.MutableIntState, boolean, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, androidx.compose.runtime.MutableState, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, com.telegramyou.app.ui.chat.VoiceRecorder, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, boolean, kotlin.jvm.functions.Function0, android.content.Context, androidx.activity.compose.ManagedActivityResultLauncher, com.telegramyou.app.ui.chat.VideoNoteRecorder, androidx.lifecycle.LifecycleOwner, kotlin.jvm.functions.Function0
+11-24 08:55:05.366  2118  2124 I amyou.app.debug: Method exceeds compiler instruction limit: 20232 in void com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen(com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.F
+11-24 08:55:05.494  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QColor tokens & springs\E']].
+11-24 08:55:05.494  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QColor tokens & springs\E'].
+11-24 08:55:05.880  2105  2114 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 08:55:05.881  2105  2114 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 08:55:05.881  2105  2114 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 08:55:05.881  2105  2114 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 08:55:05.881  2105  2114 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 08:55:05.881  2105  2114 W System  : A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
+11-24 08:55:05.881  2105  2114 W System  : java.lang.Throwable: Explicit termination method 'HardwareBuffer.close' not called
+11-24 08:55:05.881  2105  2114 W System  : 	at dalvik.system.CloseGuard.openWithCallSite(CloseGuard.java:288)
+11-24 08:55:05.881  2105  2114 W System  : 	at dalvik.system.CloseGuard.open(CloseGuard.java:257)
+11-24 08:55:05.881  2105  2114 W System  : 	at android.hardware.HardwareBuffer.<init>(HardwareBuffer.java:266)
+11-24 08:55:05.905  2339  2351 I AbstractFileContentProvider: file '/storage/emulated/0/googletest/test_outputfiles/127-saved-tag.png': found
+11-24 08:55:06.001  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QName this tag\E']].
+11-24 08:55:06.001  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QName this tag\E'].
+11-24 08:55:06.011  2118  2138 D UiDevice: Retrieving node with selector: BySelector [DESC='\QName this tag\E'].
+11-24 08:55:06.027  2118  2138 D UiObject2: Clicking on (354, 375).
+11-24 08:55:06.028  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@24a4a; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(323, 344 - 386, 407); boundsInWindow: Rect(323, 344 - 386, 407); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: Name this tag; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:06.053  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=354.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=469841, downTime=469841, deviceId=-1, source=0x1002, displayId=0, eventId=-248829972 }
+11-24 08:55:06.062  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=354.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=469874, downTime=469841, deviceId=-1, source=0x1002, displayId=0, eventId=-661214130 }
+11-24 08:55:06.064   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:06.064   384   878 D audioserver: -129
+11-24 08:55:06.086  2118  2138 W GestureController: Gestures took longer than expected (57ms >> 16ms), device might be in a busy state.
+11-24 08:55:06.090   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(5)
+11-24 08:55:06.262   451  2301 D BufferPoolAccessor2.0: bufferpool2 0x708d5cef63d8 : 0(0 size) total buffers - 0(0 size) used buffers - 96/104 (recycle/alloc) - 8/198 (fetch/transfer)
+11-24 08:55:06.262   451  2301 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 08:55:06.316   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:06.317   384   490 D audioserver: -129
+11-24 08:55:06.323   458   713 D BufferPoolAccessor2.0: bufferpool2 0x7cbf5de2bea8 : 0(0 size) total buffers - 0(0 size) used buffers - 93/97 (recycle/alloc) - 4/96 (fetch/transfer)
+11-24 08:55:06.323   458   713 D BufferPoolAccessor2.0: evictor expired: 1, evicted: 1
+11-24 08:55:06.379  2118  2277 D EGL_emulation: app_time_stats: avg=238.66ms min=34.79ms max=819.34ms count=5
+11-24 08:55:06.467   504  2358 I ImeTracker: com.telegramyou.app.debug:cb5bead7: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:06.472   504  2358 I ImeTracker: com.telegramyou.app.debug:cb5bead7: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:06.981  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QName this tag\E']].
+11-24 08:55:06.981  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QName this tag\E'].
+11-24 08:55:06.995  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [CLASS='\Qandroid.widget.EditText\E']].
+11-24 08:55:06.995  2118  2138 D UiDevice: Searching for node with selector: BySelector [CLASS='\Qandroid.widget.EditText\E'].
+11-24 08:55:07.610  2118  2138 D UiDevice: Retrieving node with selector: BySelector [CLASS='\Qandroid.widget.EditText\E'].
+11-24 08:55:07.628  2118  2138 D UiObject2: Setting text to 'Plans'.
+11-24 08:55:07.630  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QSave\E']].
+11-24 08:55:07.630  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSave\E'].
+11-24 08:55:07.653  2118  2277 D EGL_emulation: app_time_stats: avg=283.86ms min=87.51ms max=656.30ms count=5
+11-24 08:55:07.657  2118  2138 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QSave\E'].
+11-24 08:55:07.693  2118  2138 D UiObject2: Clicking on (821, 1498).
+11-24 08:55:07.695  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@2823e; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(781, 1472 - 861, 1525); boundsInWindow: Rect(781, 1472 - 861, 1525); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: Save; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:07.711  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=821.0, y[0]=1498.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=471508, downTime=471508, deviceId=-1, source=0x1002, displayId=0, eventId=-39520938 }
+11-24 08:55:07.722  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=821.0, y[0]=1498.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=471533, downTime=471508, deviceId=-1, source=0x1002, displayId=0, eventId=-180103005 }
+11-24 08:55:07.752  2118  2118 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@be26370
+11-24 08:55:07.764   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:07.764   384   878 D audioserver: -129
+11-24 08:55:07.774  2118  2138 W GestureController: Gestures took longer than expected (78ms >> 16ms), device might be in a busy state.
+11-24 08:55:07.797   504  2482 W InputManager-JNI: Input channel object 'd180159 com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal (client)' was disposed without first being removed with the input manager!
+11-24 08:55:07.808   715   722 I ndroid.systemui: Background young concurrent copying GC freed 226430(10MB) AllocSpace objects, 0(0B) LOS objects, 44% free, 11MB/21MB, paused 26us,29us total 111.359ms
+11-24 08:55:07.848   504  2482 I ImeTracker: com.telegramyou.app.debug:8c96a15b: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:07.849   504  2482 I ImeTracker: com.telegramyou.app.debug:8c96a15b: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:07.939  2118  2277 D EGL_emulation: app_time_stats: avg=389.54ms min=45.80ms max=1295.13ms count=4
+11-24 08:55:07.977   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:07.977   384   490 D audioserver: -129
+11-24 08:55:08.003  2118  2124 I amyou.app.debug: Method exceeds compiler instruction limit: 20232 in void com.telegramyou.app.ui.chat.ChatScreenKt.ChatScreen(com.telegramyou.app.ui.chat.ChatUiState, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function4, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, com.telegramyou.app.music.NowPlaying, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function3, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function2, kotlin.jvm.functions.Function1, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function0, kotlin.jvm.functions.Function1, kotlin.jvm.functions.F
+11-24 08:55:08.350  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QTag Plans\E']].
+11-24 08:55:08.350  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Plans\E'].
+11-24 08:55:08.361  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QName this tag\E']].
+11-24 08:55:08.362  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QName this tag\E'].
+11-24 08:55:08.377  2118  2138 D UiDevice: Retrieving node with selector: BySelector [DESC='\QName this tag\E'].
+11-24 08:55:08.394  2118  2138 D UiObject2: Clicking on (357, 375).
+11-24 08:55:08.395  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@24a4a; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(326, 344 - 389, 407); boundsInWindow: Rect(326, 344 - 389, 407); packageName: com.telegramyou.app.debug; className: android.view.View; text: null; error: null; maxTextLength: -1; stateDescription: null; contentDescription: Name this tag; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:08.414  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=357.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=472208, downTime=472208, deviceId=-1, source=0x1002, displayId=0, eventId=-639001118 }
+11-24 08:55:08.424  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=357.0, y[0]=375.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=472235, downTime=472208, deviceId=-1, source=0x1002, displayId=0, eventId=-340808775 }
+11-24 08:55:08.426   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:08.426   384   878 D audioserver: -129
+11-24 08:55:08.456  2118  2138 W GestureController: Gestures took longer than expected (61ms >> 16ms), device might be in a busy state.
+11-24 08:55:08.620   715   722 I ndroid.systemui: Background concurrent copying GC freed 251562(11MB) AllocSpace objects, 0(0B) LOS objects, 49% free, 11MB/22MB, paused 40us,23us total 144.170ms
+11-24 08:55:08.710   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:08.710   384   490 D audioserver: -129
+11-24 08:55:08.837   504   689 I ImeTracker: com.telegramyou.app.debug:c281a8d3: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:08.848   504   689 I ImeTracker: com.telegramyou.app.debug:c281a8d3: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:08.986  2118  2277 D EGL_emulation: app_time_stats: avg=173.87ms min=65.93ms max=418.18ms count=6
+11-24 08:55:09.358  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [CLASS='\Qandroid.widget.EditText\E']].
+11-24 08:55:09.358  2118  2138 D UiDevice: Searching for node with selector: BySelector [CLASS='\Qandroid.widget.EditText\E'].
+11-24 08:55:09.379  2118  2138 D UiDevice: Retrieving node with selector: BySelector [CLASS='\Qandroid.widget.EditText\E'].
+11-24 08:55:09.978  2118  2138 D UiObject2: Setting text to 'Ideas'.
+11-24 08:55:09.980  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [TEXT='\QSave\E']].
+11-24 08:55:09.980  2118  2138 D UiDevice: Searching for node with selector: BySelector [TEXT='\QSave\E'].
+11-24 08:55:09.999  2118  2138 D UiDevice: Retrieving node with selector: BySelector [TEXT='\QSave\E'].
+11-24 08:55:10.004  2118  2277 D EGL_emulation: app_time_stats: avg=282.46ms min=114.80ms max=625.09ms count=5
+11-24 08:55:10.048  2118  2138 D UiObject2: Clicking on (821, 1498).
+11-24 08:55:10.049  2118  2138 W UiObject2: Clicking on non-clickable object: android.view.accessibility.AccessibilityNodeInfo@2a408; boundsInParent: Rect(0, 0 - 0, 0); boundsInScreen: Rect(781, 1472 - 861, 1525); boundsInWindow: Rect(781, 1472 - 861, 1525); packageName: com.telegramyou.app.debug; className: android.widget.TextView; text: Save; error: null; maxTextLength: -1; stateDescription: null; contentDescription: null; tooltipText: null; containerTitle: null; viewIdResName: null; uniqueId: null; checkable: false; checked: false; focusable: false; focused: false; selected: false; clickable: false; longClickable: false; contextClickable: false; enabled: true; password: false; scrollable: false; importantForAccessibility: true; visible: true; actions: [AccessibilityAction: ACTION_ACCESSIBILITY_FOCUS - null, AccessibilityAction: ACTION_SET_SELECTION - null, AccessibilityAction: ACTION_NEXT_AT_MOVEMENT_GRANULARITY - null, AccessibilityAction: ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY - null]; isTextSelectable: false
+11-24 08:55:10.069  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_DOWN, actionButton=0, id[0]=0, x[0]=821.0, y[0]=1498.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=473863, downTime=473862, deviceId=-1, source=0x1002, displayId=0, eventId=-507777473 }
+11-24 08:55:10.088  2662  2662 D TaplEvents: TIS / TouchInteractionService.onInputEvent: MotionEvent { action=ACTION_UP, actionButton=0, id[0]=0, x[0]=821.0, y[0]=1498.0, toolType[0]=TOOL_TYPE_FINGER, buttonState=0, classification=NONE, metaState=0, flags=0x0, edgeFlags=0x0, pointerCount=1, historySize=0, eventTime=473899, downTime=473862, deviceId=-1, source=0x1002, displayId=0, eventId=-995511640 }
+11-24 08:55:10.089   384   878 D audioserver: FGS Logger Transaction failed
+11-24 08:55:10.089   384   878 D audioserver: -129
+11-24 08:55:10.103  2118  2118 W WindowOnBackDispatcher: sendCancelIfRunning: isInProgress=falsecallback=androidx.navigationevent.OnBackInvokedInput$createOnBackAnimationCallback$1@646f330
+11-24 08:55:10.114  2118  2138 W GestureController: Gestures took longer than expected (64ms >> 16ms), device might be in a busy state.
+11-24 08:55:10.118   504  2198 W InputManager-JNI: Input channel object '4a874c4 com.telegramyou.app.debug/com.telegramyou.app.LauncherTeal (client)' was disposed without first being removed with the input manager!
+11-24 08:55:10.155   504  2198 I ImeTracker: com.telegramyou.app.debug:d3589d02: onRequestHide at ORIGIN_SERVER_HIDE_INPUT reason HIDE_UNSPECIFIED_WINDOW
+11-24 08:55:10.155   504  2198 I ImeTracker: com.telegramyou.app.debug:d3589d02: onCancelled at PHASE_SERVER_SHOULD_HIDE
+11-24 08:55:10.189   384   490 D AudioFlinger: mixer(0x7af416020930) throttle end: throttle time(6)
+11-24 08:55:10.300  2118  2277 D EGL_emulation: app_time_stats: avg=656.89ms min=56.65ms max=1257.13ms count=2
+11-24 08:55:10.317   715   722 I ndroid.systemui: Background young concurrent copying GC freed 254630(11MB) AllocSpace objects, 0(0B) LOS objects, 44% free, 12MB/22MB, paused 37us,27us total 193.416ms
+11-24 08:55:10.339   384   490 D audioserver: FGS Logger Transaction failed
+11-24 08:55:10.339   384   490 D audioserver: -129
+11-24 08:55:10.657  2118  2138 D UiDevice: Waiting 1000ms for SearchCondition[hasObject=BySelector [DESC='\QTag Ideas\E']].
+11-24 08:55:10.658  2118  2138 D UiDevice: Searching for node with selector: BySelector [DESC='\QTag Ideas\E'].
+11-24 08:55:10.677  2118  2138 D UiDevice: Executing shell command: settings put global heads_up_notifications_enabled 1
+11-24 08:55:10.688  2118  2138 D UiDevice: Setting orientation to natural.
+11-24 08:55:10.690  2118  2138 D UiDevice: Waiting 2000ms for Condition[displayRotation=0, displayId=0].
+11-24 08:55:10.690  2662  2662 D CompatibilityChangeReporter: Compat change id reported: 150939131; UID 10112; state: ENABLED
+11-24 08:55:10.691  2118  2138 D UiDevice: Unfreezing rotation.
+11-24 08:55:10.692  2118  2138 I TestRunner: finished: savedMessagesAreFilteredByTag(com.telegramyou.app.SmokeTest)
